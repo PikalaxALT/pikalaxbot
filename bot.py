@@ -1,0 +1,113 @@
+import asyncio
+import discord
+import json
+from discord.ext import commands
+from discord import compat
+from utils import markov
+import random
+
+
+initial_extensions = (
+    'cogs.meme',
+)
+
+
+class PikalaxBOT(commands.Bot):
+    def __init__(self, settings):
+        meta = settings.get('meta', {})
+        credentials = settings.get('credentials', {})
+        user = settings.get('user', {})
+
+        self.whitelist = []
+        self.debug = False
+        self.markov_channels = []
+
+        for key, value in user.items():
+            setattr(self, key, value)
+
+        self.chains = {chan: markov.Chain(state_size=1, store_lowercase=True) for chan in self.markov_channels}
+
+        self._token = credentials.get('token')
+        command_prefix = meta.get('prefix', '!')
+
+        super().__init__(command_prefix)
+
+    def run(self):
+        super().run(self._token)
+
+    def print(self, message):
+        if self.debug:
+            print(message)
+
+    def _do_cleanup(self):
+        loop = self.loop
+
+        tasks = []
+        for ch in self.whitelist:
+            channel = self.get_channel(ch)
+            task = compat.create_task(channel.send('Shutting down...'), loop=loop)
+            tasks.append(task)
+        if not loop.is_running():
+            loop.run_forever()
+            for task in tasks:
+                try:
+                    task.result()
+                except:
+                    pass
+        super()._do_cleanup()
+
+    def is_message_important(self, content):
+        return not content.startswith(self.command_prefix)
+
+
+if __name__ == '__main__':
+    with open('settings.json') as fp:
+        settings = json.load(fp)
+    bot = PikalaxBOT(settings)
+    for extn in initial_extensions:
+        bot.load_extension(extn)
+
+
+    @bot.check
+    def is_allowed(ctx):
+        return ctx.message.channel.id in bot.whitelist
+
+
+    @bot.event
+    async def on_ready():
+        for ch in list(bot.chains.keys()):
+            channel = bot.get_channel(ch)  # type: discord.TextChannel
+            try:
+                async for msg in channel.history(limit=5000):
+                    content = msg.clean_content
+                    if bot.is_message_important(content):
+                        bot.chains[ch].learn_str(content)
+            except discord.Forbidden:
+                bot.chains.pop(ch)
+                print(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+        for ch in bot.whitelist:
+            channel = bot.get_channel(ch)
+            await channel.send('_is active and ready for abuse!_')
+
+
+    @bot.listen('on_message')
+    async def send_markov(msg: discord.Message):
+        if msg.channel.id in bot.whitelist and \
+                (bot.user.mentioned_in(msg) or
+                bot.user.name.lower() in msg.clean_content.lower() or
+                bot.user.display_name.lower() in msg.clean_content.lower()):
+            ch = random.choice(list(bot.chains.keys()))
+            chain = []
+            for i in range(5):
+                chain.append(bot.chains[ch].generate_str())
+                if i * 2 + sum(map(len, chain)) >= 1000:
+                    break
+            chain = '. '.join(chain) + '.'
+            await msg.channel.send(f'{msg.author.mention}: {chain}')
+        elif msg.channel.id in bot.chains and bot.is_message_important(msg.clean_content):
+            bot.chains[msg.channel.id].train_str(msg.clean_content)
+
+
+
+    print('Starting bot')
+    bot.run()
