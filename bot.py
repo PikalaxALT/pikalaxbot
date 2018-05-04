@@ -30,6 +30,8 @@ class PikalaxBOT(commands.Bot):
         self._token = credentials.get('token')
         command_prefix = meta.get('prefix', '!')
 
+        self.storedMsgsSet = set()
+
         super().__init__(command_prefix)
 
     def run(self):
@@ -58,6 +60,22 @@ class PikalaxBOT(commands.Bot):
 
     def is_message_important(self, content):
         return not content.startswith(self.command_prefix)
+
+    def generateMessage(self, ch, maxLength=64, attemptCount=5):
+        longest = ''
+        longestCount = 0
+        chain = self.chains.get(ch)
+        if chain is None:
+            return
+        for i in range(attemptCount):
+            l = chain.generate(maxLength)
+            if len(l) > longestCount:
+                msg = str.join(' ', l)
+                if i == 0 or msg not in self.storedMsgsSet:
+                    longestCount = len(l)
+                    longest = str.join(' ', l)
+                    if longestCount == maxLength: break
+        return longest
 
 
 if __name__ == '__main__':
@@ -97,14 +115,10 @@ if __name__ == '__main__':
                 bot.user.name.lower() in msg.clean_content.lower() or
                 bot.user.display_name.lower() in msg.clean_content.lower()):
             ch = random.choice(list(bot.chains.keys()))
-            chain = []
-            for i in range(5):
-                chain.append(bot.chains[ch].generate_str())
-                if i * 2 + sum(map(len, chain)) >= 1000:
-                    break
-            chain = '. '.join(chain) + '.'
+            chain = bot.generateMessage(ch, maxLength=250, attemptCount=10)
             await msg.channel.send(f'{msg.author.mention}: {chain}')
         elif msg.channel.id in bot.chains and bot.is_message_important(msg.clean_content):
+            bot.storedMsgsSet.add(msg.clean_content)
             bot.chains[msg.channel.id].train_str(msg.clean_content)
 
 
