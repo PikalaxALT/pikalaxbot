@@ -50,11 +50,8 @@ class AnagramGame:
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
-            log.info(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
-                     f'OLDEN corrupts your save.'
-                     f'{self.show()}')
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
-                           f'OLDEN corrupts your save.'
+                           f'OLDEN corrupts your save.\n'
                            f'{self.show()}')
 
     async def end(self, ctx, failed=False):
