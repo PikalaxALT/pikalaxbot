@@ -36,16 +36,16 @@ class HangmanGame:
 
     async def start(self, ctx):
         if self.running:
-            await self.bot.say(f'{ctx.author.mention}: Hangman is already running here.')
+            await ctx.send(f'{ctx.author.mention}: Hangman is already running here.')
         else:
             self._solution = random.choice(data.pokemon)
             self._state = ['_' for c in self._solution]
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
-            await self.bot.say(f'Hangman has started! You have {self.attempts:d} attempts to guess correctly before '
-                               f'the man dies!\n'
-                               f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
+            await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts to guess correctly before '
+                           f'the man dies!\n'
+                           f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
 
     async def end(self, ctx, failed=False):
         if self.running:
