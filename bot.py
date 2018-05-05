@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     @bot.check
     def is_allowed(ctx):
-        return ctx.message.channel.id in bot.whitelist
+        return ctx.message.channel in bot.whitelist
 
 
     @bot.event
@@ -110,6 +110,8 @@ if __name__ == '__main__':
             except discord.Forbidden:
                 bot.chains.pop(ch)
                 print(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+            except AttributeError:
+                bot.chains.pop(ch)
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = [ch for ch in wl if ch is not None]
         for channel in list(bot.whitelist):
@@ -118,7 +120,7 @@ if __name__ == '__main__':
 
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):
-        if msg.channel.id in bot.whitelist and \
+        if msg.channel in bot.whitelist and \
                 (bot.user.mentioned_in(msg) or
                 bot.user.name.lower() in msg.clean_content.lower() or
                 bot.user.display_name.lower() in msg.clean_content.lower()):
