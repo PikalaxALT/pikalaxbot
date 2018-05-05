@@ -34,18 +34,21 @@ class HangmanGame:
     def running(self, state):
         self._running = state
 
+    def show(self):
+        return f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]'
+
     async def start(self, ctx):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Hangman is already running here.')
         else:
             self._solution = random.choice(data.pokemon)
-            self._state = ['_' for c in self._solution]
+            self._state = ['\_' for c in self._solution]
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
             await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts to guess correctly before '
                            f'the man dies!\n'
-                           f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
+                           f'{self.show()}')
 
     async def end(self, ctx, failed=False):
         if self.running:
@@ -84,7 +87,7 @@ class HangmanGame:
                     self._incorrect.append(guess)
                     self.attempts -= 1
             if self.running:
-                await ctx.send(f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
+                await ctx.send(f'{self.show()}')
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
@@ -121,6 +124,14 @@ class Hangman:
         if self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel.id].end(ctx, True)
 
+    @hangman.command()
+    async def show(self, ctx):
+        """Show the current puzzle state"""
+        game = self.channels.get(ctx.channel.id)
+        if game.running:
+            await ctx.send(f'{self.show()}')
+        else:
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.')
 
 def setup(bot):
     bot.add_cog(Hangman(bot))

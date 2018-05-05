@@ -13,7 +13,7 @@ class AnagramGame:
 
     def reset(self):
         self._running = False
-        self._state = []
+        self._state = ''
         self._solution = ''
         self._incorrect = []
         self.attempts = 0
@@ -34,6 +34,9 @@ class AnagramGame:
     def running(self, state):
         self._running = state
 
+    def show(self):
+        return f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]'
+
     async def start(self, ctx):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Anagram is already running here.')
@@ -47,7 +50,7 @@ class AnagramGame:
             self.running = True
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
                            f'OLDEN corrupts your save.'
-                           f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
+                           f'{self.show()}')
 
     async def end(self, ctx, failed=False):
         if self.running:
@@ -74,7 +77,7 @@ class AnagramGame:
                     self._incorrect.append(guess)
                     self.attempts -= 1
             if self.running:
-                await ctx.send(f'Puzzle: {self.state} | Incorrect: {self.incorrect}')
+                await ctx.send(f'{self.show()}')
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
@@ -110,6 +113,15 @@ class Anagram:
         """End the game as a loss (owner only)"""
         if self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel].end(ctx, True)
+
+    @anagram.command()
+    async def show(self, ctx):
+        """Show the current puzzle state"""
+        game = self.channels.get(ctx.channel.id)
+        if game.running:
+            await ctx.send(f'{self.show()}')
+        else:
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.')
 
 
 def setup(bot):
