@@ -47,8 +47,7 @@ class PikalaxBOT(commands.Bot):
         loop = self.loop
 
         tasks = []
-        for ch in self.whitelist:
-            channel = self.get_channel(ch)
+        for channel in self.whitelist:
             task = compat.create_task(channel.send('Shutting down...'), loop=loop)
             tasks.append(task)
         if not loop.is_running():
@@ -111,8 +110,9 @@ if __name__ == '__main__':
             except discord.Forbidden:
                 bot.chains.pop(ch)
                 print(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
-        for ch in bot.whitelist:
-            channel = bot.get_channel(ch)
+        wl = map(bot.get_channel, bot.whitelist)
+        bot.whitelist = [ch for ch in wl if ch is not None]
+        for channel in list(bot.whitelist):
             await channel.send('_is active and ready for abuse!_')
 
 
@@ -128,7 +128,6 @@ if __name__ == '__main__':
         elif msg.channel.id in bot.chains and bot.is_message_important(msg.clean_content):
             bot.storedMsgsSet.add(msg.clean_content)
             bot.chains[msg.channel.id].train_str(msg.clean_content)
-
 
 
     print('Starting bot')
