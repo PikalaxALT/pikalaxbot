@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     @bot.check
     def is_not_me(ctx):
-        return ctx.author.id != bot.user.id
+        return ctx.author != bot.user
 
 
     @bot.check
@@ -152,7 +152,8 @@ if __name__ == '__main__':
                 (bot.user.mentioned_in(msg) or
                  bot.user.name.lower() in msg.clean_content.lower() or
                  bot.user.display_name.lower() in msg.clean_content.lower()) and \
-                not msg.content.startswith(bot.command_prefix):
+                not msg.content.startswith(bot.command_prefix) and \
+                msg.author != bot.user:
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
             await msg.channel.send(f'{msg.author.mention}: {chain}')
