@@ -112,6 +112,7 @@ if __name__ == '__main__':
                 print(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
             except AttributeError:
                 bot.chains.pop(ch)
+                logger.debug(f'Failed to load chain {ch:d}')
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = [ch for ch in wl if ch is not None]
         for channel in list(bot.whitelist):
@@ -120,10 +121,10 @@ if __name__ == '__main__':
 
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):
-        if msg.channel in bot.whitelist and \
+        if msg.channel in bot.whitelist and len(bot.chains) > 0 and \
                 (bot.user.mentioned_in(msg) or
-                bot.user.name.lower() in msg.clean_content.lower() or
-                bot.user.display_name.lower() in msg.clean_content.lower()):
+                 bot.user.name.lower() in msg.clean_content.lower() or
+                 bot.user.display_name.lower() in msg.clean_content.lower()):
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
             await msg.channel.send(f'{msg.author.mention}: {chain}')
