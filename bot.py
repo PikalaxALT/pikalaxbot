@@ -142,7 +142,7 @@ if __name__ == '__main__':
                 log.debug(f'Failed to load chain {ch:d}')
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = {ch.id: ch for ch in wl if ch is not None}
-        for channel in list(bot.whitelist):
+        for channel in bot.whitelist.values():
             await channel.send('_is active and ready for abuse!_')
 
 
