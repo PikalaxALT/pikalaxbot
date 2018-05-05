@@ -107,9 +107,10 @@ if __name__ == '__main__':
                     content = msg.clean_content
                     if bot.is_message_important(content):
                         bot.chains[ch].learn_str(content)
+                logger.debug(f'Initialized channel {channel.name}')
             except discord.Forbidden:
                 bot.chains.pop(ch)
-                print(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+                logger.debug(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
             except AttributeError:
                 bot.chains.pop(ch)
                 logger.debug(f'Failed to load chain {ch:d}')
