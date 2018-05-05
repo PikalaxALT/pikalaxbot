@@ -45,7 +45,7 @@ class AnagramGame:
             self._solution = random.choice(data.pokemon)
             self._state = self._solution
             while self._state == self._solution:
-                self._state = random.shuffle(self._solution)
+                self._state = ''.join(random.shuffle(list(self._solution)))
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
