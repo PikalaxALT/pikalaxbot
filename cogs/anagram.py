@@ -35,7 +35,7 @@ class AnagramGame:
         self._running = state
 
     def show(self):
-        return f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]'
+        return f'`Puzzle: {self.state} | Incorrect: [{self.incorrect}] | Remaining: {self.attempts:d}`'
 
     async def start(self, ctx):
         if self.running:
