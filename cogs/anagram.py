@@ -50,29 +50,35 @@ class AnagramGame:
                                f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
 
     async def end(self, ctx, failed=False):
-        if failed:
-            await ctx.send(f'You were too late, welcome to Glitch Purgatory.\n'
-                           f'Solution: {self._solution}')
+        if self.running:
+            if failed:
+                await ctx.send(f'You were too late, welcome to Glitch Purgatory.\n'
+                               f'Solution: {self._solution}')
+            else:
+                await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
+                               f'Solution: {self._solution}')
+            self.reset()
         else:
-            await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
-                           f'Solution: {self._solution}')
-        self.reset()
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.')
 
     async def guess(self, ctx, guess):
-        guess = guess.upper()
-        if guess in self._incorrect:
-            await ctx.send(f'Character already guessed: {guess}')
-        else:
-            if self._solution == guess:
-                self._state = self._solution
-                await self.end(ctx)
-            else:
-                self._incorrect.append(guess)
-                self.attempts -= 1
         if self.running:
-            await ctx.send(f'Puzzle: {self.state} | Incorrect: {self.incorrect}')
-            if self.attempts == 0:
-                await self.end(ctx, True)
+            guess = guess.upper()
+            if guess in self._incorrect:
+                await ctx.send(f'Character already guessed: {guess}')
+            else:
+                if self._solution == guess:
+                    self._state = self._solution
+                    await self.end(ctx)
+                else:
+                    self._incorrect.append(guess)
+                    self.attempts -= 1
+            if self.running:
+                await ctx.send(f'Puzzle: {self.state} | Incorrect: {self.incorrect}')
+                if self.attempts == 0:
+                    await self.end(ctx, True)
+        else:
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.')
 
 
 class Anagram:

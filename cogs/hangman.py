@@ -48,41 +48,47 @@ class HangmanGame:
                                f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
 
     async def end(self, ctx, failed=False):
-        if failed:
-            await ctx.send(f'You were too late, the man has hanged to death.\n'
-                           f'Solution: {self._solution}')
+        if self.running:
+            if failed:
+                await ctx.send(f'You were too late, the man has hanged to death.\n'
+                               f'Solution: {self._solution}')
+            else:
+                await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
+                               f'Solution: {self._solution}')
+            self.reset()
         else:
-            await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
-                           f'Solution: {self._solution}')
-        self.reset()
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.')
 
     async def guess(self, ctx, guess):
-        guess = guess.upper()
-        if guess in self._incorrect or guess in self._state:
-            await ctx.send(f'Character or solution already guessed: {guess}')
-        elif len(guess) == 1:
-            found = False
-            for i, c in enumerate(self._solution):
-                if c == guess:
-                    self._state[i] = guess
-                    found = True
-            if found:
-                if ''.join(self._state) == self._solution:
-                    await self.end(ctx)
-            else:
-                self._incorrect.append(guess)
-                self.attempts -= 1
-        else:
-            if self._solution == guess:
-                self._state = list(self._solution)
-                await self.end(ctx)
-            else:
-                self._incorrect.append(guess)
-                self.attempts -= 1
         if self.running:
-            await ctx.send(f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
-            if self.attempts == 0:
-                await self.end(ctx, True)
+            guess = guess.upper()
+            if guess in self._incorrect or guess in self._state:
+                await ctx.send(f'Character or solution already guessed: {guess}')
+            elif len(guess) == 1:
+                found = False
+                for i, c in enumerate(self._solution):
+                    if c == guess:
+                        self._state[i] = guess
+                        found = True
+                if found:
+                    if ''.join(self._state) == self._solution:
+                        await self.end(ctx)
+                else:
+                    self._incorrect.append(guess)
+                    self.attempts -= 1
+            else:
+                if self._solution == guess:
+                    self._state = list(self._solution)
+                    await self.end(ctx)
+                else:
+                    self._incorrect.append(guess)
+                    self.attempts -= 1
+            if self.running:
+                await ctx.send(f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
+                if self.attempts == 0:
+                    await self.end(ctx, True)
+        else:
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.')
 
 
 class Hangman:
