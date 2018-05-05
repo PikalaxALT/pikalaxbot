@@ -103,6 +103,8 @@ if __name__ == '__main__':
     bot = PikalaxBOT(settings)
     if bot.debug:
         log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.INFO)
     for extn in initial_extensions:
         bot.load_extension(extn)
 
@@ -135,13 +137,13 @@ if __name__ == '__main__':
                     content = msg.clean_content
                     if bot.is_message_important(content):
                         bot.chains[ch].learn_str(content)
-                log.debug(f'Initialized channel {channel.name}')
+                log.info(f'Initialized channel {channel.name}')
             except discord.Forbidden:
                 bot.chains.pop(ch)
-                log.debug(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+                log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
             except AttributeError:
                 bot.chains.pop(ch)
-                log.debug(f'Failed to load chain {ch:d}')
+                log.error(f'Failed to load chain {ch:d}')
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = {ch.id: ch for ch in wl if ch is not None}
         for channel in bot.whitelist.values():

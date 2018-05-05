@@ -44,14 +44,14 @@ class AnagramGame:
         else:
             self._solution = random.choice(data.pokemon)
             self._state = self._solution
-            nattempts = 0
             while self._state == self._solution:
-                nattempts += 1
-                log.debug(f'State: {self._state}, attempts {nattempts:d}')
                 self._state = random.shuffle(self._solution)
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
+            log.info(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
+                     f'OLDEN corrupts your save.'
+                     f'{self.show()}')
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
                            f'OLDEN corrupts your save.'
                            f'{self.show()}')
