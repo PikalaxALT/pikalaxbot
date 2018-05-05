@@ -101,6 +101,8 @@ if __name__ == '__main__':
     with open('settings.json') as fp:
         settings = json.load(fp)
     bot = PikalaxBOT(settings)
+    if bot.debug:
+        log.setLevel(logging.DEBUG)
     for extn in initial_extensions:
         bot.load_extension(extn)
 

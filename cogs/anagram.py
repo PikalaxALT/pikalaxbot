@@ -3,6 +3,7 @@ import discord
 import random
 from utils.data import data
 from discord.ext import commands
+from bot import log
 
 
 class AnagramGame:
@@ -43,7 +44,10 @@ class AnagramGame:
         else:
             self._solution = random.choice(data.pokemon)
             self._state = self._solution
+            nattempts = 0
             while self._state == self._solution:
+                nattempts += 1
+                log.debug(f'State: {self._state}, attempts {nattempts:d}')
                 self._state = random.shuffle(self._solution)
             self.attempts = self._attempts
             self._incorrect = []
