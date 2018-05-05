@@ -12,6 +12,7 @@ import time
 
 initial_extensions = (
     'cogs.meme',
+    'cogs.hangman'
 )
 
 
