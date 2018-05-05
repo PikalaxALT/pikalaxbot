@@ -7,6 +7,7 @@ from utils import markov
 import random
 import logging
 import sys
+import time
 
 
 initial_extensions = (
@@ -23,6 +24,9 @@ class PikalaxBOT(commands.Bot):
         self.whitelist = []
         self.debug = False
         self.markov_channels = []
+        self.rate_limiting = {}
+        self.max_rate = 10
+        self.cooldown = 10
 
         for key, value in user.items():
             setattr(self, key, value)
@@ -79,6 +83,14 @@ class PikalaxBOT(commands.Bot):
                         break
         return longest
 
+    def rate_limit(self, ch):
+        def when_done():
+            self.rate_limiting[ch] -= 1
+
+        self.rate_limiting.setdefault(ch, 0)
+        self.rate_limiting[ch] += 1
+        self.loop.call_later(self.cooldown, when_done)
+
 
 if __name__ == '__main__':
     logger = logging.getLogger()
@@ -95,7 +107,21 @@ if __name__ == '__main__':
 
     @bot.check
     def is_allowed(ctx):
-        return ctx.message.channel in bot.whitelist
+        return ctx.channel in bot.whitelist
+
+
+    @bot.check
+    def is_not_me(ctx):
+        return ctx.author != bot.user
+
+
+    @bot.check
+    def is_not_rate_limited(ctx):
+        ch = ctx.channel
+        if ch in bot.rate_limiting and bot.rate_limiting[ch] >= bot.max_rate:
+            return False
+        bot.rate_limit(ch)
+        return True
 
 
     @bot.event
@@ -125,13 +151,14 @@ if __name__ == '__main__':
         if msg.channel in bot.whitelist and len(bot.chains) > 0 and \
                 (bot.user.mentioned_in(msg) or
                  bot.user.name.lower() in msg.clean_content.lower() or
-                 bot.user.display_name.lower() in msg.clean_content.lower()):
+                 bot.user.display_name.lower() in msg.clean_content.lower()) and \
+                not msg.content.startswith(bot.command_prefix):
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
             await msg.channel.send(f'{msg.author.mention}: {chain}')
         elif msg.channel.id in bot.chains and bot.is_message_important(msg.clean_content):
             bot.storedMsgsSet.add(msg.clean_content)
-            bot.chains[msg.channel.id].train_str(msg.clean_content)
+            bot.chains[msg.channel.id].learn_str(msg.clean_content)
 
 
     print('Starting bot')
