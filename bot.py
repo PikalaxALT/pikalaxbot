@@ -53,8 +53,14 @@ class PikalaxBOT(commands.Bot):
     def _do_cleanup(self):
         loop = self.loop
 
+        if loop.is_closed():
+            return
+
         for channel in self.whitelist:
             compat.create_task(channel.send('Shutting down...'), loop=loop)
+
+        if not loop.is_running():
+            loop.run_forever()
 
         super()._do_cleanup()
 

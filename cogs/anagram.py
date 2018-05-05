@@ -79,26 +79,31 @@ class Anagram:
     def __init__(self, bot, attempts=3):
         self.bot = bot
         self._attempts = attempts
-        self.channels = []
+        self.channels = {}
 
     @commands.group(pass_context=True)
     async def anagram(self, ctx):
+        """Play Anagram"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f'Incorrect anagram subcommand passed. Try {ctx.prefix}help anagram')
         if ctx.channel not in self.channels:
-            self.channels.append(AnagramGame(self.bot, self._attempts))
-            if ctx.invoked_subcommand is None:
-                await ctx.send(f'Incorrect anagram subcommand passed. Try {ctx.prefix}help anagram')
+            self.channels[ctx.channel] = AnagramGame(self.bot, self._attempts)
 
     @anagram.command()
     async def start(self, ctx):
+        """Start a game in the current channel"""
         await self.channels[ctx.channel].start(ctx)
 
     @anagram.command(name='solve')
     async def guess(self, ctx, guess):
+        """Solve the puzzle, if you dare"""
         await self.channels[ctx.channel].guess(ctx, guess)
 
     @anagram.command()
     async def end(self, ctx):
-        await self.channels[ctx.channel].end(ctx, True)
+        """End the game as a loss (owner only)"""
+        if self.bot.is_owner(ctx.author):
+            await self.channels[ctx.channel].end(ctx, True)
 
 
 def setup(bot):

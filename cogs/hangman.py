@@ -89,26 +89,31 @@ class Hangman:
     def __init__(self, bot, attempts=8):
         self.bot = bot
         self._attempts = attempts
-        self.channels = []
+        self.channels = {}
 
     @commands.group(pass_context=True)
     async def hangman(self, ctx):
+        """Play Hangman"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f'Incorrect hangman subcommand passed. Try {ctx.prefix}help hangman')
         if ctx.channel not in self.channels:
-            self.channels.append(HangmanGame(self.bot, self._attempts))
-            if ctx.invoked_subcommand is None:
-                await ctx.send(f'Incorrect hangman subcommand passed. Try {ctx.prefix}help hangman')
+            self.channels[ctx.channel] = HangmanGame(self.bot, self._attempts)
 
     @hangman.command()
     async def start(self, ctx):
+        """Start a game in the current channel"""
         await self.channels[ctx.channel].start(ctx)
 
     @hangman.command()
     async def guess(self, ctx, guess):
+        """Guess a letter or solve the puzzle"""
         await self.channels[ctx.channel].guess(ctx, guess)
 
     @hangman.command()
     async def end(self, ctx):
-        await self.channels[ctx.channel].end(ctx, True)
+        """End the game as a loss (owner only)"""
+        if self.bot.is_owner(ctx.author):
+            await self.channels[ctx.channel].end(ctx, True)
 
 
 def setup(bot):
