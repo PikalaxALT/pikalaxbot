@@ -43,9 +43,10 @@ class AnagramGame:
             await ctx.send(f'{ctx.author.mention}: Anagram is already running here.')
         else:
             self._solution = random.choice(data.pokemon)
-            self._state = self._solution
-            while self._state == self._solution:
-                self._state = ''.join(random.shuffle(list(self._solution)))
+            self._state = list(self._solution)
+            while ''.join(self._state) == self._solution:
+                random.shuffle(self._state)
+            self._state = ''.join(self._state)
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
