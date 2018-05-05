@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     @bot.check
     def is_not_me(ctx):
-        return ctx.author != bot.user
+        return ctx.author.id != bot.user.id
 
 
     @bot.check
