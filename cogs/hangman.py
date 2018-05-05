@@ -56,37 +56,33 @@ class HangmanGame:
                            f'Solution: {self._solution}')
         self.reset()
 
-    async def guess(self, ctx):
-        params = ctx.message.clean_content.split()
-        if len(params) < 2:
-            await ctx.send(f'{ctx.author.mention}: Insufficient arguments')
-        else:
-            guess = params[1].upper()
-            if guess in self._incorrect or guess in self._state:
-                await ctx.send(f'Character or solution already guessed: {guess}')
-            elif len(guess) == 1:
-                found = False
-                for i, c in enumerate(self._solution):
-                    if c == guess:
-                        self._state[i] = guess
-                        found = True
-                if found:
-                    if ''.join(self._state) == self._solution:
-                        await self.end(ctx)
-                else:
-                    self._incorrect.append(guess)
-                    self.attempts -= 1
-            else:
-                if self._solution == guess:
-                    self._state = list(self._solution)
+    async def guess(self, ctx, guess):
+        guess = guess.upper()
+        if guess in self._incorrect or guess in self._state:
+            await ctx.send(f'Character or solution already guessed: {guess}')
+        elif len(guess) == 1:
+            found = False
+            for i, c in enumerate(self._solution):
+                if c == guess:
+                    self._state[i] = guess
+                    found = True
+            if found:
+                if ''.join(self._state) == self._solution:
                     await self.end(ctx)
-                else:
-                    self._incorrect.append(guess)
-                    self.attempts -= 1
-            if self.running:
-                await ctx.send(f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
-                if self.attempts == 0:
-                    await self.end(ctx, True)
+            else:
+                self._incorrect.append(guess)
+                self.attempts -= 1
+        else:
+            if self._solution == guess:
+                self._state = list(self._solution)
+                await self.end(ctx)
+            else:
+                self._incorrect.append(guess)
+                self.attempts -= 1
+        if self.running:
+            await ctx.send(f'Puzzle: {self.state} | Incorrect: [{self.incorrect}]')
+            if self.attempts == 0:
+                await self.end(ctx, True)
 
 
 class Hangman:
@@ -95,18 +91,20 @@ class Hangman:
         self._attempts = attempts
         self.channels = []
 
-    @commands.group()
+    @commands.group(pass_context=True)
     async def hangman(self, ctx):
         if ctx.channel not in self.channels:
             self.channels.append(HangmanGame(self.bot, self._attempts))
+            if ctx.invoked_subcommand is None:
+                await ctx.send(f'Incorrect hangman subcommand passed. Try {ctx.prefix}help hangman')
 
     @hangman.command()
     async def start(self, ctx):
         await self.channels[ctx.channel].start(ctx)
 
     @hangman.command()
-    async def guess(self, ctx):
-        await self.channels[ctx.channel].guess(ctx)
+    async def guess(self, ctx, guess):
+        await self.channels[ctx.channel].guess(ctx, guess)
 
     @hangman.command()
     async def end(self, ctx):

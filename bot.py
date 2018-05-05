@@ -3,6 +3,7 @@ import discord
 import json
 from discord.ext import commands
 from discord import compat
+from discord.client import log
 from utils import markov
 import random
 import logging
@@ -12,7 +13,8 @@ import time
 
 initial_extensions = (
     'cogs.meme',
-    'cogs.hangman'
+    'cogs.hangman',
+    'cogs.anagram',
 )
 
 
@@ -51,17 +53,9 @@ class PikalaxBOT(commands.Bot):
     def _do_cleanup(self):
         loop = self.loop
 
-        tasks = []
         for channel in self.whitelist:
-            task = compat.create_task(channel.send('Shutting down...'), loop=loop)
-            tasks.append(task)
-        if not loop.is_running():
-            loop.run_forever()
-            for task in tasks:
-                try:
-                    task.result()
-                except:
-                    pass
+            compat.create_task(channel.send('Shutting down...'), loop=loop)
+
         super()._do_cleanup()
 
     def is_message_important(self, content):
@@ -94,11 +88,10 @@ class PikalaxBOT(commands.Bot):
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger()
     handler = logging.StreamHandler(stream=sys.stderr)
     fmt = logging.Formatter()
     handler.setFormatter(fmt)
-    logger.addHandler(handler)
+    log.addHandler(handler)
     with open('settings.json') as fp:
         settings = json.load(fp)
     bot = PikalaxBOT(settings)
@@ -134,13 +127,13 @@ if __name__ == '__main__':
                     content = msg.clean_content
                     if bot.is_message_important(content):
                         bot.chains[ch].learn_str(content)
-                logger.debug(f'Initialized channel {channel.name}')
+                log.debug(f'Initialized channel {channel.name}')
             except discord.Forbidden:
                 bot.chains.pop(ch)
-                logger.debug(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+                log.debug(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
             except AttributeError:
                 bot.chains.pop(ch)
-                logger.debug(f'Failed to load chain {ch:d}')
+                log.debug(f'Failed to load chain {ch:d}')
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = [ch for ch in wl if ch is not None]
         for channel in list(bot.whitelist):

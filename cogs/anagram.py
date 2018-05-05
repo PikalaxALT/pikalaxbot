@@ -58,25 +58,21 @@ class AnagramGame:
                            f'Solution: {self._solution}')
         self.reset()
 
-    async def guess(self, ctx):
-        params = ctx.message.clean_content.split()
-        if len(params) < 2:
-            await ctx.send(f'{ctx.author.mention}: Insufficient arguments')
+    async def guess(self, ctx, guess):
+        guess = guess.upper()
+        if guess in self._incorrect:
+            await ctx.send(f'Character already guessed: {guess}')
         else:
-            guess = params[1].upper()
-            if guess in self._incorrect:
-                await ctx.send(f'Character already guessed: {guess}')
+            if self._solution == guess:
+                self._state = self._solution
+                await self.end(ctx)
             else:
-                if self._solution == guess:
-                    self._state = self._solution
-                    await self.end(ctx)
-                else:
-                    self._incorrect.append(guess)
-                    self.attempts -= 1
-            if self.running:
-                await ctx.send(f'Puzzle: {self.state} | Incorrect: {self.incorrect}')
-                if self.attempts == 0:
-                    await self.end(ctx, True)
+                self._incorrect.append(guess)
+                self.attempts -= 1
+        if self.running:
+            await ctx.send(f'Puzzle: {self.state} | Incorrect: {self.incorrect}')
+            if self.attempts == 0:
+                await self.end(ctx, True)
 
 
 class Anagram:
@@ -85,18 +81,20 @@ class Anagram:
         self._attempts = attempts
         self.channels = []
 
-    @commands.group()
+    @commands.group(pass_context=True)
     async def anagram(self, ctx):
         if ctx.channel not in self.channels:
             self.channels.append(AnagramGame(self.bot, self._attempts))
+            if ctx.invoked_subcommand is None:
+                await ctx.send(f'Incorrect anagram subcommand passed. Try {ctx.prefix}help anagram')
 
     @anagram.command()
     async def start(self, ctx):
         await self.channels[ctx.channel].start(ctx)
 
     @anagram.command(name='solve')
-    async def guess(self, ctx):
-        await self.channels[ctx.channel].guess(ctx)
+    async def guess(self, ctx, guess):
+        await self.channels[ctx.channel].guess(ctx, guess)
 
     @anagram.command()
     async def end(self, ctx):

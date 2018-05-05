@@ -9,13 +9,12 @@ class Meme:
         self.bot = bot
 
     @commands.command()
-    async def archeops(self, ctx):
+    async def archeops(self, ctx, subj1='', subj2=''):
         """!archeops <arg1> <arg2>
 
         Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
-        data = {f'Subject{i + 1}': '' for i in range(2)}
-        data.update({f'Subject{i + 1}': arg for i, arg in enumerate(ctx.message.content.split()[1:3])})
+        data = {'Subject1': subj1, 'Subject2': subj2}
         async with aiohttp.ClientSession() as cs:
             async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=data) as r:
                 if r.status == 200:
