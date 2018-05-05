@@ -24,7 +24,7 @@ class PikalaxBOT(commands.Bot):
         credentials = settings.get('credentials', {})
         user = settings.get('user', {})
 
-        self.whitelist = []
+        self.whitelist = {}
         self.debug = False
         self.markov_channels = []
         self.rate_limiting = {}
@@ -56,7 +56,7 @@ class PikalaxBOT(commands.Bot):
         if loop.is_closed():
             return
 
-        for channel in self.whitelist:
+        for channel in self.whitelist.values():
             compat.create_task(channel.send('Shutting down...'), loop=loop)
 
         if not loop.is_running():
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     @bot.check
     def is_allowed(ctx):
-        return ctx.channel in bot.whitelist
+        return ctx.channel.id in bot.whitelist
 
 
     @bot.check
@@ -141,14 +141,14 @@ if __name__ == '__main__':
                 bot.chains.pop(ch)
                 log.debug(f'Failed to load chain {ch:d}')
         wl = map(bot.get_channel, bot.whitelist)
-        bot.whitelist = [ch for ch in wl if ch is not None]
+        bot.whitelist = {ch.id: ch for ch in wl if ch is not None}
         for channel in list(bot.whitelist):
             await channel.send('_is active and ready for abuse!_')
 
 
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):
-        if msg.channel in bot.whitelist and len(bot.chains) > 0 and \
+        if msg.channel.id in bot.whitelist and len(bot.chains) > 0 and \
                 (bot.user.mentioned_in(msg) or
                  bot.user.name.lower() in msg.clean_content.lower() or
                  bot.user.display_name.lower() in msg.clean_content.lower()) and \
