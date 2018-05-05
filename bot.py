@@ -162,5 +162,14 @@ if __name__ == '__main__':
             bot.chains[msg.channel.id].learn_str(msg.clean_content)
 
 
+    @bot.command(pass_context=True)
+    async def pikakill(ctx):
+        if bot.is_owner(ctx.author):
+            await ctx.send('A shutdown has been requested.')
+            await bot.close()
+        else:
+            await ctx.send(f'{ctx.author.mention}: I\m afraid I cannot do that.')
+
+
     print('Starting bot')
     bot.run()

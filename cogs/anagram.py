@@ -95,24 +95,24 @@ class Anagram:
         """Play Anagram"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect anagram subcommand passed. Try {ctx.prefix}help anagram')
-        if ctx.channel not in self.channels:
-            self.channels[ctx.channel] = AnagramGame(self.bot, self._attempts)
+        if ctx.channel.id not in self.channels:
+            self.channels[ctx.channel.id] = AnagramGame(self.bot, self._attempts)
 
     @anagram.command()
     async def start(self, ctx):
         """Start a game in the current channel"""
-        await self.channels[ctx.channel].start(ctx)
+        await self.channels[ctx.channel.id].start(ctx)
 
     @anagram.command(name='solve')
     async def guess(self, ctx, guess):
         """Solve the puzzle, if you dare"""
-        await self.channels[ctx.channel].guess(ctx, guess)
+        await self.channels[ctx.channel.id].guess(ctx, guess)
 
     @anagram.command()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         if self.bot.is_owner(ctx.author):
-            await self.channels[ctx.channel].end(ctx, True)
+            await self.channels[ctx.channel.id].end(ctx, True)
 
     @anagram.command()
     async def show(self, ctx):
