@@ -24,6 +24,8 @@ class PikalaxBOT(commands.Bot):
         credentials = settings.get('credentials', {})
         user = settings.get('user', {})
 
+        self.owner_id = credentials.get('owner')
+
         self.whitelist = {}
         self.debug = False
         self.markov_channels = []
@@ -64,9 +66,6 @@ class PikalaxBOT(commands.Bot):
             loop.run_forever()
 
         super()._do_cleanup()
-
-    def is_message_important(self, content):
-        return not content.startswith(self.command_prefix)
 
     def gen_msg(self, ch, len_max=64, n_attempts=5):
         longest = ''
@@ -112,20 +111,20 @@ if __name__ == '__main__':
 
     @bot.check
     def is_allowed(ctx: commands.Context):
-        return ctx.channel.id in bot.whitelist and not ctx.author.bot
+        return ctx.channel.id in ctx.bot.whitelist and not ctx.author.bot
 
 
     @bot.check
     def is_not_me(ctx: commands.Context):
-        return ctx.author != bot.user
+        return ctx.author != ctx.bot.user
 
 
     @bot.check
     def is_not_rate_limited(ctx: commands.Context):
         ch = ctx.channel
-        if ch in bot.rate_limiting and bot.rate_limiting[ch] >= bot.max_rate:
+        if ch in ctx.bot.rate_limiting and ctx.bot.rate_limiting[ch] >= ctx.bot.max_rate:
             return False
-        bot.rate_limit(ch)
+        ctx.bot.rate_limit(ch)
         return True
 
 
@@ -135,9 +134,7 @@ if __name__ == '__main__':
             channel = bot.get_channel(ch)  # type: discord.TextChannel
             try:
                 async for msg in channel.history(limit=5000):
-                    content = msg.clean_content
-                    if bot.is_message_important(content):
-                        bot.chains[ch].learn_str(content)
+                    learn_markov(msg, force=True)
                 log.info(f'Initialized channel {channel.name}')
             except discord.Forbidden:
                 bot.chains.pop(ch)
@@ -152,29 +149,69 @@ if __name__ == '__main__':
             await channel.send('_is active and ready for abuse!_')
 
 
+    @bot.check
+    def is_initialized(ctx):
+        return ctx.bot.initialized
+
+
+    def markov_general_checks(msg):
+        if not bot.initialized:
+            return False
+        if msg.channel.id not in bot.whitelist:
+            return False
+        if msg.author.id == bot.user.id:
+            return False
+        if len(bot.chains) == 0:
+            return False
+        return True
+
+
+    def can_markov(msg):
+        if not markov_general_checks(msg):
+            return False
+        if bot.user.mentioned_in(msg):
+            return True
+        if bot.user.name.lower() in msg.clean_content.lower():
+            return True
+        if bot.user.display_name.lower() in msg.clean_content.lower():
+            return True
+        return False
+
+
+    def can_learn_markov(msg, force=False):
+        if not force and not markov_general_checks(msg):
+            return False
+        return msg.channel.id in bot.chains and not msg.clean_content.startswith(bot.command_prefix)
+
+
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):
-        if msg.channel.id in bot.whitelist and len(bot.chains) > 0 and \
-                (bot.user.mentioned_in(msg) or
-                 bot.user.name.lower() in msg.clean_content.lower() or
-                 bot.user.display_name.lower() in msg.clean_content.lower()) and \
-                not msg.content.startswith(bot.command_prefix) and \
-                msg.author != bot.user and bot.initialized:
+        if can_markov(msg):
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
             await msg.channel.send(f'{msg.author.mention}: {chain}')
-        elif msg.channel.id in bot.chains and bot.is_message_important(msg.clean_content):
+
+
+    def learn_markov(msg, force=False):
+        if can_learn_markov(msg, force=force):
             bot.storedMsgsSet.add(msg.clean_content)
             bot.chains[msg.channel.id].learn_str(msg.clean_content)
 
 
+    @bot.listen('on_message')
+    async def coro_learn_markov(msg):
+        learn_markov(msg)
+
+
+    def ctx_is_owner(ctx):
+        return ctx.bot.is_owner(ctx.author)
+
+
     @bot.command(pass_context=True)
+    @commands.check(ctx_is_owner)
     async def pikakill(ctx: commands.Context):
-        if bot.is_owner(ctx.author):
-            await ctx.send('Shutting down...')
-            await bot.close()
-        else:
-            await ctx.send(f'{ctx.author.mention}: I\m afraid I cannot do that.')
+        await ctx.send('Shutting down...')
+        await bot.close()
 
 
     print('Starting bot')

@@ -14,6 +14,9 @@ class Meme:
 
         Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
+        cleaner = commands.clean_content()
+        subj1 = await cleaner.convert(ctx, subj1)
+        subj2 = await cleaner.convert(ctx. subj2)
         data = {'Subject1': subj1, 'Subject2': subj2}
         async with aiohttp.ClientSession() as cs:
             async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=data) as r:
