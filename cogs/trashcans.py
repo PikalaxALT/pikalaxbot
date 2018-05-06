@@ -82,13 +82,14 @@ class TrashcansGame:
             self._task.cancel()
             self._task = None
         if self.running:
+            self._state = [[x for x in y] for y in self._solution]
             await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.')
             elif failed:
                 await ctx.send(f'Time\'s up.  Looks like you won\'t be fighting the Gym Leader today.')
             else:
-                await ctx.send(f'The 2nd electric lock opened! The motorized door opened!')
+                await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
@@ -104,19 +105,24 @@ class TrashcansGame:
                     if self.state[y][x] or not self._solution[y][x]:
                         self.reset_locks()
                         await ctx.send(f'Nope! There\'s only trash here.\n'
-                                       f'Hey! The electric locks were reset!')
+                                       f'Hey! The electric locks were reset!',
+                                       delete_after=10)
                     else:
                         self.state[y][x] = True
-                        await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!')
+                        await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!\n'
+                                       f'The 2nd electric lock opened! The motorized door opened!',
+                                       delete_after=10)
                         await self.end(ctx)
                 else:
                     if self._solution[y][x]:
                         self.state[y][x] = True
                         self.on_second_can = True
-                        await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!')
-                        await ctx.send(f'The 1st electric lock opened!')
+                        await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'
+                                       f'The 1st electric lock opened!',
+                                       delete_after=10)
                     else:
-                        await ctx.send(f'Nope, there\'s only trash here.')
+                        await ctx.send(f'Nope, there\'s only trash here.',
+                                       delete_after=10)
                 await self._message.edit(content=self.show())
             else:
                 await ctx.send(f'{ctx.author.mention}: Coordinates out of range.',
