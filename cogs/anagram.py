@@ -59,7 +59,7 @@ class AnagramGame:
             self.running = True
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
                            f'to guess correctly before OLDEN corrupts your save.\n')
-            self._message = await ctx.send(f'{self.show()}')
+            self._message = await ctx.send(self.show())
             self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
     async def timeout(self, ctx:commands.Context):
@@ -73,7 +73,7 @@ class AnagramGame:
             self._task.cancel()
             self._task = None
         if self.running:
-            await self._message.edit(content=f'{self.show()}')
+            await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
                                f'Solution: {self._solution}')
@@ -103,12 +103,21 @@ class AnagramGame:
                     self._incorrect.append(guess)
                     self.attempts -= 1
             if self.running:
-                await self._message.edit(content=f'{self.show()}')
+                await self._message.edit(content=self.show())
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
                            f'Start a game by saying `{ctx.prefix}anagram start`.',
+                           delete_after=10)
+
+    async def show_(self, ctx):
+        if self.running:
+            await self._message.delete()
+            self._message = await ctx.send(self.show())
+        else:
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
+                           f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
 
@@ -140,6 +149,11 @@ class Anagram:
         """End the game as a loss (owner only)"""
         if self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel.id].end(ctx, aborted=True)
+
+    @anagram.command()
+    async def show(self, ctx):
+        """Show the board in a new message"""
+        await self.channels[ctx.channel.id].show_(ctx)
 
 
 def setup(bot):

@@ -68,7 +68,7 @@ class TrashcansGame:
             self.running = True
             self.reset_locks()
             await ctx.send(f'Welcome to Lt. Surge\'s Gym!  Use `!trashcans guess x y` to check a can!')
-            self._message = await ctx.send(f'{self.show()}')
+            self._message = await ctx.send(self.show())
             self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
     async def timeout(self, ctx:commands.Context):
@@ -82,7 +82,7 @@ class TrashcansGame:
             self._task.cancel()
             self._task = None
         if self.running:
-            await self._message.edit(content=f'{self.show()}')
+            await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.')
             elif failed:
@@ -117,7 +117,7 @@ class TrashcansGame:
                         await ctx.send(f'The 1st electric lock opened!')
                     else:
                         await ctx.send(f'Nope, there\'s only trash here.')
-                await self._message.edit(content=f'{self.show()}')
+                await self._message.edit(content=self.show())
             else:
                 await ctx.send(f'{ctx.author.mention}: Coordinates out of range.',
                                delete_after=10)
@@ -125,6 +125,15 @@ class TrashcansGame:
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
                            f'Start a game by saying `{ctx.prefix}trashcans start`.',
+                           delete_after=10)
+
+    async def show_(self, ctx):
+        if self.running:
+            await self._message.delete()
+            self._message = await ctx.send(self.show())
+        else:
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
+                           f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
 
@@ -156,6 +165,11 @@ class Trashcans:
         """End the game as a loss (owner only)"""
         if self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel.id].end(ctx, aborted=True)
+
+    @trashcans.command()
+    async def show(self, ctx):
+        """Show the board in a new message"""
+        await self.channels[ctx.channel.id].show_(ctx)
 
 
 def setup(bot):
