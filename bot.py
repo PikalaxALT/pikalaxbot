@@ -16,6 +16,7 @@ initial_extensions = (
     'cogs.meme',
     'cogs.hangman',
     'cogs.anagram',
+    'cogs.trashcans',
 )
 
 

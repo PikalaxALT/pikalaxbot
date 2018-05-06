@@ -7,7 +7,7 @@ from bot import PikalaxBOT
 import time
 
 
-class HangmanGame():
+class HangmanGame:
     def __init__(self, bot: PikalaxBOT, attempts=8):
         self.bot = bot
         self._attempts = attempts
@@ -66,7 +66,6 @@ class HangmanGame():
             await self.end(ctx, failed=True)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
-        await self._message.edit(content=f'{self.show()}')
         if self._task and not self._task.done():
             self._task.cancel()
             self._task = None
@@ -83,7 +82,8 @@ class HangmanGame():
                                f'Solution: {self._solution}')
             self.reset()
         else:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.',
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
+                           f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
     async def guess(self, ctx: commands.Context, guess: str):
@@ -116,11 +116,12 @@ class HangmanGame():
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.',
+            await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
+                           f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
 
-class Hangman():
+class Hangman:
     def __init__(self, bot):
         self.bot = bot
         self.channels = {}
@@ -129,7 +130,7 @@ class Hangman():
     async def hangman(self, ctx):
         f"""Play Hangman"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect hangman subcommand passed. Try {ctx.prefix}help game')
+            await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}help hangman`')
         if ctx.channel.id not in self.channels:
             self.channels[ctx.channel.id] = HangmanGame(self.bot)
 

@@ -7,12 +7,12 @@ from bot import log
 import time
 
 
-class AnagramGame():
+class AnagramGame:
     def __init__(self, bot, attempts=3):
         self.bot = bot
         self._attempts = attempts
-        self.reset()
         self._timeout = 90
+        self.reset()
 
     def reset(self):
         self._running = False
@@ -69,11 +69,11 @@ class AnagramGame():
             await self.end(ctx, failed=True)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
-        await self._message.edit(content=f'{self.show()}')
         if self._task and not self._task.done():
             self._task.cancel()
             self._task = None
         if self.running:
+            await self._message.edit(content=f'{self.show()}')
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
                                f'Solution: {self._solution}')
@@ -85,7 +85,8 @@ class AnagramGame():
                                f'Solution: {self._solution}')
             self.reset()
         else:
-            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.',
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
+                           f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
     async def guess(self, ctx: commands.Context, guess):
@@ -106,11 +107,12 @@ class AnagramGame():
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
-            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.',
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
+                           f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
 
-class Anagram():
+class Anagram:
     def __init__(self, bot):
         self.bot = bot
         self.channels = {}
@@ -119,7 +121,7 @@ class Anagram():
     async def anagram(self, ctx: commands.Context):
         f"""Play Anagram"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect anagram subcommand passed. Try {ctx.prefix}help game')
+            await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}help anagram`')
         if ctx.channel.id not in self.channels:
             self.channels[ctx.channel.id] = AnagramGame(self.bot)
 
