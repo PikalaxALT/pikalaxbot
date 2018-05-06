@@ -94,11 +94,11 @@ class PikalaxBOT(commands.Bot):
         self.loop.call_later(self.cooldown, when_done)
 
     async def on_command_error(self, context, exception):
-        tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
-        log.error(*tb)
-        owner = self.get_user(self.owner_id)
-        await context.send(f'An error has occurred ({owner.mention}: see console for traceback)',
-                           delete_after=10)
+        if isinstance(exception, commands.CommandError):
+            await super().on_command_error(context, exception)
+        else:
+            tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
+            log.error(*tb)
 
 
 if __name__ == '__main__':
@@ -167,7 +167,7 @@ if __name__ == '__main__':
             return False
         if msg.channel.id not in bot.whitelist:
             return False
-        if msg.author.id == bot.user.id:
+        if msg.author.bot:
             return False
         if len(bot.chains) == 0:
             return False
@@ -188,6 +188,8 @@ if __name__ == '__main__':
 
     def can_learn_markov(msg, force=False):
         if not force and not markov_general_checks(msg):
+            return False
+        if msg.author.bot:
             return False
         return msg.channel.id in bot.chains and not msg.clean_content.startswith(bot.command_prefix)
 
