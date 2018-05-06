@@ -4,6 +4,7 @@ import random
 from utils.data import data
 from discord.ext import commands
 from bot import log
+import time
 
 
 class AnagramGame():
@@ -11,6 +12,7 @@ class AnagramGame():
         self.bot = bot
         self._attempts = attempts
         self.reset()
+        self._timeout = 90
 
     def reset(self):
         self._running = False
@@ -41,9 +43,10 @@ class AnagramGame():
                f'Incorrect: [{self.incorrect}]\n' \
                f'Remaining: {self.attempts:d}```'
 
-    async def start(self, ctx):
+    async def start(self, ctx: commands.Context):
         if self.running:
-            await ctx.author.send(f'Anagram is already running in {ctx.channel.mention}.')
+            await ctx.send(f'{ctx.author.mention}: Anagram is already running here.',
+                           delete_after=10)
         else:
             self._solution = random.choice(data.pokemon)
             self._state = list(self._solution)
@@ -56,8 +59,15 @@ class AnagramGame():
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
                            f'OLDEN corrupts your save.\n')
             self._message = await ctx.send(f'{self.show()}')
+            task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
-    async def end(self, ctx, failed=False, aborted=False):
+    async def timeout(self, ctx:commands.Context):
+        await asyncio.sleep(self._timeout)
+        if self.running:
+            await ctx.send('Time\'s up!')
+            await self.end(ctx, failed=True)
+
+    async def end(self, ctx: commands.Context, failed=False, aborted=False):
         await self._message.edit(content=f'{self.show()}')
         if self.running:
             if aborted:
@@ -71,13 +81,15 @@ class AnagramGame():
                                f'Solution: {self._solution}')
             self.reset()
         else:
-            await ctx.author.send(f'Anagram is not running in {ctx.channel.mention}.')
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.',
+                           delete_after=10)
 
-    async def guess(self, ctx, guess):
+    async def guess(self, ctx: commands.Context, guess):
         if self.running:
             guess = guess.upper()
             if guess in self._incorrect:
-                await ctx.author.send(f'Solution already guessed: {guess}')
+                await ctx.send(f'{ctx.author.mention}: Solution already guessed: {guess}',
+                               delete_after=10)
             else:
                 if self._solution == guess:
                     self._state = self._solution
@@ -90,7 +102,8 @@ class AnagramGame():
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
-            await ctx.author.send(f'Anagram is not running in {ctx.channel.mention}.')
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here.',
+                           delete_after=10)
 
 
 class Anagram():
@@ -99,7 +112,7 @@ class Anagram():
         self.channels = {}
 
     @commands.group(pass_context=True)
-    async def anagram(self, ctx):
+    async def anagram(self, ctx: commands.Context):
         f"""Play Anagram"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect anagram subcommand passed. Try {ctx.prefix}help game')
@@ -107,17 +120,17 @@ class Anagram():
             self.channels[ctx.channel.id] = AnagramGame(self.bot)
 
     @anagram.command()
-    async def start(self, ctx):
+    async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
         await self.channels[ctx.channel.id].start(ctx)
 
     @anagram.command()
-    async def solve(self, ctx, guess):
+    async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
         await self.channels[ctx.channel.id].guess(ctx, guess)
 
     @anagram.command()
-    async def end(self, ctx):
+    async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
         if self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel.id].end(ctx, aborted=True)
