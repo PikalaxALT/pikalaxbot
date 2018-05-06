@@ -58,7 +58,7 @@ class PikalaxBOT(commands.Bot):
             return
 
         for channel in self.whitelist.values():
-            compat.create_task(channel.send('Shutting down...'), loop=loop)
+            compat.create_task(channel.send('Shutting down... (console kill)'), loop=loop)
 
         if not loop.is_running():
             loop.run_forever()
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     @bot.command(pass_context=True)
     async def pikakill(ctx: commands.Context):
         if bot.is_owner(ctx.author):
-            await ctx.send('A shutdown has been requested.')
+            await ctx.send('Shutting down...')
             await bot.close()
         else:
             await ctx.send(f'{ctx.author.mention}: I\m afraid I cannot do that.')

@@ -21,6 +21,7 @@ class HangmanGame():
         self._incorrect = []
         self.attempts = 0
         self._message = None
+        self._task = None
 
     @property
     def state(self):
@@ -56,7 +57,7 @@ class HangmanGame():
             await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
                            f'to guess correctly before the man dies!')
             self._message = await ctx.send(f'{self.show()}')  # type: discord.Message
-            discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
+            self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
     async def timeout(self, ctx:commands.Context):
         await asyncio.sleep(self._timeout)
@@ -65,6 +66,10 @@ class HangmanGame():
             await self.end(ctx, failed=True)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
+        await self._message.edit(content=f'{self.show()}')
+        if self._task and not self._task.done():
+            self._task.cancel()
+            self._task = None
         if self.running:
             await self._message.edit(content=f'{self.show()}')
             if aborted:
