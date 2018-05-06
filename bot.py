@@ -9,6 +9,7 @@ import random
 import logging
 import sys
 import time
+import traceback
 
 
 initial_extensions = (
@@ -91,6 +92,13 @@ class PikalaxBOT(commands.Bot):
         self.rate_limiting.setdefault(ch, 0)
         self.rate_limiting[ch] += 1
         self.loop.call_later(self.cooldown, when_done)
+
+    async def on_command_error(self, context, exception):
+        tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
+        log.error(*tb)
+        owner = self.get_user(self.owner_id)
+        await context.send(f'An error has occurred ({owner.mention}: see console for traceback)',
+                           delete_after=10)
 
 
 if __name__ == '__main__':
