@@ -30,6 +30,7 @@ class PikalaxBOT(commands.Bot):
         self.rate_limiting = {}
         self.max_rate = 10
         self.cooldown = 10
+        self.initialized = False
 
         for key, value in user.items():
             setattr(self, key, value)
@@ -110,17 +111,17 @@ if __name__ == '__main__':
 
 
     @bot.check
-    def is_allowed(ctx):
-        return ctx.channel.id in bot.whitelist
+    def is_allowed(ctx: commands.Context):
+        return ctx.channel.id in bot.whitelist and not ctx.author.bot
 
 
     @bot.check
-    def is_not_me(ctx):
+    def is_not_me(ctx: commands.Context):
         return ctx.author != bot.user
 
 
     @bot.check
-    def is_not_rate_limited(ctx):
+    def is_not_rate_limited(ctx: commands.Context):
         ch = ctx.channel
         if ch in bot.rate_limiting and bot.rate_limiting[ch] >= bot.max_rate:
             return False
@@ -146,6 +147,7 @@ if __name__ == '__main__':
                 log.error(f'Failed to load chain {ch:d}')
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = {ch.id: ch for ch in wl if ch is not None}
+        bot.initialized = True
         for channel in bot.whitelist.values():
             await channel.send('_is active and ready for abuse!_')
 
@@ -157,7 +159,7 @@ if __name__ == '__main__':
                  bot.user.name.lower() in msg.clean_content.lower() or
                  bot.user.display_name.lower() in msg.clean_content.lower()) and \
                 not msg.content.startswith(bot.command_prefix) and \
-                msg.author != bot.user and bot.is_ready():
+                msg.author != bot.user and bot.initialized:
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
             await msg.channel.send(f'{msg.author.mention}: {chain}')
@@ -167,7 +169,7 @@ if __name__ == '__main__':
 
 
     @bot.command(pass_context=True)
-    async def pikakill(ctx):
+    async def pikakill(ctx: commands.Context):
         if bot.is_owner(ctx.author):
             await ctx.send('A shutdown has been requested.')
             await bot.close()

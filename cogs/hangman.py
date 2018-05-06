@@ -3,9 +3,10 @@ import discord
 import random
 from utils.data import data
 from discord.ext import commands
+from bot import PikalaxBOT
 
 
-class HangmanGame:
+class HangmanGame():
     def __init__(self, bot, attempts=8):
         self.bot = bot
         self._attempts = attempts
@@ -13,10 +14,11 @@ class HangmanGame:
 
     def reset(self):
         self._running = False
-        self._state = []
+        self._state = ''
         self._solution = ''
         self._incorrect = []
         self.attempts = 0
+        self._message = None
 
     @property
     def state(self):
@@ -35,24 +37,30 @@ class HangmanGame:
         self._running = state
 
     def show(self):
-        return f'`Puzzle: {self.state} | Incorrect: [{self.incorrect}] | Remaining: {self.attempts:d}`'
+        return f'```Puzzle: {self.state}\n' \
+               f'Incorrect: [{self.incorrect}]\n' \
+               f'Remaining: {self.attempts:d}```'
 
-    async def start(self, ctx):
+    async def start(self, ctx: commands.Context):
         if self.running:
-            await ctx.send(f'{ctx.author.mention}: Hangman is already running here.')
+            await ctx.author.send(f'Hangman is already running in {ctx.channel.mention}.')
         else:
             self._solution = random.choice(data.pokemon)
             self._state = ['_' for c in self._solution]
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
-            await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts to guess correctly before '
-                           f'the man dies!\n'
-                           f'{self.show()}')
+            await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts to guess '
+                           f'correctly before the man dies!')
+            self._message = await ctx.send(f'{self.show()}')  # type: discord.Message
 
-    async def end(self, ctx, failed=False):
+    async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if self.running:
-            if failed:
+            await self._message.edit(content=f'{self.show()}')
+            if aborted:
+                await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
+                               f'Solution: {self._solution}')
+            elif failed:
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
                                f'Solution: {self._solution}')
             else:
@@ -60,13 +68,13 @@ class HangmanGame:
                                f'Solution: {self._solution}')
             self.reset()
         else:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.')
+            await ctx.author.send(f'Hangman is not running in {ctx.channel.mention}.')
 
-    async def guess(self, ctx, guess):
+    async def guess(self, ctx: commands.Context, guess: str):
         if self.running:
             guess = guess.upper()
             if guess in self._incorrect or guess in self._state:
-                await ctx.send(f'Character or solution already guessed: {guess}')
+                await ctx.author.send(f'Character or solution already guessed: {guess}')
             elif len(guess) == 1:
                 found = False
                 for i, c in enumerate(self._solution):
@@ -87,26 +95,25 @@ class HangmanGame:
                     self._incorrect.append(guess)
                     self.attempts -= 1
             if self.running:
-                await ctx.send(f'{self.show()}')
+                await self._message.edit(content=f'{self.show()}')
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.')
+            await ctx.author.send(f'Hangman is not running in {ctx.channel.mention}.')
 
 
-class Hangman:
-    def __init__(self, bot, attempts=8):
+class Hangman():
+    def __init__(self, bot):
         self.bot = bot
-        self._attempts = attempts
         self.channels = {}
 
     @commands.group(pass_context=True)
     async def hangman(self, ctx):
-        """Play Hangman"""
+        f"""Play Hangman"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect hangman subcommand passed. Try {ctx.prefix}help hangman')
+            await ctx.send(f'Incorrect hangman subcommand passed. Try {ctx.prefix}help game')
         if ctx.channel.id not in self.channels:
-            self.channels[ctx.channel.id] = HangmanGame(self.bot, self._attempts)
+            self.channels[ctx.channel.id] = HangmanGame(self.bot)
 
     @hangman.command()
     async def start(self, ctx):
@@ -115,23 +122,15 @@ class Hangman:
 
     @hangman.command()
     async def guess(self, ctx, guess):
-        """Guess a letter or solve the puzzle"""
+        """Make a guess, if you dare"""
         await self.channels[ctx.channel.id].guess(ctx, guess)
 
     @hangman.command()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         if self.bot.is_owner(ctx.author):
-            await self.channels[ctx.channel.id].end(ctx, True)
+            await self.channels[ctx.channel.id].end(ctx, aborted=True)
 
-    @hangman.command()
-    async def show(self, ctx):
-        """Show the current puzzle state"""
-        game = self.channels.get(ctx.channel.id)
-        if game.running:
-            await ctx.send(f'{self.show()}')
-        else:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here.')
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Hangman(bot))
