@@ -71,23 +71,29 @@ class TrashcansGame:
             self._message = await ctx.send(self.show())
             self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
-    async def timeout(self, ctx:commands.Context):
+    async def timeout(self, ctx: commands.Context):
         await asyncio.sleep(self._timeout)
         if self.running:
             await ctx.send('Time\'s up!')
             await self.end(ctx, failed=True)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
-        if self._task and not self._task.done():
-            self._task.cancel()
-            self._task = None
         if self.running:
+            if self._task and not self._task.done():
+                try:
+                    self._task.cancel()
+                except asyncio.CancelledError:
+                    pass
+                self._task = None
             self._state = [[x for x in y] for y in self._solution]
-            await self._message.edit(content=self.show())
+            try:
+                await self._message.edit(content=self.show())
+            except Exception as e:
+                await self.bot.on_command_error(ctx, e)
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.')
             elif failed:
-                await ctx.send(f'Time\'s up.  Looks like you won\'t be fighting the Gym Leader today.')
+                await ctx.send('Looks like you won\'t be fighting the Gym Leader today.')
             else:
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!')
             self.reset()
@@ -138,8 +144,8 @@ class TrashcansGame:
             await self._message.delete()
             self._message = await ctx.send(self.show())
         else:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
-                           f'Start a game by saying `{ctx.prefix}hangman start`.',
+            await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
+                           f'Start a game by saying `{ctx.prefix}trashcans start`.',
                            delete_after=10)
 
 
@@ -169,7 +175,7 @@ class Trashcans:
     @trashcans.command()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
-        if self.bot.is_owner(ctx.author):
+        if await self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel.id].end(ctx, aborted=True)
 
     @trashcans.command()

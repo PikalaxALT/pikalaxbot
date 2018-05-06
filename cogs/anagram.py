@@ -69,10 +69,13 @@ class AnagramGame:
             await self.end(ctx, failed=True)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
-        if self._task and not self._task.done():
-            self._task.cancel()
-            self._task = None
         if self.running:
+            if self._task and not self._task.done():
+                try:
+                    self._task.cancel()
+                except asyncio.CancelledError:
+                    pass
+                self._task = None
             await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
@@ -147,7 +150,7 @@ class Anagram:
     @anagram.command()
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
-        if self.bot.is_owner(ctx.author):
+        if await self.bot.is_owner(ctx.author):
             await self.channels[ctx.channel.id].end(ctx, aborted=True)
 
     @anagram.command()

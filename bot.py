@@ -95,7 +95,7 @@ class PikalaxBOT(commands.Bot):
         self.loop.call_later(self.cooldown, when_done)
 
     async def on_command_error(self, context, exception):
-        if isinstance(exception, commands.CommandError):
+        if not self.debug and isinstance(exception, commands.CommandError):
             await super().on_command_error(context, exception)
         else:
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
@@ -110,10 +110,7 @@ if __name__ == '__main__':
     with open('settings.json') as fp:
         settings = json.load(fp)
     bot = PikalaxBOT(settings)
-    if bot.debug:
-        log.setLevel(logging.DEBUG)
-    else:
-        log.setLevel(logging.INFO)
+    log.setLevel(logging.INFO)
     for extn in initial_extensions:
         bot.load_extension(extn)
 
@@ -214,8 +211,8 @@ if __name__ == '__main__':
         learn_markov(msg)
 
 
-    def ctx_is_owner(ctx):
-        return ctx.bot.is_owner(ctx.author)
+    async def ctx_is_owner(ctx):
+        return await ctx.bot.is_owner(ctx.author)
 
 
     @bot.command(pass_context=True)
@@ -225,5 +222,5 @@ if __name__ == '__main__':
         await bot.close()
 
 
-    print('Starting bot')
+    log.info('Starting bot')
     bot.run()
