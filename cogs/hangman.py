@@ -53,8 +53,8 @@ class HangmanGame():
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
-            await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts to guess '
-                           f'correctly before the man dies!')
+            await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
+                           f'to guess correctly before the man dies!')
             self._message = await ctx.send(f'{self.show()}')  # type: discord.Message
             discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 

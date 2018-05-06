@@ -56,10 +56,10 @@ class AnagramGame():
             self.attempts = self._attempts
             self._incorrect = []
             self.running = True
-            await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts to guess correctly before '
-                           f'OLDEN corrupts your save.\n')
+            await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
+                           f'to guess correctly before OLDEN corrupts your save.\n')
             self._message = await ctx.send(f'{self.show()}')
-            task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
+            discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
     async def timeout(self, ctx:commands.Context):
         await asyncio.sleep(self._timeout)
