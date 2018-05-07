@@ -15,9 +15,6 @@ class Meme:
 
         Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
-        cleaner = commands.clean_content()
-        subj1 = await cleaner.convert(ctx, subj1)
-        subj2 = await cleaner.convert(ctx, subj2)
         log.info(f'!archeops {subj1} {subj2}')
         data = {'Subject1': subj1, 'Subject2': subj2}
         async with aiohttp.ClientSession() as cs:
@@ -26,9 +23,17 @@ class Meme:
                     res = await r.text()
                     await ctx.send(res)
                 else:
-                    await ctx.send(f'Do you like vore? I don\'t, but apparently the WatchOut4Snakes server does.  '
+                    await ctx.send(f'Do you like vore? I don\'t, but apparently the WatchOut4Snakes server does. '
                                    f'Status code: {r.status}')
                     raise discord.HTTPException(r.status, r.reason)
+
+    @commands.command()
+    async def riot(self, ctx, *args):
+        """!riot <reason>
+
+        Riots (for some reason)"""
+        resp = ' '.join(args).upper()
+        await ctx.send(f'ヽ༼ຈل͜ຈ༽ﾉ {resp} RIOT ヽ༼ຈل͜ຈ༽ﾉ')
 
 
 def setup(bot):
