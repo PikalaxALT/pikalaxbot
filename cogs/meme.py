@@ -33,7 +33,10 @@ class Meme:
 
         Riots (for some reason)"""
         resp = ' '.join(args).upper()
-        await ctx.send(f'ヽ༼ຈل͜ຈ༽ﾉ {resp} RIOT ヽ༼ຈل͜ຈ༽ﾉ')
+        if 'DANCE' in resp:
+            await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {resp} RIOT ♪ └༼ຈل͜ຈ༽┐♫')
+        else:
+            await ctx.send(f'ヽ༼ຈل͜ຈ༽ﾉ {resp} RIOT ヽ༼ຈل͜ຈ༽ﾉ')
 
 
 def setup(bot):
