@@ -75,21 +75,16 @@ class TrashcansGame:
         await asyncio.sleep(self._timeout)
         if self.running:
             await ctx.send('Time\'s up!')
-            await self.end(ctx, failed=True)
+            discord.compat.create_task(self.end(ctx, failed=True))
+            self._task = None
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if self.running:
-            if self._task and not self._task.done():
-                try:
-                    self._task.cancel()
-                except asyncio.CancelledError:
-                    pass
-                self._task = None
             self._state = [[x for x in y] for y in self._solution]
-            try:
-                await self._message.edit(content=self.show())
-            except Exception as e:
-                await self.bot.on_command_error(ctx, e)
+            if self._task and not self._task.done():
+                self._task.cancel()
+                self._task = None
+            await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.')
             elif failed:

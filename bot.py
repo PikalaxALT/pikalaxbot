@@ -99,7 +99,7 @@ class PikalaxBOT(commands.Bot):
             await super().on_command_error(context, exception)
         else:
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
-            log.error(*tb)
+            log.error(tb[0])
 
 
 if __name__ == '__main__':
