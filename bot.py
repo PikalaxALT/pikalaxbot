@@ -39,7 +39,7 @@ class PikalaxBOT(commands.Bot):
         for key, value in user.items():
             setattr(self, key, value)
 
-        self.chains = {chan: markov.Chain(state_size=1, store_lowercase=True) for chan in self.markov_channels}
+        self.chains = {chan: markov.Chain(state_size=2, store_lowercase=True) for chan in self.markov_channels}
 
         self._token = credentials.get('token')
         command_prefix = meta.get('prefix', '!')
