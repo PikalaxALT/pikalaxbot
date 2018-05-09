@@ -113,6 +113,9 @@ if __name__ == '__main__':
     log.setLevel(logging.INFO)
     for extn in initial_extensions:
         bot.load_extension(extn)
+    help_bak = bot.remove_command('help')
+    help_bak.name = 'pikahelp'
+    bot.add_command(help_bak)
 
 
     @bot.check

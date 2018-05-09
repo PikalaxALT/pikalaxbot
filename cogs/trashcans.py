@@ -7,7 +7,7 @@ import random
 class TrashcansGame:
     def __init__(self, bot):
         self.bot = bot
-        self._timeout = 90
+        self._timeout = 600
         self.reset()
 
     def reset(self):
@@ -67,7 +67,8 @@ class TrashcansGame:
         else:
             self.running = True
             self.reset_locks()
-            await ctx.send(f'Welcome to Lt. Surge\'s Gym!  Use `!trashcans guess x y` to check a can!')
+            await ctx.send(f'Welcome to Lt. Surge\'s Gym!  Use `!trashcans guess x y` to check a can!\n'
+                           f'You have {self._timeout:d} seconds to find both switches.  Good luck!')
             self._message = await ctx.send(self.show())
             self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
 
