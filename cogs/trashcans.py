@@ -114,6 +114,7 @@ class TrashcansGame:
                         await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!\n'
                                        f'The 2nd electric lock opened! The motorized door opened!',
                                        delete_after=10)
+                        await ctx.message.add_reaction('\u2705')
                         await self.end(ctx)
                 else:
                     if self._solution[y][x]:
@@ -122,10 +123,12 @@ class TrashcansGame:
                         await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'
                                        f'The 1st electric lock opened!',
                                        delete_after=10)
+                        await ctx.message.add_reaction('\u2705')
                     else:
                         await ctx.send(f'Nope, there\'s only trash here.',
                                        delete_after=10)
-                await self._message.edit(content=self.show())
+                if self._message:
+                    await self._message.edit(content=self.show())
             else:
                 await ctx.send(f'{ctx.author.mention}: Coordinates out of range.',
                                delete_after=10)
@@ -154,7 +157,7 @@ class Trashcans:
     async def trashcans(self, ctx):
         f"""Play trashcans"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect trashcans subcommand passed. Try `{ctx.prefix}help trashcans`')
+            await ctx.send(f'Incorrect trashcans subcommand passed. Try `{ctx.prefix}pikahelp trashcans`')
         if ctx.channel.id not in self.channels:
             self.channels[ctx.channel.id] = TrashcansGame(self.bot)
 

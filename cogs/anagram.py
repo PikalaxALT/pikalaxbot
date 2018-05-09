@@ -131,7 +131,7 @@ class Anagram:
     async def anagram(self, ctx: commands.Context):
         f"""Play Anagram"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}help anagram`')
+            await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}pikahelp anagram`')
         if ctx.channel.id not in self.channels:
             self.channels[ctx.channel.id] = AnagramGame(self.bot)
 

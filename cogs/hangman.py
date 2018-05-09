@@ -140,7 +140,7 @@ class Hangman:
     async def hangman(self, ctx):
         f"""Play Hangman"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}help hangman`')
+            await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}pikahelp hangman`')
         if ctx.channel.id not in self.channels:
             self.channels[ctx.channel.id] = HangmanGame(self.bot)
 
