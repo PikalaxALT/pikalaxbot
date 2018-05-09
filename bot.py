@@ -154,6 +154,8 @@ if __name__ == '__main__':
         wl = map(bot.get_channel, bot.whitelist)
         bot.whitelist = {ch.id: ch for ch in wl if ch is not None}
         bot.initialized = True
+        activity = discord.Game('!pikahelp')
+        await bot.change_presence(activity=activity)
         for channel in bot.whitelist.values():
             await channel.send('_is active and ready for abuse!_')
 
