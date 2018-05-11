@@ -13,14 +13,14 @@ default_bag = (
 
 def db_init():
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select * from meme(bag)')
-        if c.rowcount == 0:
+        c = conn.execute('select exists(select * from meme(bag))')
+        if not c.fetchone():
             c.execute('create table meme (bag text)')
             for line in default_bag:
                 c.execute('insert into meme(bag) values (?)', line)
 
-        c = conn.execute('select * from game')
-        if c.rowcount == 0:
+        c = conn.execute('select exists(select * from game)')
+        if not c.fetchone():
             c.execute('create table game (id integer, name text, score integer)')
 
 
