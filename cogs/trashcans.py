@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from discord.ext import commands
+from utils import sql
 import random
 
 
@@ -92,6 +93,7 @@ class TrashcansGame:
                 await ctx.send('Looks like you won\'t be fighting the Gym Leader today.')
             else:
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!')
+                sql.increment_score(ctx, by=5)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '

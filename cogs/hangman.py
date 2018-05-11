@@ -2,6 +2,7 @@ import asyncio
 import discord
 import random
 from utils.data import data
+from utils import sql
 from discord.ext import commands
 from bot import PikalaxBOT
 import time
@@ -81,6 +82,7 @@ class HangmanGame:
             else:
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}')
+                sql.increment_score(ctx)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '

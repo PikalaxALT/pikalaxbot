@@ -4,7 +4,7 @@ import json
 from discord.ext import commands
 from discord import compat
 from discord.client import log
-from utils import markov
+from utils import markov, sql
 import random
 import logging
 import sys
@@ -17,6 +17,7 @@ initial_extensions = (
     'cogs.hangman',
     'cogs.anagram',
     'cogs.trashcans',
+    'cogs.leaderboard',
 )
 
 
@@ -103,6 +104,10 @@ class PikalaxBOT(commands.Bot):
 
 
 if __name__ == '__main__':
+    try:
+        sql.db_init()
+    except sql.Error as e:
+        log.error('failed to initialize database')
     handler = logging.StreamHandler(stream=sys.stderr)
     fmt = logging.Formatter()
     handler.setFormatter(fmt)
