@@ -11,7 +11,7 @@ default_bag = (
 )
 
 
-def safe_call(func):
+def suppress_sql_error(func):
     def __call__(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -21,55 +21,54 @@ def safe_call(func):
     return __call__
 
 
-@safe_call
+@suppress_sql_error
 def db_init():
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select exists(select bag from meme)')
-        if not c.fetchone():
+        if not c.fetchone()[0]:
             c.execute('create table meme (bag text)')
             for line in default_bag:
                 c.execute('insert into meme(bag) values (?)', line)
 
         c = conn.execute('select exists(select * from game)')
-        if not c.fetchone():
+        if not c.fetchone()[0]:
             c.execute('create table game (id integer, name text, score integer)')
 
 
-@safe_call
+@suppress_sql_error
 def get_score(ctx):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select score from game where id = ? limit 1', ctx.author.id)
-        return c.fetchone()
+        return c.fetchone()[0]
 
 
-@safe_call
+@suppress_sql_error
 def increment_score(ctx, by=1):
-    score = get_score(ctx)
     with sqlite3.connect(dbname) as conn:
-        if score is None:
-            conn.executemany('insert into game values (?, ?, ?)', (ctx.author.id, ctx.author.name, by))
+        c = conn.execute('select exists(select score from game where id = ?)', ctx.author.id)
+        if c.fetchone()[0]:
+            conn.executemany('update game set score = score + ? where id = ?', (by, ctx.author.id))
         else:
-            conn.executemany('update game set score = ? where id = ?',
-                         (score + by, ctx.author.id))
+            conn.executemany('insert into game values (?, ?, ?)', (ctx.author.id, ctx.author.name, by))
 
 
-@safe_call
+@suppress_sql_error
 def get_all_scores():
     with sqlite3.connect(dbname) as conn:
         yield from conn.execute('select * from game order by score desc limit 10')
 
 
-@safe_call
+@suppress_sql_error
 def add_bag(text):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select exists(select * from meme where bag = ?)', text)
-        retrieved = c.fetchone()
+        retrieved = c.fetchone()[0]
         if not retrieved:
             c.execute('insert into meme values (?)', text)
     return retrieved
 
 
-@safe_call
+@suppress_sql_error
 def read_bag():
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select bag from meme order by random() limit 1')
