@@ -5,7 +5,7 @@ from sqlite3 import Error
 dbname = 'data/db.sql'
 default_bag = (
     '{name} happily jumped into the bag!',
-    '{name} reluctantly clambored into the bag.'
+    '{name} reluctantly clambored into the bag.',
     '{name} turned away!',
     '{name} let out a cry in protest!'
 )
@@ -13,7 +13,7 @@ default_bag = (
 
 def db_init():
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select exists(select * from meme(bag))')
+        c = conn.execute('select exists(select bag from meme)')
         if not c.fetchone():
             c.execute('create table meme (bag text)')
             for line in default_bag:
