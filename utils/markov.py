@@ -3,14 +3,14 @@ Unapologetically aped from https://github.com/TwitchPlaysPokemon/tpp/utils/marko
 """
 
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from random import choices
 
 
 class Chain:
     # tbl = { ( state0, state1, ... ): { next_obj: count, ... }, ... }
     def __init__(self, state_size=2, store_lowercase=False):
-        self.tbl = defaultdict(lambda: defaultdict(int))
+        self.tbl = defaultdict(Counter)
         self.state_size = state_size
         self.store_lowercase = store_lowercase
 
