@@ -23,17 +23,15 @@ class Leaderboard:
 
     @leaderboard.command()
     async def show(self, ctx):
-        scores = list(sql.get_all_scores())
-        scores.sort(key=lambda row: row[2], reverse=True)
-        if len(scores) == 0:
+        msgs = []
+        for _id, name, score in sql.get_all_scores():
+            user = await self.bot.get_user(_id)
+            if user is not None:
+                name = user.mention
+            msgs.append(f'{name}: {score:d}')
+        if len(msgs) == 0:
             await ctx.send('The leaderboard is empty. Play some games to get your name up there!')
         else:
-            msgs = []
-            for id, name, score in scores[:10]:
-                user = await self.bot.get_user(id)
-                if user is not None:
-                    name = user.mention
-                msgs.append(f'{name}: {score:d}')
             msg = '\n'.join(msgs)
             await ctx.send(f'Leaderboard:\n'
                            f'```\n'
