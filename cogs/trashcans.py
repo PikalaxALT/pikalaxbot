@@ -10,6 +10,16 @@ class TrashcansGame:
         self.bot = bot
         self._timeout = 600
         self.reset()
+        self._lock = False
+
+    def __enter__(self):
+        while self._lock:
+            pass
+        self._lock = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._lock = False
 
     def reset(self):
         self._running = False
@@ -166,23 +176,27 @@ class Trashcans:
     @trashcans.command()
     async def start(self, ctx):
         """Start a game in the current channel"""
-        await self.channels[ctx.channel.id].start(ctx)
+        with self.channels[ctx.channel.id] as game:
+            await game.start(ctx)
 
     @trashcans.command()
     async def guess(self, ctx, x: int, y: int):
         """Make a guess, if you dare"""
-        await self.channels[ctx.channel.id].guess(ctx, x, y)
+        with self.channels[ctx.channel.id] as game:
+            await game.guess(ctx, x, y)
 
     @trashcans.command()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         if await self.bot.is_owner(ctx.author):
-            await self.channels[ctx.channel.id].end(ctx, aborted=True)
+            with self.channels[ctx.channel.id] as game:
+                await game.end(ctx, aborted=True)
 
     @trashcans.command()
     async def show(self, ctx):
         """Show the board in a new message"""
-        await self.channels[ctx.channel.id].show_(ctx)
+        with self.channels[ctx.channel.id] as game:
+            await game.show_(ctx)
 
 
 def setup(bot):
