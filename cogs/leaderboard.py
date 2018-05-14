@@ -15,7 +15,7 @@ class Leaderboard:
     @leaderboard.command()
     async def check(self, ctx):
         score = sql.get_score(ctx)
-        if score is None:
+        if score is not None:
             await ctx.send(f'{ctx.author.mention} has {score:d} point(s) across all games.')
         else:
             await ctx.send(f'{ctx.author.mention} is not yet on the leaderboard.')

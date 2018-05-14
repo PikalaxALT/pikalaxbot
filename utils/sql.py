@@ -28,16 +28,18 @@ def db_init():
 
 def get_score(ctx):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select score from game where id = ? limit 1', ctx.author.id)
-        return c.fetchone()[0]
+        try:
+            c = conn.execute('select score from game where id = ? limit 1', ctx.author.id)
+            return c.fetchone()[0]
+        except sqlite3.OperationalError:
+            return None
 
 
 def increment_score(ctx, by=1):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select exists(select score from game where id = ?)', ctx.author.id)
-        if c.fetchone()[0]:
+        try:
             conn.executemany('update game set score = score + ? where id = ?', (by, ctx.author.id))
-        else:
+        except sqlite3.OperationalError:
             conn.executemany("insert into game values (?, '?', ?)", (ctx.author.id, ctx.author.name, by))
         conn.commit()
 
