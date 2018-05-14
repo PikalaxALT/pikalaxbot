@@ -77,4 +77,4 @@ def read_bag():
         c = conn.execute('select bag from meme order by random() limit 1')
         msg = c.fetchone()
     if msg is not None:
-        return c.fetchone()[0]
+        return msg[0]
