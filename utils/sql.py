@@ -39,9 +39,9 @@ def db_clear():
             pass
 
 
-def get_score(ctx):
+def get_score(author):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select score from game where id = ? limit 1', (ctx.author.id,))
+        c = conn.execute('select score from game where id = ? limit 1', (author.id,))
         score = c.fetchone()
         if hasattr(score, '__getitem__'):
             score = score[0]
