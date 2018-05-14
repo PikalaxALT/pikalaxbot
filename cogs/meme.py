@@ -61,11 +61,9 @@ class Meme:
 
         Get in the bag, Nebby."""
         if ctx.invoked_subcommand is None:
-            try:
-                message = sql.read_bag()
-            except sql.sqlite3.OperationalError as e:
-                await ctx.send('An SQL error has occurred (logged to console)')
-
+            message = sql.read_bag()
+            if message is None:
+                await ctx.send(f'{self.bot.user.display_name} cannot find the bag :BibleThump:')
             else:
                 await ctx.send(message.format(name=self.bot.user.display_name))
 
@@ -76,14 +74,10 @@ class Meme:
         Add a message to the bag.
 
         {name}: Insert the bot's name."""
-        try:
-            flag = sql.add_bag(' '.join(fmtstr))
-            if flag:
-                await ctx.send('That message is already in the bag')
-            else:
-                await ctx.send('Message was successfully placed in the bag')
-        except sql.sqlite3.OperationalError:
-            await ctx.send('An SQL error has occurred (logged to console)')
+        if sql.add_bag(' '.join(fmtstr)):
+            await ctx.send('Message was successfully placed in the bag')
+        else:
+            await ctx.send('That message is already in the bag')
 
     @commands.command()
     async def nebby(self, ctx):

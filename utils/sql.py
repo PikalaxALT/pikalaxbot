@@ -75,4 +75,6 @@ def add_bag(text):
 def read_bag():
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select bag from meme order by random() limit 1')
+        msg = c.fetchone()
+    if msg is not None:
         return c.fetchone()[0]

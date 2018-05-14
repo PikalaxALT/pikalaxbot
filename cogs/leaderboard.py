@@ -24,9 +24,6 @@ class Leaderboard:
     async def show(self, ctx):
         msgs = []
         for _id, name, score in sql.get_all_scores():
-            user = self.bot.get_user(_id)
-            if user is not None:
-                name = user.mention
             msgs.append(f'{name}: {score:d}')
         if len(msgs) == 0:
             await ctx.send('The leaderboard is empty. Play some games to get your name up there!')
