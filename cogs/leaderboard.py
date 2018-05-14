@@ -36,3 +36,7 @@ class Leaderboard:
                            f'```\n'
                            f'{msg}\n'
                            f'```')
+
+
+def setup(bot):
+    bot.add_cog(Leaderboard(bot))
