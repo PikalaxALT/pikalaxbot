@@ -10,6 +10,22 @@ class Meme:
     def __init__(self, bot):
         self.bot = bot
 
+    @staticmethod
+    def gen_nebby():
+        transition = [[0, 1, 0, 0, 0],
+                      [1, 2, 1, 0, 0],
+                      [0, 0, 1, 1, 0],
+                      [0, 0, 0, 1, 9],
+                      [0, 0, 0, 0, 1]]
+        state = 0
+        emission = 'P'
+        while len(emission) < 100:
+            state = random.choices(range(5), weights=transition[state])[0]
+            if state == 4:
+                break
+            emission += 'pew!'[state]
+        return emission
+
     @commands.command()
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
         """!archeops <arg1> <arg2>
@@ -72,18 +88,7 @@ class Meme:
 
         Pew!"""
         # States: start, P, E, W, !, end
-        transition = [[0, 1, 9, 0, 0, 0],
-                      [0, 1, 2, 1, 0, 0],
-                      [0, 1, 1, 1, 1, 0],
-                      [0, 0, 0, 0, 1, 9],
-                      [0, 0, 0, 0, 0, 1]]
-        state = 0
-        emission = 'P'
-        while len(emission < 100):
-            state = random.choices(range(5), weights=transition[state])
-            if state == 4:
-                break
-            emission += 'pew!'[state]
+        emission = self.gen_nebby()
         await ctx.send(emission)
 
 
