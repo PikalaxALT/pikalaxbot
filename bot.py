@@ -4,12 +4,13 @@ import json
 from discord.ext import commands
 from discord import compat
 from discord.client import log
-from utils import markov
+from utils import markov, sql
 import random
 import logging
 import sys
 import time
 import traceback
+from collections import Counter
 
 
 initial_extensions = (
@@ -17,6 +18,7 @@ initial_extensions = (
     'cogs.hangman',
     'cogs.anagram',
     'cogs.trashcans',
+    'cogs.leaderboard',
 )
 
 
@@ -31,7 +33,7 @@ class PikalaxBOT(commands.Bot):
         self.whitelist = {}
         self.debug = False
         self.markov_channels = []
-        self.rate_limiting = {}
+        self.rate_limiting = Counter()
         self.max_rate = 10
         self.cooldown = 10
         self.initialized = False
@@ -103,6 +105,7 @@ class PikalaxBOT(commands.Bot):
 
 
 if __name__ == '__main__':
+    sql.db_init()
     handler = logging.StreamHandler(stream=sys.stderr)
     fmt = logging.Formatter()
     handler.setFormatter(fmt)
@@ -130,10 +133,10 @@ if __name__ == '__main__':
 
     @bot.check
     def is_not_rate_limited(ctx: commands.Context):
-        ch = ctx.channel
-        if ch in ctx.bot.rate_limiting and ctx.bot.rate_limiting[ch] >= ctx.bot.max_rate:
+        author = ctx.author.id
+        if bot.rate_limiting[author] >= bot.max_rate:
             return False
-        ctx.bot.rate_limit(ch)
+        bot.rate_limit(author)
         return True
 
 

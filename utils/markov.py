@@ -3,39 +3,26 @@ Unapologetically aped from https://github.com/TwitchPlaysPokemon/tpp/utils/marko
 """
 
 
-from collections import defaultdict
-from random import randint
+from collections import defaultdict, Counter
+from random import choices
 
 
 class Chain:
     # tbl = { ( state0, state1, ... ): { next_obj: count, ... }, ... }
     def __init__(self, state_size=2, store_lowercase=False):
-        self.tbl = defaultdict(dict)
+        self.tbl = defaultdict(Counter)
         self.state_size = state_size
         self.store_lowercase = store_lowercase
 
-    def __weighted_choice(self, items):
-        s = 0
-        for key in items:
-            s += items[key]
-        r = randint(0, s - 1)
-        s = 0
-        for key in items:
-            s += items[key]
-            if r < s:
-                return key
+    @staticmethod
+    def __weighted_choice(items):
+        return choices(list(items), weights=items.values())[0]
 
     def __lower(self, obj):
-        if self.store_lowercase:
-            return str(obj).lower()
-        else:
-            return obj
+        return str(obj).lower() if self.store_lowercase else obj
 
     def learn(self, state, obj):
-        if obj in self.tbl[state]:
-            self.tbl[state][obj] += 1
-        else:
-            self.tbl[state][obj] = 1
+        self.tbl[state][obj] += 1
 
     def learn_list(self, objs):
         state = (None,) * self.state_size
@@ -52,7 +39,8 @@ class Chain:
             self.tbl[state][obj] -= 1
             if self.tbl[state][obj] == 0:
                 self.tbl[state].pop(obj)
-                if len(self.tbl[state]) == 0: self.tbl.pop(state)
+                if len(self.tbl[state]) == 0:
+                    self.tbl.pop(state)
 
     def unlearn_list(self, objs):
         state = (None,) * self.state_size
@@ -71,7 +59,7 @@ class Chain:
             if state not in self.tbl:
                 break
             next_obj = self.__weighted_choice(self.tbl[state])
-            if next_obj == None:
+            if next_obj is None:
                 break
             result.append(next_obj)
             state = state[1:] + (self.__lower(next_obj),)
