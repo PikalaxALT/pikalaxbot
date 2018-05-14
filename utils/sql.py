@@ -18,7 +18,7 @@ def db_init():
         except sqlite3.OperationalError:
             c = conn.execute('create table meme (bag text)')
             for line in default_bag:
-                c.execute('insert into meme(bag) values (\'?\')', line)
+                c.execute("insert into meme(bag) values ('?')", line)
 
         try:
             conn.execute('select exists(select * from game)')
@@ -38,7 +38,7 @@ def increment_score(ctx, by=1):
         if c.fetchone()[0]:
             conn.executemany('update game set score = score + ? where id = ?', (by, ctx.author.id))
         else:
-            conn.executemany('insert into game values (?, \'?\', ?)', (ctx.author.id, ctx.author.name, by))
+            conn.executemany("insert into game values (?, '?', ?)", (ctx.author.id, ctx.author.name, by))
         conn.commit()
 
 
@@ -52,7 +52,7 @@ def add_bag(text):
         c = conn.execute('select exists(select * from meme where bag = ?)', text)
         retrieved = c.fetchone()[0]
         if not retrieved:
-            c.execute('insert into meme values (\'?\')', text)
+            c.execute("insert into meme(bag) values ('?')", text)
             conn.commit()
     return retrieved
 
