@@ -22,6 +22,10 @@ initial_extensions = (
 )
 
 
+def log_exc(exc):
+    log.error(traceback.format_exception(type(exc), exc, exc.__traceback__))
+
+
 class PikalaxBOT(commands.Bot):
     def __init__(self, settings):
         meta = settings.get('meta', {})

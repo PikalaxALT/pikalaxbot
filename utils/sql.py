@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 dbname = 'data/db.sql'
@@ -10,35 +11,51 @@ default_bag = (
 
 
 def db_init():
+    os.makedirs(os.path.dirname(dbname), exist_ok=True)
     with sqlite3.connect(dbname) as conn:
         try:
-            conn.execute('select exists(select * from meme)')
+            conn.execute('select * from meme')
         except sqlite3.OperationalError:
             c = conn.execute('create table meme (bag text)')
             for line in default_bag:
-                c.execute("insert into meme(bag) values ('?')", (line,))
+                c.execute("insert into meme(bag) values (?)", (line,))
 
         try:
-            conn.execute('select exists(select * from game)')
+            conn.execute('select * from game')
         except sqlite3.OperationalError:
             conn.execute('create table game (id integer, name text, score integer)')
 
 
-def get_score(ctx):
+def db_clear():
+    os.makedirs(os.path.dirname(dbname), exist_ok=True)
     with sqlite3.connect(dbname) as conn:
         try:
-            c = conn.execute('select score from game where id = ? limit 1', (ctx.author.id,))
-            return c.fetchone()[0]
-        except sqlite3.OperationalError:
-            return None
+            conn.execute("drop table meme")
+        except sqlite3.Error:
+            pass
+        try:
+            conn.execute("drop table game")
+        except sqlite3.Error:
+            pass
+
+
+def get_score(ctx):
+    with sqlite3.connect(dbname) as conn:
+        c = conn.execute('select score from game where id = ? limit 1', (ctx.author.id,))
+        score = c.fetchone()
+        if hasattr(score, '__getitem__'):
+            score = score[0]
+        return score
 
 
 def increment_score(ctx, by=1):
     with sqlite3.connect(dbname) as conn:
-        try:
-            conn.executemany('update game set score = score + ? where id = ?', (by, ctx.author.id))
-        except sqlite3.OperationalError:
-            conn.executemany("insert into game values (?, '?', ?)", (ctx.author.id, ctx.author.name, by))
+        c = conn.execute("select score from game where id = ?", (ctx.author.id,))
+        score = c.fetchone()
+        if score is None:
+            conn.execute("insert into game values (?, ?, ?)", (ctx.author.id, ctx.author.name, by))
+        else:
+            conn.execute('update game set score = score + ? where id = ?', (by, ctx.author.id))
 
 
 def get_all_scores():
@@ -48,15 +65,14 @@ def get_all_scores():
 
 def add_bag(text):
     with sqlite3.connect(dbname) as conn:
-        try:
-            c = conn.execute('select exists(select * from meme where bag = ?)', (text,))
-            return True
-        except sqlite3.OperationalError:
-            conn.execute("insert into meme(bag) values ('?')", (text,))
-            return False
+        c = conn.execute('select * from meme where bag = ?', (text,))
+        res = c.fetchone() is None
+        if res:
+            conn.execute("insert into meme(bag) values (?)", (text,))
+        return res
 
 
 def read_bag():
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select bag from meme order by random() limit 1')
-        return c.fetchone()
+        return c.fetchone()[0]
