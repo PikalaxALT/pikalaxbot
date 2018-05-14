@@ -3,10 +3,10 @@ import sqlite3
 
 dbname = 'data/db.sql'
 default_bag = (
-    '{name} happily jumped into the bag!',
-    '{name} reluctantly clambored into the bag.',
-    '{name} turned away!',
-    '{name} let out a cry in protest!'
+    'happily jumped into the bag!',
+    'reluctantly clambored into the bag.',
+    'turned away!',
+    'let out a cry in protest!'
 )
 
 

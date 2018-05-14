@@ -32,7 +32,6 @@ class Meme:
 
         Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
-        log.info(f'!archeops {subj1} {subj2}')
         data = {'Subject1': subj1, 'Subject2': subj2}
         async with aiohttp.ClientSession() as cs:
             async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=data) as r:
@@ -63,9 +62,10 @@ class Meme:
         if ctx.invoked_subcommand is None:
             message = sql.read_bag()
             if message is None:
-                await ctx.send(f'{self.bot.user.display_name} cannot find the bag :BibleThump:')
+                emoji = self.bot.get_emoji(445726948740562945)  # BibleThump
+                await ctx.send(f'*cannot find the bag {emoji}*')
             else:
-                await ctx.send(message.format(name=self.bot.user.display_name))
+                await ctx.send(f'*{message}*')
 
     @bag.command()
     async def add(self, ctx, *fmtstr):
