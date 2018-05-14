@@ -1,6 +1,4 @@
 import sqlite3
-from bot import log
-import traceback
 
 dbname = 'data/db.sql'
 default_bag = (
@@ -18,7 +16,7 @@ def db_init():
         except sqlite3.OperationalError:
             c = conn.execute('create table meme (bag text)')
             for line in default_bag:
-                c.execute("insert into meme(bag) values ('?')", line)
+                c.execute("insert into meme(bag) values ('?')", (line,))
 
         try:
             conn.execute('select exists(select * from game)')
@@ -29,7 +27,7 @@ def db_init():
 def get_score(ctx):
     with sqlite3.connect(dbname) as conn:
         try:
-            c = conn.execute('select score from game where id = ? limit 1', ctx.author.id)
+            c = conn.execute('select score from game where id = ? limit 1', (ctx.author.id,))
             return c.fetchone()[0]
         except sqlite3.OperationalError:
             return None
@@ -41,7 +39,6 @@ def increment_score(ctx, by=1):
             conn.executemany('update game set score = score + ? where id = ?', (by, ctx.author.id))
         except sqlite3.OperationalError:
             conn.executemany("insert into game values (?, '?', ?)", (ctx.author.id, ctx.author.name, by))
-        conn.commit()
 
 
 def get_all_scores():
@@ -51,12 +48,12 @@ def get_all_scores():
 
 def add_bag(text):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select exists(select * from meme where bag = ?)', text)
-        retrieved = c.fetchone()[0]
-        if not retrieved:
-            c.execute("insert into meme(bag) values ('?')", text)
-            conn.commit()
-    return retrieved
+        try:
+            c = conn.execute('select exists(select * from meme where bag = ?)', (text,))
+            return True
+        except sqlite3.OperationalError:
+            conn.execute("insert into meme(bag) values ('?')", (text,))
+            return False
 
 
 def read_bag():

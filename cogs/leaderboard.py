@@ -24,7 +24,7 @@ class Leaderboard:
     async def show(self, ctx):
         msgs = []
         for _id, name, score in sql.get_all_scores():
-            user = await self.bot.get_user(_id)
+            user = self.bot.get_user(_id)
             if user is not None:
                 name = user.mention
             msgs.append(f'{name}: {score:d}')
