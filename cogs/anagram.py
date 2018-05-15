@@ -14,16 +14,7 @@ class AnagramGame:
         self._attempts = attempts
         self._timeout = 90
         self.reset()
-        self._lock = False
-
-    def __enter__(self):
-        while self._lock:
-            pass
-        self._lock = True
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._lock = False
+        self._lock = asyncio.Lock()
 
     def reset(self):
         self._running = False
@@ -150,26 +141,30 @@ class Anagram:
     @anagram.command()
     async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
-        with self.channels[ctx.channel.id] as game:
+        game = self.channels[ctx.channel.id]
+        with await game._lock:
             await game.start(ctx)
 
     @anagram.command()
     async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
-        with self.channels[ctx.channel.id] as game:
+        game = self.channels[ctx.channel.id]
+        with await game._lock:
             await game.guess(ctx, guess)
 
     @anagram.command()
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
         if await self.bot.is_owner(ctx.author):
-            with self.channels[ctx.channel.id] as game:
+            game = self.channels[ctx.channel.id]
+            with await game._lock:
                 await game.end(ctx, aborted=True)
 
     @anagram.command()
     async def show(self, ctx):
         """Show the board in a new message"""
-        with self.channels[ctx.channel.id] as game:
+        game = self.channels[ctx.channel.id]
+        with await game._lock:
             await game.show_(ctx)
 
 
