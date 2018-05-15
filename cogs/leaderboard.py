@@ -18,17 +18,18 @@ class Leaderboard:
         if username is None:
             person = ctx.author
         else:
+            username = username.lower()
             for person in self.bot.get_all_members():
-                if username in (person.name, person.mention, person.display_name):
+                if username in (person.name.lower(), person.mention.lower(), person.display_name.lower()):
                     break
             else:
                 await ctx.send(f'{ctx.author.mention}: User {username} not found.')
                 return  # bail early
         score = sql.get_score(person)
         if score is not None:
-            await ctx.send(f'{person.mention} has {score:d} point(s) across all games.')
+            await ctx.send(f'{person.name} has {score:d} point(s) across all games.')
         else:
-            await ctx.send(f'{person.mention} is not yet on the leaderboard.')
+            await ctx.send(f'{person.name} is not yet on the leaderboard.')
 
     @leaderboard.command()
     async def show(self, ctx):
