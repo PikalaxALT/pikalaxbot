@@ -10,7 +10,6 @@ import logging
 import sys
 import time
 import traceback
-from collections import Counter
 
 
 initial_extensions = (
@@ -37,8 +36,6 @@ class PikalaxBOT(commands.Bot):
         self.whitelist = {}
         self.debug = False
         self.markov_channels = []
-        self.rate_limiting = Counter()
-        self.max_rate = 10
         self.cooldown = 10
         self.initialized = False
 
@@ -92,14 +89,6 @@ class PikalaxBOT(commands.Bot):
                         break
         return longest
 
-    def rate_limit(self, ch):
-        def when_done():
-            self.rate_limiting[ch] -= 1
-
-        self.rate_limiting.setdefault(ch, 0)
-        self.rate_limiting[ch] += 1
-        self.loop.call_later(self.cooldown, when_done)
-
     async def on_command_error(self, context, exception):
         if not self.debug and isinstance(exception, commands.CommandError):
             await super().on_command_error(context, exception)
@@ -133,15 +122,6 @@ if __name__ == '__main__':
     @bot.check
     def is_not_me(ctx: commands.Context):
         return ctx.author != ctx.bot.user
-
-
-    @bot.check
-    def is_not_rate_limited(ctx: commands.Context):
-        author = ctx.author.id
-        if bot.rate_limiting[author] >= bot.max_rate:
-            return False
-        bot.rate_limit(author)
-        return True
 
 
     @bot.event
