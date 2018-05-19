@@ -3,27 +3,21 @@ import discord
 import random
 from utils.data import data
 from utils import sql
+from utils.game import GameBase
 from discord.ext import commands
-from bot import log
-import time
 
 
-class AnagramGame:
+class AnagramGame(GameBase):
     def __init__(self, bot, attempts=3):
-        self.bot = bot
         self._attempts = attempts
-        self._timeout = 90
-        self.reset()
-        self._lock = asyncio.Lock()
+        super().__init__(bot)
 
     def reset(self):
-        self._running = False
+        super().reset()
         self._state = ''
         self._solution = ''
         self._incorrect = []
         self.attempts = 0
-        self._message = None
-        self._task = None
 
     @property
     def state(self):
@@ -32,14 +26,6 @@ class AnagramGame:
     @property
     def incorrect(self):
         return ', '.join(self._incorrect)
-
-    @property
-    def running(self):
-        return self._running
-
-    @running.setter
-    def running(self, state):
-        self._running = state
 
     def show(self):
         return f'```Puzzle: {self.state}\n' \
@@ -58,18 +44,9 @@ class AnagramGame:
             self._state = ''.join(self._state)
             self.attempts = self._attempts
             self._incorrect = []
-            self.running = True
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
                            f'to guess correctly before OLDEN corrupts your save.\n')
-            self._message = await ctx.send(self.show())
-            self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
-
-    async def timeout(self, ctx:commands.Context):
-        await asyncio.sleep(self._timeout)
-        if self.running:
-            await ctx.send('Time\'s up!')
-            discord.compat.create_task(self.end(ctx, failed=True))
-            self._task = None
+            await super().start(ctx)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if self.running:
@@ -84,9 +61,10 @@ class AnagramGame:
                 await ctx.send(f'You were too late, welcome to Glitch Purgatory.\n'
                                f'Solution: {self._solution}')
             else:
-                await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
+                score = self.score
+                sql.increment_score(ctx, by=score)
+                await ctx.send(f'{ctx.author.mention} has solved the puzzle and earned {score} points!\n'
                                f'Solution: {self._solution}')
-                sql.increment_score(ctx)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
@@ -116,10 +94,7 @@ class AnagramGame:
                            delete_after=10)
 
     async def show_(self, ctx):
-        if self.running:
-            await self._message.delete()
-            self._message = await ctx.send(self.show())
-        else:
+        if await super().show_(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
@@ -132,7 +107,7 @@ class Anagram:
 
     @commands.group(pass_context=True)
     async def anagram(self, ctx: commands.Context):
-        f"""Play Anagram"""
+        """Play Anagram"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}pikahelp anagram`')
         if ctx.channel.id not in self.channels:

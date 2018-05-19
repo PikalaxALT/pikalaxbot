@@ -2,29 +2,17 @@ import asyncio
 import discord
 from discord.ext import commands
 from utils import sql
+from utils.game import GameBase
 import random
 
 
-class TrashcansGame:
+class TrashcansGame(GameBase):
     def __init__(self, bot):
-        self.bot = bot
-        self._timeout = 600
-        self.reset()
-        self._lock = asyncio.Lock()
+        super().__init__(bot, timeout=180)
 
     def reset(self):
-        self._running = False
-        self._message: discord.Message = None
-        self._task: asyncio.Task = None
+        super().reset()
         self.reset_locks()
-
-    @property
-    def running(self):
-        return self._running
-
-    @running.setter
-    def running(self, state):
-        self._running = state
 
     @property
     def state(self):
@@ -67,19 +55,10 @@ class TrashcansGame:
             await ctx.send(f'{ctx.author.mention}: Trashcans is already running here.',
                            delete_after=10)
         else:
-            self.running = True
             self.reset_locks()
             await ctx.send(f'Welcome to Lt. Surge\'s Gym!  Use `!trashcans guess x y` to check a can!\n'
                            f'You have {self._timeout:d} seconds to find both switches.  Good luck!')
-            self._message = await ctx.send(self.show())
-            self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
-
-    async def timeout(self, ctx: commands.Context):
-        await asyncio.sleep(self._timeout)
-        if self.running:
-            await ctx.send('Time\'s up!')
-            discord.compat.create_task(self.end(ctx, failed=True))
-            self._task = None
+            await super().start(ctx)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if self.running:
@@ -93,8 +72,10 @@ class TrashcansGame:
             elif failed:
                 await ctx.send('Looks like you won\'t be fighting the Gym Leader today.')
             else:
-                await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!')
-                sql.increment_score(ctx, by=5)
+                score = self.score
+                await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
+                               f'You have earned {score} points for your triumph!')
+                sql.increment_score(ctx, score)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
@@ -142,10 +123,7 @@ class TrashcansGame:
                            delete_after=10)
 
     async def show_(self, ctx):
-        if self.running:
-            await self._message.delete()
-            self._message = await ctx.send(self.show())
-        else:
+        if await super().show_(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
                            f'Start a game by saying `{ctx.prefix}trashcans start`.',
                            delete_after=10)
@@ -158,7 +136,7 @@ class Trashcans:
 
     @commands.group(pass_context=True)
     async def trashcans(self, ctx):
-        f"""Play trashcans"""
+        """Play trashcans"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect trashcans subcommand passed. Try `{ctx.prefix}pikahelp trashcans`')
         if ctx.channel.id not in self.channels:
