@@ -42,7 +42,7 @@ class PikalaxBOT(commands.Bot):
         for key, value in user.items():
             setattr(self, key, value)
 
-        self.chains = {chan: markov.Chain(state_size=2, store_lowercase=True) for chan in self.markov_channels}
+        self.chains = {chan: None for chan in self.markov_channels}
 
         self._token = credentials.get('token')
         command_prefix = meta.get('prefix', '!')
@@ -127,6 +127,9 @@ if __name__ == '__main__':
     @bot.event
     async def on_ready():
         for ch in list(bot.chains.keys()):
+            if bot.chains[ch] is not None:
+                del bot.chains[ch]
+            bot.chains[ch] = markov.Chain(store_lowercase=True)
             channel = bot.get_channel(ch)  # type: discord.TextChannel
             try:
                 async for msg in channel.history(limit=5000):
@@ -138,8 +141,7 @@ if __name__ == '__main__':
             except AttributeError:
                 bot.chains.pop(ch)
                 log.error(f'Failed to load chain {ch:d}')
-        wl = map(bot.get_channel, bot.whitelist)
-        bot.whitelist = {ch.id: ch for ch in wl if ch is not None}
+        bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
         bot.initialized = True
         activity = discord.Game('!pikahelp')
         await bot.change_presence(activity=activity)
@@ -177,7 +179,7 @@ if __name__ == '__main__':
 
 
     def can_learn_markov(msg, force=False):
-        if not force and not markov_general_checks(msg):
+        if not (force or markov_general_checks(msg)):
             return False
         if msg.author.bot:
             return False
@@ -198,9 +200,25 @@ if __name__ == '__main__':
             bot.chains[msg.channel.id].learn_str(msg.clean_content)
 
 
+    def forget_markov(msg, force=False):
+        if can_learn_markov(msg, force=force):
+            bot.chains[msg.channel.id].unlearn_str(msg.clean_content)
+
+
     @bot.listen('on_message')
     async def coro_learn_markov(msg):
         learn_markov(msg)
+
+
+    @bot.listen('on_message_edit')
+    async def coro_update_markov(old, new):
+        forget_markov(old)
+        learn_markov(new)
+
+
+    @bot.listen('on_message_delete')
+    async def coro_delete_markov(msg):
+        forget_markov(msg)
 
 
     async def ctx_is_owner(ctx):
