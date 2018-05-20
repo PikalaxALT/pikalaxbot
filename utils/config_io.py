@@ -1,4 +1,5 @@
 import json
+import os
 
 
 class Settings:
@@ -7,7 +8,22 @@ class Settings:
         self.data: dict = {}
 
     def __enter__(self):
-        with open(self.fname) as fp:
+        self.fetch()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.commit()
+        self.data = {}
+
+    def commit(self):
+        with open(self.fname, 'w') as fp:
+            json.dump(self.data, fp, separators=(', ', ': '), indent=4)
+
+    def fetch(self):
+        mode = 'r' if os.path.exists(self.fname) else 'w+'
+        if os.path.dirname(self.fname) and not os.path.exists(os.path.dirname(self.fname)):
+            os.makedirs(os.path.dirname(self.fname), exist_ok=True)
+        with open(self.fname, mode=mode) as fp:
             self.data = json.load(fp)
         self.data.setdefault('credentials', {})
         self.data.setdefault('user', {})
@@ -17,18 +33,12 @@ class Settings:
         self.data['user'].setdefault('whitelist', {})
         self.data['user'].setdefault('debug', False)
         self.data['user'].setdefault('cooldown', 10)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        with open(self.fname, 'w') as fp:
-            json.dump(self.data, fp, separators=(', ', ': '), indent=4)
-        self.data = {}
 
     def set(self, group, key, value):
         self.data[group][key] = value
 
     def get(self, group, key, default=None):
-        return self.data[group].get(key, default=default)
+        return self.data[group].get(key, default)
 
     def items(self, group):
         yield from self.data[group].items()
@@ -49,7 +59,7 @@ class Settings:
 
     def del_markov_channel(self, ch_id):
         markov_channels = set(self.data['user']['markov_channels'])
-        if ch_id in markov_channels:
+        if ch_id not in markov_channels:
             return False
         markov_channels.remove(ch_id)
         self.set('user', 'markov_channels', list(markov_channels))
