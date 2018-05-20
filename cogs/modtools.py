@@ -1,14 +1,14 @@
 import asyncio
 import discord
 from discord.ext import commands
-from bot import ctx_is_owner, PikalaxBOT, learn_markov
 from utils.markov import Chain
 from utils.config_io import Settings
+from utils.checks import ctx_is_owner
 
 
 class ModTools():
     def __init__(self, bot):
-        self.bot: PikalaxBOT = bot
+        self.bot = bot
 
     @commands.group(pass_context=True)
     @commands.check(ctx_is_owner)
@@ -28,7 +28,7 @@ class ModTools():
                 self.bot.chains[ch.id] = Chain(store_lowercase=True)
                 try:
                     async for msg in ch.history(limit=5000):
-                        learn_markov(msg, force=True)
+                        self.bot.learn_markov(msg, force=True)
                     await ctx.send(f'Successfully initialized {ch.mention}')
                     with Settings() as settings:
                         settings.add_markov_channel(ch.id)

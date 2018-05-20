@@ -5,6 +5,7 @@ from discord import compat
 from discord.client import log
 from utils import markov, sql
 from utils.config_io import Settings
+from utils.checks import ctx_is_owner
 import random
 import logging
 import sys
@@ -89,6 +90,44 @@ class PikalaxBOT(commands.Bot):
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
             log.error(tb[0])
 
+    def markov_general_checks(self, msg):
+        if not self.initialized:
+            return False
+        if msg.channel.id not in self.whitelist:
+            return False
+        if msg.author.bot:
+            return False
+        if len(self.chains) == 0:
+            return False
+        return True
+
+    def can_markov(self, msg):
+        if not self.markov_general_checks(msg):
+            return False
+        if self.user.mentioned_in(msg):
+            return True
+        if self.user.name.lower() in msg.clean_content.lower():
+            return True
+        if self.user.display_name.lower() in msg.clean_content.lower():
+            return True
+        return False
+
+    def can_learn_markov(self, msg, force=False):
+        if not (force or self.markov_general_checks(msg)):
+            return False
+        if msg.author.bot:
+            return False
+        return msg.channel.id in bot.chains and not msg.clean_content.startswith(bot.command_prefix)
+
+    def learn_markov(self, msg, force=False):
+        if self.can_learn_markov(msg, force=force):
+            self.storedMsgsSet.add(msg.clean_content)
+            self.chains[msg.channel.id].learn_str(msg.clean_content)
+    
+    def forget_markov(self, msg, force=False):
+        if self.can_learn_markov(msg, force=force):
+            self.chains[msg.channel.id].unlearn_str(msg.clean_content)
+
 
 if __name__ == '__main__':
     sql.db_init()
@@ -124,7 +163,7 @@ if __name__ == '__main__':
             channel = bot.get_channel(ch)  # type: discord.TextChannel
             try:
                 async for msg in channel.history(limit=5000):
-                    learn_markov(msg, force=True)
+                    bot.learn_markov(msg, force=True)
                 log.info(f'Initialized channel {channel.name}')
             except discord.Forbidden:
                 bot.chains.pop(ch)
@@ -145,41 +184,9 @@ if __name__ == '__main__':
         return ctx.bot.initialized
 
 
-    def markov_general_checks(msg):
-        if not bot.initialized:
-            return False
-        if msg.channel.id not in bot.whitelist:
-            return False
-        if msg.author.bot:
-            return False
-        if len(bot.chains) == 0:
-            return False
-        return True
-
-
-    def can_markov(msg):
-        if not markov_general_checks(msg):
-            return False
-        if bot.user.mentioned_in(msg):
-            return True
-        if bot.user.name.lower() in msg.clean_content.lower():
-            return True
-        if bot.user.display_name.lower() in msg.clean_content.lower():
-            return True
-        return False
-
-
-    def can_learn_markov(msg, force=False):
-        if not (force or markov_general_checks(msg)):
-            return False
-        if msg.author.bot:
-            return False
-        return msg.channel.id in bot.chains and not msg.clean_content.startswith(bot.command_prefix)
-
-
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):
-        if can_markov(msg):
+        if bot.can_markov(msg):
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
             if chain:
@@ -188,38 +195,20 @@ if __name__ == '__main__':
                 await msg.channel.send(f'{msg.author.mention}: An error has occurred.')
 
 
-    def learn_markov(msg, force=False):
-        if can_learn_markov(msg, force=force):
-            bot.storedMsgsSet.add(msg.clean_content)
-            bot.chains[msg.channel.id].learn_str(msg.clean_content)
-
-
-    def forget_markov(msg, force=False):
-        if can_learn_markov(msg, force=force):
-            bot.chains[msg.channel.id].unlearn_str(msg.clean_content)
-
-
     @bot.listen('on_message')
     async def coro_learn_markov(msg):
-        learn_markov(msg)
+        bot.learn_markov(msg)
 
 
     @bot.listen('on_message_edit')
     async def coro_update_markov(old, new):
-        forget_markov(old)
-        learn_markov(new)
+        bot.forget_markov(old)
+        bot.learn_markov(new)
 
 
     @bot.listen('on_message_delete')
     async def coro_delete_markov(msg):
-        forget_markov(msg)
-
-
-    async def ctx_is_owner(ctx):
-        if await ctx.bot.is_owner(ctx.author):
-            return True
-        await ctx.send(f'{ctx.author.mention}: Permission denied')
-        return False
+        bot.forget_markov(msg)
 
 
     @bot.command(pass_context=True)

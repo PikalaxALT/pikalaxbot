@@ -2,12 +2,11 @@ import asyncio
 import discord
 from discord.ext import commands
 from utils import sql
-from bot import PikalaxBOT
 
 
 class Leaderboard:
     def __init__(self, bot):
-        self.bot = bot  # type: PikalaxBOT
+        self.bot = bot
 
     @commands.group(pass_context=True)
     async def leaderboard(self, ctx):

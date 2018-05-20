@@ -1,7 +1,6 @@
 import discord
 import aiohttp
 from discord.ext import commands
-from bot import log
 import random
 from utils import sql
 

@@ -5,11 +5,10 @@ from utils.data import data
 from utils import sql
 from utils.game import GameBase
 from discord.ext import commands
-from bot import PikalaxBOT
 
 
 class HangmanGame(GameBase):
-    def __init__(self, bot: PikalaxBOT, attempts=8):
+    def __init__(self, bot, attempts=8):
         self._attempts = attempts
         super().__init__(bot)
 
@@ -153,5 +152,5 @@ class Hangman:
             await game.show_(ctx)
 
 
-def setup(bot: PikalaxBOT):
+def setup(bot):
     bot.add_cog(Hangman(bot))
