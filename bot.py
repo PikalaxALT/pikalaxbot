@@ -44,7 +44,7 @@ class PikalaxBOT(commands.Bot):
 
         self.storedMsgsSet = set()
 
-        super().__init__(command_prefix)
+        super().__init__(command_prefix, case_insensitive=True)
 
     def run(self):
         super().run(self._token)
