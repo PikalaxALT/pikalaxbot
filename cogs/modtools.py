@@ -12,10 +12,10 @@ class ModTools():
 
     @commands.group(pass_context=True)
     @commands.check(ctx_is_owner)
-    async def mod(self, ctx):
+    async def admin(self, ctx):
         pass
 
-    @mod.group(pass_context=True)
+    @admin.group(pass_context=True)
     async def markov(self, ctx):
         pass
 
@@ -51,7 +51,7 @@ class ModTools():
         else:
             await ctx.send(f'Channel {ch.mention} is already forgotten')
 
-    @mod.group(pass_context=True)
+    @admin.group(pass_context=True)
     async def ui(self, ctx):
         pass
 
