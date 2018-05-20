@@ -1,16 +1,14 @@
 import asyncio
 import discord
-import json
 from discord.ext import commands
 from discord import compat
 from discord.client import log
 from utils import markov, sql
+from utils.config_io import Settings
 import random
 import logging
 import sys
-import time
 import traceback
-
 
 initial_extensions = (
     'cogs.meme',
@@ -18,6 +16,7 @@ initial_extensions = (
     'cogs.anagram',
     'cogs.trashcans',
     'cogs.leaderboard',
+    'cogs.modtools',
 )
 
 
@@ -26,26 +25,21 @@ def log_exc(exc):
 
 
 class PikalaxBOT(commands.Bot):
-    def __init__(self, settings):
-        meta = settings.get('meta', {})
-        credentials = settings.get('credentials', {})
-        user = settings.get('user', {})
-
-        self.owner_id = credentials.get('owner')
-
-        self.whitelist = {}
-        self.debug = False
-        self.markov_channels = []
-        self.cooldown = 10
-        self.initialized = False
-
-        for key, value in user.items():
-            setattr(self, key, value)
+    def __init__(self):
+        with Settings() as settings:
+            command_prefix = settings.get('meta', 'prefix', '!')
+            self._token = settings.get('credentials', 'token')
+            self.owner_id = settings.get('credentials', 'owner')
+            self.whitelist = {}
+            self.debug = False
+            self.markov_channels = []
+            self.cooldown = 10
+            self.initialized = False
+            self.game = f'{command_prefix}pikahelp'
+            for key, value in settings.items('user'):
+                setattr(self, key, value)
 
         self.chains = {chan: None for chan in self.markov_channels}
-
-        self._token = credentials.get('token')
-        command_prefix = meta.get('prefix', '!')
 
         self.storedMsgsSet = set()
 
@@ -76,17 +70,16 @@ class PikalaxBOT(commands.Bot):
         longest = ''
         lng_cnt = 0
         chain = self.chains.get(ch)
-        if chain is None:
-            return
-        for i in range(n_attempts):
-            l = chain.generate(len_max)
-            if len(l) > lng_cnt:
-                msg = str.join(' ', l)
-                if i == 0 or msg not in self.storedMsgsSet:
-                    lng_cnt = len(l)
-                    longest = str.join(' ', l)
-                    if lng_cnt == len_max:
-                        break
+        if chain is not None:
+            for i in range(n_attempts):
+                cur = chain.generate(len_max)
+                if len(cur) > lng_cnt:
+                    msg = ' '.join(cur)
+                    if i == 0 or msg not in self.storedMsgsSet:
+                        lng_cnt = len(cur)
+                        longest = msg
+                        if lng_cnt == len_max:
+                            break
         return longest
 
     async def on_command_error(self, context, exception):
@@ -103,9 +96,7 @@ if __name__ == '__main__':
     fmt = logging.Formatter()
     handler.setFormatter(fmt)
     log.addHandler(handler)
-    with open('settings.json') as fp:
-        settings = json.load(fp)
-    bot = PikalaxBOT(settings)
+    bot = PikalaxBOT()
     log.setLevel(logging.INFO)
     for extn in initial_extensions:
         bot.load_extension(extn)
@@ -143,7 +134,7 @@ if __name__ == '__main__':
                 log.error(f'Failed to load chain {ch:d}')
         bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
         bot.initialized = True
-        activity = discord.Game('!pikahelp')
+        activity = discord.Game(bot.game)
         await bot.change_presence(activity=activity)
         for channel in bot.whitelist.values():
             await channel.send('_is active and ready for abuse!_')
@@ -191,7 +182,10 @@ if __name__ == '__main__':
         if can_markov(msg):
             ch = random.choice(list(bot.chains.keys()))
             chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
-            await msg.channel.send(f'{msg.author.mention}: {chain}')
+            if chain:
+                await msg.channel.send(f'{msg.author.mention}: {chain}')
+            else:
+                await msg.channel.send(f'{msg.author.mention}: An error has occurred.')
 
 
     def learn_markov(msg, force=False):
@@ -222,7 +216,10 @@ if __name__ == '__main__':
 
 
     async def ctx_is_owner(ctx):
-        return await ctx.bot.is_owner(ctx.author)
+        if await ctx.bot.is_owner(ctx.author):
+            return True
+        await ctx.send(f'{ctx.author.mention}: Permission denied')
+        return False
 
 
     @bot.command(pass_context=True)

@@ -127,14 +127,14 @@ class Hangman:
     async def start(self, ctx):
         """Start a game in the current channel"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.start(ctx)
 
     @hangman.command()
     async def guess(self, ctx, guess):
         """Make a guess, if you dare"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.guess(ctx, guess)
 
     @hangman.command()
@@ -142,14 +142,14 @@ class Hangman:
         """End the game as a loss (owner only)"""
         if await self.bot.is_owner(ctx.author):
             game = self.channels[ctx.channel.id]
-            with await game._lock:
+            async with game._lock:
                 await game.end(ctx, aborted=True)
 
     @hangman.command()
     async def show(self, ctx):
         """Show the board in a new message"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.show_(ctx)
 
 

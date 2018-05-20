@@ -117,14 +117,14 @@ class Anagram:
     async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.start(ctx)
 
     @anagram.command()
     async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.guess(ctx, guess)
 
     @anagram.command()
@@ -132,14 +132,14 @@ class Anagram:
         """End the game as a loss (owner only)"""
         if await self.bot.is_owner(ctx.author):
             game = self.channels[ctx.channel.id]
-            with await game._lock:
+            async with game._lock:
                 await game.end(ctx, aborted=True)
 
     @anagram.command()
     async def show(self, ctx):
         """Show the board in a new message"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.show_(ctx)
 
 

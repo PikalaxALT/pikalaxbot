@@ -146,14 +146,14 @@ class Trashcans:
     async def start(self, ctx):
         """Start a game in the current channel"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.start(ctx)
 
     @trashcans.command()
     async def guess(self, ctx, x: int, y: int):
         """Make a guess, if you dare"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.guess(ctx, x, y)
 
     @trashcans.command()
@@ -161,14 +161,14 @@ class Trashcans:
         """End the game as a loss (owner only)"""
         if await self.bot.is_owner(ctx.author):
             game = self.channels[ctx.channel.id]
-            with await game._lock:
+            async with game._lock:
                 await game.end(ctx, aborted=True)
 
     @trashcans.command()
     async def show(self, ctx):
         """Show the board in a new message"""
         game = self.channels[ctx.channel.id]
-        with await game._lock:
+        async with game._lock:
             await game.show_(ctx)
 
 
