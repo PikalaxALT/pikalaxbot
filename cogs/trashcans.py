@@ -14,10 +14,6 @@ class TrashcansGame(GameBase):
         super().reset()
         self.reset_locks()
 
-    @property
-    def state(self):
-        return self._state
-
     def show(self):
         return '\n'.join(' '.join('\u2705' if y else chr(0x1f5d1) for y in x) for x in self.state)
 

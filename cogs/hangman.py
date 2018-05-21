@@ -20,10 +20,6 @@ class HangmanGame(GameBase):
         self.attempts = 0
 
     @property
-    def state(self):
-        return ' '.join(self._state)
-
-    @property
     def incorrect(self):
         return ', '.join(self._incorrect)
 

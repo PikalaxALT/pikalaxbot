@@ -12,10 +12,15 @@ class GameBase:
         self.reset()
 
     def reset(self):
+        self._state = None
         self._running = False
         self._message = None
         self._task = None
         self.start_time = -1
+
+    @property
+    def state(self):
+        return self._state
 
     @property
     def score(self):

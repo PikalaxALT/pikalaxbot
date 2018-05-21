@@ -17,6 +17,7 @@ initial_extensions = (
     'cogs.anagram',
     'cogs.trashcans',
     'cogs.leaderboard',
+    'cogs.voltorb_flip',
     'cogs.modtools',
 )
 
