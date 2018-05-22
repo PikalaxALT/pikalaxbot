@@ -134,7 +134,7 @@ class VoltorbFlipGame(GameBase):
             self._score = 1
             self.build_board()
             await ctx.send(f'New game of Voltorb Flip! Use `{ctx.prefix}voltorb guess x y` to reveal a square!')
-            await self.show_(ctx)
+            await super().start(ctx)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if self.running:
@@ -156,7 +156,7 @@ class VoltorbFlipGame(GameBase):
                 self._level = min(self._level + 1, 10)
             self.reset()
         else:
-            await ctx.send(f'{ctx.author.mention}: Voltorb flip is not running here. '
+            await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
 
@@ -182,7 +182,9 @@ class VoltorbFlipGame(GameBase):
 
     async def show_(self, ctx):
         if await super().show_(ctx) is None:
-            await ctx.send()
+            await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
+                           f'Start a game by saying `{ctx.prefix}voltorb start`.',
+                           delete_after=10)
 
 
 class VoltorbFlip:
