@@ -37,11 +37,14 @@ class VoltorbFlipGame(GameBase):
     def coin_value(self, x, y):
         return self.state[y][x] & 3
 
+    def non_bomb_coin_value(self, x, y):
+        return 0 if self.is_bomb(x, y) else self.coin_value(x, y)
+
     def colsum(self, x, do_coins=False):
-        return sum((self.coin_value if do_coins else self.is_bomb)(x, y) for y in range(5))
+        return sum((self.non_bomb_coin_value if do_coins else self.is_bomb)(x, y) for y in range(5))
 
     def rowsum(self, y, do_coins=False):
-        return sum((self.coin_value if do_coins else self.is_bomb)(x, y) for x in range(5))
+        return sum((self.non_bomb_coin_value if do_coins else self.is_bomb)(x, y) for x in range(5))
 
     def set_flag(self, x, y):
         self.state[y][x] |= self.FLG
