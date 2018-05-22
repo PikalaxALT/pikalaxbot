@@ -110,7 +110,7 @@ class Hangman:
         self.bot = bot
         self.channels = {}
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def hangman(self, ctx):
         """Play Hangman"""
         if ctx.invoked_subcommand is None:

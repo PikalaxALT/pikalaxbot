@@ -249,7 +249,7 @@ class VoltorbFlip:
         self.bot = bot
         self.channels = {}
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def voltorb(self, ctx):
         """Play Voltorb Flip"""
         if ctx.invoked_subcommand is None:

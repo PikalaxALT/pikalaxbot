@@ -131,7 +131,7 @@ class Trashcans:
         self.bot = bot
         self.channels = {}
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
         if ctx.invoked_subcommand is None:

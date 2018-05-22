@@ -8,7 +8,7 @@ class Leaderboard:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def leaderboard(self, ctx):
         pass
 

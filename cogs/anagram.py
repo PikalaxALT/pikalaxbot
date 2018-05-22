@@ -98,7 +98,7 @@ class Anagram:
         self.bot = bot
         self.channels = {}
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
         if ctx.invoked_subcommand is None:
