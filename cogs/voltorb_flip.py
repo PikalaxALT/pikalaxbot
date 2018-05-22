@@ -24,6 +24,7 @@ class VoltorbFlipGame(GameBase):
         self._state = [[1 for x in range(5)] for y in range(5)]
         self._score = 0
         self._players = set()
+        self._ended = False
 
     def is_flagged(self, x, y):
         return self.state[y][x] & self.FLG
@@ -139,7 +140,7 @@ class VoltorbFlipGame(GameBase):
         for y in range(5):
             state += ''.join(self.get_element_char(x, y) for x in range(5))
             state += ' | {} | {}\n'.format(rowbombcounts[y], rowcoincounts[y])
-        state += f'SCORE: {self._score:d}'
+        state += f'SCORE: {0 if self._ended else self._score:d}'
         return state
 
     async def start(self, ctx):
@@ -163,6 +164,7 @@ class VoltorbFlipGame(GameBase):
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}')
             elif failed:
+                self._ended = True
                 await ctx.send(f'Game over. You win 0 coins.')
                 new_level = max(new_level - 1, 1)
             else:
