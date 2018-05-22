@@ -180,17 +180,22 @@ class VoltorbFlipGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
 
-    async def guess(self, ctx, x: int, y: int):
+    async def guess(self, ctx: commands.Context, x: int, y: int):
         self._players.add(ctx.author.id)
         if self.is_bomb(x, y):
             await ctx.send('KAPOW')
             await self.end(ctx, failed=True)
+        elif self.is_revealed(x, y):
+            await ctx.send(f'{ctx.author.mention}: Tile already revealed.',
+                           delete_after=10)
         else:
             self.set_revealed(x, y)
             multiplier = self.coin_value(x, y)
             if multiplier > 1:
                 self._score *= multiplier
                 await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
+                emoji = discord.utils.find(lambda e: e.name.lower() == 'pogchamp', ctx.guild.emojis)
+                await ctx.message.add_reaction(emoji)
             await self._message.edit(content=self.show())
             if self.found_all_coins():
                 await self.end(ctx)
