@@ -27,7 +27,8 @@ class GameBase:
 
     @property
     def score(self):
-        return max(int(math.ceil(5 * (self._timeout - time.time() + self.start_time) / self._timeout)), 1)
+        time_factor = (self._timeout - time.time() + self.start_time) / self._timeout
+        return max(int(math.ceil(self._max_score * time_factor)), 1)
 
     @property
     def running(self):

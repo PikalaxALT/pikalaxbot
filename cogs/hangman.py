@@ -23,6 +23,10 @@ class HangmanGame(GameBase):
     def incorrect(self):
         return ', '.join(self._incorrect)
 
+    @property
+    def state(self):
+        return ' '.join(self._state)
+
     def show(self):
         return f'```Puzzle: {self.state}\n' \
                f'Incorrect: [{self.incorrect}]\n' \
