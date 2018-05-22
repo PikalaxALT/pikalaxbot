@@ -45,10 +45,7 @@ class AnagramGame(GameBase):
             await super().start(ctx)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
-        if self.running:
-            if self._task and not self._task.done():
-                self._task.cancel()
-                self._task = None
+        if await super().end(ctx, failed=failed, aborted=aborted):
             await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'

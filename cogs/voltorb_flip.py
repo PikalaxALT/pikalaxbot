@@ -4,6 +4,7 @@ from discord.ext import commands
 from utils.game import GameBase
 from utils import sql
 import random
+import math
 
 
 class VoltorbFlipGame(GameBase):
@@ -15,13 +16,13 @@ class VoltorbFlipGame(GameBase):
     VTB = 16
 
     def __init__(self, bot):
+        self._level = 1
         super().__init__(bot, timeout=180)
 
     def reset(self):
         super().reset()
         self._state = [[1 for x in range(5)] for y in range(5)]
         self._score = 0
-        self._level = 1
         self._players = set()
 
     def is_flagged(self, x, y):
@@ -68,13 +69,25 @@ class VoltorbFlipGame(GameBase):
 
     @property
     def score(self):
-        return self.get_coin_total() / len(self._players)
+        return self.get_coin_total()
+    
+    @property
+    def level(self):
+        return self._level
+    
+    def get_level(self, ctx):
+        self._level = sql.get_voltorb_level(ctx)
+        return self._level
+
+    def update_level(self, ctx, new_level):
+        self._level = new_level
+        sql.set_voltorb_level(ctx, new_level)
 
     def build_board(self):
         minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
-        _min = minmax[self._level - 1]
-        _max = minmax[self._level]
-        _num_voltorb = 6 + self._level // 2
+        _min = minmax[self.level - 1]
+        _max = minmax[self.level]
+        _num_voltorb = 6 + self.level // 2
         self._state = [[1 for x in range(5)] for y in range(5)]
         for i in range(_num_voltorb):
             y, x = divmod(random.randrange(25), 5)
@@ -88,9 +101,9 @@ class VoltorbFlipGame(GameBase):
                     self.set_coins(x, y, 1)
                 else:
                     rv = random.random()
-                    if rv < .8 - 0.05 * self._level:
+                    if rv < .8 - 0.05 * self.level:
                         self.set_coins(x, y, 1)
-                    elif rv < 0.96 - 0.04 * self._level:
+                    elif rv < 0.96 - 0.04 * self.level:
                         self.set_coins(x, y, 2)
                     else:
                         self.set_coins(x, y, 3)
@@ -116,13 +129,13 @@ class VoltorbFlipGame(GameBase):
         colcoincounts = [f'x{self.colsum(x, True):d}' for x in range(5)]
         rowbombcounts = [f':bomb:{self.rowsum(y):d}' for y in range(5)]
         rowcoincounts = [f'x{self.rowsum(y, True):d}' for y in range(5)]
-        state = f'LEVEL: {self._level}\n' \
+        state = f'LEVEL: {self.level}\n' \
                 f'BOARD STATE:\n'
         state += '{}|{}|{}|{}|{}\n'.format(*colbombcounts)
-        state += '{}|{}|{}|{}|{}\n'.format(*colcoincounts)
+        state += ' {} | {} | {} | {} | {}\n'.format(*colcoincounts)
         for y in range(5):
             state += ''.join(self.get_element_char(x, y) for x in range(5))
-            state += '|{}|{}\n'.format(rowbombcounts[y], rowcoincounts[y])
+            state += ' | {} | {}\n'.format(rowbombcounts[y], rowcoincounts[y])
         state += f'SCORE: {self._score:d}'
         return state
 
@@ -134,27 +147,33 @@ class VoltorbFlipGame(GameBase):
             self._players = set()
             self._score = 1
             self.build_board()
-            await ctx.send(f'New game of Voltorb Flip! Use `{ctx.prefix}voltorb guess x y` to reveal a square!')
+            await ctx.send(f'New game of Voltorb Flip! Use `{ctx.prefix}voltorb guess x y` to reveal a square, '
+                           f'`{ctx.prefix}voltorb flag x y` to flag a square. You have {self._timeout} seconds '
+                           f'to find all the coins!')
             await super().start(ctx)
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
-        if self.running:
+        if await super().end(ctx, failed=failed, aborted=aborted):
+            new_level = self.level
             self.reveal_all()
             await self._message.edit(content=self.show())
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}')
             elif failed:
                 await ctx.send(f'Game over. You win 0 coins.')
-                self._level = max(self._level - 1, 1)
+                new_level = max(new_level - 1, 1)
             else:
-                score = self.score
+                score = math.ceil(self.score / len(self._players))
                 await ctx.send(f'Congratulations to all the players! You each earn {score:d} points!')
                 author = ctx.author
                 for player in self._players:
                     ctx.message.author = ctx.guild.get_member(player)
                     sql.increment_score(ctx, by=score)
                 ctx.message.author = author
-                self._level = min(self._level + 1, 10)
+                new_level = min(new_level + 1, 10)
+            if new_level != self.level:
+                await ctx.send(f'The game level {"rose" if new_level > self.level else "fell"} to {new_level:d}!')
+                self.update_level(ctx, new_level)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
@@ -200,6 +219,7 @@ class VoltorbFlip:
             await ctx.send(f'Incorrect voltorb subcommand passed')
         if ctx.channel.id not in self.channels:
             self.channels[ctx.channel.id] = VoltorbFlipGame(self.bot)
+            self.channels[ctx.channel.id].get_level(ctx)
 
     @voltorb.command()
     async def start(self, ctx):

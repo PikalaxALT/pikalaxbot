@@ -25,6 +25,11 @@ def db_init():
         except sqlite3.OperationalError:
             conn.execute('create table game (id integer, name text, score integer)')
 
+        try:
+            conn.execute('select * from voltorb')
+        except sqlite3.OperationalError:
+            conn.execute('create table voltorb (id integer, level integer)')
+
 
 def db_clear():
     os.makedirs(os.path.dirname(dbname), exist_ok=True)
@@ -78,3 +83,23 @@ def read_bag():
         msg = c.fetchone()
     if msg is not None:
         return msg[0]
+
+
+def get_voltorb_level(ctx):
+    with sqlite3.connect(dbname) as conn:
+        c = conn.execute('select level from voltorb where id = ?', (ctx.channel.id,))
+        level = c.fetchone()
+        if level is None:
+            conn.execute('insert into voltorb values (?, 1)', (ctx.channel.id,))
+            level = 1
+    return level
+
+
+def set_voltorb_level(ctx, new_level):
+    with sqlite3.connect(dbname) as conn:
+        c = conn.execute('select level from voltorb where id = ? limit 1', (ctx.channel.id,))
+        level = c.fetchone()
+        if level is None:
+            conn.execute('insert into voltorb values (?, ?)', (ctx.channel.id, new_level))
+        else:
+            conn.execute('update voltorb set level = ? where id = ?', (new_level, ctx.channel.id))

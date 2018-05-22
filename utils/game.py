@@ -50,8 +50,13 @@ class GameBase:
         self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
         self.start_time = time.time()
 
-    async def end(self, ctx, failed=False):
-        pass
+    async def end(self, ctx, failed=False, aborted=False):
+        if self.running:
+            if self._task and not self._task.done():
+                self._task.cancel()
+                self._task = None
+            return True
+        return False
 
     async def show_(self, ctx):
         if self.running:
