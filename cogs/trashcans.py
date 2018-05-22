@@ -70,7 +70,7 @@ class TrashcansGame(GameBase):
             else:
                 score = self.score
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
-                               f'You have earned {score} points for your triumph!')
+                               f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
                 sql.increment_score(ctx, score)
             self.reset()
         else:
@@ -80,6 +80,7 @@ class TrashcansGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
+            self._players.add(ctx.author.id)
             x -= 1
             y -= 1
             if self.is_valid(x, y):

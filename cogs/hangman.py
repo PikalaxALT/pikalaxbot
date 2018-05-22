@@ -54,10 +54,9 @@ class HangmanGame(GameBase):
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
                                f'Solution: {self._solution}')
             else:
-                score = self.score
-                await ctx.send(f'{ctx.author.mention} has solved the puzzle and earned {score} points!\n'
-                               f'Solution: {self._solution}')
-                sql.increment_score(ctx, by=score)
+                await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
+                               f'Solution: {self._solution}\n'
+                               f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
@@ -66,6 +65,7 @@ class HangmanGame(GameBase):
 
     async def guess(self, ctx: commands.Context, guess: str):
         if self.running:
+            self.add_player(ctx)
             guess = guess.upper()
             if guess in self._incorrect or guess in self._state:
                 await ctx.send(f'{ctx.author.mention}: Character or solution already guessed: {guess}',

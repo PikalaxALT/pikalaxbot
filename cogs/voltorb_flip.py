@@ -23,7 +23,6 @@ class VoltorbFlipGame(GameBase):
         super().reset()
         self._state = [[1 for x in range(5)] for y in range(5)]
         self._score = 0
-        self._players = set()
         self._ended = False
 
     def is_flagged(self, x, y):
@@ -168,13 +167,7 @@ class VoltorbFlipGame(GameBase):
                 await ctx.send(f'Game over. You win 0 coins.')
                 new_level = max(new_level - 1, 1)
             else:
-                score = math.ceil(self.score / len(self._players))
-                await ctx.send(f'Congratulations to all the players! You each earn {score:d} points!')
-                author = ctx.author
-                for player in self._players:
-                    ctx.message.author = ctx.guild.get_member(player)
-                    sql.increment_score(ctx, by=score)
-                ctx.message.author = author
+                await ctx.send(f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
                 new_level = min(new_level + 1, 10)
             if new_level != self.level:
                 await ctx.send(f'The game level {"rose" if new_level > self.level else "fell"} to {new_level:d}!')
@@ -186,29 +179,63 @@ class VoltorbFlipGame(GameBase):
                            delete_after=10)
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
-        self._players.add(ctx.author.id)
-        if self.is_bomb(x, y):
-            await ctx.send('KAPOW')
-            await self.end(ctx, failed=True)
-        elif self.is_revealed(x, y):
-            await ctx.send(f'{ctx.author.mention}: Tile already revealed.',
-                           delete_after=10)
+        if self.running:
+            self.add_player(ctx)
+            if self.is_bomb(x, y):
+                await ctx.send('KAPOW')
+                await self.end(ctx, failed=True)
+            elif self.is_revealed(x, y):
+                await ctx.send(f'{ctx.author.mention}: Tile already revealed.',
+                               delete_after=10)
+            else:
+                self.set_revealed(x, y)
+                multiplier = self.coin_value(x, y)
+                if multiplier > 1:
+                    self._score *= multiplier
+                    await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
+                    emoji = discord.utils.find(lambda e: e.name.lower() == 'pogchamp', ctx.guild.emojis)
+                    await ctx.message.add_reaction(emoji)
+                await self._message.edit(content=self.show())
+                if self.found_all_coins():
+                    await self.end(ctx)
         else:
-            self.set_revealed(x, y)
-            multiplier = self.coin_value(x, y)
-            if multiplier > 1:
-                self._score *= multiplier
-                await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
-                emoji = discord.utils.find(lambda e: e.name.lower() == 'pogchamp', ctx.guild.emojis)
-                await ctx.message.add_reaction(emoji)
-            await self._message.edit(content=self.show())
-            if self.found_all_coins():
-                await self.end(ctx)
+            await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
+                           f'Start a game by saying `{ctx.prefix}voltorb start`.',
+                           delete_after=10)
 
     async def flag(self, ctx, x: int, y: int):
-        self._players.add(ctx.author.id)
-        (self.clear_flag if self.is_flagged(x, y) else self.set_flag)(x, y)
-        await self._message.edit(content=self.show())
+        if self.running:
+            self.add_player(ctx)
+            if self.is_revealed(x, y):
+                await ctx.send(f'{ctx.author.mention}: Tile already revealed',
+                               delete_after=10)
+            elif self.is_flagged(x, y):
+                await ctx.send(f'{ctx.author.mention}: Tile already flagged',
+                               delete_after=10)
+            else:
+                self.set_flag(x, y)
+                await self._message.edit(content=self.show())
+        else:
+            await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
+                           f'Start a game by saying `{ctx.prefix}voltorb start`.',
+                           delete_after=10)
+
+    async def unflag(self, ctx, x: int, y: int):
+        if self.running:
+            self.add_player(ctx)
+            if self.is_revealed(x, y):
+                await ctx.send(f'{ctx.author.mention}: Tile already revealed',
+                               delete_after=10)
+            elif not self.is_flagged(x, y):
+                await ctx.send(f'{ctx.author.mention}: Tile not flagged',
+                               delete_after=10)
+            else:
+                self.clear_flag(x, y)
+                await self._message.edit(content=self.show())
+        else:
+            await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
+                           f'Start a game by saying `{ctx.prefix}voltorb start`.',
+                           delete_after=10)
 
     async def show_(self, ctx):
         if await super().show_(ctx) is None:
@@ -255,6 +282,16 @@ class VoltorbFlip:
             game = self.channels[ctx.channel.id]
             async with game._lock:
                 await game.flag(ctx, x - 1, y - 1)
+        else:
+            await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
+
+    @voltorb.command()
+    async def unflag(self, ctx, x: int, y: int):
+        """Unlag a square"""
+        if 1 <= x <= 5 and 1 <= y <= 5:
+            game = self.channels[ctx.channel.id]
+            async with game._lock:
+                await game.unflag(ctx, x - 1, y - 1)
         else:
             await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
 

@@ -2,13 +2,15 @@ import asyncio
 import discord
 import math
 import time
+from utils import sql
 
 
 class GameBase:
-    def __init__(self, bot, timeout=90):
+    def __init__(self, bot, timeout=90, max_score=1000):
         self.bot = bot
         self._timeout = timeout
         self._lock = asyncio.Lock()
+        self._max_score = 1000
         self.reset()
 
     def reset(self):
@@ -17,6 +19,7 @@ class GameBase:
         self._message = None
         self._task = None
         self.start_time = -1
+        self._players = set()
 
     @property
     def state(self):
@@ -34,8 +37,11 @@ class GameBase:
     def running(self, state):
         self._running = state
 
-    async def show(self):
+    def show(self):
         pass
+
+    def add_player(self, ctx):
+        self._players.add(ctx.author.id)
 
     async def timeout(self, ctx):
         await asyncio.sleep(self._timeout)
@@ -49,6 +55,7 @@ class GameBase:
         self._message = await ctx.send(self.show())
         self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
         self.start_time = time.time()
+        self.add_player(ctx)
 
     async def end(self, ctx, failed=False, aborted=False):
         if self.running:
@@ -64,3 +71,12 @@ class GameBase:
             self._message = await ctx.send(self.show())
             return self._message
         return None
+
+    def award_points(self, ctx):
+        score = max(math.ceil(self.score / len(self._players)), 1)
+        author = ctx.author
+        for player in self._players:
+            ctx.message.author = ctx.guild.get_member(player)
+            sql.increment_score(ctx, by=score)
+        ctx.message.author = author
+        return score
