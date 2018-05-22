@@ -33,7 +33,7 @@ class PikalaxBOT(commands.Bot):
             command_prefix = settings.get('meta', 'prefix', '!')
             self._token = settings.get('credentials', 'token')
             self.owner_id = settings.get('credentials', 'owner')
-            self.whitelist = {}
+            self.whitelist = []
             self.debug = False
             self.markov_channels = []
             self.cooldown = 10
@@ -158,6 +158,9 @@ if __name__ == '__main__':
 
     @bot.event
     async def on_ready():
+        bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
+        for channel in bot.whitelist.values():
+            await channel.trigger_typing()
         for ch in list(bot.chains.keys()):
             if bot.chains[ch] is not None:
                 del bot.chains[ch]
@@ -173,7 +176,6 @@ if __name__ == '__main__':
             except AttributeError:
                 bot.chains.pop(ch)
                 log.error(f'Failed to load chain {ch:d}')
-        bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
         bot.initialized = True
         activity = discord.Game(bot.game)
         await bot.change_presence(activity=activity)
