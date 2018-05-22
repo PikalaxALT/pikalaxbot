@@ -10,6 +10,7 @@ import random
 import logging
 import sys
 import traceback
+import subprocess
 
 initial_extensions = (
     'cogs.meme',
@@ -219,5 +220,17 @@ if __name__ == '__main__':
         await bot.close()
 
 
+    @bot.command(pass_context=True)
+    @commands.check(ctx_is_owner)
+    async def pikareboot(ctx: commands.Context, *, force=False):
+        await ctx.send('Shutting down...')
+        await bot.close()
+        if force:
+            subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
+        subprocess.check_call(['git', 'pull'])
+        subprocess.Popen(['python3.6', __file__])
+
+
     log.info('Starting bot')
     bot.run()
+
