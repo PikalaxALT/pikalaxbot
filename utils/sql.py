@@ -92,6 +92,8 @@ def get_voltorb_level(ctx):
         if level is None:
             conn.execute('insert into voltorb values (?, 1)', (ctx.channel.id,))
             level = 1
+        else:
+            level, = level
     return level
 
 
