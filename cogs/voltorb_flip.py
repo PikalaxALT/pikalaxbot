@@ -180,7 +180,7 @@ class VoltorbFlipGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
-            self.add_player(ctx)
+            self.add_player(ctx.author)
             if self.is_bomb(x, y):
                 await ctx.send('KAPOW')
                 await self.end(ctx, failed=True)
@@ -205,7 +205,7 @@ class VoltorbFlipGame(GameBase):
 
     async def flag(self, ctx, x: int, y: int):
         if self.running:
-            self.add_player(ctx)
+            self.add_player(ctx.author)
             if self.is_revealed(x, y):
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed',
                                delete_after=10)
@@ -222,7 +222,7 @@ class VoltorbFlipGame(GameBase):
 
     async def unflag(self, ctx, x: int, y: int):
         if self.running:
-            self.add_player(ctx)
+            self.add_player(ctx.author)
             if self.is_revealed(x, y):
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed',
                                delete_after=10)

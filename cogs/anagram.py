@@ -64,7 +64,7 @@ class AnagramGame(GameBase):
 
     async def guess(self, ctx: commands.Context, guess):
         if self.running:
-            self.add_player(ctx)
+            self.add_player(ctx.author)
             guess = guess.upper()
             if guess in self._incorrect:
                 await ctx.send(f'{ctx.author.mention}: Solution already guessed: {guess}',

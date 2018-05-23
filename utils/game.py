@@ -41,8 +41,8 @@ class GameBase:
     def show(self):
         pass
 
-    def add_player(self, ctx):
-        self._players[ctx.author.id] = ctx.author
+    def add_player(self, player):
+        self._players[player.id] = player
 
     async def timeout(self, ctx):
         await asyncio.sleep(self._timeout)

@@ -78,7 +78,7 @@ class TrashcansGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
-            self._players.add(ctx.author.id)
+            self.add_player(ctx.author)
             x -= 1
             y -= 1
             if self.is_valid(x, y):
