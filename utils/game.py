@@ -10,7 +10,7 @@ class GameBase:
         self.bot = bot
         self._timeout = timeout
         self._lock = asyncio.Lock()
-        self._max_score = 1000
+        self._max_score = max_score
         self.reset()
 
     def reset(self):
@@ -19,7 +19,7 @@ class GameBase:
         self._message = None
         self._task = None
         self.start_time = -1
-        self._players = {}
+        self._players = set()
 
     @property
     def state(self):
@@ -42,7 +42,7 @@ class GameBase:
         pass
 
     def add_player(self, player):
-        self._players[player.id] = player
+        self._players.add(player)
 
     async def timeout(self, ctx):
         await asyncio.sleep(self._timeout)
@@ -56,7 +56,7 @@ class GameBase:
         self._message = await ctx.send(self.show())
         self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
         self.start_time = time.time()
-        self.add_player(ctx)
+        self.add_player(ctx.author)
 
     async def end(self, ctx, failed=False, aborted=False):
         if self.running:
@@ -75,6 +75,6 @@ class GameBase:
 
     def award_points(self):
         score = max(math.ceil(self.score / len(self._players)), 1)
-        for player in self._players.values():
+        for player in self._players:
             sql.increment_score(player, by=score)
         return score

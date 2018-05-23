@@ -1,8 +1,10 @@
 import asyncio
 import discord
+import math
 import random
 from utils.data import data
 from utils.game import GameBase
+from utils import sql
 from discord.ext import commands
 
 
@@ -57,9 +59,12 @@ class HangmanGame(GameBase):
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
                                f'Solution: {self._solution}')
             else:
+                bonus = math.ceil(self._max_score / 10)
+                sql.increment_score(ctx.author, bonus)
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'Congratulations to all the players! You each earn {self.award_points():d} points!')
+                               f'Congratulations to all the players! You each earn {self.award_points():d} points!\n'
+                               f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
