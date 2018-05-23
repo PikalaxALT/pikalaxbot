@@ -5,7 +5,7 @@ from discord import compat
 from discord.client import log
 from utils import markov, sql
 from utils.config_io import Settings
-from utils.checks import ctx_is_owner
+from utils.checks import ctx_is_owner, CommandNotAllowed
 import random
 import logging
 import sys
@@ -86,8 +86,9 @@ class PikalaxBOT(commands.Bot):
         return longest
 
     async def on_command_error(self, context, exception):
-        if isinstance(exception, commands.CheckFailure) and context.command.name != 'pikahelp':
-            await context.send('{context.author.mention}: Permission denied :tppBurrito:')
+        if isinstance(exception, CommandNotAllowed) and context.command.name != 'pikahelp':
+            emoji = discord.utils.find(lambda e: e.name == 'tppBurrito', context.guild.emojis)
+            await context.send(f'{context.author.mention}: Permission denied {emoji}')
         elif not self.debug and isinstance(exception, commands.CommandError):
             await super().on_command_error(context, exception)
         else:
