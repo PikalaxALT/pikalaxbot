@@ -167,7 +167,8 @@ class VoltorbFlipGame(GameBase):
                 await ctx.send(f'Game over. You win 0 coins.')
                 new_level = max(new_level - 1, 1)
             else:
-                await ctx.send(f'Congratulations to all the players! You each earn {self.award_points():d} points!')
+                await ctx.send(f'The following players each earn {self.award_points():d} points:\n'
+                               f'```{self.get_player_names()}```')
                 new_level = min(new_level + 1, 10)
             if new_level != self.level:
                 await ctx.send(f'The game level {"rose" if new_level > self.level else "fell"} to {new_level:d}!')

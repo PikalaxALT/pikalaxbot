@@ -14,7 +14,9 @@ class TrashcansGame(GameBase):
         self.reset_locks()
 
     def show(self):
-        return '\n'.join(' '.join('\u2705' if y else chr(0x1f5d1) for y in x) for x in self.state)
+        board = '\n'.join(' '.join('\u2705' if y else chr(0x1f5d1) for y in x) for x in self.state)
+        board += f'\nPlayers: {self.get_player_names()}'
+        return board
 
     @staticmethod
     def is_valid(x, y):
@@ -69,7 +71,8 @@ class TrashcansGame(GameBase):
             else:
                 score = self.score
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
-                               f'Congratulations to all the players! You each earn {self.award_points():d} points!')
+                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'```{self.get_player_names()}```')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '

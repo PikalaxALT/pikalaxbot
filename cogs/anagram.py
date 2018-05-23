@@ -27,7 +27,8 @@ class AnagramGame(GameBase):
     def show(self):
         return f'```Puzzle: {self.state}\n' \
                f'Incorrect: [{self.incorrect}]\n' \
-               f'Remaining: {self.attempts:d}```'
+               f'Remaining: {self.attempts:d}\n' \
+               f'Players: {self.get_player_names()}```'
 
     async def start(self, ctx: commands.Context):
         if self.running:
@@ -59,7 +60,8 @@ class AnagramGame(GameBase):
                 sql.increment_score(ctx.author, bonus)
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'Congratulations to all the players! You each earn {self.award_points():d} points!\n'
+                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'```{self.get_player_names()}```\n'
                                f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
             self.reset()
         else:

@@ -44,6 +44,9 @@ class GameBase:
     def add_player(self, player):
         self._players.add(player)
 
+    def get_player_names(self):
+        return ', '.join(player.name for player in self._players)
+
     async def timeout(self, ctx):
         await asyncio.sleep(self._timeout)
         if self.running:
@@ -56,7 +59,6 @@ class GameBase:
         self._message = await ctx.send(self.show())
         self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
         self.start_time = time.time()
-        self.add_player(ctx.author)
 
     async def end(self, ctx, failed=False, aborted=False):
         if self.running:
