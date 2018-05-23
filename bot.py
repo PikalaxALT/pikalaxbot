@@ -86,7 +86,9 @@ class PikalaxBOT(commands.Bot):
         return longest
 
     async def on_command_error(self, context, exception):
-        if not self.debug and isinstance(exception, commands.CommandError):
+        if isinstance(exception, commands.CheckFailure) and context.command.name != 'pikahelp':
+            await context.send('{context.author.mention}: Permission denied :tppBurrito:')
+        elif not self.debug and isinstance(exception, commands.CommandError):
             await super().on_command_error(context, exception)
         else:
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
