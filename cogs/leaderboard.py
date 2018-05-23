@@ -10,7 +10,8 @@ class Leaderboard:
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def leaderboard(self, ctx):
-        pass
+        if ctx.invoked_subcommand is None:
+            await self.check(ctx)
 
     @leaderboard.command()
     async def check(self, ctx, username=None):

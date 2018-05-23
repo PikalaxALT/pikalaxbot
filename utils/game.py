@@ -19,7 +19,7 @@ class GameBase:
         self._message = None
         self._task = None
         self.start_time = -1
-        self._players = set()
+        self._players = {}
 
     @property
     def state(self):
@@ -42,7 +42,7 @@ class GameBase:
         pass
 
     def add_player(self, ctx):
-        self._players.add(ctx.author.id)
+        self._players[ctx.author.id] = ctx.author
 
     async def timeout(self, ctx):
         await asyncio.sleep(self._timeout)
@@ -73,11 +73,8 @@ class GameBase:
             return self._message
         return None
 
-    def award_points(self, ctx):
+    def award_points(self):
         score = max(math.ceil(self.score / len(self._players)), 1)
-        author = ctx.author
-        for player in self._players:
-            ctx.message.author = ctx.guild.get_member(player)
-            sql.increment_score(ctx, by=score)
-        ctx.message.author = author
+        for player in self._players.values():
+            sql.increment_score(player, by=score)
         return score

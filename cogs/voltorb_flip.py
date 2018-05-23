@@ -15,8 +15,8 @@ class VoltorbFlipGame(GameBase):
     RVL = 8
     VTB = 16
 
-    def __init__(self, bot):
-        self._level = 1
+    def __init__(self, bot, channel):
+        self._level = self.get_level(channel)
         super().__init__(bot, timeout=180)
 
     def reset(self):
@@ -78,13 +78,13 @@ class VoltorbFlipGame(GameBase):
     def level(self):
         return self._level
     
-    def get_level(self, ctx):
-        self._level = sql.get_voltorb_level(ctx)
+    def get_level(self, channel):
+        self._level = sql.get_voltorb_level(channel)
         return self._level
 
-    def update_level(self, ctx, new_level):
+    def update_level(self, channel, new_level):
         self._level = new_level
-        sql.set_voltorb_level(ctx, new_level)
+        sql.set_voltorb_level(channel, new_level)
 
     def build_board(self):
         minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
@@ -167,11 +167,11 @@ class VoltorbFlipGame(GameBase):
                 await ctx.send(f'Game over. You win 0 coins.')
                 new_level = max(new_level - 1, 1)
             else:
-                await ctx.send(f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
+                await ctx.send(f'Congratulations to all the players! You each earn {self.award_points():d} points!')
                 new_level = min(new_level + 1, 10)
             if new_level != self.level:
                 await ctx.send(f'The game level {"rose" if new_level > self.level else "fell"} to {new_level:d}!')
-                self.update_level(ctx, new_level)
+                self.update_level(ctx.channel, new_level)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
@@ -255,8 +255,7 @@ class VoltorbFlip:
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect voltorb subcommand passed')
         if ctx.channel.id not in self.channels:
-            self.channels[ctx.channel.id] = VoltorbFlipGame(self.bot)
-            self.channels[ctx.channel.id].get_level(ctx)
+            self.channels[ctx.channel.id] = VoltorbFlipGame(self.bot, ctx.channel)
 
     @voltorb.command()
     async def start(self, ctx):

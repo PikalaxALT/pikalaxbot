@@ -1,7 +1,6 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils import sql
 from utils.game import GameBase
 import random
 
@@ -70,8 +69,7 @@ class TrashcansGame(GameBase):
             else:
                 score = self.score
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
-                               f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
-                sql.increment_score(ctx, score)
+                               f'Congratulations to all the players! You each earn {self.award_points():d} points!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '

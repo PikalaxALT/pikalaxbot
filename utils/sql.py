@@ -53,14 +53,14 @@ def get_score(author):
         return score
 
 
-def increment_score(ctx, by=1):
+def increment_score(player, by=1):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute("select score from game where id = ?", (ctx.author.id,))
+        c = conn.execute("select score from game where id = ?", (player.id,))
         score = c.fetchone()
         if score is None:
-            conn.execute("insert into game values (?, ?, ?)", (ctx.author.id, ctx.author.name, by))
+            conn.execute("insert into game values (?, ?, ?)", (player.id, player.name, by))
         else:
-            conn.execute('update game set score = score + ? where id = ?', (by, ctx.author.id))
+            conn.execute('update game set score = score + ? where id = ?', (by, player.id))
 
 
 def get_all_scores():
@@ -85,23 +85,23 @@ def read_bag():
         return msg[0]
 
 
-def get_voltorb_level(ctx):
+def get_voltorb_level(channel):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select level from voltorb where id = ?', (ctx.channel.id,))
+        c = conn.execute('select level from voltorb where id = ?', (channel.id,))
         level = c.fetchone()
         if level is None:
-            conn.execute('insert into voltorb values (?, 1)', (ctx.channel.id,))
+            conn.execute('insert into voltorb values (?, 1)', (channel.id,))
             level = 1
         else:
             level, = level
     return level
 
 
-def set_voltorb_level(ctx, new_level):
+def set_voltorb_level(channel, new_level):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select level from voltorb where id = ? limit 1', (ctx.channel.id,))
+        c = conn.execute('select level from voltorb where id = ? limit 1', (channel.id,))
         level = c.fetchone()
         if level is None:
-            conn.execute('insert into voltorb values (?, ?)', (ctx.channel.id, new_level))
+            conn.execute('insert into voltorb values (?, ?)', (channel.id, new_level))
         else:
-            conn.execute('update voltorb set level = ? where id = ?', (new_level, ctx.channel.id))
+            conn.execute('update voltorb set level = ? where id = ?', (new_level, channel.id))

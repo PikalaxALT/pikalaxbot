@@ -2,7 +2,6 @@ import asyncio
 import discord
 import random
 from utils.data import data
-from utils import sql
 from utils.game import GameBase
 from discord.ext import commands
 
@@ -56,7 +55,7 @@ class AnagramGame(GameBase):
             else:
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
+                               f'Congratulations to all the players! You each earn {self.award_points():d} points!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
