@@ -9,9 +9,9 @@ class Leaderboard:
         self.bot = bot
 
     @commands.group(pass_context=True, case_insensitive=True)
-    async def leaderboard(self, ctx):
+    async def leaderboard(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
-            await self.check(ctx)
+            await ctx.invoke(self.check)
 
     @leaderboard.command()
     async def check(self, ctx, username=None):
