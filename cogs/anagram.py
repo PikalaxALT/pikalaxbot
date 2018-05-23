@@ -56,13 +56,10 @@ class AnagramGame(GameBase):
                 await ctx.send(f'You were too late, welcome to Glitch Purgatory.\n'
                                f'Solution: {self._solution}')
             else:
-                bonus = math.ceil(self._max_score / 10)
-                sql.increment_score(ctx.author, bonus)
+                self.add_player(ctx.author)
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'The following players each earn {self.award_points():d} points:\n'
-                               f'```{self.get_player_names()}```\n'
-                               f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
+                               f'{ctx.author.mention} wins {self.award_points()} points for winning!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
@@ -71,7 +68,6 @@ class AnagramGame(GameBase):
 
     async def guess(self, ctx: commands.Context, guess):
         if self.running:
-            self.add_player(ctx.author)
             guess = guess.upper()
             if guess in self._incorrect:
                 await ctx.send(f'{ctx.author.mention}: Solution already guessed: {guess}',

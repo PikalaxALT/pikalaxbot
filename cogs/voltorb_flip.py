@@ -181,7 +181,6 @@ class VoltorbFlipGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
-            self.add_player(ctx.author)
             if self.is_bomb(x, y):
                 await ctx.send('KAPOW')
                 await self.end(ctx, failed=True)
@@ -189,6 +188,7 @@ class VoltorbFlipGame(GameBase):
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed.',
                                delete_after=10)
             else:
+                self.add_player(ctx.author)
                 self.set_revealed(x, y)
                 multiplier = self.coin_value(x, y)
                 if multiplier > 1:

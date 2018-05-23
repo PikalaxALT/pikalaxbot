@@ -81,7 +81,6 @@ class TrashcansGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
-            self.add_player(ctx.author)
             x -= 1
             y -= 1
             if self.is_valid(x, y):
@@ -92,6 +91,7 @@ class TrashcansGame(GameBase):
                                        f'Hey! The electric locks were reset!',
                                        delete_after=10)
                     else:
+                        self.add_player(ctx.author)
                         self.state[y][x] = True
                         await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!\n'
                                        f'The 2nd electric lock opened! The motorized door opened!',
@@ -100,6 +100,7 @@ class TrashcansGame(GameBase):
                         await self.end(ctx)
                 else:
                     if self._solution[y][x]:
+                        self.add_player(ctx.author)
                         self.state[y][x] = True
                         self.on_second_can = True
                         await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'

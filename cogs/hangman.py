@@ -75,7 +75,6 @@ class HangmanGame(GameBase):
 
     async def guess(self, ctx: commands.Context, guess: str):
         if self.running:
-            self.add_player(ctx.author)
             guess = guess.upper()
             if guess in self._incorrect or guess in self._state:
                 await ctx.send(f'{ctx.author.mention}: Character or solution already guessed: {guess}',
@@ -87,6 +86,7 @@ class HangmanGame(GameBase):
                         self._state[i] = guess
                         found = True
                 if found:
+                    self.add_player(ctx.author)
                     if ''.join(self._state) == self._solution:
                         await self.end(ctx)
                 else:
@@ -94,6 +94,7 @@ class HangmanGame(GameBase):
                     self.attempts -= 1
             else:
                 if self._solution == guess:
+                    self.add_player(ctx.author)
                     self._state = list(self._solution)
                     await self.end(ctx)
                 else:
