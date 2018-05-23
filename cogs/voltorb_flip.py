@@ -120,11 +120,11 @@ class VoltorbFlipGame(GameBase):
                 self.set_revealed(x, y)
 
     def get_element_char(self, x, y):
-        if self.is_flagged(x, y):
-            return ':triangular_flag_on_post:'
         if self.is_revealed(x, y):
             idx = 0 if self.is_bomb(x, y) else self.coin_value(x, y)
             return (':bomb:', ':one:', ':two:', ':three:')[idx]
+        if self.is_flagged(x, y):
+            return ':triangular_flag_on_post:'
         return ':white_square_button:'
 
     def show(self):
