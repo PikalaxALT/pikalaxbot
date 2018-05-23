@@ -27,8 +27,7 @@ class AnagramGame(GameBase):
     def show(self):
         return f'```Puzzle: {self.state}\n' \
                f'Incorrect: [{self.incorrect}]\n' \
-               f'Remaining: {self.attempts:d}\n' \
-               f'Players: {self.get_player_names()}```'
+               f'Remaining: {self.attempts:d}```'
 
     async def start(self, ctx: commands.Context):
         if self.running:
@@ -59,7 +58,7 @@ class AnagramGame(GameBase):
                 self.add_player(ctx.author)
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'{ctx.author.mention} wins {self.award_points()} points for winning!')
+                               f'{ctx.author.mention} earned {self.award_points()} points for winning!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '

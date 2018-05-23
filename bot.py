@@ -218,15 +218,14 @@ if __name__ == '__main__':
     @bot.command(pass_context=True)
     @commands.check(ctx_is_owner)
     async def pikakill(ctx: commands.Context):
-        await ctx.send('Shutting down...')
+        await ctx.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
         await bot.close()
 
 
     @bot.command(pass_context=True)
     @commands.check(ctx_is_owner)
     async def pikareboot(ctx: commands.Context, *, force=False):
-        await ctx.send('Shutting down...')
-        await bot.close()
+        await ctx.invoke(pikakill)
         if force:
             subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
         subprocess.check_call(['git', 'pull'])
