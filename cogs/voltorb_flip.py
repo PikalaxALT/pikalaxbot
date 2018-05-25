@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from utils.game import GameBase, GameCogBase
 from utils import sql
+from utils.checks import ctx_is_owner
 import random
 import math
 
@@ -244,20 +245,19 @@ class VoltorbFlipGame(GameBase):
 
 
 class VoltorbFlip(GameCogBase):
+    def __init__(self, bot):
+        super().__init__(VoltorbFlipGame, bot)
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def voltorb(self, ctx):
         """Play Voltorb Flip"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect voltorb subcommand passed')
-        if ctx.channel.id not in self.channels:
-            self.channels[ctx.channel.id] = VoltorbFlipGame(self.bot, ctx.channel)
 
     @voltorb.command()
     async def start(self, ctx):
         """Start a game of Voltorb Flip"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.start(ctx)
 
     @voltorb.command()
@@ -271,8 +271,7 @@ class VoltorbFlip(GameCogBase):
                            f'and a number (i.e. c2).')
             raise commands.CommandError
         if 1 <= x <= 5 and 1 <= y <= 5:
-            game = self.channels[ctx.channel.id]
-            async with game._lock:
+            async with self[ctx.channel.id] as game:
                 await game.guess(ctx, x - 1, y - 1)
         else:
             await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
@@ -288,8 +287,7 @@ class VoltorbFlip(GameCogBase):
                            f'and a number (i.e. c2).')
             raise commands.CommandError
         if 1 <= x <= 5 and 1 <= y <= 5:
-            game = self.channels[ctx.channel.id]
-            async with game._lock:
+            async with self[ctx.channel.id] as game:
                 await game.flag(ctx, x - 1, y - 1)
         else:
             await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
@@ -305,25 +303,22 @@ class VoltorbFlip(GameCogBase):
                            f'and a number (i.e. c2).')
             raise commands.CommandError
         if 1 <= x <= 5 and 1 <= y <= 5:
-            game = self.channels[ctx.channel.id]
-            async with game._lock:
+            async with self[ctx.channel.id] as game:
                 await game.unflag(ctx, x - 1, y - 1)
         else:
             await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
 
     @voltorb.command()
+    @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
-        if await self.bot.is_owner(ctx.author):
-            game = self.channels[ctx.channel.id]
-            async with game._lock:
-                await game.end(ctx, aborted=True)
+        async with self[ctx.channel.id] as game:
+            await game.end(ctx, aborted=True)
 
     @voltorb.command()
     async def show(self, ctx):
         """Show the board in a new message"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.show_(ctx)
 
     # Aliases

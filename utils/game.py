@@ -14,6 +14,13 @@ class GameBase:
         self._max_score = max_score
         self.reset()
 
+    async def __aenter__(self):
+        await self._lock.acquire()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._lock.release()
+
     def reset(self):
         self._state = None
         self._running = False
@@ -84,9 +91,15 @@ class GameBase:
 
 
 class GameCogBase:
-    def __init__(self, bot):
+    def __init__(self, gamecls, bot):
         self.bot = bot
         self.channels = {}
+        self.gamecls = gamecls
+
+    def __getitem__(self, channel):
+        if channel not in self.channels:
+            self.channels[channel] = self.gamecls(self.bot)
+        return self.channels[channel]
 
     @staticmethod
     def convert_args(*args):

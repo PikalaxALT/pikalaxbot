@@ -5,6 +5,7 @@ import random
 from utils.data import data
 from utils import sql
 from utils.game import GameBase, GameCogBase
+from utils.checks import ctx_is_owner
 from discord.ext import commands
 
 
@@ -117,42 +118,38 @@ class HangmanGame(GameBase):
 
 
 class Hangman(GameCogBase):
+    def __init__(self, bot):
+        super().__init__(HangmanGame, bot)
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def hangman(self, ctx):
         """Play Hangman"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}pikahelp hangman`')
-        if ctx.channel.id not in self.channels:
-            self.channels[ctx.channel.id] = HangmanGame(self.bot)
 
     @hangman.command()
     async def start(self, ctx):
         """Start a game in the current channel"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.start(ctx)
 
     @hangman.command()
     async def guess(self, ctx, guess):
         """Make a guess, if you dare"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.guess(ctx, guess)
 
     @hangman.command()
+    @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
-        if await self.bot.is_owner(ctx.author):
-            game = self.channels[ctx.channel.id]
-            async with game._lock:
-                await game.end(ctx, aborted=True)
+        async with self[ctx.channel.id] as game:
+            await game.end(ctx, aborted=True)
 
     @hangman.command()
     async def show(self, ctx):
         """Show the board in a new message"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.show_(ctx)
 
     # Aliases
@@ -161,7 +158,7 @@ class Hangman(GameCogBase):
         await ctx.invoke(self.start)
 
     @commands.command(name='hangguess', aliases=['hgu', 'hg'])
-    async def hangman_guess(self, ctx, guess: str):
+    async def hangman_guess(self, ctx, guess):
         await ctx.invoke(self.guess, guess)
 
     @commands.command(name='hangend', aliases=['he'])

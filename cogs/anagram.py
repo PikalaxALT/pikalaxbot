@@ -4,6 +4,7 @@ import math
 import random
 from utils.data import data
 from utils.game import GameBase, GameCogBase
+from utils.checks import ctx_is_owner
 from discord.ext import commands
 
 
@@ -94,29 +95,29 @@ class AnagramGame(GameBase):
 
 
 class Anagram(GameCogBase):
+    def __init__(self, bot):
+        super().__init__(AnagramGame, bot)
+
     @commands.group(pass_context=True, case_insensitive=True)
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
         if ctx.invoked_subcommand is None:
             await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}pikahelp anagram`')
-        if ctx.channel.id not in self.channels:
-            self.channels[ctx.channel.id] = AnagramGame(self.bot)
 
     @anagram.command()
     async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.start(ctx)
 
     @anagram.command()
     async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
+        async with self[ctx.channel.id] as game:
             await game.guess(ctx, guess)
 
     @anagram.command()
+    @commands.check(ctx_is_owner)
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
         if await self.bot.is_owner(ctx.author):

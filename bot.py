@@ -228,7 +228,8 @@ if __name__ == '__main__':
     @bot.command(pass_context=True)
     @commands.check(ctx_is_owner)
     async def pikareboot(ctx: commands.Context, *, force=False):
-        await ctx.invoke(pikakill)
+        await ctx.send(f'Rebooting to apply updates...')
+        await bot.close()
         if force:
             subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
         subprocess.check_call(['git', 'pull'])
