@@ -3,7 +3,7 @@ import discord
 import random
 from utils.data import data
 from utils import sql
-from utils.game import GameBase
+from utils.game import GameBase, GameCogBase
 from discord.ext import commands
 
 
@@ -93,10 +93,7 @@ class AnagramGame(GameBase):
                            delete_after=10)
 
 
-class Anagram:
-    def __init__(self, bot):
-        self.bot = bot
-        self.channels = {}
+class Anagram(GameCogBase):
 
     @commands.group(pass_context=True)
     async def anagram(self, ctx: commands.Context):
@@ -134,6 +131,23 @@ class Anagram:
         game = self.channels[ctx.channel.id]
         async with game._lock:
             await game.show_(ctx)
+
+    # Aliases
+    @commands.command(name='anastart', aliases=['ast'])
+    async def anagram_start(self, ctx):
+        await ctx.invoke(self.start)
+
+    @commands.command(name='anasolve', aliases=['aso'])
+    async def anagram_solve(self, ctx, guess: str):
+        await ctx.invoke(self.solve, guess)
+
+    @commands.command(name='anaend', aliases=['ae'])
+    async def anagram_end(self, ctx):
+        await ctx.invoke(self.end)
+
+    @commands.command(name='anashow', aliases=['ash'])
+    async def anagram_show(self, ctx):
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

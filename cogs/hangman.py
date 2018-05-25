@@ -3,7 +3,7 @@ import discord
 import random
 from utils.data import data
 from utils import sql
-from utils.game import GameBase
+from utils.game import GameBase, GameCogBase
 from discord.ext import commands
 
 
@@ -105,10 +105,7 @@ class HangmanGame(GameBase):
                            delete_after=10)
 
 
-class Hangman:
-    def __init__(self, bot):
-        self.bot = bot
-        self.channels = {}
+class Hangman(GameCogBase):
 
     @commands.group(pass_context=True)
     async def hangman(self, ctx):
@@ -146,6 +143,23 @@ class Hangman:
         game = self.channels[ctx.channel.id]
         async with game._lock:
             await game.show_(ctx)
+
+    # Aliases
+    @commands.command(name='hangstart', aliases=['hst'])
+    async def hangman_start(self, ctx):
+        await ctx.invoke(self.start)
+
+    @commands.command(name='hangguess', aliases=['hgu', 'hg'])
+    async def hangman_guess(self, ctx, guess: str):
+        await ctx.invoke(self.guess, guess)
+
+    @commands.command(name='hangend', aliases=['he'])
+    async def hangman_end(self, ctx):
+        await ctx.invoke(self.end)
+
+    @commands.command(name='hangshow', aliases=['hsh'])
+    async def hangman_show(self, ctx):
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

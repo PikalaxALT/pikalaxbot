@@ -1,7 +1,7 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils.game import GameBase
+from utils.game import GameBase, GameCogBase
 from utils import sql
 import random
 import math
@@ -244,10 +244,7 @@ class VoltorbFlipGame(GameBase):
                            delete_after=10)
 
 
-class VoltorbFlip:
-    def __init__(self, bot):
-        self.bot = bot
-        self.channels = {}
+class VoltorbFlip(GameCogBase):
 
     @commands.group(pass_context=True)
     async def voltorb(self, ctx):
@@ -266,8 +263,15 @@ class VoltorbFlip:
             await game.start(ctx)
 
     @voltorb.command()
-    async def guess(self, ctx, x: int, y: int):
+    async def guess(self, ctx, *args):
         """Reveal a square and either claim its coins or blow it up"""
+        try:
+            x, y = self.convert_args(*args)
+        except ValueError:
+            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                           f'Try using two numbers (i.e. 2 5) or a letter '
+                           f'and a number (i.e. c2).')
+            raise commands.CommandError
         if 1 <= x <= 5 and 1 <= y <= 5:
             game = self.channels[ctx.channel.id]
             async with game._lock:
@@ -276,8 +280,15 @@ class VoltorbFlip:
             await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
 
     @voltorb.command()
-    async def flag(self, ctx, x: int, y: int):
+    async def flag(self, ctx, *args):
         """Flag a square"""
+        try:
+            x, y = self.convert_args(*args)
+        except ValueError:
+            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                           f'Try using two numbers (i.e. 2 5) or a letter '
+                           f'and a number (i.e. c2).')
+            raise commands.CommandError
         if 1 <= x <= 5 and 1 <= y <= 5:
             game = self.channels[ctx.channel.id]
             async with game._lock:
@@ -286,8 +297,15 @@ class VoltorbFlip:
             await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
 
     @voltorb.command()
-    async def unflag(self, ctx, x: int, y: int):
+    async def unflag(self, ctx, *args):
         """Unlag a square"""
+        try:
+            x, y = self.convert_args(*args)
+        except ValueError:
+            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                           f'Try using two numbers (i.e. 2 5) or a letter '
+                           f'and a number (i.e. c2).')
+            raise commands.CommandError
         if 1 <= x <= 5 and 1 <= y <= 5:
             game = self.channels[ctx.channel.id]
             async with game._lock:
@@ -309,6 +327,31 @@ class VoltorbFlip:
         game = self.channels[ctx.channel.id]
         async with game._lock:
             await game.show_(ctx)
+
+    # Aliases
+    @commands.command(name='voltstart', aliases=['vst'])
+    async def voltorb_start(self, ctx):
+        await ctx.invoke(self.start)
+
+    @commands.command(name='voltguess', aliases=['vgu', 'vg'])
+    async def voltorb_guess(self, ctx, *args):
+        await ctx.invoke(self.guess, *args)
+
+    @commands.command(name='voltflag', aliases=['vfl', 'vf'])
+    async def voltorb_flag(self, ctx, *args):
+        await ctx.invoke(self.flag, *args)
+
+    @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
+    async def voltorb_unflag(self, ctx, *args):
+        await ctx.invoke(self.unflag, *args)
+
+    @commands.command(name='voltend', aliases=['ve'])
+    async def voltorb_end(self, ctx):
+        await ctx.invoke(self.end)
+
+    @commands.command(name='voltshow', aliases=['vsh'])
+    async def voltorb_show(self, ctx):
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

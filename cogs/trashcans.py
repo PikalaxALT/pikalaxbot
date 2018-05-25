@@ -2,7 +2,7 @@ import asyncio
 import discord
 from discord.ext import commands
 from utils import sql
-from utils.game import GameBase
+from utils.game import GameBase, GameCogBase
 import random
 
 
@@ -126,10 +126,7 @@ class TrashcansGame(GameBase):
                            delete_after=10)
 
 
-class Trashcans:
-    def __init__(self, bot):
-        self.bot = bot
-        self.channels = {}
+class Trashcans(GameCogBase):
 
     @commands.group(pass_context=True)
     async def trashcans(self, ctx):
@@ -147,8 +144,15 @@ class Trashcans:
             await game.start(ctx)
 
     @trashcans.command()
-    async def guess(self, ctx, x: int, y: int):
+    async def guess(self, ctx, *args):
         """Make a guess, if you dare"""
+        try:
+            x, y = self.convert_args(*args)
+        except ValueError:
+            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                           f'Try using two numbers (i.e. 2 5) or a letter '
+                           f'and a number (i.e. c2).')
+            raise commands.CommandError
         game = self.channels[ctx.channel.id]
         async with game._lock:
             await game.guess(ctx, x, y)
@@ -167,6 +171,23 @@ class Trashcans:
         game = self.channels[ctx.channel.id]
         async with game._lock:
             await game.show_(ctx)
+
+    # Aliases
+    @commands.command(name='trashstart', aliases=['tst'])
+    async def trashcans_start(self, ctx):
+        await ctx.invoke(self.start)
+
+    @commands.command(name='trashguess', aliases=['tgu', 'tg'])
+    async def trashcans_guess(self, ctx, *args):
+        await ctx.invoke(self.guess, *args)
+
+    @commands.command(name='trashend', aliases=['te'])
+    async def trashcans_end(self, ctx):
+        await ctx.invoke(self.end)
+
+    @commands.command(name='trashshow', aliases=['tsh'])
+    async def trashcans_show(self, ctx):
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

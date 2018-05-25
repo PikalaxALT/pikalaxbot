@@ -3,6 +3,7 @@ import discord
 import math
 import time
 from utils import sql
+from discord.ext import commands
 
 
 class GameBase:
@@ -80,3 +81,18 @@ class GameBase:
             sql.increment_score(ctx, by=score)
         ctx.message.author = author
         return score
+
+
+class GameCogBase:
+    def __init__(self, bot):
+        self.bot = bot
+        self.channels = {}
+
+    @staticmethod
+    def convert_args(*args):
+        if len(args) >= 2:
+            yield from map(int, args[:2])
+        else:
+            x, y, *rest = args[0].lower()
+            yield ord(x) - 0x60
+            yield int(y)
