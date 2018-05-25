@@ -1,7 +1,6 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils import sql
 from utils.game import GameBase, GameCogBase
 import random
 
@@ -15,7 +14,9 @@ class TrashcansGame(GameBase):
         self.reset_locks()
 
     def show(self):
-        return '\n'.join(' '.join('\u2705' if y else chr(0x1f5d1) for y in x) for x in self.state)
+        board = '\n'.join(' '.join('\u2705' if y else chr(0x1f5d1) for y in x) for x in self.state)
+        board += f'\nPlayers: {self.get_player_names()}'
+        return board
 
     @staticmethod
     def is_valid(x, y):
@@ -70,8 +71,8 @@ class TrashcansGame(GameBase):
             else:
                 score = self.score
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
-                               f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
-                sql.increment_score(ctx, score)
+                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'```{self.get_player_names()}```')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
@@ -80,7 +81,6 @@ class TrashcansGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
-            self._players.add(ctx.author.id)
             x -= 1
             y -= 1
             if self.is_valid(x, y):
@@ -91,6 +91,7 @@ class TrashcansGame(GameBase):
                                        f'Hey! The electric locks were reset!',
                                        delete_after=10)
                     else:
+                        self.add_player(ctx.author)
                         self.state[y][x] = True
                         await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!\n'
                                        f'The 2nd electric lock opened! The motorized door opened!',
@@ -99,6 +100,7 @@ class TrashcansGame(GameBase):
                         await self.end(ctx)
                 else:
                     if self._solution[y][x]:
+                        self.add_player(ctx.author)
                         self.state[y][x] = True
                         self.on_second_can = True
                         await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'
@@ -128,7 +130,7 @@ class TrashcansGame(GameBase):
 
 class Trashcans(GameCogBase):
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
         if ctx.invoked_subcommand is None:

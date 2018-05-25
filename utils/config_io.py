@@ -30,7 +30,7 @@ class Settings:
         self.data.setdefault('meta', {})
         self.data['user'].setdefault('markov_channels', [])
         self.data['user'].setdefault('game', '!pikahelp')
-        self.data['user'].setdefault('whitelist', {})
+        self.data['user'].setdefault('whitelist', [])
         self.data['user'].setdefault('debug', False)
         self.data['user'].setdefault('cooldown', 10)
 

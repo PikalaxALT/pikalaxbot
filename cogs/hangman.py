@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import math
 import random
 from utils.data import data
 from utils import sql
@@ -23,10 +24,15 @@ class HangmanGame(GameBase):
     def incorrect(self):
         return ', '.join(self._incorrect)
 
+    @property
+    def state(self):
+        return ' '.join(self._state)
+
     def show(self):
         return f'```Puzzle: {self.state}\n' \
                f'Incorrect: [{self.incorrect}]\n' \
-               f'Remaining: {self.attempts:d}```'
+               f'Remaining: {self.attempts:d}\n' \
+               f'Players: {self.get_player_names()}```'
 
     async def start(self, ctx: commands.Context):
         if self.running:
@@ -54,9 +60,13 @@ class HangmanGame(GameBase):
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
                                f'Solution: {self._solution}')
             else:
+                bonus = math.ceil(self._max_score / 10)
+                sql.increment_score(ctx.author, bonus)
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'Congratulations to all the players! You each earn {self.award_points(ctx):d} points!')
+                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'```{self.get_player_names()}```\n'
+                               f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
@@ -65,7 +75,6 @@ class HangmanGame(GameBase):
 
     async def guess(self, ctx: commands.Context, guess: str):
         if self.running:
-            self.add_player(ctx)
             guess = guess.upper()
             if guess in self._incorrect or guess in self._state:
                 await ctx.send(f'{ctx.author.mention}: Character or solution already guessed: {guess}',
@@ -77,6 +86,7 @@ class HangmanGame(GameBase):
                         self._state[i] = guess
                         found = True
                 if found:
+                    self.add_player(ctx.author)
                     if ''.join(self._state) == self._solution:
                         await self.end(ctx)
                 else:
@@ -84,6 +94,7 @@ class HangmanGame(GameBase):
                     self.attempts -= 1
             else:
                 if self._solution == guess:
+                    self.add_player(ctx.author)
                     self._state = list(self._solution)
                     await self.end(ctx)
                 else:
@@ -107,7 +118,7 @@ class HangmanGame(GameBase):
 
 class Hangman(GameCogBase):
 
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, case_insensitive=True)
     async def hangman(self, ctx):
         """Play Hangman"""
         if ctx.invoked_subcommand is None:

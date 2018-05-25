@@ -5,11 +5,12 @@ from discord import compat
 from discord.client import log
 from utils import markov, sql
 from utils.config_io import Settings
-from utils.checks import ctx_is_owner
+from utils.checks import ctx_is_owner, CommandNotAllowed
 import random
 import logging
 import sys
 import traceback
+import subprocess
 
 initial_extensions = (
     'cogs.meme',
@@ -32,7 +33,7 @@ class PikalaxBOT(commands.Bot):
             command_prefix = settings.get('meta', 'prefix', '!')
             self._token = settings.get('credentials', 'token')
             self.owner_id = settings.get('credentials', 'owner')
-            self.whitelist = {}
+            self.whitelist = []
             self.debug = False
             self.markov_channels = []
             self.cooldown = 10
@@ -85,7 +86,10 @@ class PikalaxBOT(commands.Bot):
         return longest
 
     async def on_command_error(self, context, exception):
-        if not self.debug and isinstance(exception, commands.CommandError):
+        if isinstance(exception, CommandNotAllowed) and context.command.name != 'pikahelp':
+            emoji = discord.utils.find(lambda e: e.name == 'tppBurrito', context.guild.emojis)
+            await context.send(f'{context.author.mention}: Permission denied {emoji}')
+        elif not self.debug and isinstance(exception, commands.CommandError):
             await super().on_command_error(context, exception)
         else:
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
@@ -157,6 +161,9 @@ if __name__ == '__main__':
 
     @bot.event
     async def on_ready():
+        bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
+        for channel in bot.whitelist.values():
+            await channel.trigger_typing()
         for ch in list(bot.chains.keys()):
             if bot.chains[ch] is not None:
                 del bot.chains[ch]
@@ -172,7 +179,6 @@ if __name__ == '__main__':
             except AttributeError:
                 bot.chains.pop(ch)
                 log.error(f'Failed to load chain {ch:d}')
-        bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
         bot.initialized = True
         activity = discord.Game(bot.game)
         await bot.change_presence(activity=activity)
@@ -215,9 +221,20 @@ if __name__ == '__main__':
     @bot.command(pass_context=True)
     @commands.check(ctx_is_owner)
     async def pikakill(ctx: commands.Context):
-        await ctx.send('Shutting down...')
+        await ctx.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
         await bot.close()
+
+
+    @bot.command(pass_context=True)
+    @commands.check(ctx_is_owner)
+    async def pikareboot(ctx: commands.Context, *, force=False):
+        await ctx.invoke(pikakill)
+        if force:
+            subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
+        subprocess.check_call(['git', 'pull'])
+        subprocess.Popen(['python3.6', __file__])
 
 
     log.info('Starting bot')
     bot.run()
+
