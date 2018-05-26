@@ -119,7 +119,7 @@ class GameCogBase:
             yield int(y)
 
     async def game_cmd(self, cmd, ctx, *args, **kwargs):
-        with self[ctx.channel.id] as game:
+        async with self[ctx.channel.id] as game:
             cb = getattr(game, cmd)
             if cb is None:
                 await ctx.send(f'{ctx.author.mention}: Invalid command: !{self.groupname} {cmd}',
