@@ -65,7 +65,7 @@ class AnagramGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
-    async def guess(self, ctx: commands.Context, guess):
+    async def solve(self, ctx: commands.Context, guess):
         if self.running:
             guess = guess.upper()
             if guess in self._incorrect:
@@ -89,7 +89,7 @@ class AnagramGame(GameBase):
 
     async def show(self, ctx):
         if await super().show(ctx) is None:
-            await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
+            await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
@@ -120,7 +120,7 @@ class Anagram(GameCogBase):
         await self.game_cmd('solve', ctx, guess)
 
     @commands.command(name='anasolve', aliases=['aso'])
-    async def solve(self, ctx, guess: str):
+    async def anagram_solve(self, ctx, guess: str):
         """Make a guess, if you dare"""
         await ctx.invoke(self.solve, guess)
 
