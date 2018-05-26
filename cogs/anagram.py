@@ -117,7 +117,7 @@ class Anagram(GameCogBase):
     @anagram.command()
     async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
-        await self.game_cmd('guess', ctx, guess)
+        await self.game_cmd('solve', ctx, guess)
 
     @commands.command(name='anasolve', aliases=['aso'])
     async def solve(self, ctx, guess: str):
