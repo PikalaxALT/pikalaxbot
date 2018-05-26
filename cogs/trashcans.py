@@ -143,30 +143,47 @@ class Trashcans(GameCogBase):
             await ctx.send(f'Incorrect trashcans subcommand passed. Try `{ctx.prefix}pikahelp trashcans`')
 
     @trashcans.command()
-    @commands.command(name='trashstart', aliases=['tst'])
     async def start(self, ctx):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
+    @commands.command(name='trashstart', aliases=['tst'])
+    async def trashcans_start(self, ctx):
+        """Start a game in the current channel"""
+        await ctx.invoke(self.start)
+
     @trashcans.command()
-    @commands.command(name='trashguess', aliases=['tgu', 'tg'])
     async def guess(self, ctx, *args):
         """Make a guess, if you dare"""
         x, y = await self.argcheck(ctx, *args)
         await self.game_cmd('guess', ctx, x, y)
 
+    @commands.command(name='trashguess', aliases=['tgu', 'tg'])
+    async def trashcans_guess(self, ctx, *args):
+        """Make a guess, if you dare"""
+        await ctx.invoke(self.guess, *args)
+
     @trashcans.command()
-    @commands.command(name='trashend', aliases=['te'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
+    @commands.command(name='trashend', aliases=['te'])
+    @commands.check(ctx_is_owner)
+    async def trashcans_end(self, ctx):
+        """End the game as a loss (owner only)"""
+        await ctx.invoke(self.end)
+
     @trashcans.command()
-    @commands.command(name='trashshow', aliases=['tsh'])
     async def show(self, ctx):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
+
+    @commands.command(name='trashshow', aliases=['tsh'])
+    async def trashcans_show(self, ctx):
+        """Show the board in a new message"""
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

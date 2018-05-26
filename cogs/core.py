@@ -23,7 +23,7 @@ class Core:
 
     @commands.command(pass_context=True)
     @commands.check(ctx_is_owner)
-    async def pikareboot(self, ctx: commands.Context, *, force=False):
+    async def pikareboot(self, ctx: commands.Context, *, force: bool = False):
         await ctx.send(f'Rebooting to apply updates...')
         await self.bot.close()
         if force:

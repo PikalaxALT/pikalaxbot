@@ -128,29 +128,46 @@ class Hangman(GameCogBase):
             await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}pikahelp hangman`')
 
     @hangman.command()
-    @commands.command(name='hangstart', aliases=['hst'])
     async def start(self, ctx):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
+    @commands.command(name='hangstart', aliases=['hst'])
+    async def hangman_start(self, ctx):
+        """Start a game in the current channel"""
+        await ctx.invoke(self.start)
+
     @hangman.command()
-    @commands.command(name='hangguess', aliases=['hgu', 'hg'])
     async def guess(self, ctx, guess):
         """Make a guess, if you dare"""
         await self.game_cmd('guess', ctx, guess)
 
+    @commands.command(name='hangguess', aliases=['hgu', 'hg'])
+    async def hangman_guess(self, ctx, guess):
+        """Make a guess, if you dare"""
+        await ctx.invoke(self.guess, guess)
+
     @hangman.command()
-    @commands.command(name='hangend', aliases=['he'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
+    @commands.command(name='hangend', aliases=['he'])
+    @commands.check(ctx_is_owner)
+    async def hangman_end(self, ctx):
+        """End the game as a loss (owner only)"""
+        await ctx.invoke(self.end)
+
     @hangman.command()
-    @commands.command(name='hangshow', aliases=['hsh'])
     async def show(self, ctx):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
+
+    @commands.command(name='hangshow', aliases=['hsh'])
+    async def hangman_show(self, ctx):
+        """Show the board in a new message"""
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

@@ -105,29 +105,46 @@ class Anagram(GameCogBase):
             await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}pikahelp anagram`')
 
     @anagram.command()
-    @commands.command(name='anastart', aliases=['ast'])
     async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
+    @commands.command(name='anastart', aliases=['ast'])
+    async def anagram_start(self, ctx):
+        """Start a game in the current channel"""
+        await ctx.invoke(self.start)
+
     @anagram.command()
-    @commands.command(name='anasolve', aliases=['aso'])
     async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
         await self.game_cmd('guess', ctx, guess)
 
+    @commands.command(name='anasolve', aliases=['aso'])
+    async def solve(self, ctx, guess: str):
+        """Make a guess, if you dare"""
+        await ctx.invoke(self.solve, guess)
+
     @anagram.command()
-    @commands.command(name='anaend', aliases=['ae'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
+    @commands.command(name='anaend', aliases=['ae'])
+    @commands.check(ctx_is_owner)
+    async def anagram_end(self, ctx):
+        """End the game as a loss (owner only)"""
+        await ctx.invoke(self.end)
+
     @anagram.command()
-    @commands.command(name='anashow', aliases=['ash'])
     async def show(self, ctx):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
+
+    @commands.command(name='anashow', aliases=['ash'])
+    async def anagram_show(self, ctx):
+        """Show the board in a new message"""
+        await ctx.invoke(self.show)
 
 
 def setup(bot):

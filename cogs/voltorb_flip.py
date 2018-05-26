@@ -254,44 +254,68 @@ class VoltorbFlip(GameCogBase):
             await ctx.send(f'Incorrect voltorb subcommand passed')
 
     @voltorb.command()
-    @commands.command(name='voltstart', aliases=['vst'])
     async def start(self, ctx):
         """Start a game of Voltorb Flip"""
         await self.game_cmd('start', ctx)
 
+    @commands.command(name='voltstart', aliases=['vst'])
+    async def voltorb_start(self, ctx):
+        await ctx.invoke(self.start)
+
     @voltorb.command()
-    @commands.command(name='voltguess', aliases=['vgu', 'vg'])
     async def guess(self, ctx, *args):
         """Reveal a square and either claim its coins or blow it up"""
         x, y = await self.argcheck(ctx, *args)
         await self.game_cmd('guess', ctx, x, y)
 
+    @commands.command(name='voltguess', aliases=['vgu', 'vg'])
+    async def voltorb_guess(self, ctx, *args):
+        """Reveal a square and either claim its coins or blow it up"""
+        await ctx.invoke(self.guess, *args)
+
     @voltorb.command()
-    @commands.command(name='voltflag', aliases=['vfl', 'vf'])
     async def flag(self, ctx, *args):
         """Flag a square"""
         x, y = await self.argcheck(ctx, *args)
         await self.game_cmd('flag', ctx, x, y)
 
+    @commands.command(name='voltflag', aliases=['vfl', 'vf'])
+    async def voltorb_flag(self, ctx, *args):
+        """Flag a square"""
+        await ctx.invoke(self.flag, *args)
+
     @voltorb.command()
-    @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
     async def unflag(self, ctx, *args):
         """Unlag a square"""
         x, y = await self.argcheck(ctx, *args)
         await self.game_cmd('unflag', ctx, x, y)
 
+    @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
+    async def voltorb_unflag(self, ctx, *args):
+        """Unlag a square"""
+        await ctx.invoke(self.unflag, *args)
+
     @voltorb.command()
-    @commands.command(name='voltend', aliases=['ve'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx)
 
+    @commands.command(name='voltend', aliases=['ve'])
+    @commands.check(ctx_is_owner)
+    async def voltorb_end(self, ctx):
+        """End the game as a loss (owner only)"""
+        await ctx.invoke(self.end)
+
     @voltorb.command()
-    @commands.command(name='voltshow', aliases=['vsh'])
     async def show(self, ctx):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
+
+    @commands.command(name='voltshow', aliases=['vsh'])
+    async def voltorb_show(self, ctx):
+        """Show the board in a new message"""
+        await ctx.invoke(self.show)
 
 
 def setup(bot):
