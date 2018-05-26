@@ -15,8 +15,8 @@ class VoltorbFlipGame(GameBase):
     RVL = 8
     VTB = 16
 
-    def __init__(self, bot, channel):
-        self._level = self.get_level(channel)
+    def __init__(self, bot):
+        self._level = None
         super().__init__(bot, timeout=180)
 
     def reset(self):
@@ -147,6 +147,8 @@ class VoltorbFlipGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is already running here.',
                            delete_after=10)
         else:
+            if self.level is None:
+                self._level = self.get_level(ctx.channel)
             self._players = set()
             self._score = 1
             self.build_board()
