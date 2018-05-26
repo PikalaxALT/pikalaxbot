@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import discord
 from discord.ext import commands
 from discord import compat
@@ -13,6 +14,7 @@ import traceback
 import subprocess
 
 initial_extensions = (
+    'cogs.core',
     'cogs.meme',
     'cogs.hangman',
     'cogs.anagram',
@@ -43,9 +45,8 @@ class PikalaxBOT(commands.Bot):
                 setattr(self, key, value)
 
         self.chains = {chan: None for chan in self.markov_channels}
-
         self.storedMsgsSet = set()
-
+        self.rollback = False
         super().__init__(command_prefix, case_insensitive=True)
 
     def run(self):
@@ -134,108 +135,99 @@ class PikalaxBOT(commands.Bot):
             self.chains[msg.channel.id].unlearn_str(msg.clean_content)
 
 
-if __name__ == '__main__':
+bot = PikalaxBOT()
+for extn in initial_extensions:
+    bot.load_extension(extn)
+help_bak = bot.remove_command('help')
+help_bak.name = 'pikahelp'
+bot.add_command(help_bak)
+
+
+@bot.event
+async def on_ready():
+    bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
+    for channel in bot.whitelist.values():
+        await channel.trigger_typing()
+    for ch in list(bot.chains.keys()):
+        if bot.chains[ch] is not None:
+            del bot.chains[ch]
+        bot.chains[ch] = markov.Chain(store_lowercase=True)
+        channel = bot.get_channel(ch)  # type: discord.TextChannel
+        try:
+            async for msg in channel.history(limit=5000):
+                bot.learn_markov(msg, force=True)
+            log.info(f'Initialized channel {channel.name}')
+        except discord.Forbidden:
+            bot.chains.pop(ch)
+            log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+        except AttributeError:
+            bot.chains.pop(ch)
+            log.error(f'Failed to load chain {ch:d}')
+    bot.initialized = True
+    activity = discord.Game(bot.game)
+    await bot.change_presence(activity=activity)
+    for channel in bot.whitelist.values():
+        await channel.send('_is active and ready for abuse!_')
+        if bot.rollback:
+            await channel.send('Update failed, bot was rolled back to a previous version.')
+    bot.rollback = False
+
+
+@commands.check
+def is_initialized(ctx):
+    return ctx.bot.initialized
+
+
+@bot.listen('on_message')
+async def send_markov(msg: discord.Message):
+    if bot.can_markov(msg):
+        ch = random.choice(list(bot.chains.keys()))
+        chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
+        if chain:
+            await msg.channel.send(f'{msg.author.mention}: {chain}')
+        else:
+            await msg.channel.send(f'{msg.author.mention}: An error has occurred.')
+
+
+@bot.listen('on_message')
+async def coro_learn_markov(msg):
+    bot.learn_markov(msg)
+
+
+@bot.listen('on_message_edit')
+async def coro_update_markov(old, new):
+    bot.forget_markov(old)
+    bot.learn_markov(new)
+
+
+@bot.listen('on_message_delete')
+async def coro_delete_markov(msg):
+    bot.forget_markov(msg)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rollback', action='store_true')
+    args = parser.parse_args()
+    bot.rollback = args.rollback
+
     sql.db_init()
     handler = logging.StreamHandler(stream=sys.stderr)
     fmt = logging.Formatter()
     handler.setFormatter(fmt)
     log.addHandler(handler)
-    bot = PikalaxBOT()
     log.setLevel(logging.INFO)
-    for extn in initial_extensions:
-        bot.load_extension(extn)
-    help_bak = bot.remove_command('help')
-    help_bak.name = 'pikahelp'
-    bot.add_command(help_bak)
-
-
-    @bot.check
-    def is_allowed(ctx: commands.Context):
-        return ctx.channel.id in ctx.bot.whitelist and not ctx.author.bot
-
-
-    @bot.check
-    def is_not_me(ctx: commands.Context):
-        return ctx.author != ctx.bot.user
-
-
-    @bot.event
-    async def on_ready():
-        bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
-        for channel in bot.whitelist.values():
-            await channel.trigger_typing()
-        for ch in list(bot.chains.keys()):
-            if bot.chains[ch] is not None:
-                del bot.chains[ch]
-            bot.chains[ch] = markov.Chain(store_lowercase=True)
-            channel = bot.get_channel(ch)  # type: discord.TextChannel
-            try:
-                async for msg in channel.history(limit=5000):
-                    bot.learn_markov(msg, force=True)
-                log.info(f'Initialized channel {channel.name}')
-            except discord.Forbidden:
-                bot.chains.pop(ch)
-                log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
-            except AttributeError:
-                bot.chains.pop(ch)
-                log.error(f'Failed to load chain {ch:d}')
-        bot.initialized = True
-        activity = discord.Game(bot.game)
-        await bot.change_presence(activity=activity)
-        for channel in bot.whitelist.values():
-            await channel.send('_is active and ready for abuse!_')
-
-
-    @bot.check
-    def is_initialized(ctx):
-        return ctx.bot.initialized
-
-
-    @bot.listen('on_message')
-    async def send_markov(msg: discord.Message):
-        if bot.can_markov(msg):
-            ch = random.choice(list(bot.chains.keys()))
-            chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
-            if chain:
-                await msg.channel.send(f'{msg.author.mention}: {chain}')
-            else:
-                await msg.channel.send(f'{msg.author.mention}: An error has occurred.')
-
-
-    @bot.listen('on_message')
-    async def coro_learn_markov(msg):
-        bot.learn_markov(msg)
-
-
-    @bot.listen('on_message_edit')
-    async def coro_update_markov(old, new):
-        bot.forget_markov(old)
-        bot.learn_markov(new)
-
-
-    @bot.listen('on_message_delete')
-    async def coro_delete_markov(msg):
-        bot.forget_markov(msg)
-
-
-    @bot.command(pass_context=True)
-    @commands.check(ctx_is_owner)
-    async def pikakill(ctx: commands.Context):
-        await ctx.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
-        await bot.close()
-
-
-    @bot.command(pass_context=True)
-    @commands.check(ctx_is_owner)
-    async def pikareboot(ctx: commands.Context, *, force=False):
-        await ctx.send(f'Rebooting to apply updates...')
-        await bot.close()
-        if force:
-            subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
-        subprocess.check_call(['git', 'pull'])
-        subprocess.Popen(['python3.6', __file__])
-
 
     log.info('Starting bot')
     bot.run()
 
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        log.critical('Update failed, rolling back...')
+        subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
+        subprocess.Popen(['python3.6', __file__, '--rollback'])
