@@ -29,7 +29,7 @@ class Core:
         if force:
             subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
         subprocess.check_call(['git', 'pull'])
-        subprocess.Popen(['python3.6', __file__])
+        subprocess.Popen(['python3.6', 'bot.py'])
 
 
 def setup(bot):

@@ -223,11 +223,4 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        raise
-    except Exception as e:
-        log.critical('Update failed, rolling back...')
-        subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
-        subprocess.Popen(['python3.6', __file__, '--rollback'])
+    main()
