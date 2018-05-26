@@ -225,3 +225,4 @@ fabric.properties
 # Notepad++ backups #
 *.bak
 /data/db.sql
+.idea/

@@ -29,7 +29,7 @@ class HangmanGame(GameBase):
     def state(self):
         return ' '.join(self._state)
 
-    def show(self):
+    def __str__(self):
         return f'```Puzzle: {self.state}\n' \
                f'Incorrect: [{self.incorrect}]\n' \
                f'Remaining: {self.attempts:d}\n' \
@@ -53,7 +53,7 @@ class HangmanGame(GameBase):
             if self._task and not self._task.done():
                 self._task.cancel()
                 self._task = None
-            await self._message.edit(content=self.show())
+            await self._message.edit(content=self)
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
                                f'Solution: {self._solution}')
@@ -102,7 +102,7 @@ class HangmanGame(GameBase):
                     self._incorrect.append(guess)
                     self.attempts -= 1
             if self.running:
-                await self._message.edit(content=self.show())
+                await self._message.edit(content=self)
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
@@ -110,8 +110,8 @@ class HangmanGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
-    async def show_(self, ctx):
-        if await super().show_(ctx) is None:
+    async def show(self, ctx):
+        if await super().show(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
@@ -128,46 +128,29 @@ class Hangman(GameCogBase):
             await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}pikahelp hangman`')
 
     @hangman.command()
+    @commands.command(name='hangstart', aliases=['hst'])
     async def start(self, ctx):
         """Start a game in the current channel"""
-        async with self[ctx.channel.id] as game:
-            await game.start(ctx)
+        await self.game_cmd('start', ctx)
 
     @hangman.command()
+    @commands.command(name='hangguess', aliases=['hgu', 'hg'])
     async def guess(self, ctx, guess):
         """Make a guess, if you dare"""
-        async with self[ctx.channel.id] as game:
-            await game.guess(ctx, guess)
+        await self.game_cmd('guess', ctx, guess)
 
     @hangman.command()
+    @commands.command(name='hangend', aliases=['he'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
-        async with self[ctx.channel.id] as game:
-            await game.end(ctx, aborted=True)
+        await self.game_cmd('end', ctx, aborted=True)
 
     @hangman.command()
+    @commands.command(name='hangshow', aliases=['hsh'])
     async def show(self, ctx):
         """Show the board in a new message"""
-        async with self[ctx.channel.id] as game:
-            await game.show_(ctx)
-
-    # Aliases
-    @commands.command(name='hangstart', aliases=['hst'])
-    async def hangman_start(self, ctx):
-        await ctx.invoke(self.start)
-
-    @commands.command(name='hangguess', aliases=['hgu', 'hg'])
-    async def hangman_guess(self, ctx, guess):
-        await ctx.invoke(self.guess, guess)
-
-    @commands.command(name='hangend', aliases=['he'])
-    async def hangman_end(self, ctx):
-        await ctx.invoke(self.end)
-
-    @commands.command(name='hangshow', aliases=['hsh'])
-    async def hangman_show(self, ctx):
-        await ctx.invoke(self.show)
+        await self.game_cmd('show', ctx)
 
 
 def setup(bot):

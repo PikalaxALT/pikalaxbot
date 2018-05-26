@@ -24,7 +24,7 @@ class AnagramGame(GameBase):
     def incorrect(self):
         return ', '.join(self._incorrect)
 
-    def show(self):
+    def __str__(self):
         return f'```Puzzle: {self.state}\n' \
                f'Incorrect: [{self.incorrect}]\n' \
                f'Remaining: {self.attempts:d}```'
@@ -47,7 +47,7 @@ class AnagramGame(GameBase):
 
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if await super().end(ctx, failed=failed, aborted=aborted):
-            await self._message.edit(content=self.show())
+            await self._message.edit(content=self)
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
                                f'Solution: {self._solution}')
@@ -79,7 +79,7 @@ class AnagramGame(GameBase):
                     self._incorrect.append(guess)
                     self.attempts -= 1
             if self.running:
-                await self._message.edit(content=self.show())
+                await self._message.edit(content=self)
                 if self.attempts == 0:
                     await self.end(ctx, True)
         else:
@@ -87,8 +87,8 @@ class AnagramGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
-    async def show_(self, ctx):
-        if await super().show_(ctx) is None:
+    async def show(self, ctx):
+        if await super().show(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
@@ -105,49 +105,29 @@ class Anagram(GameCogBase):
             await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}pikahelp anagram`')
 
     @anagram.command()
+    @commands.command(name='anastart', aliases=['ast'])
     async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
-        async with self[ctx.channel.id] as game:
-            await game.start(ctx)
+        await self.game_cmd('start', ctx)
 
     @anagram.command()
+    @commands.command(name='anasolve', aliases=['aso'])
     async def solve(self, ctx: commands.Context, guess: str):
         """Make a guess, if you dare"""
-        async with self[ctx.channel.id] as game:
-            await game.guess(ctx, guess)
+        await self.game_cmd('guess', ctx, guess)
 
     @anagram.command()
+    @commands.command(name='anaend', aliases=['ae'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
-        if await self.bot.is_owner(ctx.author):
-            game = self.channels[ctx.channel.id]
-            async with game._lock:
-                await game.end(ctx, aborted=True)
+        await self.game_cmd('end', ctx, aborted=True)
 
     @anagram.command()
+    @commands.command(name='anashow', aliases=['ash'])
     async def show(self, ctx):
         """Show the board in a new message"""
-        game = self.channels[ctx.channel.id]
-        async with game._lock:
-            await game.show_(ctx)
-
-    # Aliases
-    @commands.command(name='anastart', aliases=['ast'])
-    async def anagram_start(self, ctx):
-        await ctx.invoke(self.start)
-
-    @commands.command(name='anasolve', aliases=['aso'])
-    async def anagram_solve(self, ctx, guess: str):
-        await ctx.invoke(self.solve, guess)
-
-    @commands.command(name='anaend', aliases=['ae'])
-    async def anagram_end(self, ctx):
-        await ctx.invoke(self.end)
-
-    @commands.command(name='anashow', aliases=['ash'])
-    async def anagram_show(self, ctx):
-        await ctx.invoke(self.show)
+        await self.game_cmd('show', ctx)
 
 
 def setup(bot):

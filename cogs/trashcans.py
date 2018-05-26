@@ -14,7 +14,7 @@ class TrashcansGame(GameBase):
         super().reset()
         self.reset_locks()
 
-    def show(self):
+    def __str__(self):
         board = '\n'.join(' '.join('\u2705' if y else chr(0x1f5d1) for y in x) for x in self.state)
         board += f'\nPlayers: {self.get_player_names()}'
         return board
@@ -64,7 +64,7 @@ class TrashcansGame(GameBase):
             if self._task and not self._task.done():
                 self._task.cancel()
                 self._task = None
-            await self._message.edit(content=self.show())
+            await self._message.edit(content=self)
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.')
             elif failed:
@@ -112,7 +112,7 @@ class TrashcansGame(GameBase):
                         await ctx.send(f'Nope, there\'s only trash here.',
                                        delete_after=10)
                 if self._message:
-                    await self._message.edit(content=self.show())
+                    await self._message.edit(content=self)
             else:
                 await ctx.send(f'{ctx.author.mention}: Coordinates out of range.',
                                delete_after=10)
@@ -122,8 +122,8 @@ class TrashcansGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}trashcans start`.',
                            delete_after=10)
 
-    async def show_(self, ctx):
-        if await super().show_(ctx) is None:
+    async def show(self, ctx):
+        if await super().show(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
                            f'Start a game by saying `{ctx.prefix}trashcans start`.',
                            delete_after=10)
@@ -133,6 +133,9 @@ class Trashcans(GameCogBase):
     def __init__(self, bot):
         super().__init__(TrashcansGame, bot)
 
+    async def argcheck(self, ctx, *args):
+        return await super().argcheck(ctx, *args, maxy=3)
+
     @commands.group(pass_context=True, case_insensitive=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
@@ -140,53 +143,30 @@ class Trashcans(GameCogBase):
             await ctx.send(f'Incorrect trashcans subcommand passed. Try `{ctx.prefix}pikahelp trashcans`')
 
     @trashcans.command()
+    @commands.command(name='trashstart', aliases=['tst'])
     async def start(self, ctx):
         """Start a game in the current channel"""
-        async with self[ctx.channel.id] as game:
-            await game.start(ctx)
+        await self.game_cmd('start', ctx)
 
     @trashcans.command()
+    @commands.command(name='trashguess', aliases=['tgu', 'tg'])
     async def guess(self, ctx, *args):
         """Make a guess, if you dare"""
-        try:
-            x, y = self.convert_args(*args)
-        except ValueError:
-            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
-                           f'Try using two numbers (i.e. 2 5) or a letter '
-                           f'and a number (i.e. c2).')
-            raise commands.CommandError
-        async with self[ctx.channel.id] as game:
-            await game.guess(ctx, x, y)
+        x, y = await self.argcheck(ctx, *args)
+        await self.game_cmd('guess', ctx, x, y)
 
     @trashcans.command()
+    @commands.command(name='trashend', aliases=['te'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
-        async with self[ctx.channel.id] as game:
-            await game.end(ctx, aborted=True)
+        await self.game_cmd('end', ctx, aborted=True)
 
     @trashcans.command()
+    @commands.command(name='trashshow', aliases=['tsh'])
     async def show(self, ctx):
         """Show the board in a new message"""
-        async with self[ctx.channel.id] as game:
-            await game.show_(ctx)
-
-    # Aliases
-    @commands.command(name='trashstart', aliases=['tst'])
-    async def trashcans_start(self, ctx):
-        await ctx.invoke(self.start)
-
-    @commands.command(name='trashguess', aliases=['tgu', 'tg'])
-    async def trashcans_guess(self, ctx, *args):
-        await ctx.invoke(self.guess, *args)
-
-    @commands.command(name='trashend', aliases=['te'])
-    async def trashcans_end(self, ctx):
-        await ctx.invoke(self.end)
-
-    @commands.command(name='trashshow', aliases=['tsh'])
-    async def trashcans_show(self, ctx):
-        await ctx.invoke(self.show)
+        await self.game_cmd('show', ctx)
 
 
 def setup(bot):

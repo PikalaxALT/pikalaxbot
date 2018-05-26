@@ -1,11 +1,10 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils.game import GameBase, GameCogBase
+from utils.game import GameBase, GameCogBase, find_emoji
 from utils import sql
 from utils.checks import ctx_is_owner
 import random
-import math
 
 
 class VoltorbFlipGame(GameBase):
@@ -128,7 +127,7 @@ class VoltorbFlipGame(GameBase):
             return ':triangular_flag_on_post:'
         return ':white_square_button:'
 
-    def show(self):
+    def __str__(self):
         colbombcounts = [f':bomb:{self.colsum(x):d}' for x in range(5)]
         colcoincounts = [f'x{self.colsum(x, True):d}' for x in range(5)]
         rowbombcounts = [f':bomb:{self.rowsum(y):d}' for y in range(5)]
@@ -160,7 +159,7 @@ class VoltorbFlipGame(GameBase):
         if await super().end(ctx, failed=failed, aborted=aborted):
             new_level = self.level
             self.reveal_all()
-            await self._message.edit(content=self.show())
+            await self._message.edit(content=self)
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}')
             elif failed:
@@ -195,9 +194,9 @@ class VoltorbFlipGame(GameBase):
                 if multiplier > 1:
                     self._score *= multiplier
                     await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
-                    emoji = discord.utils.find(lambda e: e.name.lower() == 'pogchamp', ctx.guild.emojis)
+                    emoji = find_emoji(ctx.guild, 'PogChamp', case_sensitive=False)
                     await ctx.message.add_reaction(emoji)
-                await self._message.edit(content=self.show())
+                await self._message.edit(content=self.__str__())
                 if self.found_all_coins():
                     await self.end(ctx)
         else:
@@ -215,7 +214,7 @@ class VoltorbFlipGame(GameBase):
                                delete_after=10)
             else:
                 self.set_flag(x, y)
-                await self._message.edit(content=self.show())
+                await self._message.edit(content=self)
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
@@ -231,14 +230,14 @@ class VoltorbFlipGame(GameBase):
                                delete_after=10)
             else:
                 self.clear_flag(x, y)
-                await self._message.edit(content=self.show())
+                await self._message.edit(content=self)
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
 
-    async def show_(self, ctx):
-        if await super().show_(ctx) is None:
+    async def show(self, ctx):
+        if await super().show(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
@@ -255,96 +254,44 @@ class VoltorbFlip(GameCogBase):
             await ctx.send(f'Incorrect voltorb subcommand passed')
 
     @voltorb.command()
+    @commands.command(name='voltstart', aliases=['vst'])
     async def start(self, ctx):
         """Start a game of Voltorb Flip"""
-        async with self[ctx.channel.id] as game:
-            await game.start(ctx)
+        await self.game_cmd('start', ctx)
 
     @voltorb.command()
+    @commands.command(name='voltguess', aliases=['vgu', 'vg'])
     async def guess(self, ctx, *args):
         """Reveal a square and either claim its coins or blow it up"""
-        try:
-            x, y = self.convert_args(*args)
-        except ValueError:
-            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
-                           f'Try using two numbers (i.e. 2 5) or a letter '
-                           f'and a number (i.e. c2).')
-            raise commands.CommandError
-        if 1 <= x <= 5 and 1 <= y <= 5:
-            async with self[ctx.channel.id] as game:
-                await game.guess(ctx, x - 1, y - 1)
-        else:
-            await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
+        x, y = await self.argcheck(ctx, *args)
+        await self.game_cmd('guess', ctx, x, y)
 
     @voltorb.command()
+    @commands.command(name='voltflag', aliases=['vfl', 'vf'])
     async def flag(self, ctx, *args):
         """Flag a square"""
-        try:
-            x, y = self.convert_args(*args)
-        except ValueError:
-            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
-                           f'Try using two numbers (i.e. 2 5) or a letter '
-                           f'and a number (i.e. c2).')
-            raise commands.CommandError
-        if 1 <= x <= 5 and 1 <= y <= 5:
-            async with self[ctx.channel.id] as game:
-                await game.flag(ctx, x - 1, y - 1)
-        else:
-            await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
+        x, y = await self.argcheck(ctx, *args)
+        await self.game_cmd('flag', ctx, x, y)
 
     @voltorb.command()
+    @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
     async def unflag(self, ctx, *args):
         """Unlag a square"""
-        try:
-            x, y = self.convert_args(*args)
-        except ValueError:
-            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
-                           f'Try using two numbers (i.e. 2 5) or a letter '
-                           f'and a number (i.e. c2).')
-            raise commands.CommandError
-        if 1 <= x <= 5 and 1 <= y <= 5:
-            async with self[ctx.channel.id] as game:
-                await game.unflag(ctx, x - 1, y - 1)
-        else:
-            await ctx.send(f'{ctx.author.mention}: Invalid coordinates given')
+        x, y = await self.argcheck(ctx, *args)
+        await self.game_cmd('unflag', ctx, x, y)
 
     @voltorb.command()
+    @commands.command(name='voltend', aliases=['ve'])
     @commands.check(ctx_is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
-        async with self[ctx.channel.id] as game:
-            await game.end(ctx, aborted=True)
+        await self.game_cmd('end', ctx)
 
     @voltorb.command()
+    @commands.command(name='voltshow', aliases=['vsh'])
     async def show(self, ctx):
         """Show the board in a new message"""
-        async with self[ctx.channel.id] as game:
-            await game.show_(ctx)
-
-    # Aliases
-    @commands.command(name='voltstart', aliases=['vst'])
-    async def voltorb_start(self, ctx):
-        await ctx.invoke(self.start)
-
-    @commands.command(name='voltguess', aliases=['vgu', 'vg'])
-    async def voltorb_guess(self, ctx, *args):
-        await ctx.invoke(self.guess, *args)
-
-    @commands.command(name='voltflag', aliases=['vfl', 'vf'])
-    async def voltorb_flag(self, ctx, *args):
-        await ctx.invoke(self.flag, *args)
-
-    @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
-    async def voltorb_unflag(self, ctx, *args):
-        await ctx.invoke(self.unflag, *args)
-
-    @commands.command(name='voltend', aliases=['ve'])
-    async def voltorb_end(self, ctx):
-        await ctx.invoke(self.end)
-
-    @commands.command(name='voltshow', aliases=['vsh'])
-    async def voltorb_show(self, ctx):
-        await ctx.invoke(self.show)
+        await self.game_cmd('show', ctx)
 
 
 def setup(bot):

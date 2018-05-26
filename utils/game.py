@@ -6,6 +6,13 @@ from utils import sql
 from discord.ext import commands
 
 
+def find_emoji(guild, name, case_sensitive=True):
+    def lower(s):
+        return s if case_sensitive else s.lower()
+
+    return discord.utils.find(lambda e: lower(name) == lower(e.name), guild.emojis)
+
+
 class GameBase:
     def __init__(self, bot, timeout=90, max_score=1000):
         self.bot = bot
@@ -46,7 +53,7 @@ class GameBase:
     def running(self, state):
         self._running = state
 
-    def show(self):
+    def __str__(self):
         pass
 
     def add_player(self, player):
@@ -64,7 +71,7 @@ class GameBase:
 
     async def start(self, ctx):
         self.running = True
-        self._message = await ctx.send(self.show())
+        self._message = await ctx.send(self)
         self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
         self.start_time = time.time()
 
@@ -76,10 +83,10 @@ class GameBase:
             return True
         return False
 
-    async def show_(self, ctx):
+    async def show(self, ctx):
         if self.running:
             await self._message.delete()
-            self._message = await ctx.send(self.show())
+            self._message = await ctx.send(self)
             return self._message
         return None
 
@@ -91,10 +98,11 @@ class GameBase:
 
 
 class GameCogBase:
-    def __init__(self, gamecls, bot):
+    def __init__(self, gamecls, bot, *, groupname=None):
         self.bot = bot
         self.channels = {}
         self.gamecls = gamecls
+        self.groupname = groupname
 
     def __getitem__(self, channel):
         if channel not in self.channels:
@@ -109,3 +117,30 @@ class GameCogBase:
             x, y, *rest = args[0].lower()
             yield ord(x) - 0x60
             yield int(y)
+
+    async def game_cmd(self, cmd, ctx, *args, **kwargs):
+        with self[ctx.channel.id] as game:
+            cb = getattr(game, cmd)
+            if cb is None:
+                await ctx.send(f'{ctx.author.mention}: Invalid command: !{self.groupname} {cmd}',
+                               delete_after=10)
+            else:
+                await cb(ctx, *args, **kwargs)
+
+    async def argcheck(self, ctx, *args, minx=1, maxx=5, miny=1, maxy=5):
+        try:
+            if len(args) >= 2:
+                x, y = map(int, args[:2])
+            else:
+                y, x, *rest = args[0].lower()
+                x = int(x)
+                y = ord(y) - 0x60
+        except ValueError:
+            pass
+        else:
+            if minx <= x <= maxx and miny <= y <= maxy:
+                return x - 1, y - 1
+        await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                       f'Try using two numbers (i.e. 2 5) or a letter '
+                       f'and a number (i.e. c2).')
+        raise commands.CommandError
