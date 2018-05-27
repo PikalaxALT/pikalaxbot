@@ -6,7 +6,7 @@ from discord import compat
 from discord.client import log
 from utils import markov, sql
 from utils.config_io import Settings
-from utils.checks import CommandNotAllowed
+from utils.checks import CommandNotAllowed, ctx_can_markov, ctx_can_learn_markov
 import logging
 import sys
 import traceback
@@ -95,44 +95,14 @@ class PikalaxBOT(commands.Bot):
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
             log.error(tb[0])
 
-    def markov_general_checks(self, msg):
-        if not self.initialized:
-            return False
-        if msg.channel.id not in self.whitelist:
-            return False
-        if msg.author.bot:
-            return False
-        if len(self.chains) == 0:
-            return False
-        return True
-
-    def can_markov(self, msg):
-        if not self.markov_general_checks(msg):
-            return False
-        if self.user.mentioned_in(msg):
-            return True
-        words = msg.clean_content.lower().split()
-        if self.user.name.lower() in words:
-            return True
-        if self.user.display_name.lower() in words:
-            return True
-        return False
-
-    def can_learn_markov(self, msg, force=False):
-        if not (force or self.markov_general_checks(msg)):
-            return False
-        if msg.author.bot:
-            return False
-        return msg.channel.id in bot.chains and not msg.clean_content.startswith(bot.command_prefix)
-
-    def learn_markov(self, msg, force=False):
-        if self.can_learn_markov(msg, force=force):
-            self.storedMsgsSet.add(msg.clean_content)
-            self.chains[msg.channel.id].learn_str(msg.clean_content)
+    async def learn_markov(self, ctx, force=False):
+        if await ctx_can_learn_markov(ctx, force=force):
+            self.storedMsgsSet.add(ctx.message.clean_content)
+            self.chains[ctx.channel.id].learn_str(ctx.message.clean_content)
     
-    def forget_markov(self, msg, force=False):
-        if self.can_learn_markov(msg, force=force):
-            self.chains[msg.channel.id].unlearn_str(msg.clean_content)
+    async def forget_markov(self, ctx, force=False):
+        if await ctx_can_learn_markov(ctx, force=force):
+            self.chains[ctx.channel.id].unlearn_str(ctx.message.clean_content)
 
 
 bot = PikalaxBOT()
@@ -155,7 +125,8 @@ async def on_ready():
         channel = bot.get_channel(ch)  # type: discord.TextChannel
         try:
             async for msg in channel.history(limit=5000):
-                bot.learn_markov(msg, force=True)
+                ctx = await bot.get_context(msg)
+                await bot.learn_markov(ctx, force=True)
             log.info(f'Initialized channel {channel.name}')
         except discord.Forbidden:
             bot.chains.pop(ch)
@@ -179,6 +150,7 @@ def is_initialized(ctx):
 
 
 @bot.listen('on_message')
+@bot.check(ctx_can_markov)
 async def send_markov(msg: discord.Message):
     ctx = await bot.get_context(msg)
     cmd = bot.get_command('markov')
@@ -187,19 +159,26 @@ async def send_markov(msg: discord.Message):
 
 
 @bot.listen('on_message')
+@bot.check(ctx_can_learn_markov)
 async def coro_learn_markov(msg):
-    bot.learn_markov(msg)
+    ctx = await bot.get_context(msg)
+    await bot.learn_markov(ctx)
 
 
 @bot.listen('on_message_edit')
+@bot.check(ctx_can_learn_markov)
 async def coro_update_markov(old, new):
-    bot.forget_markov(old)
-    bot.learn_markov(new)
+    ctx = await bot.get_context(old)
+    await bot.forget_markov(ctx)
+    ctx = await bot.get_context(new)
+    await bot.learn_markov(ctx)
 
 
 @bot.listen('on_message_delete')
+@bot.check(ctx_can_learn_markov)
 async def coro_delete_markov(msg):
-    bot.forget_markov(msg)
+    ctx = await bot.get_context(msg)
+    await bot.forget_markov(ctx)
 
 
 def main():
