@@ -113,11 +113,7 @@ help_bak.name = 'pikahelp'
 bot.add_command(help_bak)
 
 
-@bot.event
-async def on_ready():
-    bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
-    for channel in bot.whitelist.values():
-        await channel.trigger_typing()
+async def _on_ready():
     for ch in list(bot.chains.keys()):
         if bot.chains[ch] is not None:
             del bot.chains[ch]
@@ -142,6 +138,21 @@ async def on_ready():
         if bot.rollback:
             await channel.send('Update failed, bot was rolled back to a previous version.')
     bot.rollback = False
+
+
+@bot.event
+async def on_ready():
+    typing = []
+    bot.whitelist = {ch.id: ch for ch in map(bot.get_channel, bot.whitelist) if ch is not None}
+    for channel in bot.whitelist.values():
+        typing.append(await channel.typing().__aenter__())
+    try:
+        await _on_ready()
+    except Exception as e:
+        log.error(traceback.format_exception(type(e), e, e.__traceback__))
+        raise e
+    finally:
+        [t.task.cancel() for t in typing]
 
 
 @bot.check
