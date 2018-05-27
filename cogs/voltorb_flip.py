@@ -262,6 +262,7 @@ class VoltorbFlip(GameCogBase):
 
     @commands.command(name='voltstart', aliases=['vst'])
     async def voltorb_start(self, ctx):
+        """Start a game of Voltorb Flip"""
         await ctx.invoke(self.start)
 
     @voltorb.command()
@@ -288,13 +289,13 @@ class VoltorbFlip(GameCogBase):
 
     @voltorb.command()
     async def unflag(self, ctx, *args):
-        """Unlag a square"""
+        """Unflag a square"""
         x, y = await self.argcheck(ctx, *args)
         await self.game_cmd('unflag', ctx, x, y)
 
     @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
     async def voltorb_unflag(self, ctx, *args):
-        """Unlag a square"""
+        """Unflag a square"""
         await ctx.invoke(self.unflag, *args)
 
     @voltorb.command()
