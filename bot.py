@@ -150,35 +150,36 @@ def is_initialized(ctx):
 
 
 @bot.listen('on_message')
-@commands.check(ctx_can_markov)
 async def send_markov(msg: discord.Message):
     ctx = await bot.get_context(msg)
-    cmd = bot.get_command('markov')
-    if cmd is not None:
-        await ctx.invoke(cmd)
+    if await ctx_can_markov(ctx):
+        cmd = bot.get_command('markov')
+        if cmd is not None:
+            await ctx.invoke(cmd)
 
 
 @bot.listen('on_message')
-@commands.check(ctx_can_learn_markov)
 async def coro_learn_markov(msg):
     ctx = await bot.get_context(msg)
-    await bot.learn_markov(ctx)
+    if await ctx_can_learn_markov(ctx):
+        await bot.learn_markov(ctx)
 
 
 @bot.listen('on_message_edit')
-@commands.check(ctx_can_learn_markov)
 async def coro_update_markov(old, new):
     ctx = await bot.get_context(old)
-    await bot.forget_markov(ctx)
+    if await ctx_can_learn_markov(ctx):
+        await bot.forget_markov(ctx)
     ctx = await bot.get_context(new)
-    await bot.learn_markov(ctx)
+    if await ctx_can_learn_markov(ctx):
+        await bot.learn_markov(ctx)
 
 
 @bot.listen('on_message_delete')
-@commands.check(ctx_can_learn_markov)
 async def coro_delete_markov(msg):
     ctx = await bot.get_context(msg)
-    await bot.forget_markov(ctx)
+    if await ctx_can_learn_markov(ctx):
+        await bot.forget_markov(ctx)
 
 
 def main():
