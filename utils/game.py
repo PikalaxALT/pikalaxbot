@@ -26,7 +26,7 @@ class GameBase:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._lock.release()
+        self._lock.release()
 
     def reset(self):
         self._state = None
