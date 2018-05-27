@@ -144,13 +144,13 @@ async def on_ready():
     bot.rollback = False
 
 
-@commands.check
+@bot.check
 def is_initialized(ctx):
-    return ctx.bot.initialized
+    return bot.initialized
 
 
 @bot.listen('on_message')
-@bot.check(ctx_can_markov)
+@commands.check(ctx_can_markov)
 async def send_markov(msg: discord.Message):
     ctx = await bot.get_context(msg)
     cmd = bot.get_command('markov')
@@ -159,14 +159,14 @@ async def send_markov(msg: discord.Message):
 
 
 @bot.listen('on_message')
-@bot.check(ctx_can_learn_markov)
+@commands.check(ctx_can_learn_markov)
 async def coro_learn_markov(msg):
     ctx = await bot.get_context(msg)
     await bot.learn_markov(ctx)
 
 
 @bot.listen('on_message_edit')
-@bot.check(ctx_can_learn_markov)
+@commands.check(ctx_can_learn_markov)
 async def coro_update_markov(old, new):
     ctx = await bot.get_context(old)
     await bot.forget_markov(ctx)
@@ -175,7 +175,7 @@ async def coro_update_markov(old, new):
 
 
 @bot.listen('on_message_delete')
-@bot.check(ctx_can_learn_markov)
+@commands.check(ctx_can_learn_markov)
 async def coro_delete_markov(msg):
     ctx = await bot.get_context(msg)
     await bot.forget_markov(ctx)
