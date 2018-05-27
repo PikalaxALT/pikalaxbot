@@ -109,7 +109,7 @@ def set_voltorb_level(channel, new_level):
 
 def get_leaderboard_rank(player):
     with sqlite3.connect(dbname) as conn:
-        c = conn.execute('select id from game')
+        c = conn.execute('select id from game order by score desc')
         for i, row in enumerate(c.fetchall()):
             id_, = row
             if id_ == player.id:
