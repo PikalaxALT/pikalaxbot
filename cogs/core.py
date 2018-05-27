@@ -1,3 +1,4 @@
+import random
 import subprocess
 from discord.ext import commands
 from utils.checks import ctx_is_owner

@@ -6,12 +6,10 @@ from discord import compat
 from discord.client import log
 from utils import markov, sql
 from utils.config_io import Settings
-from utils.checks import ctx_is_owner, CommandNotAllowed
-import random
+from utils.checks import CommandNotAllowed
 import logging
 import sys
 import traceback
-import subprocess
 
 initial_extensions = (
     'cogs.core',
@@ -62,8 +60,9 @@ class PikalaxBOT(commands.Bot):
         if loop.is_closed():
             return
 
-        for channel in self.whitelist.values():
-            compat.create_task(channel.send('Shutting down... (console kill)'), loop=loop)
+        if isinstance(self.whitelist, dict):
+            for channel in self.whitelist.values():
+                compat.create_task(channel.send('Shutting down... (console kill)'), loop=loop)
 
         if not loop.is_running():
             loop.run_forever()
@@ -112,9 +111,10 @@ class PikalaxBOT(commands.Bot):
             return False
         if self.user.mentioned_in(msg):
             return True
-        if self.user.name.lower() in msg.clean_content.lower():
+        words = msg.clean_content.lower().split()
+        if self.user.name.lower() in words:
             return True
-        if self.user.display_name.lower() in msg.clean_content.lower():
+        if self.user.display_name.lower() in words:
             return True
         return False
 
@@ -180,13 +180,10 @@ def is_initialized(ctx):
 
 @bot.listen('on_message')
 async def send_markov(msg: discord.Message):
-    if bot.can_markov(msg):
-        ch = random.choice(list(bot.chains.keys()))
-        chain = bot.gen_msg(ch, len_max=250, n_attempts=10)
-        if chain:
-            await msg.channel.send(f'{msg.author.mention}: {chain}')
-        else:
-            await msg.channel.send(f'{msg.author.mention}: An error has occurred.')
+    ctx = await bot.get_context(msg)
+    cmd = bot.get_command('markov')
+    if cmd is not None:
+        await ctx.invoke(cmd)
 
 
 @bot.listen('on_message')

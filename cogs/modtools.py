@@ -13,14 +13,17 @@ class ModTools():
     @commands.group(pass_context=True, case_insensitive=True)
     @commands.check(ctx_is_owner)
     async def admin(self, ctx):
+        """Commands for the admin console"""
         pass
 
     @admin.group(pass_context=True, case_insensitive=True)
     async def markov(self, ctx):
+        """Commands to manage Markov channels"""
         pass
 
     @markov.command(name='add')
     async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
+        """Add a Markov channel by ID or mention"""
         if ch.id in self.bot.chains:
             await ctx.send(f'Channel {ch.mention} is already being tracked for Markov chains')
         else:
@@ -42,6 +45,7 @@ class ModTools():
 
     @markov.command(name='delete')
     async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
+        """Remove a Markov channel by ID or mention"""
         if ch.id in self.bot.chains:
             self.bot.chains.pop(ch.id)
             await ctx.send(f'Channel {ch.mention} has been forgotten')
@@ -53,10 +57,12 @@ class ModTools():
 
     @admin.group(pass_context=True, case_insensitive=True)
     async def ui(self, ctx):
+        """Commands to manage the bot's appearance"""
         pass
 
     @ui.command(name='nick')
     async def change_nick(self, ctx: commands.Context, *, nickname: str = None):
+        """Change or reset the bot's nickname"""
         try:
             await ctx.me.edit(nick=nickname)
         except discord.Forbidden:
@@ -66,6 +72,7 @@ class ModTools():
 
     @ui.command(name='game')
     async def change_game(self, ctx: commands.Context, *, game: str = None):
+        """Change or reset the bot's presence"""
         game = game or f'{ctx.prefix}pikahelp'
         activity=discord.Game(game)
         try:

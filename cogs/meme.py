@@ -3,6 +3,8 @@ import aiohttp
 from discord.ext import commands
 import random
 from utils import sql
+from utils.checks import ctx_can_markov
+from utils.game import find_emoji
 
 
 class Meme:
@@ -27,9 +29,7 @@ class Meme:
 
     @commands.command()
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
-        """!archeops <arg1> <arg2>
-
-        Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
+        """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
         data = {'Subject1': subj1, 'Subject2': subj2}
         async with aiohttp.ClientSession() as cs:
@@ -44,9 +44,7 @@ class Meme:
 
     @commands.command()
     async def riot(self, ctx, *args):
-        """!riot <reason>
-
-        Riots (for some reason)"""
+        """Riots (for some reason)"""
         resp = ' '.join(args).upper()
         if 'DANCE' in resp:
             await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {resp} RIOT ♪ └༼ຈل͜ຈ༽┐♫')
@@ -55,24 +53,18 @@ class Meme:
 
     @commands.group()
     async def bag(self, ctx):
-        """!bag
-
-        Get in the bag, Nebby."""
+        """Get in the bag, Nebby."""
         if ctx.invoked_subcommand is None:
             message = sql.read_bag()
             if message is None:
-                emoji = self.bot.get_emoji(445726948740562945)  # BibleThump
+                emoji = find_emoji(ctx.guild, 'BibleThump', case_sensitive=False)
                 await ctx.send(f'*cannot find the bag {emoji}*')
             else:
                 await ctx.send(f'*{message}*')
 
     @bag.command()
     async def add(self, ctx, *fmtstr):
-        """!bag add <fmtstr>
-
-        Add a message to the bag.
-
-        {name}: Insert the bot's name."""
+        """Add a message to the bag."""
         if sql.add_bag(' '.join(fmtstr)):
             await ctx.send('Message was successfully placed in the bag')
         else:
@@ -80,12 +72,21 @@ class Meme:
 
     @commands.command()
     async def nebby(self, ctx):
-        """!nebby
-
-        Pew!"""
+        """Pew!"""
         # States: start, P, E, W, !, end
         emission = self.gen_nebby()
         await ctx.send(emission)
+
+    @commands.command(pass_context=True, hidden=True)
+    @commands.check(ctx_can_markov)
+    async def markov(self, ctx):
+        """Generate a random word Markov chain."""
+        ch = random.choice(list(self.bot.chains.keys()))
+        chain = self.bot.gen_msg(ch, len_max=250, n_attempts=10)
+        if chain:
+            await ctx.send(f'{ctx.author.mention}: {chain}')
+        else:
+            await ctx.send(f'{ctx.author.mention}: An error has occurred.')
 
 
 def setup(bot):

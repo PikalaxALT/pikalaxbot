@@ -10,11 +10,13 @@ class Leaderboard:
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def leaderboard(self, ctx: commands.Context):
+        """Commands to check the leaderboard"""
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.check)
 
     @leaderboard.command()
     async def check(self, ctx, username=None):
+        """Check your leaderboard score, or the leaderboard score of another user"""
         if username is None:
             person = ctx.author
         else:
@@ -33,6 +35,7 @@ class Leaderboard:
 
     @leaderboard.command()
     async def show(self, ctx):
+        """Check the top 10 players on the leaderboard"""
         msgs = []
         for _id, name, score in sql.get_all_scores():
             msgs.append(f'{name}: {score:d}')

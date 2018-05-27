@@ -128,6 +128,7 @@ class GameCogBase:
                 await cb(ctx, *args, **kwargs)
 
     async def argcheck(self, ctx, *args, minx=1, maxx=5, miny=1, maxy=5):
+        exc = None
         try:
             if len(args) >= 2:
                 x, y = map(int, args[:2])
@@ -135,12 +136,12 @@ class GameCogBase:
                 y, x, *rest = args[0].lower()
                 x = int(x)
                 y = ord(y) - 0x60
-        except ValueError:
-            pass
+        except ValueError as e:
+            exc = e
         else:
             if minx <= x <= maxx and miny <= y <= maxy:
                 return x - 1, y - 1
         await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
                        f'Try using two numbers (i.e. 2 5) or a letter '
                        f'and a number (i.e. c2).')
-        raise commands.CommandError
+        raise commands.CommandError from exc
