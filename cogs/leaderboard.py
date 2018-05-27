@@ -29,7 +29,8 @@ class Leaderboard:
                 return  # bail early
         score = sql.get_score(person)
         if score is not None:
-            await ctx.send(f'{person.name} has {score:d} point(s) across all games.')
+            rank = sql.get_leaderboard_rank(person)
+            await ctx.send(f'{person.name} has {score:d} point(s) across all games and is #{rank:d} on the leaderboard.')
         else:
             await ctx.send(f'{person.name} is not yet on the leaderboard.')
 

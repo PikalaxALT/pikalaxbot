@@ -105,3 +105,13 @@ def set_voltorb_level(channel, new_level):
             conn.execute('insert into voltorb values (?, ?)', (channel.id, new_level))
         else:
             conn.execute('update voltorb set level = ? where id = ?', (new_level, channel.id))
+
+
+def get_leaderboard_rank(player):
+    with sqlite3.connect(dbname) as conn:
+        c = conn.execute('select id from game')
+        for i, row in enumerate(c.fetchall()):
+            id_, = row
+            if id_ == player.id:
+                return i + 1
+    return -1
