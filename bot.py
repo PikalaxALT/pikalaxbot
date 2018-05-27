@@ -149,7 +149,7 @@ async def on_ready():
     try:
         await _on_ready()
     except Exception as e:
-        log.error(traceback.format_exception(type(e), e, e.__traceback__))
+        log.error(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
         raise e
     finally:
         [t.task.cancel() for t in typing]

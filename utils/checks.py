@@ -45,4 +45,4 @@ async def ctx_can_learn_markov(ctx, force=False):
         return False
     if ctx.author.bot:
         return False
-    return ctx.channel.id in ctx.bot.chains and not ctx.message.clean_content.startswith(ctx.prefix)
+    return ctx.channel.id in ctx.bot.chains and not ctx.message.clean_content.startswith('!')
