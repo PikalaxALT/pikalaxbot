@@ -1,5 +1,7 @@
 import os
 import sqlite3
+import subprocess
+import time
 
 dbname = 'data/db.sql'
 default_bag = (
@@ -143,3 +145,19 @@ def reset_bag():
         conn.execute('vacuum')
         for msg in default_bag:
             conn.execute('insert into meme values (?)', (msg,))
+
+
+def backup_db():
+    dbbak = f'{dbname}.{time.time():d}.bak'
+    os.rename(dbname, dbbak)
+    return dbbak
+
+
+def restore_db(idx):
+    files = subprocess.check_output(['ls', f'{dbname}.*.bak'])
+    if len(files) == 0:
+        return None
+    files.sort(reverse=True)
+    dbbak = files[(idx - 1) % len(files)]
+    os.rename(dbbak, dbname)
+    return dbbak

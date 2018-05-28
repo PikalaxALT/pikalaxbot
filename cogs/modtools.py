@@ -104,19 +104,37 @@ class ModTools():
     async def bag(self, ctx):
         """Commands for manipulating the bag"""
 
-    @bag.command()
-    async def remove(self, ctx, msg: str):
+    @bag.command(name='remove')
+    async def remove_bag(self, ctx, msg: str):
         """Remove a phrase from the bag"""
         if sql.remove_bag(msg):
             await ctx.send('Removed message from bag')
         else:
             await ctx.send('Cannot remove default message from bag')
 
-    @bag.command()
-    async def reset(self, ctx):
+    @bag.command(name='reset')
+    async def reset_bag(self, ctx):
         """Reset the bag"""
         sql.reset_bag()
         await ctx.send('Reset the bag')
+
+    @admin.group(pass_context=True)
+    async def database(self, ctx):
+        """Commands for managing the database file"""
+
+    @database.command(name='backup')
+    async def backup_database(self, ctx):
+        """Back up the database"""
+        await ctx.send(f'Backed up to {sql.backup_db()}')
+
+    @database.command(name='restore')
+    async def restore_database(self, ctx, *, idx):
+        """Restore the database"""
+        dbbak = sql.restore_db(idx)
+        if dbbak is None:
+            await ctx.send('Unable to restore backup')
+        else:
+            await ctx.send(f'Restored backup from {dbbak}')
 
 
 def setup(bot):
