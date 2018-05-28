@@ -1,4 +1,5 @@
 import os
+import shutil
 import sqlite3
 import subprocess
 import time
@@ -148,9 +149,7 @@ def reset_bag():
 
 
 def backup_db():
-    dbbak = f'{dbname}.{time.time():d}.bak'
-    os.rename(dbname, dbbak)
-    return dbbak
+    return shutil.copy(dbname, f'{dbname}.{time.time():d}.bak')
 
 
 def restore_db(idx):
@@ -159,5 +158,5 @@ def restore_db(idx):
         return None
     files.sort(reverse=True)
     dbbak = files[(idx - 1) % len(files)]
-    os.rename(dbbak, dbname)
+    shutil.copy(dbbak, dbname)
     return dbbak
