@@ -2,6 +2,7 @@ import random
 import subprocess
 from discord.ext import commands
 from utils.checks import ctx_is_owner
+from utils import sql
 
 
 class Core:
@@ -22,6 +23,7 @@ class Core:
         """Shut down the bot (owner only, manual restart required)"""
         await ctx.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
         await self.bot.close()
+        sql.backup_db()
 
     @commands.command(pass_context=True)
     @commands.check(ctx_is_owner)
@@ -29,6 +31,7 @@ class Core:
         """Reboot the bot (owner only)"""
         await ctx.send(f'Rebooting to apply updates...')
         await self.bot.close()
+        sql.backup_db()
         if force:
             subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
         subprocess.check_call(['git', 'pull'])

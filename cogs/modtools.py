@@ -128,7 +128,7 @@ class ModTools():
         await ctx.send(f'Backed up to {sql.backup_db()}')
 
     @database.command(name='restore')
-    async def restore_database(self, ctx, *, idx):
+    async def restore_database(self, ctx, *, idx: int = -1):
         """Restore the database"""
         dbbak = sql.restore_db(idx)
         if dbbak is None:
