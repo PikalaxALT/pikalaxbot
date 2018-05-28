@@ -149,7 +149,8 @@ def reset_bag():
 
 
 def backup_db():
-    return shutil.copy(dbname, f'{dbname}.{time.time():d}.bak')
+    curtime = int(time.time())
+    return shutil.copy(dbname, f'{dbname}.{curtime:d}.bak')
 
 
 def restore_db(idx):
