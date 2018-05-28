@@ -4,6 +4,7 @@ from discord.ext import commands
 from utils.markov import Chain
 from utils.config_io import Settings
 from utils.checks import ctx_is_owner
+from utils import sql
 
 
 class ModTools():
@@ -14,12 +15,10 @@ class ModTools():
     @commands.check(ctx_is_owner)
     async def admin(self, ctx):
         """Commands for the admin console"""
-        pass
 
     @admin.group(pass_context=True, case_insensitive=True)
     async def markov(self, ctx):
         """Commands to manage Markov channels"""
-        pass
 
     @markov.command(name='add')
     async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
@@ -58,7 +57,6 @@ class ModTools():
     @admin.group(pass_context=True, case_insensitive=True)
     async def ui(self, ctx):
         """Commands to manage the bot's appearance"""
-        pass
 
     @ui.command(name='nick')
     async def change_nick(self, ctx: commands.Context, *, nickname: str = None):
@@ -82,6 +80,43 @@ class ModTools():
         else:
             with Settings() as settings:
                 settings.set('user', 'game', game)
+
+    @admin.group(pass_context=True)
+    async def leaderboard(self, ctx):
+        """Commands for manipulating the leaderboard"""
+
+    @leaderboard.command(name='clear')
+    async def clear_leaderboard(self, ctx):
+        """Reset the leaderboard"""
+        sql.reset_leaderboard()
+        await ctx.send('Leaderboard reset')
+
+    @leaderboard.command(name='give')
+    async def give_points(self, ctx, person: discord.Member, score: int):
+        """Give points to a player"""
+        if person is None:
+            await ctx.send('That person does not exist')
+        else:
+            sql.increment_score(person, score)
+            await ctx.send(f'Gave {score:d} points to {person.name}')
+
+    @admin.group(pass_context=True)
+    async def bag(self, ctx):
+        """Commands for manipulating the bag"""
+
+    @bag.command()
+    async def remove(self, ctx, msg: str):
+        """Remove a phrase from the bag"""
+        if sql.remove_bag(msg):
+            await ctx.send('Removed message from bag')
+        else:
+            await ctx.send('Cannot remove default message from bag')
+
+    @bag.command()
+    async def reset(self, ctx):
+        """Reset the bag"""
+        sql.reset_bag()
+        await ctx.send('Reset the bag')
 
 
 def setup(bot):

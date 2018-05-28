@@ -42,6 +42,11 @@ def db_clear():
             conn.execute("drop table game")
         except sqlite3.Error:
             pass
+        try:
+            conn.execute('drop table voltorb')
+        except sqlite3.Error:
+            pass
+        conn.execute('vacuum')
 
 
 def get_score(author):
@@ -115,3 +120,26 @@ def get_leaderboard_rank(player):
             if id_ == player.id:
                 return i + 1
     return -1
+
+
+def reset_leaderboard():
+    with sqlite3.connect(dbname) as conn:
+        conn.execute('delete from game')
+        conn.execute('vacuum')
+
+
+def remove_bag(msg):
+    if msg in default_bag:
+        return False
+    with sqlite3.connect(dbname) as conn:
+        conn.execute('delete from meme where bag = ?', (msg,))
+        conn.execute('vacuum')
+    return True
+
+
+def reset_bag():
+    with sqlite3.connect(dbname) as conn:
+        conn.execute('delete from meme')
+        conn.execute('vacuum')
+        for msg in default_bag:
+            conn.execute('insert into meme values (?)', (msg,))
