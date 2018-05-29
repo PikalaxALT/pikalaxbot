@@ -156,8 +156,13 @@ async def on_ready():
 
 
 @bot.check
-def is_initialized(ctx):
+async def is_initialized(ctx):
     return bot.initialized
+
+
+@bot.check
+async def is_not_bot(ctx):
+    return not ctx.author.bot
 
 
 @bot.listen('on_message')
