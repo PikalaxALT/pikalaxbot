@@ -15,18 +15,10 @@ class Leaderboard:
             await ctx.invoke(self.check)
 
     @leaderboard.command()
-    async def check(self, ctx, username=None):
+    async def check(self, ctx, person: discord.Member = None):
         """Check your leaderboard score, or the leaderboard score of another user"""
-        if username is None:
+        if person is None:
             person = ctx.author
-        else:
-            username = username.lower()
-            for person in self.bot.get_all_members():
-                if username in (person.name.lower(), person.mention.lower(), person.display_name.lower()):
-                    break
-            else:
-                await ctx.send(f'{ctx.author.mention}: User {username} not found.')
-                return  # bail early
         score = sql.get_score(person)
         if score is not None:
             rank = sql.get_leaderboard_rank(person)

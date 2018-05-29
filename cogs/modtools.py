@@ -136,6 +136,16 @@ class ModTools():
         else:
             await ctx.send(f'Restored backup from {dbbak}')
 
+    @admin.command(name='sql')
+    async def call_sql(self, ctx, *script):
+        script = ' '.join(script)
+        try:
+            sql.call_script(script)
+        except sql.sqlite3.Error:
+            await ctx.send('The script failed with an error (check your syntax?)')
+        else:
+            await ctx.send('Script successfully executed')
+
 
 def setup(bot):
     bot.add_cog(ModTools(bot))

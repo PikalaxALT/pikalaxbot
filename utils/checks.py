@@ -35,7 +35,7 @@ async def ctx_can_markov(ctx):
     words = ctx.message.clean_content.lower().split()
     if ctx.bot.user.name.lower() in words:
         return True
-    if ctx.bot.user.display_name.lower() in words:
+    if ctx.bot.get_nick(ctx.guild).lower() in words:
         return True
     return False
 

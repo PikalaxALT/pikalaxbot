@@ -161,3 +161,8 @@ def restore_db(idx):
     dbbak = files[(idx - 1) % len(files)]
     shutil.copy(dbbak, dbname)
     return dbbak
+
+
+def call_script(script):
+    with sqlite3.connect(dbname) as conn:
+        conn.execute(script)

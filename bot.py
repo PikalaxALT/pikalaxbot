@@ -47,6 +47,10 @@ class PikalaxBOT(commands.Bot):
         self.rollback = False
         super().__init__(command_prefix, case_insensitive=True)
 
+    def get_nick(self, guild: discord.Guild):
+        member = guild.get_member(self.user.id)
+        return member.nick
+
     def run(self):
         super().run(self._token)
 
