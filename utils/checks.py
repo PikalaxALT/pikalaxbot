@@ -24,6 +24,8 @@ async def ctx_markov_general_checks(ctx):
         return False
     if ctx.author.id == ctx.bot.user.id:
         return False
+    if ctx.command is not None:
+        return False
     return True
 
 
