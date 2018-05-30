@@ -41,7 +41,7 @@ class HangmanGame(GameBase):
                            delete_after=10)
         else:
             self._solution = data.random_pokemon_name().upper()
-            self._state = ['_' if c.isalphanum() else c for c in self._solution]
+            self._state = ['_' if c.isalnum() else c for c in self._solution]
             self.attempts = self._attempts
             self._incorrect = []
             await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
