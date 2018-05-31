@@ -74,9 +74,9 @@ class HangmanGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
-    async def guess(self, ctx: commands.Context, guess: str):
+    async def guess(self, ctx: commands.Context, *guess: str):
         if self.running:
-            guess = guess.upper()
+            guess = ' '.join(guess).upper()
             if guess in self._incorrect or guess in self._state:
                 await ctx.send(f'{ctx.author.mention}: Character or solution already guessed: {guess}',
                                delete_after=10)
@@ -138,14 +138,14 @@ class Hangman(GameCogBase):
         await ctx.invoke(self.start)
 
     @hangman.command()
-    async def guess(self, ctx, guess):
+    async def guess(self, ctx, *guess):
         """Make a guess, if you dare"""
-        await self.game_cmd('guess', ctx, guess)
+        await self.game_cmd('guess', ctx, *guess)
 
     @commands.command(name='hangguess', aliases=['hgu', 'hg'])
-    async def hangman_guess(self, ctx, guess):
+    async def hangman_guess(self, ctx, *guess):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.guess, guess)
+        await ctx.invoke(self.guess, *guess)
 
     @hangman.command()
     @commands.check(ctx_is_owner)

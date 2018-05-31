@@ -65,9 +65,9 @@ class AnagramGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
-    async def solve(self, ctx: commands.Context, guess):
+    async def solve(self, ctx: commands.Context, *guess):
         if self.running:
-            guess = guess.upper()
+            guess = ' '.join(guess).upper()
             if guess in self._incorrect:
                 await ctx.send(f'{ctx.author.mention}: Solution already guessed: {guess}',
                                delete_after=10)
@@ -115,14 +115,14 @@ class Anagram(GameCogBase):
         await ctx.invoke(self.start)
 
     @anagram.command()
-    async def solve(self, ctx: commands.Context, guess: str):
+    async def solve(self, ctx: commands.Context, *guess: str):
         """Make a guess, if you dare"""
-        await self.game_cmd('solve', ctx, guess)
+        await self.game_cmd('solve', ctx, *guess)
 
     @commands.command(name='anasolve', aliases=['aso'])
-    async def anagram_solve(self, ctx, guess: str):
+    async def anagram_solve(self, ctx, *guess: str):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.solve, guess)
+        await ctx.invoke(self.solve, *guess)
 
     @anagram.command()
     @commands.check(ctx_is_owner)
