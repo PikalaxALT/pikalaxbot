@@ -40,8 +40,8 @@ class HangmanGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Hangman is already running here.',
                            delete_after=10)
         else:
-            self._solution = random.choice(data.pokemon)
-            self._state = ['_' for c in self._solution]
+            self._solution = data.random_pokemon_name().upper()
+            self._state = ['_' if c.isalnum() else c for c in self._solution]
             self.attempts = self._attempts
             self._incorrect = []
             await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '

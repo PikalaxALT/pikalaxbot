@@ -2,7 +2,6 @@ import asyncio
 import discord
 from discord.ext import commands
 from utils.markov import Chain
-from utils.config_io import Settings
 from utils.checks import ctx_is_owner
 from utils import sql
 
@@ -31,16 +30,16 @@ class ModTools():
                 try:
                     async for msg in ch.history(limit=5000):
                         self.bot.learn_markov(msg, force=True)
-                    await ctx.send(f'Successfully initialized {ch.mention}')
-                    with Settings() as settings:
-                        settings.add_markov_channel(ch.id)
-                    self.bot.markov_channels.append(ch.id)
                 except discord.Forbidden:
                     self.bot.chains.pop(ch.id)
                     await ctx.send(f'Failed to get message history from {ch.mention} (403 FORBIDDEN)')
                 except AttributeError:
                     self.bot.chains.pop(ch.id)
                     await ctx.send(f'Failed to load chain {ch.mention}')
+                else:
+                    await ctx.send(f'Successfully initialized {ch.mention}')
+                    self.bot.markov_channels.append(ch.id)
+                    self.bot.commit()
 
     @markov.command(name='delete')
     async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
@@ -48,9 +47,8 @@ class ModTools():
         if ch.id in self.bot.chains:
             self.bot.chains.pop(ch.id)
             await ctx.send(f'Channel {ch.mention} has been forgotten')
-            with Settings() as settings:
-                settings.del_markov_channel(ch.id)
             self.bot.markov_channels.remove(ch.id)
+            self.bot.commit()
         else:
             await ctx.send(f'Channel {ch.mention} is already forgotten')
 
@@ -72,14 +70,15 @@ class ModTools():
     async def change_game(self, ctx: commands.Context, *, game: str = None):
         """Change or reset the bot's presence"""
         game = game or f'{ctx.prefix}pikahelp'
-        activity=discord.Game(game)
+        activity = discord.Game(game)
         try:
             await self.bot.change_presence(activity=activity)
         except discord.Forbidden:
             await ctx.send('Unable to update my presence (FORBIDDEN)')
         else:
-            with Settings() as settings:
-                settings.set('user', 'game', game)
+            self.bot.game = game
+            self.bot.commit()
+            await ctx.send(f'I\'m now playing {game}')
 
     @admin.group(pass_context=True)
     async def leaderboard(self, ctx):
@@ -145,6 +144,16 @@ class ModTools():
             await ctx.send('The script failed with an error (check your syntax?)')
         else:
             await ctx.send('Script successfully executed')
+
+    @admin.command(name='ban')
+    async def ban_user(self, ctx, person: discord.Member):
+        self.bot.ban(person)
+        await ctx.send(f'{person.display_name} is now banned from interacting with me.')
+
+    @admin.command(name='unban')
+    async def unban_user(self, ctx, person: discord.Member):
+        self.bot.unban(person)
+        await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
 
 def setup(bot):

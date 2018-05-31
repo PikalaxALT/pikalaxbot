@@ -3,6 +3,8 @@ import os
 
 
 class Settings:
+    categories = ('credentials', 'meta', 'user')
+
     def __init__(self, fname='settings.json'):
         self.fname = fname
         self.data: dict = {}
@@ -25,42 +27,34 @@ class Settings:
             os.makedirs(os.path.dirname(self.fname), exist_ok=True)
         with open(self.fname, mode=mode) as fp:
             self.data = json.load(fp)
-        self.data.setdefault('credentials', {})
-        self.data.setdefault('user', {})
-        self.data.setdefault('meta', {})
-        self.data['user'].setdefault('markov_channels', [])
-        self.data['user'].setdefault('game', '!pikahelp')
-        self.data['user'].setdefault('whitelist', [])
-        self.data['user'].setdefault('debug', False)
-        self.data['user'].setdefault('cooldown', 10)
+        for group in self.categories:
+            self.data.setdefault(group, {})
+        self.setdefault('user', 'markov_channels', [])
+        self.setdefault('user', 'game', '!pikahelp')
+        self.setdefault('user', 'whitelist', [])
+        self.setdefault('user', 'debug', False)
+        self.setdefault('user', 'cooldown', 10)
 
     def set(self, group, key, value):
+        assert group in self.categories
         self.data[group][key] = value
+    
+    def setdefault(self, group, key, value):
+        assert group in self.categories
+        self.data[group].setdefault(key, value)
 
     def get(self, group, key, default=None):
+        assert group in self.categories
         return self.data[group].get(key, default)
 
     def items(self, group):
+        assert group in self.categories
         yield from self.data[group].items()
 
     def keys(self, group):
+        assert group in self.categories
         yield from self.data[group].keys()
 
     def values(self, group):
+        assert group in self.categories
         yield from self.data[group].values()
-
-    def add_markov_channel(self, ch_id):
-        markov_channels = set(self.data['user']['markov_channels'])
-        if ch_id in markov_channels:
-            return False
-        markov_channels.add(ch_id)
-        self.set('user', 'markov_channels', list(markov_channels))
-        return True
-
-    def del_markov_channel(self, ch_id):
-        markov_channels = set(self.data['user']['markov_channels'])
-        if ch_id not in markov_channels:
-            return False
-        markov_channels.remove(ch_id)
-        self.set('user', 'markov_channels', list(markov_channels))
-        return True

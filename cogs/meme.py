@@ -5,6 +5,7 @@ import random
 from utils import sql
 from utils.checks import ctx_can_markov
 from utils.game import find_emoji
+from utils.data import data
 
 
 class Meme:
@@ -87,6 +88,12 @@ class Meme:
             await ctx.send(f'{ctx.author.mention}: {chain}')
         else:
             await ctx.send(f'{ctx.author.mention}: An error has occurred.')
+
+    @commands.command(pass_context=True)
+    async def yolonome(self, ctx):
+        """Happy birthday, Waggle!"""
+        await ctx.send(f'{ctx.author.mention} used Metronome!\n'
+                       f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
 
 def setup(bot):

@@ -39,13 +39,29 @@ class PikalaxBOT(commands.Bot):
             self.cooldown = 10
             self.initialized = False
             self.game = f'{command_prefix}pikahelp'
+            self.banlist = set()
             for key, value in settings.items('user'):
                 setattr(self, key, value)
 
         self.chains = {chan: None for chan in self.markov_channels}
         self.storedMsgsSet = set()
         self.rollback = False
+        self.banlist = set(self.banlist)
         super().__init__(command_prefix, case_insensitive=True)
+
+    def commit(self):
+        with Settings() as settings:
+            for group in settings.categories:
+                for key in settings.keys(group):
+                    settings.set(group, key, getattr(self, key, None))
+
+    def ban(self, person):
+        self.banlist.add(person.id)
+        self.commit()
+
+    def unban(self, person):
+        self.banlist.remove(person.id)
+        self.commit()
 
     def get_nick(self, guild: discord.Guild):
         member = guild.get_member(self.user.id)
@@ -167,6 +183,11 @@ async def is_initialized(ctx):
 @bot.check
 async def is_not_bot(ctx):
     return not ctx.author.bot
+
+
+@bot.check
+async def is_not_banned(ctx):
+    return ctx.author.id not in bot.banlist
 
 
 @bot.listen('on_message')
