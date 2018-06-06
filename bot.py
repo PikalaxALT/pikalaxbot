@@ -114,6 +114,8 @@ class PikalaxBOT(commands.Bot):
         else:
             tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
             log.error(tb[0])
+            for handler in log.handlers:  # type: logging.Handler
+                handler.flush()
 
     async def learn_markov(self, ctx, force=False):
         if await ctx_can_learn_markov(ctx, force=force):
