@@ -137,6 +137,7 @@ class ModTools():
 
     @admin.command(name='sql')
     async def call_sql(self, ctx, *script):
+        """Run arbitrary sql command"""
         script = ' '.join(script)
         try:
             sql.call_script(script)
@@ -147,13 +148,49 @@ class ModTools():
 
     @admin.command(name='ban')
     async def ban_user(self, ctx, person: discord.Member):
+        """Ban a member :datsheffy:"""
         self.bot.ban(person)
         await ctx.send(f'{person.display_name} is now banned from interacting with me.')
 
     @admin.command(name='unban')
     async def unban_user(self, ctx, person: discord.Member):
+        """Unban a member"""
         self.bot.unban(person)
         await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
+
+    @admin.group(pass_context=True)
+    async def channel(self, ctx):
+        """Manage the bot's presence in channels/servers"""
+
+    @channel.command(name='join')
+    async def join_channel(self, ctx, channel: discord.TextChannel):
+        """Join a text channel"""
+        if channel is None:
+            await ctx.send('Unable to find channel')
+        elif channel.id in self.bot.whitelist:
+            await ctx.send(f'Already in channel {channel.mention}')
+        else:
+            try:
+                await channel.send('Memes are here')
+            except discord.Forbidden:
+                await ctx.send(f'Unable to chat in {channel.mention}')
+            else:
+                self.bot.whitelist.append(channel.id)
+                self.bot.commit()
+                await ctx.send(f'Successfully joined {channel.mention}')
+
+    @channel.command(name='leave')
+    async def leave_channel(self, ctx, channel: discord.TextChannel):
+        """Leave a text channel"""
+        if channel is None:
+            await ctx.send('Unable to find channel')
+        elif channel.id not in self.bot.whitelist:
+            await ctx.send(f'Not in channel {channel.mention}')
+        else:
+            self.bot.whitelist.remove(channel.id)
+            self.bot.commit()
+            await channel.send('Memes are leaving, cya')
+            await ctx.send(f'Successfully left {channel.mention}')
 
 
 def setup(bot):
