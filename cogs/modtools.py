@@ -163,8 +163,9 @@ class ModTools():
         """Manage the bot's presence in channels/servers"""
 
     @channel.command(name='join')
-    async def join_channel(self, ctx, channel: discord.TextChannel):
+    async def join_channel(self, ctx, chid: int):
         """Join a text channel"""
+        channel = self.bot.get_channel(id=chid)
         if channel is None:
             await ctx.send('Unable to find channel')
         elif channel.id in self.bot.whitelist:
@@ -180,8 +181,9 @@ class ModTools():
                 await ctx.send(f'Successfully joined {channel.mention}')
 
     @channel.command(name='leave')
-    async def leave_channel(self, ctx, channel: discord.TextChannel):
+    async def leave_channel(self, ctx, chid: int):
         """Leave a text channel"""
+        channel = self.bot.get_channel(id=chid)
         if channel is None:
             await ctx.send('Unable to find channel')
         elif channel.id not in self.bot.whitelist:
