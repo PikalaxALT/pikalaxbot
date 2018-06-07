@@ -4,10 +4,11 @@ from discord.ext import commands
 from utils.markov import Chain
 from utils.checks import ctx_is_owner
 from utils import sql
+from utils.botclass import PikalaxBOT
 
 
 class ModTools():
-    def __init__(self, bot):
+    def __init__(self, bot: PikalaxBOT):
         self.bot = bot
 
     @commands.group(pass_context=True, case_insensitive=True)
@@ -165,25 +166,27 @@ class ModTools():
     @channel.command(name='join')
     async def join_channel(self, ctx, chid: int):
         """Join a text channel"""
-        channel = self.bot.get_channel(id=chid)
+        channel: discord.TextChannel = self.bot.get_channel(id=chid)
+        guild: discord.Guild = channel.guild
+        me: discord.Member = guild.get_member(self.bot.user.id)
         if channel is None:
             await ctx.send('Unable to find channel')
         elif channel.id in self.bot.whitelist:
             await ctx.send(f'Already in channel {channel.mention}')
+        elif not channel.permissions_for(me).send_messages:
+            await ctx.send(f'Unable to chat in {channel.mention}')
         else:
-            try:
-                await channel.send('Memes are here')
-            except discord.Forbidden:
-                await ctx.send(f'Unable to chat in {channel.mention}')
-            else:
-                self.bot.whitelist.append(channel.id)
-                self.bot.commit()
-                await ctx.send(f'Successfully joined {channel.mention}')
+            await channel.send('Memes are here')
+            self.bot.whitelist.append(channel.id)
+            self.bot.commit()
+            await ctx.send(f'Successfully joined {channel.mention}')
 
     @channel.command(name='leave')
     async def leave_channel(self, ctx, chid: int):
         """Leave a text channel"""
         channel = self.bot.get_channel(id=chid)
+        guild: discord.Guild = channel.guild
+        me: discord.Member = guild.get_member(self.bot.user.id)
         if channel is None:
             await ctx.send('Unable to find channel')
         elif channel.id not in self.bot.whitelist:
