@@ -130,6 +130,6 @@ class PikalaxBOT(commands.Bot):
                     log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
                 except AttributeError:
                     log.error(f'Failed to load chain {ch:d}')
-        self.initialized = True
+            self.initialized = True
         activity = discord.Game(self.game)
         await self.change_presence(activity=activity)
