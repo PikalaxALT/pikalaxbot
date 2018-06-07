@@ -5,7 +5,8 @@ import traceback
 from discord.ext import commands
 from utils.config_io import Settings
 from discord.client import compat, log
-from utils.checks import CommandNotAllowed, ctx_can_markov, ctx_can_learn_markov
+from utils.checks import CommandNotAllowed, ctx_can_learn_markov
+from utils import markov
 
 
 class PikalaxBOT(commands.Bot):
@@ -24,7 +25,7 @@ class PikalaxBOT(commands.Bot):
             for key, value in settings.items('user'):
                 setattr(self, key, value)
 
-        self.chains = {chan: None for chan in self.markov_channels}
+        self.chain = markov.Chain(store_lowercase=True)
         self.storedMsgsSet = set()
         self.rollback = False
         self.banlist = set(self.banlist)
@@ -82,7 +83,7 @@ class PikalaxBOT(commands.Bot):
     def gen_msg(self, ch, len_max=64, n_attempts=5):
         longest = ''
         lng_cnt = 0
-        chain = self.chains.get(ch)
+        chain = self.chain
         if chain is not None:
             for i in range(n_attempts):
                 cur = chain.generate(len_max)
@@ -110,8 +111,8 @@ class PikalaxBOT(commands.Bot):
     async def learn_markov(self, ctx, force=False):
         if await ctx_can_learn_markov(ctx, force=force):
             self.storedMsgsSet.add(ctx.message.clean_content)
-            self.chains[ctx.channel.id].learn_str(ctx.message.clean_content)
+            self.chain.learn_str(ctx.message.clean_content)
 
     async def forget_markov(self, ctx, force=False):
         if await ctx_can_learn_markov(ctx, force=force):
-            self.chains[ctx.channel.id].unlearn_str(ctx.message.clean_content)
+            self.chain.unlearn_str(ctx.message.clean_content)

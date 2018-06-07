@@ -34,10 +34,7 @@ def main():
     bot.add_command(help_bak)
 
     async def _on_ready():
-        for ch in list(bot.chains.keys()):
-            if bot.chains[ch] is not None:
-                del bot.chains[ch]
-            bot.chains[ch] = markov.Chain(store_lowercase=True)
+        for ch in bot.markov_channels:
             channel = bot.get_channel(ch)  # type: discord.TextChannel
             try:
                 async for msg in channel.history(limit=5000):
@@ -45,10 +42,8 @@ def main():
                     await bot.learn_markov(ctx, force=True)
                 log.info(f'Initialized channel {channel.name}')
             except discord.Forbidden:
-                bot.chains.pop(ch)
                 log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
             except AttributeError:
-                bot.chains.pop(ch)
                 log.error(f'Failed to load chain {ch:d}')
         bot.initialized = True
         activity = discord.Game(bot.game)
