@@ -33,11 +33,17 @@ class PikalaxBOT(commands.Bot):
     def commit(self):
         whitelist = dict(self.whitelist)
         self.whitelist = list(self.whitelist.keys())
+        self.token = self._token
+        self.owner = self.owner_id
+        self.prefix = self.command_prefix
         with Settings() as settings:
             for group in settings.categories:
                 for key in settings.keys(group):
                     settings.set(group, key, getattr(self, key, None))
         self.whitelist = whitelist
+        delattr(self, 'token')
+        delattr(self, 'owner')
+        delattr(self, 'prefix')
 
     def ban(self, person):
         self.banlist.add(person.id)
