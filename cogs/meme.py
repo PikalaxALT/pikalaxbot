@@ -82,8 +82,7 @@ class Meme:
     @commands.check(ctx_can_markov)
     async def markov(self, ctx):
         """Generate a random word Markov chain."""
-        ch = random.choice(list(self.bot.chains.keys()))
-        chain = self.bot.gen_msg(ch, len_max=250, n_attempts=10)
+        chain = self.bot.gen_msg(len_max=250, n_attempts=10)
         if chain:
             await ctx.send(f'{ctx.author.mention}: {chain}')
         else:

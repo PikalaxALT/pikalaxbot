@@ -80,7 +80,7 @@ class PikalaxBOT(commands.Bot):
 
         super()._do_cleanup()
 
-    def gen_msg(self, ch, len_max=64, n_attempts=5):
+    def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
         lng_cnt = 0
         chain = self.chain

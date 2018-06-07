@@ -20,7 +20,7 @@ async def ctx_markov_general_checks(ctx):
         return False
     if ctx.author.bot:
         return False
-    if len(ctx.bot.chains) == 0:
+    if len(ctx.bot.markov_channels) == 0:
         return False
     if ctx.author.id == ctx.bot.user.id:
         return False
@@ -47,4 +47,4 @@ async def ctx_can_learn_markov(ctx, force=False):
         return False
     if ctx.author.bot:
         return False
-    return ctx.channel.id in ctx.bot.chains and not ctx.message.clean_content.startswith('!')
+    return ctx.channel.id in ctx.bot.markov_channels and not ctx.message.clean_content.startswith('!')

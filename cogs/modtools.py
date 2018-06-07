@@ -23,19 +23,16 @@ class ModTools():
     @markov.command(name='add')
     async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
         """Add a Markov channel by ID or mention"""
-        if ch.id in self.bot.chains:
+        if ch.id in self.bot.markov_channels:
             await ctx.send(f'Channel {ch.mention} is already being tracked for Markov chains')
         else:
             async with ctx.typing():
-                self.bot.chains[ch.id] = Chain(store_lowercase=True)
                 try:
                     async for msg in ch.history(limit=5000):
                         self.bot.learn_markov(msg, force=True)
                 except discord.Forbidden:
-                    self.bot.chains.pop(ch.id)
                     await ctx.send(f'Failed to get message history from {ch.mention} (403 FORBIDDEN)')
                 except AttributeError:
-                    self.bot.chains.pop(ch.id)
                     await ctx.send(f'Failed to load chain {ch.mention}')
                 else:
                     await ctx.send(f'Successfully initialized {ch.mention}')
@@ -45,13 +42,12 @@ class ModTools():
     @markov.command(name='delete')
     async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
         """Remove a Markov channel by ID or mention"""
-        if ch.id in self.bot.chains:
-            self.bot.chains.pop(ch.id)
-            await ctx.send(f'Channel {ch.mention} has been forgotten')
+        if ch.id in self.bot.markov_channels:
+            await ctx.send(f'Channel {ch.mention} will no longer be learned')
             self.bot.markov_channels.remove(ch.id)
             self.bot.commit()
         else:
-            await ctx.send(f'Channel {ch.mention} is already forgotten')
+            await ctx.send(f'Channel {ch.mention} is not being learned')
 
     @admin.group(pass_context=True, case_insensitive=True)
     async def ui(self, ctx):
