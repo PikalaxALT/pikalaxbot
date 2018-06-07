@@ -116,3 +116,20 @@ class PikalaxBOT(commands.Bot):
     async def forget_markov(self, ctx, force=False):
         if await ctx_can_learn_markov(ctx, force=force):
             self.chain.unlearn_str(ctx.message.clean_content)
+    
+    async def on_ready(self):
+        if not self.initialized:
+            for ch in self.markov_channels:
+                channel = self.get_channel(ch)  # type: discord.TextChannel
+                try:
+                    async for msg in channel.history(limit=5000):
+                        ctx = await self.get_context(msg)
+                        await self.learn_markov(ctx, force=True)
+                    log.info(f'Initialized channel {channel.name}')
+                except discord.Forbidden:
+                    log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
+                except AttributeError:
+                    log.error(f'Failed to load chain {ch:d}')
+        self.initialized = True
+        activity = discord.Game(self.game)
+        await self.change_presence(activity=activity)

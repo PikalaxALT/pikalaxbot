@@ -33,27 +33,6 @@ def main():
     help_bak.name = 'pikahelp'
     bot.add_command(help_bak)
 
-    async def _on_ready():
-        for ch in bot.markov_channels:
-            channel = bot.get_channel(ch)  # type: discord.TextChannel
-            try:
-                async for msg in channel.history(limit=5000):
-                    ctx = await bot.get_context(msg)
-                    await bot.learn_markov(ctx, force=True)
-                log.info(f'Initialized channel {channel.name}')
-            except discord.Forbidden:
-                log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
-            except AttributeError:
-                log.error(f'Failed to load chain {ch:d}')
-        bot.initialized = True
-        activity = discord.Game(bot.game)
-        await bot.change_presence(activity=activity)
-        for channel in bot.whitelist.values():
-            await channel.send('_is active and ready for abuse!_')
-            if bot.rollback:
-                await channel.send('Update failed, bot was rolled back to a previous version.')
-        bot.rollback = False
-
     @bot.event
     async def on_ready():
         typing = []
@@ -61,7 +40,10 @@ def main():
         for channel in bot.whitelist.values():
             typing.append(await channel.typing().__aenter__())
         try:
-            await _on_ready()
+            await bot.on_ready()
+            for channel in bot.whitelist.values():
+                await channel.send('_is active and ready for abuse!_')
+            bot.rollback = False
         except Exception as e:
             log.error(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
             raise e
