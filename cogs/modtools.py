@@ -180,7 +180,7 @@ class ModTools():
                 await ctx.send(f'Unable to chat in {channel.mention}')
             else:
                 await channel.send('Memes are here')
-                self.bot.whitelist.append(channel.id)
+                self.bot.whitelist[channel.id] = channel
                 self.bot.commit()
                 await ctx.send(f'Successfully joined {channel.mention}')
 
@@ -196,7 +196,7 @@ class ModTools():
             if channel.id not in self.bot.whitelist:
                 await ctx.send(f'Not in channel {channel.mention}')
             else:
-                self.bot.whitelist.remove(channel.id)
+                self.bot.whitelist.pop(channel.id)
                 self.bot.commit()
                 await channel.send('Memes are leaving, cya')
                 await ctx.send(f'Successfully left {channel.mention}')
