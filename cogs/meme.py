@@ -1,7 +1,8 @@
 import discord
 import aiohttp
-from discord.ext import commands
 import random
+import tempfile
+from discord.ext import commands
 from utils import sql
 from utils.checks import ctx_can_markov
 from utils.game import find_emoji
@@ -95,17 +96,29 @@ class Meme:
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
     @commands.command(pass_context=True)
-    async def inspire(self, ctx):
+    async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
         async with aiohttp.ClientSession() as cs:
             async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
                 r: aiohttp.ClientResponse
                 if r.status == 200:
-                    await ctx.send(await r.text())
+                    url = await r.text()
                 else:
-                    await ctx.send(f'InspiroBot error: {r.status:d}')
+                    await ctx.send(f'InspiroBot error (phase: gen-url): {r.status:d}')
                     r.raise_for_status()
                     raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+
+            async with cs.get(url) as r:
+                with tempfile.TemporaryFile() as t:
+                    if r.status == 200:
+                        t.write(await r.text())
+                        t.seek(0)
+                        await ctx.send(file=t)
+                    else:
+                        await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
+                        r.raise_for_status()
+                        raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+
 
 
 def setup(bot):
