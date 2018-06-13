@@ -94,6 +94,19 @@ class Meme:
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
+    @commands.command(pass_context=True)
+    async def inspire(self, ctx):
+        """Generate an inspirational poster using inspirobot.me"""
+        async with aiohttp.ClientSession() as cs:
+            async with cs.post('http://inspirobot.me/api', data={'generate': 'true'}) as r:
+                r: aiohttp.ClientResponse
+                if r.status == 200:
+                    await ctx.send(await r.text())
+                else:
+                    await ctx.send(f'InspiroBot error: {r.status:d}')
+                    r.raise_for_status()
+                    raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+
 
 def setup(bot):
     bot.add_cog(Meme(bot))
