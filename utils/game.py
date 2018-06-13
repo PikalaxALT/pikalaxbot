@@ -113,7 +113,8 @@ class GameCogBase:
     def convert_args(*args):
         if len(args) >= 2:
             y, x = map(int, args[:2])
-            yield x, y
+            yield x
+            yield y
         else:
             y, x, *rest = args[0].lower()
             yield ord(x) - 0x60
