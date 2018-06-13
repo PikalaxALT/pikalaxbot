@@ -82,41 +82,34 @@ class TrashcansGame(GameBase):
 
     async def guess(self, ctx: commands.Context, x: int, y: int):
         if self.running:
-            x -= 1
-            y -= 1
-            if self.is_valid(x, y):
-                if self.on_second_can:
-                    if self.state[y][x] or not self._solution[y][x]:
-                        self.reset_locks()
-                        await ctx.send(f'Nope! There\'s only trash here.\n'
-                                       f'Hey! The electric locks were reset!',
-                                       delete_after=10)
-                    else:
-                        self.add_player(ctx.author)
-                        self.state[y][x] = True
-                        await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!\n'
-                                       f'The 2nd electric lock opened! The motorized door opened!',
-                                       delete_after=10)
-                        await ctx.message.add_reaction('\u2705')
-                        await self.end(ctx)
+            if self.on_second_can:
+                if self.state[y][x] or not self._solution[y][x]:
+                    self.reset_locks()
+                    await ctx.send(f'Nope! There\'s only trash here.\n'
+                                   f'Hey! The electric locks were reset!',
+                                   delete_after=10)
                 else:
-                    if self._solution[y][x]:
-                        self.add_player(ctx.author)
-                        self.state[y][x] = True
-                        self.on_second_can = True
-                        await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'
-                                       f'The 1st electric lock opened!',
-                                       delete_after=10)
-                        await ctx.message.add_reaction('\u2705')
-                    else:
-                        await ctx.send(f'Nope, there\'s only trash here.',
-                                       delete_after=10)
-                if self._message:
-                    await self._message.edit(content=self)
+                    self.add_player(ctx.author)
+                    self.state[y][x] = True
+                    await ctx.send(f'Hey! There\'s another switch under the trash! Turn it on!\n'
+                                   f'The 2nd electric lock opened! The motorized door opened!',
+                                   delete_after=10)
+                    await ctx.message.add_reaction('\u2705')
+                    await self.end(ctx)
             else:
-                await ctx.send(f'{ctx.author.mention}: Coordinates out of range.',
-                               delete_after=10)
-
+                if self._solution[y][x]:
+                    self.add_player(ctx.author)
+                    self.state[y][x] = True
+                    self.on_second_can = True
+                    await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'
+                                   f'The 1st electric lock opened!',
+                                   delete_after=10)
+                    await ctx.message.add_reaction('\u2705')
+                else:
+                    await ctx.send(f'Nope, there\'s only trash here.',
+                                   delete_after=10)
+            if self._message:
+                await self._message.edit(content=self)
         else:
             await ctx.send(f'{ctx.author.mention}: Trashcans is not running here. '
                            f'Start a game by saying `{ctx.prefix}trashcans start`.',

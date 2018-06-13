@@ -117,8 +117,8 @@ class GameCogBase:
             yield y
         else:
             y, x, *rest = args[0].lower()
-            yield ord(x) - 0x60
-            yield int(y)
+            yield ord(y) - 0x60
+            yield int(x)
 
     async def game_cmd(self, cmd, ctx, *args, **kwargs):
         async with self[ctx.channel.id] as game:
