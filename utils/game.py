@@ -112,9 +112,10 @@ class GameCogBase:
     @staticmethod
     def convert_args(*args):
         if len(args) >= 2:
-            yield from map(int, args[:2])
+            y, x = map(int, args[:2])
+            yield x, y
         else:
-            x, y, *rest = args[0].lower()
+            y, x, *rest = args[0].lower()
             yield ord(x) - 0x60
             yield int(y)
 
@@ -130,12 +131,7 @@ class GameCogBase:
     async def argcheck(self, ctx, *args, minx=1, maxx=5, miny=1, maxy=5):
         exc = None
         try:
-            if len(args) >= 2:
-                x, y = map(int, args[:2])
-            else:
-                y, x, *rest = args[0].lower()
-                x = int(x)
-                y = ord(y) - 0x60
+            x, y = self.convert_args(*args)
         except ValueError as e:
             exc = e
         else:
