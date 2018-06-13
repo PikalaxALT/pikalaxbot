@@ -98,7 +98,7 @@ class Meme:
     async def inspire(self, ctx):
         """Generate an inspirational poster using inspirobot.me"""
         async with aiohttp.ClientSession() as cs:
-            async with cs.post('http://inspirobot.me/api', data={'generate': 'true'}) as r:
+            async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
                 r: aiohttp.ClientResponse
                 if r.status == 200:
                     await ctx.send(await r.text())
