@@ -21,7 +21,8 @@ class Core:
     @commands.check(ctx_is_owner)
     async def pikakill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
-        await ctx.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
+        for chan in self.bot.whitelist.values():
+            await chan.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
         await self.bot.close()
         sql.backup_db()
 
@@ -29,7 +30,8 @@ class Core:
     @commands.check(ctx_is_owner)
     async def pikareboot(self, ctx: commands.Context, *, force: bool = False):
         """Reboot the bot (owner only)"""
-        await ctx.send(f'Rebooting to apply updates...')
+        for chan in self.bot.whitelist.values():
+            await chan.send(f'Rebooting to apply updates...')
         await self.bot.close()
         sql.backup_db()
         if force:

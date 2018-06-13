@@ -113,7 +113,10 @@ class Meme:
                     if r.status == 200:
                         t.write(await r.text())
                         t.seek(0)
-                        await ctx.send(file=t)
+                        try:
+                            await ctx.send(file=t)
+                        except discord.Forbidden:
+                            await ctx.send('Could not upload the meme (bot lacks permissions)')
                     else:
                         await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
                         r.raise_for_status()
