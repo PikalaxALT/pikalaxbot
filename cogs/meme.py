@@ -2,7 +2,6 @@ import discord
 import aiohttp
 import os
 import random
-import tempfile
 from discord.ext import commands
 from utils import sql
 from utils.checks import ctx_can_markov
@@ -110,19 +109,21 @@ class Meme:
                     r.raise_for_status()
                     raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
 
+            filename = os.path.basename(url)
             async with cs.get(url) as r:
-                with tempfile.TemporaryFile() as t:
+                with open(filename, 'w+b') as t:
                     if r.status == 200:
                         t.write(await r.read())
                         t.seek(0)
                         try:
-                            await ctx.send(file=discord.file.File(t, filename=os.path.basename(url)))
+                            await ctx.send(file=discord.file.File(t))
                         except discord.Forbidden:
                             await ctx.send('Could not upload the meme (bot lacks permissions)')
                     else:
                         await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
                         r.raise_for_status()
                         raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+        os.remove(filename)
 
 
 def setup(bot):
