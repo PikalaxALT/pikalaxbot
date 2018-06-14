@@ -114,7 +114,7 @@ class Meme:
                         t.write(await r.text())
                         t.seek(0)
                         try:
-                            await ctx.send(file=t)
+                            await ctx.send('', file=t)
                         except discord.Forbidden:
                             await ctx.send('Could not upload the meme (bot lacks permissions)')
                     else:
