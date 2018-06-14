@@ -111,7 +111,7 @@ class Meme:
             async with cs.get(url) as r:
                 with tempfile.TemporaryFile() as t:
                     if r.status == 200:
-                        t.write(await r.text())
+                        t.write(await r.read())
                         t.seek(0)
                         try:
                             await ctx.send('', file=t)
@@ -121,7 +121,6 @@ class Meme:
                         await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
                         r.raise_for_status()
                         raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
-
 
 
 def setup(bot):
