@@ -1,6 +1,8 @@
 import discord
 import aiohttp
+import os
 import random
+import tempfile
 from discord.ext import commands
 from utils import sql
 from utils.checks import ctx_can_markov
@@ -97,6 +99,7 @@ class Meme:
     @commands.command(pass_context=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
+        url = ''
         async with aiohttp.ClientSession() as cs:
             async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
                 r: aiohttp.ClientResponse
@@ -108,12 +111,12 @@ class Meme:
                     raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
 
             async with cs.get(url) as r:
-                with open('tmp.jpg', 'w+b') as t:
+                with tempfile.TemporaryFile() as t:
                     if r.status == 200:
                         t.write(await r.read())
                         t.seek(0)
                         try:
-                            await ctx.send('', file=discord.file.File(t))
+                            await ctx.send(file=discord.file.File(t, filename=os.path.basename(url)))
                         except discord.Forbidden:
                             await ctx.send('Could not upload the meme (bot lacks permissions)')
                     else:
