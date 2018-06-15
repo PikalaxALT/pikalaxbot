@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import tempfile
 from discord.ext import commands
 from utils.markov import Chain
 from utils.checks import ctx_is_owner
@@ -76,6 +77,19 @@ class ModTools():
             self.bot.game = game
             self.bot.commit()
             await ctx.send(f'I\'m now playing {game}')
+
+    @ui.command(name='avatar')
+    async def change_avatar(self, ctx: commands.Context):
+        msg: discord.Message = ctx.message
+        if len(msg.attachments) == 0:
+            await ctx.send(f'No replacement avatar received')
+        elif len(msg.attachments) > 1:
+            await ctx.send(f'I don\'t know which image to use!')
+        else:
+            with tempfile.TemporaryFile() as t:
+                await msg.attachments[0].save(t)
+                await ctx.me.edit(avatar=t.read())
+            await ctx.send('OwO')
 
     @admin.group(pass_context=True)
     async def leaderboard(self, ctx):
@@ -196,6 +210,12 @@ class ModTools():
                 self.bot.commit()
                 await channel.send('Memes are leaving, cya')
                 await ctx.send(f'Successfully left {channel.mention}')
+
+    @admin.command(name='oauth')
+    async def send_oauth(self, ctx):
+        """Sends the bot's OAUTH token."""
+        await ctx.author.send(self.bot._token)
+        await ctx.send('Sent you my token via DM')
 
 
 def setup(bot):
