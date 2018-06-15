@@ -146,12 +146,12 @@ class PikalaxBOT(commands.Bot):
 
     def enable_command(self, cmd):
         res = cmd in self.disabled_commands
-        self.disabled_commands.discard(cmd.name)
+        self.disabled_commands.discard(cmd)
         self.commit()
         return res
 
     def disable_command(self, cmd):
         res = cmd not in self.disabled_commands
-        self.disabled_commands.add(cmd.name)
+        self.disabled_commands.add(cmd)
         self.commit()
         return res
