@@ -2,7 +2,8 @@ import asyncio
 import argparse
 import discord
 from discord.client import log
-from utils import markov, sql
+from discord.ext import commands
+from utils import sql
 from utils.botclass import PikalaxBOT
 from utils.checks import ctx_can_markov, ctx_can_learn_markov
 import logging
@@ -78,6 +79,10 @@ def main():
     @bot.check
     async def is_not_banned(ctx):
         return ctx.author.id not in bot.banlist
+
+    @bot.check
+    async def cmd_is_enabled(ctx: commands.Context):
+        return ctx.command.name not in bot.disabled_commands
 
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):

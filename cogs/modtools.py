@@ -215,7 +215,26 @@ class ModTools():
         """Sends the bot's OAUTH token."""
         await ctx.author.send(self.bot._token)
         await ctx.message.add_reaction('☑')
-        await ctx.send('Sent you my token via DM')
+
+    @admin.group(name='command')
+    async def admin_cmd(self, ctx: commands.Context):
+        """Manage bot commands"""
+
+    @admin_cmd.command(name='disable')
+    async def disable_command(self, ctx: commands.Context, *, cmd):
+        """Disable a command"""
+        if self.bot.disable_command(cmd):
+            await ctx.message.add_reaction('☑')
+        else:
+            await ctx.send(f'{cmd} is already disabled')
+
+    @admin_cmd.command(name='enable')
+    async def enable_command(self, ctx: commands.Context, *, cmd):
+        """Enable a command"""
+        if self.bot.enable_command(cmd):
+            await ctx.message.add_reaction('☑')
+        else:
+            await ctx.send(f'{cmd} is already enabled')
 
 
 def setup(bot):

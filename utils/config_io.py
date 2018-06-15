@@ -34,6 +34,7 @@ class Settings:
         self.setdefault('user', 'whitelist', [])
         self.setdefault('user', 'debug', False)
         self.setdefault('user', 'cooldown', 10)
+        self.setdefault('user', 'disabled_commands', [])
 
     def set(self, group, key, value):
         assert group in self.categories

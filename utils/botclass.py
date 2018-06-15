@@ -22,6 +22,7 @@ class PikalaxBOT(commands.Bot):
             self.initialized = False
             self.game = f'{command_prefix}pikahelp'
             self.banlist = set()
+            self.disabled_commands = set()
             for key, value in settings.items('user'):
                 setattr(self, key, value)
 
@@ -29,7 +30,14 @@ class PikalaxBOT(commands.Bot):
         self.storedMsgsSet = set()
         self.rollback = False
         self.banlist = set(self.banlist)
+        self.disabled_commands = set(self.disabled_commands)
         super().__init__(command_prefix, case_insensitive=True)
+        for cmd_name in self.disabled_commands:
+            cmd = self.get_command(cmd_name)
+            if cmd is None:
+                self.disabled_commands.discard(cmd_name)
+            else:
+                cmd.enabled = False
 
     def commit(self):
         whitelist = dict(self.whitelist)
@@ -135,3 +143,13 @@ class PikalaxBOT(commands.Bot):
             self.initialized = True
         activity = discord.Game(self.game)
         await self.change_presence(activity=activity)
+
+    def enable_command(self, cmd):
+        res = cmd in self.disabled_commands
+        self.disabled_commands.discard(cmd.name)
+        return res
+
+    def disable_command(self, cmd):
+        res = cmd not in self.disabled_commands
+        self.disabled_commands.add(cmd.name)
+        return res
