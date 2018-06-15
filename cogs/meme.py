@@ -111,19 +111,18 @@ class Meme:
 
             filename = os.path.basename(url)
             async with cs.get(url) as r:
-                with open(filename, 'w+b') as t:
-                    if r.status == 200:
+                if r.status == 200:
+                    with open(filename, 'wb') as t:
                         t.write(await r.read())
-                        t.seek(0)
-                        try:
-                            await ctx.send(file=discord.file.File(t))
-                        except discord.Forbidden:
-                            await ctx.send('Could not upload the meme (bot lacks permissions)')
-                    else:
-                        await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
-                        r.raise_for_status()
-                        raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
-        os.remove(filename)
+                    try:
+                        await ctx.send(file=discord.file.File(filename))
+                    except discord.Forbidden:
+                        await ctx.send('Could not upload the meme (bot lacks permissions)')
+                    os.remove(filename)
+                else:
+                    await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
+                    r.raise_for_status()
+                    raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
 
 
 def setup(bot):
