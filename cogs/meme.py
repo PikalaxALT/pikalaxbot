@@ -10,6 +10,15 @@ from utils.data import data
 
 
 class Meme:
+    bot_owners = {
+        'fixpika': 'PikalaxALT',
+        'fixgroudon': 'chfoo',
+        'fixyay': 'azum and tustin',
+        'fixupdater': 'tustin',
+        'fixstarmie': 'Danny',
+        'fixmeme': 'Jet'
+    }
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -124,6 +133,12 @@ class Meme:
                     await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
                     r.raise_for_status()
                     raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+
+    @commands.command(aliases=list(bot_owners.keys()))
+    async def fix(self, ctx: commands.Context):
+        alias = ctx.invoked_with
+        owner = self.bot_owners.get(alias, 'already')
+        await ctx.send(f'"Fix your bot, {owner}!" - PikalaxALT 2018')
 
 
 def setup(bot):
