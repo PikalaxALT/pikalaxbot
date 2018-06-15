@@ -82,7 +82,8 @@ def main():
 
     @bot.check
     async def cmd_is_enabled(ctx: commands.Context):
-        return ctx.command.name not in bot.disabled_commands
+        if ctx.author.id != bot.owner_id:
+            return ctx.command.name not in bot.disabled_commands
 
     @bot.listen('on_message')
     async def send_markov(msg: discord.Message):

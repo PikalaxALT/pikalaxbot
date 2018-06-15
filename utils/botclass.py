@@ -45,11 +45,15 @@ class PikalaxBOT(commands.Bot):
         self.token = self._token
         self.owner = self.owner_id
         self.prefix = self.command_prefix
+        self.disabled_commands = list(self.disabled_commands)
+        self.banlist = list(self.banlist)
         with Settings() as settings:
             for group in settings.categories:
                 for key in settings.keys(group):
                     settings.set(group, key, getattr(self, key, None))
         self.whitelist = whitelist
+        self.disabled_commands = set(self.disabled_commands)
+        self.banlist = set(self.banlist)
         delattr(self, 'token')
         delattr(self, 'owner')
         delattr(self, 'prefix')
