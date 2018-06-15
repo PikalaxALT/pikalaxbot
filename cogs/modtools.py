@@ -1,6 +1,6 @@
 import asyncio
 import discord
-import io
+import tempfile
 from discord.ext import commands
 from utils.checks import ctx_is_owner
 from utils import sql
@@ -85,9 +85,9 @@ class ModTools():
         elif len(msg.attachments) > 1:
             await ctx.send('I don\'t know which image to use!')
         else:
-            t = io.BytesIO()
-            await msg.attachments[0].save(t)
-            await ctx.me.edit(avatar=t.read())
+            with tempfile.TemporaryFile() as t:
+                await msg.attachments[0].save(t)
+                await ctx.bot.user.edit(avatar=t.read())
             await ctx.send('OwO')
 
     @admin.group(pass_context=True)

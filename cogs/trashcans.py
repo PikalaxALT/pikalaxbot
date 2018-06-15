@@ -54,7 +54,7 @@ class TrashcansGame(GameBase):
                            delete_after=10)
         else:
             self.reset_locks()
-            await ctx.send(f'Welcome to Lt. Surge\'s Gym!  Use `!trashcans guess x y` to check a can!\n'
+            await ctx.send(f'Welcome to Lt. Surge\'s Gym!  Use `!trashcans guess y x` to check a can!\n'
                            f'You have {self._timeout:d} seconds to find both switches.  Good luck!')
             await super().start(ctx)
 

@@ -140,5 +140,6 @@ class GameCogBase:
                 return x - 1, y - 1
         await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
                        f'Try using two numbers (i.e. 2 5) or a letter '
-                       f'and a number (i.e. c2).')
+                       f'and a number (i.e. c2).',
+                       delete_after=10)
         raise commands.CommandError from exc
