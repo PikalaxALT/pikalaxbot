@@ -216,7 +216,7 @@ class ModTools():
         await ctx.author.send(self.bot._token)
         await ctx.message.add_reaction('☑')
 
-    @admin.group(name='command')
+    @admin.group(name='command', pass_context=True)
     async def admin_cmd(self, ctx: commands.Context):
         """Manage bot commands"""
 
