@@ -1,8 +1,6 @@
 import asyncio
 import discord
-import tempfile
 from discord.ext import commands
-from utils.markov import Chain
 from utils.checks import ctx_is_owner
 from utils import sql
 from utils.botclass import PikalaxBOT
@@ -82,11 +80,11 @@ class ModTools():
     async def change_avatar(self, ctx: commands.Context):
         msg: discord.Message = ctx.message
         if len(msg.attachments) == 0:
-            await ctx.send(f'No replacement avatar received')
+            await ctx.send('No replacement avatar received')
         elif len(msg.attachments) > 1:
-            await ctx.send(f'I don\'t know which image to use!')
+            await ctx.send('I don\'t know which image to use!')
         else:
-            with tempfile.TemporaryFile() as t:
+            with open('tmp.bin', 'w+b') as t:
                 await msg.attachments[0].save(t)
                 await ctx.me.edit(avatar=t.read())
             await ctx.send('OwO')
