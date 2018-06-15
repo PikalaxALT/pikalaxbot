@@ -98,7 +98,9 @@ class PikalaxBOT(commands.Bot):
 
     async def on_command_error(self, context, exception):
         if isinstance(exception, CommandNotAllowed) and context.command.name != 'pikahelp':
-            emoji = discord.utils.find(lambda e: e.name == 'tppBurrito', context.guild.emojis)
+            emoji = discord.utils.find(lambda e: e.name == 'tppBurrito', context.guild.emojis) or \
+                    discord.utils.find(lambda e: e.name == 'VeggieBurrito', context.guild.emojis) or \
+                    '❤'
             await context.send(f'{context.author.mention}: Permission denied {emoji}')
         elif not self.debug and isinstance(exception, commands.CommandError):
             await super().on_command_error(context, exception)

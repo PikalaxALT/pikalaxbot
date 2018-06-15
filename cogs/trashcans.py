@@ -104,7 +104,7 @@ class TrashcansGame(GameBase):
                     await ctx.send(f'Hey! There\'s a switch under the trash! Turn it on!\n'
                                    f'The 1st electric lock opened!',
                                    delete_after=10)
-                    await ctx.message.add_reaction('\u2705')
+                    await ctx.message.add_reaction('☑')
                 else:
                     await ctx.send(f'Nope, there\'s only trash here.',
                                    delete_after=10)

@@ -152,8 +152,8 @@ class VoltorbFlipGame(GameBase):
             self._players = set()
             self._score = 1
             self.build_board()
-            await ctx.send(f'New game of Voltorb Flip! Use `{ctx.prefix}voltorb guess x y` to reveal a square, '
-                           f'`{ctx.prefix}voltorb flag x y` to flag a square. You have {self._timeout} seconds '
+            await ctx.send(f'New game of Voltorb Flip! Use `{ctx.prefix}voltorb guess y x` to reveal a square, '
+                           f'`{ctx.prefix}voltorb flag y x` to flag a square. You have {self._timeout} seconds '
                            f'to find all the coins!')
             await super().start(ctx)
 

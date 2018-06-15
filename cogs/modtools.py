@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import io
 from discord.ext import commands
 from utils.checks import ctx_is_owner
 from utils import sql
@@ -84,9 +85,9 @@ class ModTools():
         elif len(msg.attachments) > 1:
             await ctx.send('I don\'t know which image to use!')
         else:
-            with open('tmp.bin', 'w+b') as t:
-                await msg.attachments[0].save(t)
-                await ctx.me.edit(avatar=t.read())
+            t = io.BytesIO()
+            await msg.attachments[0].save(t)
+            await ctx.me.edit(avatar=t.read())
             await ctx.send('OwO')
 
     @admin.group(pass_context=True)
@@ -210,9 +211,10 @@ class ModTools():
                 await ctx.send(f'Successfully left {channel.mention}')
 
     @admin.command(name='oauth')
-    async def send_oauth(self, ctx):
+    async def send_oauth(self, ctx: commands.Context):
         """Sends the bot's OAUTH token."""
         await ctx.author.send(self.bot._token)
+        await ctx.message.add_reaction('☑')
         await ctx.send('Sent you my token via DM')
 
 
