@@ -4,7 +4,7 @@ import os
 import random
 from discord.ext import commands
 from utils import sql
-from utils.checks import ctx_can_markov
+from utils.checks import ctx_can_markov, ctx_is_nsfw
 from utils.game import find_emoji
 from utils.data import data
 
@@ -96,6 +96,7 @@ class Meme:
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
     @commands.command(pass_context=True)
+    @commands.check(ctx_is_nsfw)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
         url = ''

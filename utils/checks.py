@@ -48,3 +48,8 @@ async def ctx_can_learn_markov(ctx, force=False):
     if ctx.author.bot:
         return False
     return ctx.channel.id in ctx.bot.markov_channels and not ctx.message.clean_content.startswith('!')
+
+
+async def ctx_is_nsfw(ctx: commands.Context):
+    channel: discord.TextChannel = ctx.channel
+    return channel.is_nsfw()
