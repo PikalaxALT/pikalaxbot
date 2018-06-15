@@ -32,12 +32,6 @@ class PikalaxBOT(commands.Bot):
         self.banlist = set(self.banlist)
         self.disabled_commands = set(self.disabled_commands)
         super().__init__(command_prefix, case_insensitive=True)
-        for cmd_name in self.disabled_commands:
-            cmd = self.get_command(cmd_name)
-            if cmd is None:
-                self.disabled_commands.discard(cmd_name)
-            else:
-                cmd.enabled = False
 
     def commit(self):
         whitelist = dict(self.whitelist)
