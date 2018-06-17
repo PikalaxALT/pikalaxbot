@@ -37,6 +37,8 @@ def main():
                 bot.load_extension(extn)
             except discord.ClientException:
                 log.warning(f'Failed to load cog "{extn}"')
+            else:
+                log.info(f'Loaded cog "{extn}"')
 
     sql.db_init()
 
