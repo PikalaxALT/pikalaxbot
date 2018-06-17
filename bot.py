@@ -31,11 +31,12 @@ def main():
     bot.add_command(help_bak)
 
     for cogfile in glob.glob(f'{os.path.dirname(__file__)}/cogs/*.py'):
-        extn = re.sub(r'.*/cogs/(\w+).py', 'cogs.\\1', cogfile)
-        try:
-            bot.load_extension(extn)
-        except discord.ClientException:
-            log.warning(f'Failed to load cog "{extn}"')
+        if os.path.isfile(cogfile) and '__init__' not in cogfile:
+            extn = re.sub(r'.*/cogs/(\w+).py', 'cogs.\\1', cogfile)
+            try:
+                bot.load_extension(extn)
+            except discord.ClientException:
+                log.warning(f'Failed to load cog "{extn}"')
 
     sql.db_init()
 
