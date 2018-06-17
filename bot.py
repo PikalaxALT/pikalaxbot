@@ -30,9 +30,8 @@ def main():
     help_bak.name = 'pikahelp'
     bot.add_command(help_bak)
 
-    print(os.path.dirname(__file__))
-
-    for cogfile in glob.glob(f'{os.path.dirname(__file__)}/cogs/*.py'):
+    dname = os.path.dirname(__file__) or '.'
+    for cogfile in glob.glob(f'{dname}/cogs/*.py'):
         if os.path.isfile(cogfile) and '__init__' not in cogfile:
             extn = re.sub(r'.*/cogs/(\w+).py', 'cogs.\\1', cogfile)
             try:
