@@ -4,9 +4,9 @@ import logging
 import traceback
 from discord.ext import commands
 from utils.config_io import Settings
-from discord.client import compat, log
+from discord.client import log
 from utils.checks import CommandNotAllowed, ctx_can_learn_markov
-from utils import markov
+from utils import markov, sql
 
 
 class PikalaxBOT(commands.Bot):
@@ -71,20 +71,13 @@ class PikalaxBOT(commands.Bot):
         if self.debug:
             print(message)
 
-    def _do_cleanup(self):
-        loop = self.loop
-
-        if loop.is_closed():
-            return
-
-        if isinstance(self.whitelist, dict):
+    async def close(self, is_int=True):
+        if is_int and isinstance(self.whitelist, dict):
             for channel in self.whitelist.values():
-                compat.create_task(channel.send('Shutting down... (console kill)'), loop=loop)
-
-        if not loop.is_running():
-            loop.run_forever()
-
-        super()._do_cleanup()
+                await channel.send('Shutting down... (console kill)')
+        await super().close()
+        self.commit()
+        sql.backup_db()
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
