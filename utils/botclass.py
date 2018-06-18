@@ -10,7 +10,8 @@ from utils import markov, sql
 
 
 class PikalaxBOT(commands.Bot):
-    def __init__(self):
+    def __init__(self, script):
+        self.script = script
         with Settings() as settings:
             command_prefix = settings.get('meta', 'prefix', '!')
             self._token = settings.get('credentials', 'token')
@@ -68,8 +69,7 @@ class PikalaxBOT(commands.Bot):
         super().run(self._token)
 
     def print(self, message):
-        if self.debug:
-            print(message)
+        log.debug(message)
 
     async def close(self, is_int=True):
         if is_int and isinstance(self.whitelist, dict):

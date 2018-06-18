@@ -46,7 +46,7 @@ class Core:
         if force:
             subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
         subprocess.check_call(['git', 'pull'])
-        subprocess.Popen(['python3.6', 'bot.py'])
+        subprocess.Popen(['python3.6', self.bot.script])
 
     async def on_ready(self):
         typing = []
