@@ -4,7 +4,7 @@ import os
 import random
 from discord.ext import commands
 from utils import sql
-from utils.checks import ctx_can_markov, ctx_is_nsfw
+from utils.checks import ctx_can_markov, ctx_is_nsfw, ctx_can_learn_markov
 from utils.game import find_emoji
 from utils.data import data
 
@@ -97,6 +97,26 @@ class Meme:
             await ctx.send(f'{ctx.author.mention}: {chain}')
         else:
             await ctx.send(f'{ctx.author.mention}: An error has occurred.')
+
+    async def on_message(self, msg: discord.Message):
+        ctx = await self.bot.get_context(msg)
+        if await ctx_can_learn_markov(ctx):
+            await self.bot.learn_markov(ctx)
+        if await ctx_can_markov(ctx):
+            await ctx.invoke(self.markov)
+
+    async def on_message_edit(self, old, new):
+        ctx = await self.bot.get_context(old)
+        if await ctx_can_learn_markov(ctx):
+            await self.bot.forget_markov(ctx)
+        ctx = await self.bot.get_context(new)
+        if await ctx_can_learn_markov(ctx):
+            await self.bot.learn_markov(ctx)
+
+    async def on_message_delete(self, msg):
+        ctx = await self.bot.get_context(msg)
+        if await ctx_can_learn_markov(ctx):
+            await self.bot.forget_markov(ctx)
 
     @commands.command(pass_context=True)
     async def yolonome(self, ctx):
