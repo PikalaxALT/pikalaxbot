@@ -5,7 +5,7 @@ import traceback
 from utils.botclass import PikalaxBOT
 from discord.ext import commands
 from discord.client import log
-from utils.checks import ctx_is_owner, ctx_can_markov, ctx_can_learn_markov
+from utils.checks import ctx_is_owner
 
 
 class Core:
@@ -57,34 +57,11 @@ class Core:
             await self.bot.on_ready()
             for channel in self.bot.whitelist.values():
                 await channel.send('_is active and ready for abuse!_')
-            self.bot.rollback = False
         except Exception as e:
-            log.error(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+            log.error('%s %s %s', ''.join(traceback.format_exception(type(e), e, e.__traceback__)))
             raise e
         finally:
             [t.task.cancel() for t in typing]
-
-    async def on_message(self, msg: discord.Message):
-        ctx = await self.bot.get_context(msg)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.learn_markov(ctx)
-        if await ctx_can_markov(ctx):
-            cmd = self.bot.get_command('markov')
-            if cmd is not None:
-                await ctx.invoke(cmd)
-
-    async def on_message_edit(self, old, new):
-        ctx = await self.bot.get_context(old)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.forget_markov(ctx)
-        ctx = await self.bot.get_context(new)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.learn_markov(ctx)
-
-    async def on_message_delete(self, msg):
-        ctx = await self.bot.get_context(msg)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.forget_markov(ctx)
 
 
 def setup(bot):

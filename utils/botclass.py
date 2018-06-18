@@ -29,7 +29,6 @@ class PikalaxBOT(commands.Bot):
 
         self.chain = markov.Chain(store_lowercase=True)
         self.storedMsgsSet = set()
-        self.rollback = False
         self.banlist = set(self.banlist)
         self.disabled_commands = set(self.disabled_commands)
         super().__init__(command_prefix, case_insensitive=True)
