@@ -57,9 +57,8 @@ class Core:
             await self.bot.on_ready()
             for channel in self.bot.whitelist.values():
                 await channel.send('_is active and ready for abuse!_')
-            self.bot.rollback = False
         except Exception as e:
-            log.error(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+            log.error('%s %s %s', ''.join(traceback.format_exception(type(e), e, e.__traceback__)))
             raise e
         finally:
             [t.task.cancel() for t in typing]

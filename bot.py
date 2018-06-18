@@ -13,12 +13,10 @@ from utils.botclass import PikalaxBOT
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rollback', action='store_true')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
     bot = PikalaxBOT()
-    bot.rollback = args.rollback
 
     handler = logging.StreamHandler(stream=sys.stderr)
     fmt = logging.Formatter()
