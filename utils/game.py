@@ -66,13 +66,13 @@ class GameBase:
         await asyncio.sleep(self._timeout)
         if self.running:
             await ctx.send('Time\'s up!')
-            discord.compat.create_task(self.end(ctx, failed=True))
+            asyncio.ensure_future(self.end(ctx, failed=True), loop=self.bot.loop)
             self._task = None
 
     async def start(self, ctx):
         self.running = True
         self._message = await ctx.send(self)
-        self._task = discord.compat.create_task(self.timeout(ctx), loop=self.bot.loop)
+        self._task = asyncio.ensure_future(self.timeout(ctx), loop=self.bot.loop)
         self.start_time = time.time()
 
     async def end(self, ctx, failed=False, aborted=False):

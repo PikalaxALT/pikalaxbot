@@ -130,8 +130,8 @@ class Meme:
         """Generate an inspirational poster using inspirobot.me"""
         url = ''
         async with aiohttp.ClientSession() as cs:
-            async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
-                r: aiohttp.ClientResponse
+            async with cs.get('http://inspirobot.me/api',
+                              params={'generate': 'true'}) as r:  # type: aiohttp.ClientResponse
                 if r.status == 200:
                     url = await r.text()
                 else:
