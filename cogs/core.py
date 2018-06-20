@@ -44,8 +44,9 @@ class Core:
             await chan.send(f'Rebooting to apply updates...')
         await self.bot.close(is_int=False)
         if force:
-            subprocess.check_call(['git', 'reset', '--hard', 'HEAD~'])
-        subprocess.check_call(['git', 'pull'])
+            subprocess.check_call('git reset --hard HEAD~'.split())
+        subprocess.check_call('git pull'.split())
+        subprocess.check_call('python3.6 install -U -r requirements.txt'.split())
         subprocess.Popen(['python3.6', self.bot.script])
 
     async def on_ready(self):
