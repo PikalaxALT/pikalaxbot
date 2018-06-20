@@ -46,7 +46,7 @@ class Core:
         if force:
             subprocess.call('git reset --hard HEAD~'.split())
         subprocess.call('git pull'.split())
-        subprocess.call('sudo python3.6 -m pip install -r requirements.txt'.split())
+        subprocess.call('sudo python3.6 -m pip install -U -r requirements.txt'.split())
         subprocess.Popen(['python3.6', self.bot.script])
 
     async def on_ready(self):
