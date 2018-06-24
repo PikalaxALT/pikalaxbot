@@ -5,33 +5,39 @@ import traceback
 from discord.ext import commands
 from utils.config_io import Settings
 from discord.client import log
-from utils.checks import CommandNotAllowed, ctx_can_learn_markov
+from utils.checks import can_learn_markov
 from utils import markov, sql
 
 
 class PikalaxBOT(commands.Bot):
+    whitelist = []
+    debug = False
+    markov_channels = []
+    cooldown = 10
+    initialized = False
+    command_prefix = '!'
+    help_name = 'pikahelp'
+    game = f'{command_prefix}{help_name}'
+    banlist = set()
+    disabled_commands = set()
+    voice_chans = {}
+    disabled_cogs = []
+
     def __init__(self, script):
         self.script = script
         with Settings() as settings:
             command_prefix = settings.get('meta', 'prefix', '!')
+            super().__init__(command_prefix, case_insensitive=True, helpattrs={'name': self.help_name})
             self._token = settings.get('credentials', 'token')
             self.owner_id = settings.get('credentials', 'owner')
-            self.whitelist = []
-            self.debug = False
-            self.markov_channels = []
-            self.cooldown = 10
-            self.initialized = False
-            self.game = f'{command_prefix}pikahelp'
-            self.banlist = set()
-            self.disabled_commands = set()
             for key, value in settings.items('user'):
                 setattr(self, key, value)
+            self.commit()
 
         self.chain = markov.Chain(store_lowercase=True)
         self.storedMsgsSet = set()
         self.banlist = set(self.banlist)
         self.disabled_commands = set(self.disabled_commands)
-        super().__init__(command_prefix, case_insensitive=True)
 
     def commit(self):
         whitelist = dict(self.whitelist)
@@ -94,28 +100,29 @@ class PikalaxBOT(commands.Bot):
                             break
         return longest
 
+    @staticmethod
+    def find_emoji_in_guild(guild, *names, default=None):
+        return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
+
     async def on_command_error(self, context, exception):
-        if isinstance(exception, CommandNotAllowed) and context.command.name != 'pikahelp':
-            emoji = discord.utils.find(lambda e: e.name == 'tppBurrito', context.guild.emojis) or \
-                    discord.utils.find(lambda e: e.name == 'VeggieBurrito', context.guild.emojis) or \
-                    '❤'
+        await super().on_command_error(context, exception)
+        emoji = self.find_emoji_in_guild(context.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
+        if isinstance(exception, commands.NotOwner) and context.command.name != 'pikahelp':
             await context.send(f'{context.author.mention}: Permission denied {emoji}')
-        elif not self.debug and isinstance(exception, commands.CommandError):
-            await super().on_command_error(context, exception)
-        else:
-            tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
-            log.error(tb[0])
-            for handler in log.handlers:  # type: logging.Handler
-                handler.flush()
+        elif isinstance(exception, NotImplemented):
+            await context.send(f'{context.author.mention}: The command or one of its dependencies is '
+                               f'not fully implemented {emoji}')
+        tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
+        log.error(tb[0])
+        for handler in log.handlers:  # type: logging.Handler
+            handler.flush()
 
-    async def learn_markov(self, ctx, force=False):
-        if await ctx_can_learn_markov(ctx, force=force):
-            self.storedMsgsSet.add(ctx.message.clean_content)
-            self.chain.learn_str(ctx.message.clean_content)
+    def learn_markov(self, ctx):
+        self.storedMsgsSet.add(ctx.message.clean_content)
+        self.chain.learn_str(ctx.message.clean_content)
 
-    async def forget_markov(self, ctx, force=False):
-        if await ctx_can_learn_markov(ctx, force=force):
-            self.chain.unlearn_str(ctx.message.clean_content)
+    def forget_markov(self, ctx):
+        self.chain.unlearn_str(ctx.message.clean_content)
     
     async def on_ready(self):
         if not self.initialized:
@@ -124,7 +131,8 @@ class PikalaxBOT(commands.Bot):
                 try:
                     async for msg in channel.history(limit=5000):
                         ctx = await self.get_context(msg)
-                        await self.learn_markov(ctx, force=True)
+                        if can_learn_markov(ctx, force=True):
+                            self.learn_markov(ctx)
                     log.info(f'Initialized channel {channel.name}')
                 except discord.Forbidden:
                     log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')

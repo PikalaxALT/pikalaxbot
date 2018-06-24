@@ -25,20 +25,19 @@ def main():
     log.addHandler(handler)
     log.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
-    help_bak = bot.remove_command('help')
-    help_bak.name = 'pikahelp'
-    bot.add_command(help_bak)
-
     dname = os.path.dirname(__file__) or '.'
     for cogfile in glob.glob(f'{dname}/cogs/*.py'):
         if os.path.isfile(cogfile) and '__init__' not in cogfile:
             extn = re.sub(r'.*/cogs/(\w+).py', 'cogs.\\1', cogfile)
-            try:
-                bot.load_extension(extn)
-            except discord.ClientException:
-                log.warning(f'Failed to load cog "{extn}"')
+            if extn.split('.')[1] not in bot.disabled_cogs:
+                try:
+                    bot.load_extension(extn)
+                except discord.ClientException:
+                    log.warning(f'Failed to load cog "{extn}"')
+                else:
+                    log.info(f'Loaded cog "{extn}"')
             else:
-                log.info(f'Loaded cog "{extn}"')
+                log.info(f'Skipping disabled cog "{extn}"')
 
     sql.db_init()
 

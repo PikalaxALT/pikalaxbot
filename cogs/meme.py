@@ -4,7 +4,7 @@ import os
 import random
 from discord.ext import commands
 from utils import sql
-from utils.checks import ctx_can_markov, ctx_is_nsfw, ctx_can_learn_markov
+from utils.checks import can_markov, can_learn_markov
 from utils.game import find_emoji
 from utils.data import data
 
@@ -89,7 +89,7 @@ class Meme:
         await ctx.send(emission)
 
     @commands.command(pass_context=True, hidden=True)
-    @commands.check(ctx_can_markov)
+    @commands.check(can_markov)
     async def markov(self, ctx):
         """Generate a random word Markov chain."""
         chain = self.bot.gen_msg(len_max=250, n_attempts=10)
@@ -100,23 +100,26 @@ class Meme:
 
     async def on_message(self, msg: discord.Message):
         ctx = await self.bot.get_context(msg)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.learn_markov(ctx)
-        if await ctx_can_markov(ctx):
+        if can_learn_markov(ctx):
+            self.bot.learn_markov(ctx)
+        if can_markov(ctx):
             await ctx.invoke(self.markov)
 
     async def on_message_edit(self, old, new):
+        # Remove old message
         ctx = await self.bot.get_context(old)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.forget_markov(ctx)
+        if can_learn_markov(ctx):
+            self.bot.forget_markov(ctx)
+
+        # Add new message
         ctx = await self.bot.get_context(new)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.learn_markov(ctx)
+        if can_learn_markov(ctx):
+            self.bot.learn_markov(ctx)
 
     async def on_message_delete(self, msg):
         ctx = await self.bot.get_context(msg)
-        if await ctx_can_learn_markov(ctx):
-            await self.bot.forget_markov(ctx)
+        if can_learn_markov(ctx):
+            self.bot.forget_markov(ctx)
 
     @commands.command(pass_context=True)
     async def yolonome(self, ctx):
@@ -125,7 +128,7 @@ class Meme:
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
     @commands.command(pass_context=True)
-    @commands.check(ctx_is_nsfw)
+    @commands.check(commands.is_nsfw)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
         url = ''

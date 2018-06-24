@@ -29,12 +29,16 @@ class Settings:
             self.data = json.load(fp)
         for group in self.categories:
             self.data.setdefault(group, {})
+        self.setdefault('meta', 'prefix', '!')
         self.setdefault('user', 'markov_channels', [])
-        self.setdefault('user', 'game', '!pikahelp')
         self.setdefault('user', 'whitelist', [])
         self.setdefault('user', 'debug', False)
         self.setdefault('user', 'cooldown', 10)
         self.setdefault('user', 'disabled_commands', [])
+        self.setdefault('user', 'voice_chans', {})
+        self.setdefault('user', 'disabled_cogs', [])
+        self.setdefault('user', 'help_name', 'pikahelp')
+        self.setdefault('user', 'game', f'{self.get("meta", "prefix")}{self.get("user", "help_name")}')
 
     def set(self, group, key, value):
         assert group in self.categories

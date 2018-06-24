@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 from utils.game import GameBase, GameCogBase, find_emoji
 from utils import sql
-from utils.checks import ctx_is_owner
 import random
 
 
@@ -299,13 +298,13 @@ class VoltorbFlip(GameCogBase):
         await ctx.invoke(self.unflag, *args)
 
     @voltorb.command()
-    @commands.check(ctx_is_owner)
+    @commands.check(commands.is_owner)
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx)
 
     @commands.command(name='voltend', aliases=['ve'])
-    @commands.check(ctx_is_owner)
+    @commands.check(commands.is_owner)
     async def voltorb_end(self, ctx):
         """End the game as a loss (owner only)"""
         await ctx.invoke(self.end)
