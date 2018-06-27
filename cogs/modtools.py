@@ -2,17 +2,19 @@ import asyncio
 import discord
 import tempfile
 from discord.ext import commands
-from utils.checks import ctx_is_owner
 from utils import sql
 from utils.botclass import PikalaxBOT
+from utils.checks import can_learn_markov
 
 
-class ModTools():
+class ModTools:
     def __init__(self, bot: PikalaxBOT):
         self.bot = bot
 
+    async def __local_check(self, ctx):
+        return await self.bot.is_owner(ctx.author)
+
     @commands.group(pass_context=True, case_insensitive=True)
-    @commands.check(ctx_is_owner)
     async def admin(self, ctx):
         """Commands for the admin console"""
 
@@ -29,7 +31,9 @@ class ModTools():
             async with ctx.typing():
                 try:
                     async for msg in ch.history(limit=5000):
-                        self.bot.learn_markov(msg, force=True)
+                        _ctx = await self.bot.get_context(msg)
+                        if can_learn_markov(_ctx, force=True):
+                            self.bot.learn_markov(_ctx)
                 except discord.Forbidden:
                     await ctx.send(f'Failed to get message history from {ch.mention} (403 FORBIDDEN)')
                 except AttributeError:
@@ -173,42 +177,28 @@ class ModTools():
         """Manage the bot's presence in channels/servers"""
 
     @channel.command(name='join')
-    async def join_channel(self, ctx, chid: int):
-        """Join a text channel"""
-        channel: discord.TextChannel = self.bot.get_channel(id=chid)
-        if channel is None:
-            await ctx.send('Unable to find channel')
+    async def join_channel(self, ctx, channel: discord.TextChannel):
+        if channel.guild.me is None:
+            await ctx.send('I\'m not on that server!')
+        elif channel.id in self.bot.whitelist:
+            await ctx.send(f'Already in channel {channel.mention}')
+        elif not channel.permissions_for(channel.guild.me).send_messages:
+            await ctx.send(f'Unable to chat in {channel.mention}')
         else:
-            guild: discord.Guild = channel.guild
-            me: discord.Member = guild.get_member(self.bot.user.id)
-            if me is None:
-                await ctx.send('I\'m not on that server!')
-            elif channel.id in self.bot.whitelist:
-                await ctx.send(f'Already in channel {channel.mention}')
-            elif not channel.permissions_for(me).send_messages:
-                await ctx.send(f'Unable to chat in {channel.mention}')
-            else:
-                await channel.send('Memes are here')
-                self.bot.whitelist[channel.id] = channel
-                self.bot.commit()
-                await ctx.send(f'Successfully joined {channel.mention}')
+            await channel.send('Memes are here')
+            self.bot.whitelist[channel.id] = channel
+            self.bot.commit()
+            await ctx.send(f'Successfully joined {channel.mention}')
 
     @channel.command(name='leave')
-    async def leave_channel(self, ctx, chid: int):
-        """Leave a text channel"""
-        channel = self.bot.get_channel(id=chid)
-        if channel is None:
-            await ctx.send('Unable to find channel')
+    async def leave_channel(self, ctx, channel: discord.TextChannel):
+        if channel.id not in self.bot.whitelist:
+            await ctx.send(f'Not in channel {channel.mention}')
         else:
-            guild: discord.Guild = channel.guild
-            me: discord.Member = guild.get_member(self.bot.user.id)
-            if channel.id not in self.bot.whitelist:
-                await ctx.send(f'Not in channel {channel.mention}')
-            else:
-                self.bot.whitelist.pop(channel.id)
-                self.bot.commit()
-                await channel.send('Memes are leaving, cya')
-                await ctx.send(f'Successfully left {channel.mention}')
+            self.bot.whitelist.pop(channel.id)
+            self.bot.commit()
+            await channel.send('Memes are leaving, cya')
+            await ctx.send(f'Successfully left {channel.mention}')
 
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: commands.Context):
@@ -235,6 +225,36 @@ class ModTools():
             await ctx.message.add_reaction('☑')
         else:
             await ctx.send(f'{cmd} is already enabled')
+
+    @admin.group(pass_context=True)
+    async def cog(self, ctx):
+        """Manage bot cogs"""
+
+    @cog.command(name='enable')
+    async def enable_cog(self, ctx, cog):
+        """Enable cog"""
+        if cog not in self.bot.disabled_cogs:
+            return await ctx.send(f'Cog "{cog}" already enabled or does not exist')
+        try:
+            self.bot.load_extension(f'cogs.{cog.lower()}')
+        except discord.ClientException:
+            await ctx.send(f'Failed to load cog "{cog}"')
+        else:
+            await ctx.send(f'Loaded cog "{cog}"')
+            self.bot.disabled_cogs.remove(cog.lower())
+
+    @cog.command(name='disable')
+    async def disable_cog(self, ctx, cog):
+        """Disable cog"""
+        if cog in self.bot.disabled_cogs:
+            return await ctx.send(f'Cog "{cog}" already disabled')
+        try:
+            self.bot.unload_extension(f'cogs.{cog.lower()}')
+        except discord.ClientException:
+            await ctx.send(f'Failed to unload cog "{cog}"')
+        else:
+            await ctx.send(f'Unloaded cog "{cog}"')
+            self.bot.disabled_cogs.append(cog.lower())
 
 
 def setup(bot):

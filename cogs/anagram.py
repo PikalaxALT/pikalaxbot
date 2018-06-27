@@ -4,7 +4,6 @@ import math
 import random
 from utils.data import data
 from utils.game import GameBase, GameCogBase
-from utils.checks import ctx_is_owner
 from discord.ext import commands
 
 
@@ -125,13 +124,13 @@ class Anagram(GameCogBase):
         await ctx.invoke(self.solve, *guess)
 
     @anagram.command()
-    @commands.check(ctx_is_owner)
+    @commands.is_owner()
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='anaend', aliases=['ae'])
-    @commands.check(ctx_is_owner)
+    @commands.is_owner()
     async def anagram_end(self, ctx):
         """End the game as a loss (owner only)"""
         await ctx.invoke(self.end)
