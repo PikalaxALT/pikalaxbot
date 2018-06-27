@@ -156,13 +156,13 @@ class Trashcans(GameCogBase):
         await ctx.invoke(self.guess, *args)
 
     @trashcans.command()
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='trashend', aliases=['te'])
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def trashcans_end(self, ctx):
         """End the game as a loss (owner only)"""
         await ctx.invoke(self.end)

@@ -39,6 +39,10 @@ class Settings:
         self.setdefault('user', 'disabled_cogs', [])
         self.setdefault('user', 'help_name', 'pikahelp')
         self.setdefault('user', 'game', f'{self.get("meta", "prefix")}{self.get("user", "help_name")}')
+        self.setdefault('user', 'espeak_kw', {'a': 100,
+                                              's': 150,
+                                              'v': 'en-us+f3',
+                                              'p': 75})
 
     def set(self, group, key, value):
         assert group in self.categories

@@ -177,42 +177,28 @@ class ModTools:
         """Manage the bot's presence in channels/servers"""
 
     @channel.command(name='join')
-    async def join_channel(self, ctx, chid: int):
-        """Join a text channel"""
-        channel: discord.TextChannel = self.bot.get_channel(id=chid)
-        if channel is None:
-            await ctx.send('Unable to find channel')
+    async def join_channel(self, ctx, channel: discord.TextChannel):
+        if channel.guild.me is None:
+            await ctx.send('I\'m not on that server!')
+        elif channel.id in self.bot.whitelist:
+            await ctx.send(f'Already in channel {channel.mention}')
+        elif not channel.permissions_for(channel.guild.me).send_messages:
+            await ctx.send(f'Unable to chat in {channel.mention}')
         else:
-            guild: discord.Guild = channel.guild
-            me: discord.Member = guild.get_member(self.bot.user.id)
-            if me is None:
-                await ctx.send('I\'m not on that server!')
-            elif channel.id in self.bot.whitelist:
-                await ctx.send(f'Already in channel {channel.mention}')
-            elif not channel.permissions_for(me).send_messages:
-                await ctx.send(f'Unable to chat in {channel.mention}')
-            else:
-                await channel.send('Memes are here')
-                self.bot.whitelist[channel.id] = channel
-                self.bot.commit()
-                await ctx.send(f'Successfully joined {channel.mention}')
+            await channel.send('Memes are here')
+            self.bot.whitelist[channel.id] = channel
+            self.bot.commit()
+            await ctx.send(f'Successfully joined {channel.mention}')
 
     @channel.command(name='leave')
-    async def leave_channel(self, ctx, chid: int):
-        """Leave a text channel"""
-        channel = self.bot.get_channel(id=chid)
-        if channel is None:
-            await ctx.send('Unable to find channel')
+    async def leave_channel(self, ctx, channel: discord.TextChannel):
+        if channel.id not in self.bot.whitelist:
+            await ctx.send(f'Not in channel {channel.mention}')
         else:
-            guild: discord.Guild = channel.guild
-            me: discord.Member = guild.get_member(self.bot.user.id)
-            if channel.id not in self.bot.whitelist:
-                await ctx.send(f'Not in channel {channel.mention}')
-            else:
-                self.bot.whitelist.pop(channel.id)
-                self.bot.commit()
-                await channel.send('Memes are leaving, cya')
-                await ctx.send(f'Successfully left {channel.mention}')
+            self.bot.whitelist.pop(channel.id)
+            self.bot.commit()
+            await channel.send('Memes are leaving, cya')
+            await ctx.send(f'Successfully left {channel.mention}')
 
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: commands.Context):

@@ -124,13 +124,13 @@ class Anagram(GameCogBase):
         await ctx.invoke(self.solve, *guess)
 
     @anagram.command()
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def end(self, ctx: commands.Context):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='anaend', aliases=['ae'])
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def anagram_end(self, ctx):
         """End the game as a loss (owner only)"""
         await ctx.invoke(self.end)

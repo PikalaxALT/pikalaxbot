@@ -298,13 +298,13 @@ class VoltorbFlip(GameCogBase):
         await ctx.invoke(self.unflag, *args)
 
     @voltorb.command()
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx)
 
     @commands.command(name='voltend', aliases=['ve'])
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def voltorb_end(self, ctx):
         """End the game as a loss (owner only)"""
         await ctx.invoke(self.end)

@@ -28,7 +28,7 @@ class Core:
         return True
 
     @commands.command(pass_context=True)
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def pikakill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
         for chan in self.bot.whitelist.values():
@@ -36,7 +36,7 @@ class Core:
         await self.bot.close(is_int=False)
 
     @commands.command(pass_context=True)
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def pikareboot(self, ctx: commands.Context, *, force: bool = False):
         """Reboot the bot (owner only)"""
         for chan in self.bot.whitelist.values():

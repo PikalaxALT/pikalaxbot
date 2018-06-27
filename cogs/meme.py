@@ -128,7 +128,7 @@ class Meme:
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
     @commands.command(pass_context=True)
-    @commands.check(commands.is_nsfw)
+    @commands.is_nsfw()
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
         url = ''

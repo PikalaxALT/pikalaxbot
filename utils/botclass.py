@@ -22,12 +22,16 @@ class PikalaxBOT(commands.Bot):
     disabled_commands = set()
     voice_chans = {}
     disabled_cogs = []
+    espeak_kw = {'a': 100,
+                 's': 150,
+                 'v': 'en-us+f3',
+                 'p': 75}
 
     def __init__(self, script):
         self.script = script
         with Settings() as settings:
             command_prefix = settings.get('meta', 'prefix', '!')
-            super().__init__(command_prefix, case_insensitive=True, helpattrs={'name': self.help_name})
+            super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
             self._token = settings.get('credentials', 'token')
             self.owner_id = settings.get('credentials', 'owner')
             for key, value in settings.items('user'):
@@ -40,8 +44,11 @@ class PikalaxBOT(commands.Bot):
         self.disabled_commands = set(self.disabled_commands)
 
     def commit(self):
-        whitelist = dict(self.whitelist)
-        self.whitelist = list(self.whitelist.keys())
+        if isinstance(self.whitelist, dict):
+            whitelist = dict(self.whitelist)
+            self.whitelist = list(self.whitelist.keys())
+        else:
+            whitelist = None
         self.token = self._token
         self.owner = self.owner_id
         self.prefix = self.command_prefix
@@ -51,7 +58,8 @@ class PikalaxBOT(commands.Bot):
             for group in settings.categories:
                 for key in settings.keys(group):
                     settings.set(group, key, getattr(self, key, None))
-        self.whitelist = whitelist
+        if whitelist:
+            self.whitelist = whitelist
         self.disabled_commands = set(self.disabled_commands)
         self.banlist = set(self.banlist)
         delattr(self, 'token')
@@ -109,7 +117,10 @@ class PikalaxBOT(commands.Bot):
         emoji = self.find_emoji_in_guild(context.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
         if isinstance(exception, commands.NotOwner) and context.command.name != 'pikahelp':
             await context.send(f'{context.author.mention}: Permission denied {emoji}')
-        elif isinstance(exception, NotImplemented):
+        elif isinstance(exception, commands.MissingPermissions):
+            await context.send(f'{context.author.mention}: I am missing permissions: '
+                               f'{", ".join(exception.missing_perms)}')
+        elif exception is NotImplemented:
             await context.send(f'{context.author.mention}: The command or one of its dependencies is '
                                f'not fully implemented {emoji}')
         tb = traceback.format_exception(type(exception), exception, exception.__traceback__)

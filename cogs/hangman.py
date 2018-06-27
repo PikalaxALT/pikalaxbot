@@ -147,13 +147,13 @@ class Hangman(GameCogBase):
         await ctx.invoke(self.guess, *guess)
 
     @hangman.command()
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='hangend', aliases=['he'])
-    @commands.check(commands.is_owner)
+    @commands.is_owner()
     async def hangman_end(self, ctx):
         """End the game as a loss (owner only)"""
         await ctx.invoke(self.end)
