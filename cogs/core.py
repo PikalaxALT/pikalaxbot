@@ -40,7 +40,9 @@ class Core:
     async def pikareboot(self, ctx: commands.Context, *, force: bool = False):
         """Reboot the bot (owner only)"""
         try:
-            await ctx.invoke(self.pikakill)
+            for chan in self.bot.whitelist.values():
+                await chan.send(f'Rebooting to apply updates...')
+            await self.bot.close(is_int=False)
         finally:
             if force:
                 subprocess.call(['git', 'reset', '--hard', 'HEAD~'])
