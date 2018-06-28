@@ -128,7 +128,7 @@ class PikalaxBOT(commands.Bot):
         elif exc is NotImplemented:
             await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
                                f'not fully implemented {emoji}')
-        log.error(tb[0])
+        log.error(tb)
         for handler in log.handlers:  # type: logging.Handler
             handler.flush()
 
