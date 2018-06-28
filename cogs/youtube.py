@@ -67,7 +67,7 @@ class YouTube:
         for executable in ('ffmpeg', 'avconv'):
             try:
                 subprocess.check_call([executable, '-h'])
-            except subprocess.CalledProcessError:
+            except FileNotFoundError:
                 continue
             self.ffmpeg = executable
             break
