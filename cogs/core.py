@@ -41,7 +41,10 @@ class Core:
         """Reboot the bot (owner only)"""
         for chan in self.bot.whitelist.values():
             await chan.send(f'Rebooting to apply updates...')
-        await self.bot.close(is_int=False)
+        try:
+            await self.bot.close(is_int=False)
+        except:
+            print(traceback.format_exc())
         if force:
             subprocess.call(['git', 'reset', '--hard', 'HEAD~'])
         subprocess.call(['git', 'pull'])
