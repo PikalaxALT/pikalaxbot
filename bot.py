@@ -22,10 +22,6 @@ def main():
     fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
     handler.setFormatter(fmt)
     log.addHandler(handler)
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(fmt)
-    log.setLevel(logging.DEBUG if args.debug else logging.INFO)
-    log.addHandler(handler)
 
     dname = os.path.dirname(__file__) or '.'
     for cogfile in glob.glob(f'{dname}/cogs/*.py'):
