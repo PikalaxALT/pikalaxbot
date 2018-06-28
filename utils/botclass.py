@@ -112,18 +112,22 @@ class PikalaxBOT(commands.Bot):
     def find_emoji_in_guild(guild, *names, default=None):
         return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
 
-    async def on_command_error(self, context, exception):
-        await super().on_command_error(context, exception)
-        emoji = self.find_emoji_in_guild(context.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
-        if isinstance(exception, commands.NotOwner) and context.command.name != 'pikahelp':
-            await context.send(f'{context.author.mention}: Permission denied {emoji}')
-        elif isinstance(exception, commands.MissingPermissions):
-            await context.send(f'{context.author.mention}: I am missing permissions: '
-                               f'{", ".join(exception.missing_perms)}')
-        elif exception is NotImplemented:
-            await context.send(f'{context.author.mention}: The command or one of its dependencies is '
+    async def on_command_error(self, ctx, exc):
+        await super().on_command_error(ctx, exc)
+        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+        emoji = self.find_emoji_in_guild(ctx.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
+        if ctx.cog is self.get_cog('youtube'):
+            embed = discord.Embed(color=0xff0000)
+            embed.add_field(name='Traceback', value=f'```{tb}```')
+            await ctx.send(f'An error has occurred', embed=embed)
+        if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
+            await ctx.send(f'{ctx.author.mention}: Permission denied {emoji}')
+        elif isinstance(exc, commands.MissingPermissions):
+            await ctx.send(f'{ctx.author.mention}: I am missing permissions: '
+                               f'{", ".join(exc.missing_perms)}')
+        elif exc is NotImplemented:
+            await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
                                f'not fully implemented {emoji}')
-        tb = traceback.format_exception(type(exception), exception, exception.__traceback__)
         log.error(tb[0])
         for handler in log.handlers:  # type: logging.Handler
             handler.flush()

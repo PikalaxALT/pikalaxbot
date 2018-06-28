@@ -64,15 +64,16 @@ class YouTube:
         self.bot = bot
         self.ready = False
         self.connections = {}
-        for executable in ('ffmpeg', 'avconv'):
-            try:
-                subprocess.check_call([executable, '-h'])
-            except FileNotFoundError:
-                continue
-            self.ffmpeg = executable
-            break
-        else:
-            raise discord.ClientException('ffmpeg or avconv not installed')
+        with open(os.devnull, 'w') as DEVNULL:
+            for executable in ('ffmpeg', 'avconv'):
+                try:
+                    subprocess.check_call([executable, '-h'], stdout=DEVNULL)
+                except FileNotFoundError:
+                    continue
+                self.ffmpeg = executable
+                break
+            else:
+                raise discord.ClientException('ffmpeg or avconv not installed')
         self.executor = ThreadPoolExecutor()
 
     # @staticmethod
