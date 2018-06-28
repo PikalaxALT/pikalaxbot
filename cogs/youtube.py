@@ -6,6 +6,7 @@ import traceback
 from discord.client import log
 from discord.ext import commands
 from utils.botclass import PikalaxBOT
+from utils.checks import VoiceCommandError
 import subprocess
 import os
 import time
@@ -118,17 +119,17 @@ class YouTube:
         # passed to the bot's on_command_error handler.
         async with ctx.channel.typing():
             if ch is None:
-                raise TypeError('Channel not found')
+                raise VoiceCommandError('Channel not found')
             if not ctx.me.permissions_in(ch).connect:
-                raise discord.Forbidden(400, 'Insufficient permissions (Connect to voice channels)')
+                raise commands.MissingPermissions(['connect'])
             if ch.guild != ctx.guild:
-                raise TypeError('Guild mismatch')
+                raise VoiceCommandError('Guild mismatch')
             if ctx.guild.id in self.bot.voice_chans:
                 if ch.id == self.bot.voice_chans[ctx.guild.id]:
-                    raise ValueError('Already connected to that channel')
+                    raise VoiceCommandError('Already connected to that channel')
                 vcl: discord.VoiceClient = ctx.guild.voice_client
                 if vcl is None:
-                    raise ValueError('Guild does not support voice connections')
+                    raise VoiceCommandError('Guild does not support voice connections')
                 if vcl.is_connected():
                     await vcl.move_to(ch)
                 else:
@@ -187,7 +188,7 @@ class YouTube:
         if len(invalid_syntax) > 0:
             msg += f'Invalid syntax: {", ".join(invalid_syntax)}\n'
         if len(msg) > 0:
-            raise KeyError(msg)
+            raise VoiceCommandError(msg)
         try:
             call_espeak('Test', 'tmp.wav', **params)
         except subprocess.CalledProcessError:

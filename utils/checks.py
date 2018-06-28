@@ -1,3 +1,8 @@
+from discord.ext import commands
+
+
+class VoiceCommandError(commands.CommandError):
+    pass
 
 
 def markov_general_checks(ctx):

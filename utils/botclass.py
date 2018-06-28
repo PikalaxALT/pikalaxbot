@@ -5,7 +5,7 @@ import traceback
 from discord.ext import commands
 from utils.config_io import Settings
 from discord.client import log
-from utils.checks import can_learn_markov
+from utils.checks import can_learn_markov, VoiceCommandError
 from utils import markov, sql
 
 
@@ -113,24 +113,42 @@ class PikalaxBOT(commands.Bot):
         return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
 
     async def on_command_error(self, ctx, exc):
-        await super().on_command_error(ctx, exc)
+        # await super().on_command_error(ctx, exc)
+        if isinstance(exc, commands.CommandNotFound):
+            return
+
         tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
         emoji = self.find_emoji_in_guild(ctx.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
-        if ctx.cog is self.get_cog('youtube'):
+        if isinstance(exc, VoiceCommandError):
             embed = discord.Embed(color=0xff0000)
             embed.add_field(name='Traceback', value=f'```{tb}```')
-            await ctx.send(f'An error has occurred', embed=embed)
-        if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
+            await ctx.send(f'An error has occurred {emoji}', embed=embed)
+        elif isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
             await ctx.send(f'{ctx.author.mention}: Permission denied {emoji}')
         elif isinstance(exc, commands.MissingPermissions):
             await ctx.send(f'{ctx.author.mention}: I am missing permissions: '
-                               f'{", ".join(exc.missing_perms)}')
+                           f'{", ".join(exc.missing_perms)}')
         elif exc is NotImplemented:
             await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
-                               f'not fully implemented {emoji}')
+                           f'not fully implemented {emoji}')
+
+        # Inherit checks from super
+        if self.extra_events.get('on_command_error', None):
+            return
+
+        if hasattr(ctx.command, 'on_error'):
+            return
+
+        cog = ctx.cog
+        if cog:
+            attr = '_{0.__class__.__name__}__error'.format(cog)
+            if hasattr(cog, attr):
+                return
+
+        log.error(f'Ignoring exception in command {ctx.command}:')
         log.error(tb)
-        for handler in log.handlers:  # type: logging.Handler
-            handler.flush()
+        # for handler in log.handlers:  # type: logging.Handler
+        #     handler.flush()
 
     def learn_markov(self, ctx):
         self.storedMsgsSet.add(ctx.message.clean_content)
