@@ -38,10 +38,10 @@ def call_espeak(msg, fname, **kwargs):
 
 
 class EspeakAudioSource(discord.FFmpegPCMAudio):
-    def __init__(self, bot, msg):
+    def __init__(self, bot, msg, *args, **kwargs):
         self.fname = f'tmp_{time.time()}.wav'
         call_espeak(msg, self.fname, **bot.espeak_kw)
-        super().__init__(self.fname, before_options='-loglevel quiet')
+        super().__init__(self.fname, *args, **kwargs)
 
     def cleanup(self):
         super().cleanup()
@@ -64,6 +64,15 @@ class YouTube:
         self.bot = bot
         self.ready = False
         self.connections = {}
+        for executable in ('ffmpeg', 'avconv'):
+            try:
+                subprocess.check_call([executable, '-h'])
+            except subprocess.CalledProcessError:
+                continue
+            self.ffmpeg = executable
+            break
+        else:
+            raise discord.ClientException('ffmpeg or avconv not installed')
         self.executor = ThreadPoolExecutor()
 
     @staticmethod
@@ -117,6 +126,8 @@ class YouTube:
                 if ch.id == self.bot.voice_chans[ctx.guild.id]:
                     raise ValueError('Already connected to that channel')
                 vcl: discord.VoiceClient = ctx.guild.voice_client
+                if vcl is None:
+                    raise ValueError('Guild does not support voice connections')
                 if vcl.is_connected():
                     await vcl.move_to(ch)
                 else:
@@ -132,9 +143,9 @@ class YouTube:
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
-        if not ctx.guild.voice_client.is_playing():
-            ctx.guild.voice_client.play(EspeakAudioSource(self.bot, msg),
-                                        after=lambda e: print('Player error: %s' % e) if e else None)
+        ctx.guild.voice_client.play(EspeakAudioSource(self.bot, msg, executable=self.ffmpeg,
+                                                      before_options='-loglevel quiet'),
+                                    after=lambda e: print('Player error: %s' % e) if e else None)
 
     @commands.command()
     async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
