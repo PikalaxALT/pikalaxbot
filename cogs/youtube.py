@@ -75,13 +75,13 @@ class YouTube:
             raise discord.ClientException('ffmpeg or avconv not installed')
         self.executor = ThreadPoolExecutor()
 
-    @staticmethod
-    async def on_command_error(ctx, exc):
-        if isinstance(ctx.cog, YouTube):
-            tb = ''.join(traceback.format_exception_only(type(exc), exc))
-            embed = discord.Embed(color=0xff0000)
-            embed.add_field(name='Traceback', value=f'```{tb}```')
-            await ctx.send(f'An error has occurred', embed=embed)
+    # @staticmethod
+    # async def on_command_error(ctx, exc):
+    #     if isinstance(ctx.cog, YouTube):
+    #         tb = ''.join(traceback.format_exception_only(type(exc), exc))
+    #         embed = discord.Embed(color=0xff0000)
+    #         embed.add_field(name='Traceback', value=f'```{tb}```')
+    #         await ctx.send(f'An error has occurred', embed=embed)
 
     async def on_ready(self):
         if self.load_opus():

@@ -18,7 +18,7 @@ def main():
 
     bot = PikalaxBOT(__file__)
 
-    handler = logging.FileHandler(args.logfile, mode='a')
+    handler = logging.FileHandler(args.logfile, mode='w')
     fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
     handler.setFormatter(fmt)
     log.addHandler(handler)
