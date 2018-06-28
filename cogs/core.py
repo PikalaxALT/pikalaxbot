@@ -27,27 +27,16 @@ class Core:
             return False
         return True
 
-    @commands.command(pass_context=True)
+    @commands.command(pass_context=True, aliases=['pikareboot'])
     @commands.is_owner()
     async def pikakill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
         for chan in self.bot.whitelist.values():
-            await chan.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
+            if ctx.invoked_with == 'pikareboot':
+                await chan.send('Rebooting to apply updates...')
+            else:
+                await chan.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
         await self.bot.close(is_int=False)
-
-    @commands.command(pass_context=True)
-    @commands.is_owner()
-    async def pikareboot(self, ctx: commands.Context, *, force: bool = False):
-        """Reboot the bot (owner only)"""
-        try:
-            for chan in self.bot.whitelist.values():
-                await chan.send(f'Rebooting to apply updates...')
-            await self.bot.close(is_int=False)
-        finally:
-            if force:
-                subprocess.call(['git', 'reset', '--hard', 'HEAD~'])
-            subprocess.call(['git', 'pull'])
-            subprocess.Popen(['python3.6', self.bot.script])
 
     async def on_ready(self):
         typing = []
