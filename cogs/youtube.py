@@ -76,7 +76,7 @@ class YouTube:
         self.executor = ThreadPoolExecutor()
 
     @staticmethod
-    async def on_command_error(ctx: commands.Context, exc: Exception):
+    async def on_command_error(ctx, exc):
         if isinstance(ctx.cog, YouTube):
             tb = ''.join(traceback.format_exception_only(type(exc), exc))
             embed = discord.Embed(color=0xff0000)
