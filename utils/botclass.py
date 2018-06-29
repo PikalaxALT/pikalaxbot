@@ -48,6 +48,7 @@ class PikalaxBOT(commands.Bot):
                         value = {k_: None for k_ in value}
                     else:
                         value = tp(value)
+                key = self.__attr_mapping__.get(key, key)
                 setattr(self, key, value)
             super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
             self.commit()
