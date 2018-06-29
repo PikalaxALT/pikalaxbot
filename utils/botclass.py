@@ -1,70 +1,86 @@
 import asyncio
 import discord
 import logging
+import os
+import glob
 import traceback
 from discord.ext import commands
 from utils.config_io import Settings
 from discord.client import log
 from utils.checks import can_learn_markov, VoiceCommandError
 from utils import markov, sql
+import typing
 
 
 class PikalaxBOT(commands.Bot):
-    whitelist = []
-    debug = False
-    markov_channels = []
-    cooldown = 10
+    __attr_mapping__ = {
+        'token': '_token',
+        'prefix': 'command_prefix',
+        'owner': 'owner_id'
+    }
+    __type_mapping__ = {
+        'whitelist': dict,
+        'banlist': set,
+        'disabled_commands': set
+    }
+    __slots__ = (
+        'whitelist', 'debug', 'markov_channels', 'cooldown', 'command_prefix', 'help_name',
+        'game', 'banlist', 'disabled_commands', 'voice_chans', 'disabled_cogs', 'espeak_kw'
+    )
     initialized = False
-    command_prefix = '!'
-    help_name = 'pikahelp'
-    game = f'{command_prefix}{help_name}'
-    banlist = set()
-    disabled_commands = set()
-    voice_chans = {}
-    disabled_cogs = []
-    espeak_kw = {'a': 100,
-                 's': 150,
-                 'v': 'en-us+f3',
-                 'p': 75}
+    storedMsgsSet = set()
 
-    def __init__(self, script):
-        self.script = script
+    def __init__(self, args):
+        log.setLevel(logging.DEBUG if args.debug else logging.INFO)
+        handler = logging.FileHandler(args.logfile, mode='w')
+        fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
+        handler.setFormatter(fmt)
+        log.addHandler(handler)
+
         with Settings() as settings:
             command_prefix = settings.get('meta', 'prefix', '!')
-            super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
             self._token = settings.get('credentials', 'token')
             self.owner_id = settings.get('credentials', 'owner')
             for key, value in settings.items('user'):
+                tp: typing.Type = self.__type_mapping__.get(key)
+                if tp is not None:
+                    if tp is dict and isinstance(value, list):
+                        value = {k_: None for k_ in value}
+                    else:
+                        value = tp(value)
                 setattr(self, key, value)
+            super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
             self.commit()
 
         self.chain = markov.Chain(store_lowercase=True)
-        self.storedMsgsSet = set()
-        self.banlist = set(self.banlist)
-        self.disabled_commands = set(self.disabled_commands)
+
+        dname = os.path.dirname(__file__) or '.'
+        for cogfile in glob.glob(f'{dname}/../cogs/*.py'):
+            if os.path.isfile(cogfile) and '__init__' not in cogfile:
+                extn = f'cogs.{os.path.splitext(os.path.basename(cogfile))[0]}'
+                if extn.split('.')[1] not in self.disabled_cogs:
+                    try:
+                        self.load_extension(extn)
+                    except discord.ClientException:
+                        log.warning(f'Failed to load cog "{extn}"')
+                    else:
+                        log.info(f'Loaded cog "{extn}"')
+                else:
+                    log.info(f'Skipping disabled cog "{extn}"')
+
+        sql.db_init()
 
     def commit(self):
-        if isinstance(self.whitelist, dict):
-            whitelist = dict(self.whitelist)
-            self.whitelist = list(self.whitelist.keys())
-        else:
-            whitelist = None
-        self.token = self._token
-        self.owner = self.owner_id
-        self.prefix = self.command_prefix
-        self.disabled_commands = list(self.disabled_commands)
-        self.banlist = list(self.banlist)
         with Settings() as settings:
             for group in settings.categories:
                 for key in settings.keys(group):
-                    settings.set(group, key, getattr(self, key, None))
-        if whitelist:
-            self.whitelist = whitelist
-        self.disabled_commands = set(self.disabled_commands)
-        self.banlist = set(self.banlist)
-        delattr(self, 'token')
-        delattr(self, 'owner')
-        delattr(self, 'prefix')
+                    attr = self.__attr_mapping__.get(key, key)
+                    val = getattr(self, attr, None)
+                    if key == 'whitelist' and isinstance(val, dict):
+                        val = list(val.keys())
+                    elif isinstance(val, set) and val is not None:
+                        val = list(val)
+                    settings.set(group, key, val)
 
     def ban(self, person):
         self.banlist.add(person.id)
@@ -81,16 +97,13 @@ class PikalaxBOT(commands.Bot):
     def run(self):
         super().run(self._token)
 
-    def print(self, message):
-        log.debug(message)
-
     async def close(self, is_int=True):
         if is_int and isinstance(self.whitelist, dict):
             for channel in self.whitelist.values():
                 await channel.send('Shutting down... (console kill)')
         await super().close()
         self.commit()
-        sql.backup_db()
+        await sql.backup_db()
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''

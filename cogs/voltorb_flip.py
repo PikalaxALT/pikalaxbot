@@ -77,13 +77,13 @@ class VoltorbFlipGame(GameBase):
     def level(self):
         return self._level
     
-    def get_level(self, channel):
-        self._level = sql.get_voltorb_level(channel)
+    async def get_level(self, channel):
+        self._level = await sql.get_voltorb_level(channel)
         return self._level
 
-    def update_level(self, channel, new_level):
+    async def update_level(self, channel, new_level):
         self._level = new_level
-        sql.set_voltorb_level(channel, new_level)
+        await sql.set_voltorb_level(channel, new_level)
 
     def build_board(self):
         minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
@@ -147,7 +147,7 @@ class VoltorbFlipGame(GameBase):
                            delete_after=10)
         else:
             if self.level is None:
-                self._level = self.get_level(ctx.channel)
+                self._level = await self.get_level(ctx.channel)
             self._players = set()
             self._score = 1
             self.build_board()
@@ -168,12 +168,13 @@ class VoltorbFlipGame(GameBase):
                 await ctx.send(f'Game over. You win 0 coins.')
                 new_level = max(new_level - 1, 1)
             else:
-                await ctx.send(f'The following players each earn {self.award_points():d} points:\n'
+                score = await self.award_points()
+                await ctx.send(f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```')
                 new_level = min(new_level + 1, 10)
             if new_level != self.level:
                 await ctx.send(f'The game level {"rose" if new_level > self.level else "fell"} to {new_level:d}!')
-                self.update_level(ctx.channel, new_level)
+                await self.update_level(ctx.channel, new_level)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
@@ -245,8 +246,7 @@ class VoltorbFlipGame(GameBase):
 
 
 class VoltorbFlip(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(VoltorbFlipGame, bot)
+    gamecls = VoltorbFlipGame
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def voltorb(self, ctx):

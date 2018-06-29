@@ -4,6 +4,32 @@ import os
 
 class Settings:
     categories = ('credentials', 'meta', 'user')
+    data = {
+        'credentials': {
+
+        },
+        'meta': {
+            'prefix': '!'
+        },
+        'user': {
+            'markov_channels': [],
+            'whitelist': [],
+            'debug': False,
+            'cooldown': 10,
+            'disabled_commands': [],
+            'voice_chans': {},
+            'disabled_cogs': [],
+            'help_name': 'pikahelp',
+            'game': '!pikahelp',
+            'espeak_kw': {
+                'a': 100,
+                's': 150,
+                'v': 'en-us+f3',
+                'p': 75
+            },
+            'banlist': [],
+        }
+    }
 
     def __init__(self, fname='settings.json'):
         self.fname = fname
@@ -26,23 +52,7 @@ class Settings:
         if os.path.dirname(self.fname) and not os.path.exists(os.path.dirname(self.fname)):
             os.makedirs(os.path.dirname(self.fname), exist_ok=True)
         with open(self.fname, mode=mode) as fp:
-            self.data = json.load(fp)
-        for group in self.categories:
-            self.data.setdefault(group, {})
-        self.setdefault('meta', 'prefix', '!')
-        self.setdefault('user', 'markov_channels', [])
-        self.setdefault('user', 'whitelist', [])
-        self.setdefault('user', 'debug', False)
-        self.setdefault('user', 'cooldown', 10)
-        self.setdefault('user', 'disabled_commands', [])
-        self.setdefault('user', 'voice_chans', {})
-        self.setdefault('user', 'disabled_cogs', [])
-        self.setdefault('user', 'help_name', 'pikahelp')
-        self.setdefault('user', 'game', f'{self.get("meta", "prefix")}{self.get("user", "help_name")}')
-        self.setdefault('user', 'espeak_kw', {'a': 100,
-                                              's': 150,
-                                              'v': 'en-us+f3',
-                                              'p': 75})
+            self.data.update(json.load(fp))
 
     def set(self, group, key, value):
         assert group in self.categories

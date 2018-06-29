@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import os
 import shutil
 import sqlite3
@@ -11,6 +13,19 @@ default_bag = (
     'turned away!',
     'let out a cry in protest!'
 )
+
+
+_loop = asyncio.get_event_loop()
+_lock = asyncio.Lock()
+
+
+def call_async(func):
+    async def decorator(*args, **kwargs):
+        async with _lock:
+            partial = functools.partial(func, *args, **kwargs)
+            return await _loop.run_in_executor(None, partial)
+
+    return decorator
 
 
 def db_init():
@@ -34,6 +49,7 @@ def db_init():
             conn.execute('create table voltorb (id integer, level integer)')
 
 
+@call_async
 def db_clear():
     os.makedirs(os.path.dirname(dbname), exist_ok=True)
     with sqlite3.connect(dbname) as conn:
@@ -52,6 +68,7 @@ def db_clear():
         conn.execute('vacuum')
 
 
+@call_async
 def get_score(author):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select score from game where id = ? limit 1', (author.id,))
@@ -61,6 +78,7 @@ def get_score(author):
         return score
 
 
+@call_async
 def increment_score(player, by=1):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute("select score from game where id = ?", (player.id,))
@@ -71,11 +89,13 @@ def increment_score(player, by=1):
             conn.execute('update game set score = score + ? where id = ?', (by, player.id))
 
 
+@call_async
 def get_all_scores():
     with sqlite3.connect(dbname) as conn:
         yield from conn.execute('select * from game order by score desc limit 10')
 
 
+@call_async
 def add_bag(text):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select * from meme where bag = ?', (text,))
@@ -85,6 +105,7 @@ def add_bag(text):
         return res
 
 
+@call_async
 def read_bag():
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select bag from meme order by random() limit 1')
@@ -93,6 +114,7 @@ def read_bag():
         return msg[0]
 
 
+@call_async
 def get_voltorb_level(channel):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select level from voltorb where id = ?', (channel.id,))
@@ -105,6 +127,7 @@ def get_voltorb_level(channel):
     return level
 
 
+@call_async
 def set_voltorb_level(channel, new_level):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select level from voltorb where id = ? limit 1', (channel.id,))
@@ -115,6 +138,7 @@ def set_voltorb_level(channel, new_level):
             conn.execute('update voltorb set level = ? where id = ?', (new_level, channel.id))
 
 
+@call_async
 def get_leaderboard_rank(player):
     with sqlite3.connect(dbname) as conn:
         c = conn.execute('select id from game order by score desc')
@@ -125,12 +149,14 @@ def get_leaderboard_rank(player):
     return -1
 
 
+@call_async
 def reset_leaderboard():
     with sqlite3.connect(dbname) as conn:
         conn.execute('delete from game')
         conn.execute('vacuum')
 
 
+@call_async
 def remove_bag(msg):
     if msg in default_bag:
         return False
@@ -140,6 +166,7 @@ def remove_bag(msg):
     return True
 
 
+@call_async
 def reset_bag():
     with sqlite3.connect(dbname) as conn:
         conn.execute('delete from meme')
@@ -148,11 +175,13 @@ def reset_bag():
             conn.execute('insert into meme values (?)', (msg,))
 
 
+@call_async
 def backup_db():
     curtime = int(time.time())
     return shutil.copy(dbname, f'{dbname}.{curtime:d}.bak')
 
 
+@call_async
 def restore_db(idx):
     files = subprocess.check_output(['ls', f'{dbname}.*.bak'])
     if len(files) == 0:
@@ -163,6 +192,7 @@ def restore_db(idx):
     return dbbak
 
 
+@call_async
 def call_script(script):
     with sqlite3.connect(dbname) as conn:
         conn.execute(script)

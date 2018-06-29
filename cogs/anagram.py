@@ -55,9 +55,10 @@ class AnagramGame(GameBase):
                                f'Solution: {self._solution}')
             else:
                 self.add_player(ctx.author)
+                score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'{ctx.author.mention} earned {self.award_points()} points for winning!')
+                               f'{ctx.author.mention} earned {score} points for winning!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
@@ -94,8 +95,7 @@ class AnagramGame(GameBase):
 
 
 class Anagram(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(AnagramGame, bot)
+    gamecls = AnagramGame
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def anagram(self, ctx: commands.Context):

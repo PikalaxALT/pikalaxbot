@@ -61,10 +61,11 @@ class HangmanGame(GameBase):
                                f'Solution: {self._solution}')
             else:
                 bonus = math.ceil(self._max_score / 10)
-                sql.increment_score(ctx.author, bonus)
+                await sql.increment_score(ctx.author, bonus)
+                score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
                                f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
             self.reset()
@@ -117,8 +118,7 @@ class HangmanGame(GameBase):
 
 
 class Hangman(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(HangmanGame, bot)
+    gamecls = HangmanGame
 
     @commands.group(pass_context=True, case_insensitive=True)
     async def hangman(self, ctx):

@@ -2,11 +2,11 @@ import asyncio
 import discord
 import youtube_dl
 import ctypes.util
-import traceback
 from discord.client import log
 from discord.ext import commands
 from utils.botclass import PikalaxBOT
 from utils.checks import VoiceCommandError
+from utils.default_cog import Cog
 import subprocess
 import os
 import time
@@ -50,7 +50,9 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
             os.remove(self.fname)
 
 
-class YouTube:
+class YouTube(Cog):
+    __slots__ =('ready', 'connections', 'ffmpeg', 'executor')
+
     @staticmethod
     def load_opus():
         if not discord.opus.is_loaded():
@@ -62,13 +64,13 @@ class YouTube:
         return discord.opus.is_loaded()
 
     def __init__(self, bot: PikalaxBOT):
-        self.bot = bot
+        super().__init__(bot)
         self.ready = False
         self.connections = {}
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
                 try:
-                    subprocess.check_call([executable, '-h'], stdout=DEVNULL)
+                    subprocess.check_call([executable, '-h'], stdout=DEVNULL, stderr=DEVNULL)
                 except FileNotFoundError:
                     continue
                 self.ffmpeg = executable

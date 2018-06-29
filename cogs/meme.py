@@ -7,9 +7,10 @@ from utils import sql
 from utils.checks import can_markov, can_learn_markov
 from utils.game import find_emoji
 from utils.data import data
+from utils.default_cog import Cog
 
 
-class Meme:
+class Meme(Cog):
     bot_owners = {
         'fixpika': 'PikalaxALT',
         'fixgroudon': 'chfoo',
@@ -18,9 +19,6 @@ class Meme:
         'fixstarmie': 'Danny',
         'fixmeme': 'Jet'
     }
-
-    def __init__(self, bot):
-        self.bot = bot
 
     @staticmethod
     def gen_nebby():
@@ -66,7 +64,7 @@ class Meme:
     async def bag(self, ctx):
         """Get in the bag, Nebby."""
         if ctx.invoked_subcommand is None:
-            message = sql.read_bag()
+            message = await sql.read_bag()
             if message is None:
                 emoji = find_emoji(ctx.guild, 'BibleThump', case_sensitive=False)
                 await ctx.send(f'*cannot find the bag {emoji}*')
@@ -76,7 +74,7 @@ class Meme:
     @bag.command()
     async def add(self, ctx, *fmtstr):
         """Add a message to the bag."""
-        if sql.add_bag(' '.join(fmtstr)):
+        if await sql.add_bag(' '.join(fmtstr)):
             await ctx.send('Message was successfully placed in the bag')
         else:
             await ctx.send('That message is already in the bag')

@@ -69,9 +69,9 @@ class TrashcansGame(GameBase):
             elif failed:
                 await ctx.send('Looks like you won\'t be fighting the Gym Leader today.')
             else:
-                score = self.score
+                score = await self.award_points()
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
-                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```')
             self.reset()
         else:
@@ -122,8 +122,7 @@ class TrashcansGame(GameBase):
 
 
 class Trashcans(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(TrashcansGame, bot)
+    gamecls = TrashcansGame
 
     async def argcheck(self, ctx, *args):
         return await super().argcheck(ctx, *args, maxy=3)

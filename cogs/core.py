@@ -2,15 +2,13 @@ import asyncio
 import discord
 import subprocess
 import traceback
+from utils.default_cog import Cog
 from utils.botclass import PikalaxBOT
 from discord.ext import commands
 from discord.client import log
 
 
-class Core:
-    def __init__(self, bot):
-        self.bot: PikalaxBOT = bot
-
+class Core(Cog):
     async def __global_check(self, ctx: commands.Context):
         if not self.bot.initialized:
             return False

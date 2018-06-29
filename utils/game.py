@@ -3,6 +3,7 @@ import discord
 import math
 import time
 from utils import sql
+from utils.default_cog import Cog
 from discord.ext import commands
 
 
@@ -14,6 +15,11 @@ def find_emoji(guild, name, case_sensitive=True):
 
 
 class GameBase:
+    __slots__ = (
+        'bot', '_timeout', '_lock', '_max_score', '_state', '_running', '_message', '_task',
+        'start_time', '_players'
+    )
+
     def __init__(self, bot, timeout=90, max_score=1000):
         self.bot = bot
         self._timeout = timeout
@@ -90,19 +96,22 @@ class GameBase:
             return self._message
         return None
 
-    def award_points(self):
+    async def award_points(self):
         score = max(math.ceil(self.score / len(self._players)), 1)
         for player in self._players:
-            sql.increment_score(player, by=score)
+            await sql.increment_score(player, by=score)
         return score
 
 
-class GameCogBase:
-    def __init__(self, gamecls, bot, *, groupname=None):
-        self.bot = bot
+class GameCogBase(Cog):
+    gamecls = None
+    __slots__ = ('channels',)
+
+    def __init__(self, bot):
+        if self.gamecls is None:
+            raise NotImplemented('this class must be subclassed')
+        super().__init__(bot)
         self.channels = {}
-        self.gamecls = gamecls
-        self.groupname = groupname
 
     def __getitem__(self, channel):
         if channel not in self.channels:

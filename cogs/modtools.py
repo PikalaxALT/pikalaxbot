@@ -5,12 +5,10 @@ from discord.ext import commands
 from utils import sql
 from utils.botclass import PikalaxBOT
 from utils.checks import can_learn_markov
+from utils.default_cog import Cog
 
 
-class ModTools:
-    def __init__(self, bot: PikalaxBOT):
-        self.bot = bot
-
+class ModTools(Cog):
     async def __local_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
 
@@ -101,7 +99,7 @@ class ModTools:
     @leaderboard.command(name='clear')
     async def clear_leaderboard(self, ctx):
         """Reset the leaderboard"""
-        sql.reset_leaderboard()
+        await sql.reset_leaderboard()
         await ctx.send('Leaderboard reset')
 
     @leaderboard.command(name='give')
@@ -110,7 +108,7 @@ class ModTools:
         if person is None:
             await ctx.send('That person does not exist')
         else:
-            sql.increment_score(person, score)
+            await sql.increment_score(person, score)
             await ctx.send(f'Gave {score:d} points to {person.name}')
 
     @admin.group(pass_context=True)
@@ -120,7 +118,7 @@ class ModTools:
     @bag.command(name='remove')
     async def remove_bag(self, ctx, msg: str):
         """Remove a phrase from the bag"""
-        if sql.remove_bag(msg):
+        if await sql.remove_bag(msg):
             await ctx.send('Removed message from bag')
         else:
             await ctx.send('Cannot remove default message from bag')
@@ -128,7 +126,7 @@ class ModTools:
     @bag.command(name='reset')
     async def reset_bag(self, ctx):
         """Reset the bag"""
-        sql.reset_bag()
+        await sql.reset_bag()
         await ctx.send('Reset the bag')
 
     @admin.group(pass_context=True)
@@ -138,12 +136,13 @@ class ModTools:
     @database.command(name='backup')
     async def backup_database(self, ctx):
         """Back up the database"""
-        await ctx.send(f'Backed up to {sql.backup_db()}')
+        fname = await sql.backup_db()
+        await ctx.send(f'Backed up to {fname}')
 
     @database.command(name='restore')
     async def restore_database(self, ctx, *, idx: int = -1):
         """Restore the database"""
-        dbbak = sql.restore_db(idx)
+        dbbak = await sql.restore_db(idx)
         if dbbak is None:
             await ctx.send('Unable to restore backup')
         else:
@@ -154,7 +153,7 @@ class ModTools:
         """Run arbitrary sql command"""
         script = ' '.join(script)
         try:
-            sql.call_script(script)
+            await sql.call_script(script)
         except sql.sqlite3.Error:
             await ctx.send('The script failed with an error (check your syntax?)')
         else:
