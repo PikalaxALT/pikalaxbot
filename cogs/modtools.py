@@ -212,7 +212,7 @@ class ModTools(Cog):
     @admin_cmd.command(name='disable')
     async def disable_command(self, ctx: commands.Context, *, cmd):
         """Disable a command"""
-        if self.bot.disable_command(cmd):
+        if await self.bot.disable_command(cmd):
             await ctx.message.add_reaction('☑')
         else:
             await ctx.send(f'{cmd} is already disabled')
@@ -220,7 +220,7 @@ class ModTools(Cog):
     @admin_cmd.command(name='enable')
     async def enable_command(self, ctx: commands.Context, *, cmd):
         """Enable a command"""
-        if self.bot.enable_command(cmd):
+        if await self.bot.enable_command(cmd):
             await ctx.message.add_reaction('☑')
         else:
             await ctx.send(f'{cmd} is already enabled')

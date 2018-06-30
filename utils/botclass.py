@@ -1,12 +1,12 @@
 import asyncio
 import discord
+from discord.ext import commands
+from discord.client import log
 import logging
 import os
 import glob
 import traceback
-from discord.ext import commands
 from utils.config_io import Settings
-from discord.client import log
 from utils.checks import can_learn_markov, VoiceCommandError
 from utils import markov, sql
 import typing
@@ -25,36 +25,40 @@ class PikalaxBOT(commands.Bot):
     }
     __slots__ = (
         'whitelist', 'debug', 'markov_channels', 'cooldown', 'command_prefix', 'help_name',
-        'game', 'banlist', 'disabled_commands', 'voice_chans', 'disabled_cogs', 'espeak_kw'
+        'game', 'banlist', 'disabled_commands', 'voice_chans', 'disabled_cogs', 'espeak_kw', 'settings', '_token',
+        'owner_id'
     )
     initialized = False
     storedMsgsSet = set()
 
     def __init__(self, args):
+        # Set up logger
         log.setLevel(logging.DEBUG if args.debug else logging.INFO)
         handler = logging.FileHandler(args.logfile, mode='w')
         fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
         handler.setFormatter(fmt)
         log.addHandler(handler)
 
-        with Settings() as settings:
-            command_prefix = settings.get('meta', 'prefix', '!')
-            self._token = settings.get('credentials', 'token')
-            self.owner_id = settings.get('credentials', 'owner')
-            for key, value in settings.items('user'):
-                tp: typing.Type = self.__type_mapping__.get(key)
-                if tp is not None:
-                    if tp is dict and isinstance(value, list):
-                        value = {k_: None for k_ in value}
-                    else:
-                        value = tp(value)
-                key = self.__attr_mapping__.get(key, key)
-                setattr(self, key, value)
-            super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
-            self.commit()
+        # Load settings
+        self.settings = Settings(fname=args.settings)
+        with self.settings:
+            for cat in self.settings.categories:
+                for key, value in self.settings.items(cat):
+                    tp: typing.Type = self.__type_mapping__.get(key)
+                    if tp is not None:
+                        if tp is dict and isinstance(value, list):
+                            value = {k_: None for k_ in value}
+                        else:
+                            value = tp(value)
+                    key = self.__attr_mapping__.get(key, key)
+                    setattr(self, key, value)
+        super().__init__(self.command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
+        self.commit()
 
+        # Init Markov chain
         self.chain = markov.Chain(store_lowercase=True)
 
+        # Load cogs
         dname = os.path.dirname(__file__) or '.'
         for cogfile in glob.glob(f'{dname}/../cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
@@ -69,19 +73,20 @@ class PikalaxBOT(commands.Bot):
                 else:
                     log.info(f'Skipping disabled cog "{extn}"')
 
+        # Set up sql database
         sql.db_init()
 
     def commit(self):
-        with Settings() as settings:
-            for group in settings.categories:
-                for key in settings.keys(group):
+        with self.settings:
+            for group in self.settings.categories:
+                for key in self.settings.keys(group):
                     attr = self.__attr_mapping__.get(key, key)
                     val = getattr(self, attr, None)
                     if key == 'whitelist' and isinstance(val, dict):
                         val = list(val.keys())
                     elif isinstance(val, set) and val is not None:
                         val = list(val)
-                    settings.set(group, key, val)
+                    self.settings.set(group, key, val)
 
     def ban(self, person):
         self.banlist.add(person.id)
@@ -189,13 +194,13 @@ class PikalaxBOT(commands.Bot):
         activity = discord.Game(self.game)
         await self.change_presence(activity=activity)
 
-    def enable_command(self, cmd):
+    async def enable_command(self, cmd):
         res = cmd in self.disabled_commands
         self.disabled_commands.discard(cmd)
         self.commit()
         return res
 
-    def disable_command(self, cmd):
+    async def disable_command(self, cmd):
         res = cmd not in self.disabled_commands
         self.disabled_commands.add(cmd)
         self.commit()
