@@ -9,6 +9,7 @@ import traceback
 from utils.config_io import Settings
 from utils.checks import can_learn_markov, VoiceCommandError
 from utils import markov, sql
+from utils.converters import KwargConverterError
 import typing
 
 
@@ -131,7 +132,7 @@ class PikalaxBOT(commands.Bot):
     def find_emoji_in_guild(guild, *names, default=None):
         return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
 
-    async def on_command_error(self, ctx, exc):
+    async def on_command_error(self, ctx: commands.Context, exc):
         # await super().on_command_error(ctx, exc)
         if isinstance(exc, commands.CommandNotFound):
             return
@@ -150,6 +151,11 @@ class PikalaxBOT(commands.Bot):
         elif exc is NotImplemented:
             await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
                            f'not fully implemented {emoji}')
+        elif isinstance(exc, KwargConverterError):
+            invalid_kw = ', '.join(exc.invalid_words)
+            await ctx.send(f'{ctx.author.mention}: Syntax for {ctx.invoked_with} is "key1=value1 key2=value2". '
+                           f'The following words violate this {emoji}\n'
+                           f'{invalid_kw}')
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):

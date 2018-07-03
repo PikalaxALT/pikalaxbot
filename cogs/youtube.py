@@ -7,6 +7,7 @@ from discord.ext import commands
 from utils.botclass import PikalaxBOT
 from utils.checks import VoiceCommandError
 from utils.default_cog import Cog
+from utils.converters import KwargConverter
 import subprocess
 import os
 import time
@@ -170,27 +171,14 @@ class YouTube(Cog):
         await ctx.invoke(self.stop)
 
     @pikavoice.command()
-    async def params(self, ctx, *, kwargs):
+    async def params(self, ctx, *, kwargs: KwargConverter):
         """Update pikavoice params"""
-        params = dict(self.bot.espeak_kw)
-        invalid_keys = set()
-        invalid_syntax = set()
-        for word in kwargs.split():
-            try:
-                key, value = word.split('=')
-                if key in 'agklpsv':
-                    params[key] = value
-                else:
-                    invalid_keys.add(key)
-            except ValueError:
-                invalid_syntax.add(word)
-        msg = ''
+        invalid_keys = [key for key in kwargs if key not in tuple('agklpsv')]
         if len(invalid_keys) > 0:
-            msg += f'Invalid parameters: {", ".join(invalid_keys)}\n'
-        if len(invalid_syntax) > 0:
-            msg += f'Invalid syntax: {", ".join(invalid_syntax)}\n'
-        if len(msg) > 0:
+            msg = f'Invalid parameters: {", ".join(invalid_keys)}\n'
             raise VoiceCommandError(msg)
+        params = dict(self.bot.espeak_kw)
+        params.update(kwargs)
         try:
             call_espeak('Test', 'tmp.wav', **params)
         except subprocess.CalledProcessError:
