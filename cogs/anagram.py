@@ -97,7 +97,7 @@ class AnagramGame(GameBase):
 class Anagram(GameCogBase):
     gamecls = AnagramGame
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
         if ctx.invoked_subcommand is None:

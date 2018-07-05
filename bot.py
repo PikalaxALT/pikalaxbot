@@ -1,12 +1,6 @@
 import asyncio
 import discord
 import argparse
-import glob
-import logging
-import os
-import sys
-from discord.client import log
-from utils import sql
 from utils.botclass import PikalaxBOT
 
 
@@ -18,8 +12,6 @@ def main():
     args = parser.parse_args()
 
     bot = PikalaxBOT(args)
-
-    log.info('Starting bot')
     bot.run()
 
 

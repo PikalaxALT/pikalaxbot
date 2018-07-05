@@ -4,10 +4,31 @@ import os
 import random
 from discord.ext import commands
 from utils import sql
-from utils.checks import can_markov, can_learn_markov
 from utils.game import find_emoji
 from utils.data import data
 from utils.default_cog import Cog
+
+
+class HMM:
+    def __init__(self, transition, emission):
+        self.transition = transition
+        self.emission = emission
+        self.state = 0
+
+    @property
+    def n_states(self):
+        return len(self.transition)
+
+    def emit(self):
+        self.state = random.choices(range(self.n_states), weights=self.transition[self.state])
+        return self.emission[self.state]
+
+    def get_chain(self, length, start=0, end=-1):
+        self.state = start
+        for i in range(length):
+            yield self.emit()
+            if self.state == end:
+                break
 
 
 class Meme(Cog):
@@ -19,22 +40,17 @@ class Meme(Cog):
         'fixstarmie': 'Danny',
         'fixmeme': 'Jet'
     }
-
-    @staticmethod
-    def gen_nebby():
-        transition = [[0, 1, 0, 0, 0],
-                      [1, 2, 1, 0, 0],
-                      [0, 0, 1, 1, 0],
-                      [0, 0, 0, 1, 9],
-                      [0, 0, 0, 0, 1]]
-        state = 0
-        emission = 'P'
-        while len(emission) < 100:
-            state = random.choices(range(5), weights=transition[state])[0]
-            if state == 4:
-                break
-            emission += 'pew!'[state]
-        return emission
+    bot_names = {
+        'fixyay': 'xfix\s bot'
+    }
+    _nebby = HMM(
+        [[0, 1, 0, 0, 0],
+         [1, 2, 1, 0, 0],
+         [0, 0, 1, 1, 0],
+         [0, 0, 0, 1, 9],
+         [0, 0, 0, 0, 1]],
+        'pew! '
+    )
 
     @commands.command()
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
@@ -72,9 +88,9 @@ class Meme(Cog):
                 await ctx.send(f'*{message}*')
 
     @bag.command()
-    async def add(self, ctx, *fmtstr):
+    async def add(self, ctx, *, fmtstr):
         """Add a message to the bag."""
-        if await sql.add_bag(' '.join(fmtstr)):
+        if await sql.add_bag(fmtstr):
             await ctx.send('Message was successfully placed in the bag')
         else:
             await ctx.send('That message is already in the bag')
@@ -82,51 +98,18 @@ class Meme(Cog):
     @commands.command()
     async def nebby(self, ctx):
         """Pew!"""
-        # States: start, P, E, W, !, end
-        emission = self.gen_nebby()
+        emission = ''.join(self._nebby.get_chain(100, end=4)).title()
         await ctx.send(emission)
 
-    @commands.command(pass_context=True, hidden=True)
-    @commands.check(can_markov)
-    async def markov(self, ctx):
-        """Generate a random word Markov chain."""
-        chain = self.bot.gen_msg(len_max=250, n_attempts=10)
-        if chain:
-            await ctx.send(f'{ctx.author.mention}: {chain}')
-        else:
-            await ctx.send(f'{ctx.author.mention}: An error has occurred.')
-
-    async def on_message(self, msg: discord.Message):
-        ctx = await self.bot.get_context(msg)
-        if can_learn_markov(ctx):
-            self.bot.learn_markov(ctx)
-        if can_markov(ctx):
-            await ctx.invoke(self.markov)
-
-    async def on_message_edit(self, old, new):
-        # Remove old message
-        ctx = await self.bot.get_context(old)
-        if can_learn_markov(ctx):
-            self.bot.forget_markov(ctx)
-
-        # Add new message
-        ctx = await self.bot.get_context(new)
-        if can_learn_markov(ctx):
-            self.bot.learn_markov(ctx)
-
-    async def on_message_delete(self, msg):
-        ctx = await self.bot.get_context(msg)
-        if can_learn_markov(ctx):
-            self.bot.forget_markov(ctx)
-
-    @commands.command(pass_context=True)
+    @commands.command()
     async def yolonome(self, ctx):
         """Happy birthday, Waggle!"""
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
-    @commands.command(pass_context=True)
+    @commands.command()
     @commands.is_nsfw()
+    @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
         url = ''
@@ -145,10 +128,7 @@ class Meme(Cog):
                 if r.status == 200:
                     with open(filename, 'wb') as t:
                         t.write(await r.read())
-                    try:
-                        await ctx.send(file=discord.file.File(filename))
-                    except discord.Forbidden:
-                        await ctx.send('Could not upload the meme (bot lacks permissions)')
+                    await ctx.send(file=discord.file.File(filename))
                     os.remove(filename)
                 else:
                     await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
@@ -159,7 +139,8 @@ class Meme(Cog):
     async def fix(self, ctx: commands.Context):
         alias = ctx.invoked_with
         owner = self.bot_owners.get(alias, 'already')
-        await ctx.send(f'"Fix your bot, {owner}!" - PikalaxALT 2018')
+        botname = self.bot_names.get(alias, 'your bot')
+        await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT 2018')
 
 
 def setup(bot):

@@ -6,7 +6,7 @@ from utils.default_cog import Cog
 
 
 class Leaderboard(Cog):
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def leaderboard(self, ctx: commands.Context):
         """Commands to check the leaderboard"""
         if ctx.invoked_subcommand is None:

@@ -120,7 +120,7 @@ class HangmanGame(GameBase):
 class Hangman(GameCogBase):
     gamecls = HangmanGame
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def hangman(self, ctx):
         """Play Hangman"""
         if ctx.invoked_subcommand is None:

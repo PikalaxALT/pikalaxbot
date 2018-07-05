@@ -1,16 +1,17 @@
 import asyncio
 import discord
 from discord.ext import commands
-from discord.client import log
 import logging
 import os
 import glob
 import traceback
 from utils.config_io import Settings
-from utils.checks import can_learn_markov, VoiceCommandError
-from utils import markov, sql
-from utils.converters import KwargConverterError
-import typing
+from utils import sql
+from utils.converters import KwargConverterError, EspeakKwargsConverterError
+
+
+class VoiceCommandError(commands.CommandError):
+    """This is raised when an error occurs in a voice command."""
 
 
 class PikalaxBOT(commands.Bot):
@@ -20,113 +21,104 @@ class PikalaxBOT(commands.Bot):
         'owner': 'owner_id'
     }
     __type_mapping__ = {
-        'whitelist': dict,
         'banlist': set,
-        'disabled_commands': set
+        'disabled_commands': set,
+        'markov_channel': set
     }
-    __slots__ = (
-        'whitelist', 'debug', 'markov_channels', 'cooldown', 'command_prefix', 'help_name',
-        'game', 'banlist', 'disabled_commands', 'voice_chans', 'disabled_cogs', 'espeak_kw', 'settings', '_token',
-        'owner_id'
-    )
-    initialized = False
-    storedMsgsSet = set()
 
-    def __init__(self, args):
+    def __init__(self, args, *, loop=None):
         # Set up logger
-        log.setLevel(logging.DEBUG if args.debug else logging.INFO)
+        self.logger = logging.getLogger('discord')
+        self.logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
         handler = logging.FileHandler(args.logfile, mode='w')
         fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
         handler.setFormatter(fmt)
-        log.addHandler(handler)
+        self.logger.addHandler(handler)
 
         # Load settings
+        loop = asyncio.get_event_loop() if loop is None else loop
         self.settings = Settings(fname=args.settings)
         with self.settings:
-            for cat in self.settings.categories:
-                for key, value in self.settings.items(cat):
-                    tp: typing.Type = self.__type_mapping__.get(key)
-                    if tp is not None:
-                        if tp is dict and isinstance(value, list):
-                            value = {k_: None for k_ in value}
-                        else:
-                            value = tp(value)
-                    key = self.__attr_mapping__.get(key, key)
-                    setattr(self, key, value)
-        super().__init__(self.command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
-        self.commit()
-
-        # Init Markov chain
-        self.chain = markov.Chain(store_lowercase=True)
+            help_name = self.settings.user.help_name
+            command_prefix = self.settings.meta.prefix
+            disabled_cogs = self.settings.user.disabled_cogs
+        super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
 
         # Load cogs
         dname = os.path.dirname(__file__) or '.'
         for cogfile in glob.glob(f'{dname}/../cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
                 extn = f'cogs.{os.path.splitext(os.path.basename(cogfile))[0]}'
-                if extn.split('.')[1] not in self.disabled_cogs:
+                if extn.split('.')[1] not in disabled_cogs:
                     try:
                         self.load_extension(extn)
                     except discord.ClientException:
-                        log.warning(f'Failed to load cog "{extn}"')
+                        self.logger.warning(f'Failed to load cog "{extn}"')
                     else:
-                        log.info(f'Loaded cog "{extn}"')
+                        self.logger.info(f'Loaded cog "{extn}"')
                 else:
-                    log.info(f'Skipping disabled cog "{extn}"')
+                    self.logger.info(f'Skipping disabled cog "{extn}"')
 
         # Set up sql database
         sql.db_init()
 
-    def commit(self):
-        with self.settings:
-            for group in self.settings.categories:
-                for key in self.settings.keys(group):
-                    attr = self.__attr_mapping__.get(key, key)
-                    val = getattr(self, attr, None)
-                    if key == 'whitelist' and isinstance(val, dict):
-                        val = list(val.keys())
-                    elif isinstance(val, set) and val is not None:
-                        val = list(val)
-                    self.settings.set(group, key, val)
+    @property
+    def markov_channels(self):
+        cog = self.get_cog('Markov')
+        if cog is not None:
+            return cog.markov_channels
 
-    def ban(self, person):
-        self.banlist.add(person.id)
-        self.commit()
+    @markov_channels.setter
+    def markov_channels(self, value):
+        cog = self.get_cog('Markov')
+        if cog is not None:
+            cog.markov_channels = set(value)
 
-    def unban(self, person):
-        self.banlist.remove(person.id)
-        self.commit()
+    @property
+    def espeak_kw(self):
+        cog = self.get_cog('YouTube')
+        if cog is not None:
+            return cog.espeak_kw
+
+    @espeak_kw.setter
+    def espeak_kw(self, value):
+        cog = self.get_cog('YouTube')
+        if cog is not None:
+            cog.espeak_kw = value
+
+    @property
+    def voice_chans(self):
+        cog = self.get_cog('YouTube')
+        if cog is not None:
+            return cog.voice_chans
+
+    @voice_chans.setter
+    def voice_chans(self, value):
+        cog = self.get_cog('YouTube')
+        if cog is not None:
+            cog.voice_chans = value
 
     def get_nick(self, guild: discord.Guild):
         member = guild.get_member(self.user.id)
+        # Assume hasattr(member, nick)
         return member.nick
 
     def run(self):
-        super().run(self._token)
+        self.logger.info('Starting bot')
+        with self.settings:
+            token = self.settings.credentials.token
+        super().run(token)
 
-    async def close(self, is_int=True):
-        if is_int and isinstance(self.whitelist, dict):
-            for channel in self.whitelist.values():
-                await channel.send('Shutting down... (console kill)')
+    async def login(self, token, *, bot=True):
+        for cog in self.cogs.values():
+            await cog.fetch()
+        await super().login(token, bot=bot)
+
+    async def close(self):
+        for cog in self.cogs.values():
+            await cog.commit()
         await super().close()
-        self.commit()
         await sql.backup_db()
-
-    def gen_msg(self, len_max=64, n_attempts=5):
-        longest = ''
-        lng_cnt = 0
-        chain = self.chain
-        if chain is not None:
-            for i in range(n_attempts):
-                cur = chain.generate(len_max)
-                if len(cur) > lng_cnt:
-                    msg = ' '.join(cur)
-                    if i == 0 or msg not in self.storedMsgsSet:
-                        lng_cnt = len(cur)
-                        longest = msg
-                        if lng_cnt == len_max:
-                            break
-        return longest
 
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
@@ -152,10 +144,18 @@ class PikalaxBOT(commands.Bot):
             await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
                            f'not fully implemented {emoji}')
         elif isinstance(exc, KwargConverterError):
-            invalid_kw = ', '.join(exc.invalid_words)
-            await ctx.send(f'{ctx.author.mention}: Syntax for {ctx.invoked_with} is "key1=value1 key2=value2". '
-                           f'The following words violate this {emoji}\n'
-                           f'{invalid_kw}')
+            msg = f'{ctx.author}: Syntax for {ctx.invoked_with} is "key1=value1 key2=value2". {emoji}'
+            if exc.invalid_words:
+                invalid_kw = ', '.join(exc.invalid_words)
+                msg += f'\n  The following words violate this syntax:\n    {invalid_kw}'
+            if isinstance(exc, EspeakKwargsConverterError):
+                if exc.invalid_keys:
+                    invalid_keys = ', '.join(exc.invalid_keys)
+                    msg += f'\n  The following keys are not valid for {ctx.invoked_with}:\n    {invalid_keys}'
+                if exc.invalid_values:
+                    invalid_values = ', '.join(f'{k}={v}' for k, v in exc.invalid_values.items())
+                    msg += f'\n  The following values are not understood for {ctx.invoked_with}:\n    {invalid_values}'
+            await ctx.send(msg)
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
@@ -170,44 +170,5 @@ class PikalaxBOT(commands.Bot):
             if hasattr(cog, attr):
                 return
 
-        log.error(f'Ignoring exception in command {ctx.command}:')
-        log.error(tb)
-        # for handler in log.handlers:  # type: logging.Handler
-        #     handler.flush()
-
-    def learn_markov(self, ctx):
-        self.storedMsgsSet.add(ctx.message.clean_content)
-        self.chain.learn_str(ctx.message.clean_content)
-
-    def forget_markov(self, ctx):
-        self.chain.unlearn_str(ctx.message.clean_content)
-    
-    async def on_ready(self):
-        if not self.initialized:
-            for ch in self.markov_channels:
-                channel = self.get_channel(ch)  # type: discord.TextChannel
-                try:
-                    async for msg in channel.history(limit=5000):
-                        ctx = await self.get_context(msg)
-                        if can_learn_markov(ctx, force=True):
-                            self.learn_markov(ctx)
-                    log.info(f'Initialized channel {channel.name}')
-                except discord.Forbidden:
-                    log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
-                except AttributeError:
-                    log.error(f'Failed to load chain {ch:d}')
-            self.initialized = True
-        activity = discord.Game(self.game)
-        await self.change_presence(activity=activity)
-
-    async def enable_command(self, cmd):
-        res = cmd in self.disabled_commands
-        self.disabled_commands.discard(cmd)
-        self.commit()
-        return res
-
-    async def disable_command(self, cmd):
-        res = cmd not in self.disabled_commands
-        self.disabled_commands.add(cmd)
-        self.commit()
-        return res
+        self.logger.error(f'Ignoring exception in command {ctx.command}:')
+        self.logger.error(tb)

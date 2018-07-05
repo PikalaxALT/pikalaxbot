@@ -2,12 +2,10 @@ import asyncio
 import discord
 import youtube_dl
 import ctypes.util
-from discord.client import log
 from discord.ext import commands
-from utils.botclass import PikalaxBOT
-from utils.checks import VoiceCommandError
+from utils.botclass import PikalaxBOT, VoiceCommandError
 from utils.default_cog import Cog
-from utils.converters import KwargConverter
+from utils.converters import EspeakKwargsConverter
 import subprocess
 import os
 import time
@@ -22,27 +20,22 @@ class cleaner_content(commands.clean_content):
         return argument
 
 
-def check_ready(ctx):
-    return ctx.command.instance.ready
-
-
 def connected_and_not_playing(ctx):
     return ctx.voice_client.is_connected() and not ctx.voice_client.is_playing()
 
 
-def call_espeak(msg, fname, **kwargs):
-    args = ['espeak', '-w', fname]
-    for flag, value in kwargs.items():
-        dashes = '-' * (1 + (len(flag) > 1))
-        args.extend([f'{dashes}{flag}', str(value)])
-    args.append(msg)
-    subprocess.check_call(args)
-
-
 class EspeakAudioSource(discord.FFmpegPCMAudio):
-    def __init__(self, bot, msg, *args, **kwargs):
+    @staticmethod
+    def call_espeak(msg, fname, **kwargs):
+        args = ['espeak', '-w', fname]
+        for flag, value in kwargs.items():
+            args.extend([f'-{flag}', str(value)])
+        args.append(msg)
+        subprocess.check_call(args)
+
+    def __init__(self, cog, msg, *args, **kwargs):
         self.fname = f'tmp_{time.time()}.wav'
-        call_espeak(msg, self.fname, **bot.espeak_kw)
+        self.call_espeak(msg, self.fname, **cog.espeak_kw)
         super().__init__(self.fname, *args, **kwargs)
 
     def cleanup(self):
@@ -52,14 +45,33 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
 
 
 class YouTube(Cog):
-    __slots__ =('ready', 'connections', 'ffmpeg', 'executor')
+    __ytdl_format_options = {
+        'format': 'bestaudio/best',
+        'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+        'restrictfilenames': True,
+        'noplaylist': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'logtostderr': False,
+        'quiet': True,
+        'no_warnings': True,
+        'default_search': 'auto',
+        'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
+    }
+    __ffmpeg_options = {
+        'before_options': '-nostdin -loglevel quiet',
+        'options': '-vn'
+    }
+    espeak_kw = {}
+    voice_chans = {}
+    config_attrs = 'espeak_kw', 'voice_chans'
+    __local_check = lambda self, ctx: self.ready
 
-    @staticmethod
-    def load_opus():
+    def load_opus(self):
         if not discord.opus.is_loaded():
             opus_name = ctypes.util.find_library('libopus')
             if opus_name is None:
-                log.error('Failed to find the Opus library.')
+                self.bot.logger.error('Failed to find the Opus library.')
             else:
                 discord.opus.load_opus(opus_name)
         return discord.opus.is_loaded()
@@ -68,6 +80,7 @@ class YouTube(Cog):
         super().__init__(bot)
         self.ready = False
         self.connections = {}
+
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
                 try:
@@ -75,38 +88,33 @@ class YouTube(Cog):
                 except FileNotFoundError:
                     continue
                 self.ffmpeg = executable
+                self.__ffmpeg_options['executable'] = executable
                 break
             else:
                 raise discord.ClientException('ffmpeg or avconv not installed')
-        self.executor = ThreadPoolExecutor()
 
-    # @staticmethod
-    # async def on_command_error(ctx, exc):
-    #     if isinstance(ctx.cog, YouTube):
-    #         tb = ''.join(traceback.format_exception_only(type(exc), exc))
-    #         embed = discord.Embed(color=0xff0000)
-    #         embed.add_field(name='Traceback', value=f'```{tb}```')
-    #         await ctx.send(f'An error has occurred', embed=embed)
+        self.executor = ThreadPoolExecutor()
+        self.__ytdl_player = youtube_dl.YoutubeDL(self.__ytdl_format_options)
 
     async def on_ready(self):
         if self.load_opus():
-            log.info('Loaded opus')
-            for guild, chan in self.bot.voice_chans.items():
+            self.bot.logger.info('Loaded opus')
+            await self.fetch()
+            for guild, chan in self.voice_chans.items():
                 ch = self.bot.get_channel(chan)
                 if isinstance(ch, discord.VoiceChannel):
                     try:
                         await ch.connect()
                     except asyncio.TimeoutError:
-                        log.error('Failed to connect to voice channel %s (connection timed out)', ch.name)
+                        self.bot.logger.error('Failed to connect to voice channel %s (connection timed out)', ch.name)
                     except discord.ClientException:
-                        log.error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
+                        self.bot.logger.error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
                     else:
-                        log.info('Connected to voice channel %s', ch.name)
+                        self.bot.logger.info('Connected to voice channel %s', ch.name)
 
             self.ready = True
 
-    @commands.group(pass_context=True)
-    @commands.check(check_ready)
+    @commands.group()
     # @commands.is_owner()
     async def pikavoice(self, ctx: commands.Context):
         """Commands for interacting with the bot in voice channels"""
@@ -127,8 +135,8 @@ class YouTube(Cog):
                 raise commands.MissingPermissions(['connect'])
             if ch.guild != ctx.guild:
                 raise VoiceCommandError('Guild mismatch')
-            if ctx.guild.id in self.bot.voice_chans:
-                if ch.id == self.bot.voice_chans[ctx.guild.id]:
+            if ctx.guild.id in self.voice_chans:
+                if ch.id == self.voice_chans[ctx.guild.id]:
                     raise VoiceCommandError('Already connected to that channel')
                 vcl: discord.VoiceClient = ctx.guild.voice_client
                 if vcl is None:
@@ -139,8 +147,8 @@ class YouTube(Cog):
                     await ch.connect()
             else:
                 await ch.connect()
-            self.bot.voice_chans[ctx.guild.id] = ch.id
-            self.bot.commit()
+            self.voice_chans[ctx.guild.id] = ch.id
+            await self.commit()
             await ctx.send('Joined the voice channel!')
 
     @pikavoice.command()
@@ -148,7 +156,7 @@ class YouTube(Cog):
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
-        ctx.guild.voice_client.play(EspeakAudioSource(self.bot, msg, executable=self.ffmpeg,
+        ctx.guild.voice_client.play(EspeakAudioSource(self, msg, executable=self.ffmpeg,
                                                       before_options='-loglevel quiet'),
                                     after=lambda e: print('Player error: %s' % e) if e else None)
 
@@ -171,29 +179,38 @@ class YouTube(Cog):
         await ctx.invoke(self.stop)
 
     @pikavoice.command()
-    async def params(self, ctx, *, kwargs: KwargConverter):
-        """Update pikavoice params"""
-        invalid_keys = [key for key in kwargs if key not in tuple('agklpsv')]
-        if len(invalid_keys) > 0:
-            msg = f'Invalid parameters: {", ".join(invalid_keys)}\n'
-            raise VoiceCommandError(msg)
-        params = dict(self.bot.espeak_kw)
+    async def params(self, ctx, *, kwargs: EspeakKwargsConverter):
+        f"""Update pikavoice params.
+
+        Syntax:
+        {self.bot.command_prefix}pikavoice params a=amplitude
+        g=gap k=emphasis p=pitch s=speed v=voice"""
+        params = dict(self.espeak_kw)
         params.update(kwargs)
         try:
-            call_espeak('Test', 'tmp.wav', **params)
+            EspeakAudioSource.call_espeak('Test', 'tmp.wav', **params)
         except subprocess.CalledProcessError:
             await ctx.send('Parameters could not be updated')
         else:
-            self.bot.espeak_kw = params
-            self.bot.commit()
+            self.espeak_kw = params
+            await self.commit()
             await ctx.send('Parameters successfully updated')
         finally:
             os.remove('tmp.wav')
 
     @commands.command()
     async def pikaparams(self, ctx, *, kwargs):
-        """Update pikavoice params"""
+        f"""Update pikavoice params.
+
+        Syntax:
+        {self.bot.command_prefix}pikaparams a=amplitude
+        g=gap k=emphasis p=pitch s=speed v=voice"""
         await ctx.invoke(self.params, kwargs=kwargs)
+
+    @commands.command()
+    @commands.check(connected_and_not_playing)
+    async def ytplay(self, ctx: commands.Context, url):
+        ...
 
 
 def setup(bot: PikalaxBOT):
@@ -201,5 +218,5 @@ def setup(bot: PikalaxBOT):
 
 
 def teardown(bot: PikalaxBOT):
-    for vc in bot.voice_clients: # type: discord.VoiceClient
-        asyncio.ensure_future(vc.disconnect(), loop=bot.loop)
+    for vc in bot.voice_clients:  # type: discord.VoiceClient
+        bot.loop.create_task(vc.disconnect())

@@ -1,55 +1,36 @@
 import asyncio
 import discord
-import subprocess
-import traceback
 from utils.default_cog import Cog
-from utils.botclass import PikalaxBOT
 from discord.ext import commands
-from discord.client import log
 
 
 class Core(Cog):
+    disabled_commands = set()
+    banlist = set()
+    game = '!pikakill'
+    config_attrs = 'disabled_commands', 'banlist', 'game'
+
     async def __global_check(self, ctx: commands.Context):
-        if not self.bot.initialized:
-            return False
-        if ctx.channel.id not in self.bot.whitelist:
-            return False
         if ctx.author.bot:
             return False
         if isinstance(ctx.command, commands.Command):
             if ctx.author == self.bot.user:
                 return True
-            if ctx.command.name in self.bot.disabled_commands:
+            if ctx.command.name in self.disabled_commands:
                 return False
-        if ctx.author.id in self.bot.banlist:
+        if ctx.author.id in self.banlist:
             return False
-        return True
+        return ctx.channel.permissions_for(ctx.bot.user).send_messages
 
-    @commands.command(pass_context=True, aliases=['pikareboot'])
+    @commands.command(aliases=['pikareboot'])
     @commands.is_owner()
     async def pikakill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
-        for chan in self.bot.whitelist.values():
-            if ctx.invoked_with == 'pikareboot':
-                await chan.send('Rebooting to apply updates...')
-            else:
-                await chan.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
-        await self.bot.close(is_int=False)
+        await self.bot.close()
 
     async def on_ready(self):
-        typing = []
-        self.bot.whitelist = {ch.id: ch for ch in map(self.bot.get_channel, self.bot.whitelist) if ch is not None}
-        for channel in self.bot.whitelist.values():
-            typing.append(await channel.typing().__aenter__())
-        try:
-            await self.bot.on_ready()
-            for channel in self.bot.whitelist.values():
-                await channel.send('_is active and ready for abuse!_')
-        except Exception as e:
-            log.error('%s %s %s', ''.join(traceback.format_exception(type(e), e, e.__traceback__)))
-            raise e
-        finally:
-            [t.task.cancel() for t in typing]
+        activity = discord.Game(self.game)
+        await self.bot.change_presence(activity=activity)
 
 
 def setup(bot):

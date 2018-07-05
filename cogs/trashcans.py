@@ -127,7 +127,7 @@ class Trashcans(GameCogBase):
     async def argcheck(self, ctx, *args):
         return await super().argcheck(ctx, *args, maxy=3)
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
         if ctx.invoked_subcommand is None:

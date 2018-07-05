@@ -248,7 +248,7 @@ class VoltorbFlipGame(GameBase):
 class VoltorbFlip(GameCogBase):
     gamecls = VoltorbFlipGame
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def voltorb(self, ctx):
         """Play Voltorb Flip"""
         if ctx.invoked_subcommand is None:
