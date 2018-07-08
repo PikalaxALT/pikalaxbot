@@ -1,3 +1,19 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
 import youtube_dl
@@ -5,7 +21,6 @@ import ctypes.util
 from discord.ext import commands
 from utils.botclass import PikalaxBOT, VoiceCommandError
 from utils.default_cog import Cog
-from utils.converters import EspeakKwargsConverter
 import subprocess
 import os
 import time
@@ -22,6 +37,25 @@ class cleaner_content(commands.clean_content):
 
 def connected_and_not_playing(ctx):
     return ctx.voice_client.is_connected() and not ctx.voice_client.is_playing()
+
+
+class EspeakParamsConverter(commands.Converter):
+    def __init__(self, **valid_keys):
+        """Converts key=value pairs to a 2ple
+        valid_keys: name=type pairs
+        """
+        super().__init__()
+        self.valid_keys = valid_keys
+
+    async def convert(self, ctx, argument):
+        if isinstance(argument, str):
+            # Convert from a string
+            key, value = argument.split('=')
+            value = self.valid_keys[key](value)
+        else:
+            # Make sure this is an iterable of length 2
+            key, value = argument
+        return key, value
 
 
 class EspeakAudioSource(discord.FFmpegPCMAudio):
@@ -65,7 +99,17 @@ class YouTube(Cog):
     espeak_kw = {}
     voice_chans = {}
     config_attrs = 'espeak_kw', 'voice_chans'
-    __local_check = lambda self, ctx: self.ready
+    __espeak_valid_keys = {
+        'a': int,
+        's': int,
+        'v': str,
+        'p': int,
+        'g': int,
+        'k': int
+    }
+
+    def __local_check(self, ctx):
+        return self.ready
 
     def load_opus(self):
         if not discord.opus.is_loaded():
@@ -179,14 +223,15 @@ class YouTube(Cog):
         await ctx.invoke(self.stop)
 
     @pikavoice.command()
-    async def params(self, ctx, *, kwargs: EspeakKwargsConverter):
+    async def params(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
         f"""Update pikavoice params.
 
         Syntax:
         {self.bot.command_prefix}pikavoice params a=amplitude
         g=gap k=emphasis p=pitch s=speed v=voice"""
         params = dict(self.espeak_kw)
-        params.update(kwargs)
+        for key, value in kwargs:
+            params[key] = (str if key == 'v' else int)(value)
         try:
             EspeakAudioSource.call_espeak('Test', 'tmp.wav', **params)
         except subprocess.CalledProcessError:
@@ -199,13 +244,13 @@ class YouTube(Cog):
             os.remove('tmp.wav')
 
     @commands.command()
-    async def pikaparams(self, ctx, *, kwargs):
+    async def pikaparams(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
         f"""Update pikavoice params.
 
         Syntax:
         {self.bot.command_prefix}pikaparams a=amplitude
         g=gap k=emphasis p=pitch s=speed v=voice"""
-        await ctx.invoke(self.params, kwargs=kwargs)
+        await ctx.invoke(self.params, *kwargs)
 
     @commands.command()
     @commands.check(connected_and_not_playing)

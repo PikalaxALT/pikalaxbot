@@ -1,3 +1,19 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
 from discord.ext import commands
@@ -7,7 +23,6 @@ import glob
 import traceback
 from utils.config_io import Settings
 from utils import sql
-from utils.converters import KwargConverterError, EspeakKwargsConverterError
 
 
 class VoiceCommandError(commands.CommandError):
@@ -138,19 +153,6 @@ class PikalaxBOT(commands.Bot):
         elif exc is NotImplemented:
             await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
                            f'not fully implemented {emoji}')
-        elif isinstance(exc, KwargConverterError):
-            msg = f'{ctx.author}: Syntax for {ctx.invoked_with} is "key1=value1 key2=value2". {emoji}'
-            if exc.invalid_words:
-                invalid_kw = ', '.join(exc.invalid_words)
-                msg += f'\n  The following words violate this syntax:\n    {invalid_kw}'
-            if isinstance(exc, EspeakKwargsConverterError):
-                if exc.invalid_keys:
-                    invalid_keys = ', '.join(exc.invalid_keys)
-                    msg += f'\n  The following keys are not valid for {ctx.invoked_with}:\n    {invalid_keys}'
-                if exc.invalid_values:
-                    invalid_values = ', '.join(f'{k}={v}' for k, v in exc.invalid_values.items())
-                    msg += f'\n  The following values are not understood for {ctx.invoked_with}:\n    {invalid_values}'
-            await ctx.send(msg)
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
