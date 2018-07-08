@@ -20,7 +20,7 @@ class Core(Cog):
                 return False
         if ctx.author.id in self.banlist:
             return False
-        return ctx.channel.permissions_for(ctx.bot.user).send_messages
+        return ctx.channel.permissions_for(ctx.me).send_messages
 
     @commands.command(aliases=['pikareboot'])
     @commands.is_owner()

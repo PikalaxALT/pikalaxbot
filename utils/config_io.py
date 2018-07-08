@@ -56,7 +56,6 @@ class Settings:
 
     def commit(self):
         data = defaultdict(dict)
-        print(*self.categories)
         for cat in self.categories:
             for key, value in cat.items():
                 if isinstance(value, set):

@@ -15,27 +15,25 @@ class Markov(Cog):
         self.storedMsgsSet = set()
         self.chain = Chain(store_lowercase=True)
 
-    def __local_check(self, ctx):
+    def __local_check(self, ctx: commands.Context):
         if not self.initialized:
             return False
         if ctx.author.bot:
             return False
-        if not ctx.channel.permissions_for(ctx.me).permissions_in(ctx.channel).send_messages:
-            return False
-        if ctx.author == self.bot.user:
+        if not ctx.channel.permissions_for(ctx.me).send_messages:
             return False
         if len(self.markov_channels) == 0:
             return False
+        if ctx.command == self.markov:
+            return True
         if ctx.command is not None:
             return False
-        if self.bot.user.mentioned_in(ctx.message):
+        if ctx.me.mentioned_in(ctx.message):
             return True
         words = ctx.message.clean_content.lower().split()
-        if self.bot.user.name.lower() in words:
+        if ctx.me.name.lower() in words:
             return True
-        if self.bot.get_nick(ctx.guild).lower() in words:
-            return True
-        return ctx.invoked_with == 'markov'
+        return ctx.me.nick.lower() in words
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
@@ -74,6 +72,7 @@ class Markov(Cog):
 
     async def on_ready(self):
         if not self.initialized:
+            await self.fetch()
             for ch in list(self.markov_channels):
                 channel = self.bot.get_channel(ch)
                 if channel is None:
@@ -93,10 +92,14 @@ class Markov(Cog):
             await ctx.send(f'{ctx.author.mention}: An error has occurred.')
 
     async def on_message(self, msg: discord.Message):
-        ctx = await self.bot.get_context(msg)
+        ctx: commands.Context = await self.bot.get_context(msg)
         self.learn_markov(ctx)
-        ctx.command = self.markov
-        await self.bot.invoke(ctx)
+        if ctx.command == self.markov:
+            return
+        ctx.command = None
+        if await self.bot.can_run(ctx):
+            ctx.command = self.markov
+            await self.bot.invoke(ctx)
 
     async def on_message_edit(self, old, new):
         # Remove old message

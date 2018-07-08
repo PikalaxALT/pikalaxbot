@@ -98,11 +98,6 @@ class PikalaxBOT(commands.Bot):
         if cog is not None:
             cog.voice_chans = value
 
-    def get_nick(self, guild: discord.Guild):
-        member = guild.get_member(self.user.id)
-        # Assume hasattr(member, nick)
-        return member.nick
-
     def run(self):
         self.logger.info('Starting bot')
         with self.settings:
@@ -171,4 +166,5 @@ class PikalaxBOT(commands.Bot):
                 return
 
         self.logger.error(f'Ignoring exception in command {ctx.command}:')
-        self.logger.error(tb)
+        self.logger.error(''.join(tb))
+        print(*tb)
