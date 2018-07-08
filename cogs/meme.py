@@ -36,8 +36,9 @@ class HMM:
         return len(self.transition)
 
     def emit(self):
-        self.state = random.choices(range(self.n_states), weights=self.transition[self.state])
-        return self.emission[self.state]
+        res = self.emission[self.state]
+        self.state, = random.choices(range(self.n_states), weights=self.transition[self.state])
+        return res
 
     def get_chain(self, length, start=0, end=-1):
         self.state = start
@@ -151,12 +152,24 @@ class Meme(Cog):
                     r.raise_for_status()
                     raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
 
-    @commands.command(aliases=list(bot_owners.keys()))
+    @commands.command()
     async def fix(self, ctx: commands.Context):
         alias = ctx.invoked_with
         owner = self.bot_owners.get(alias, 'already')
         botname = self.bot_names.get(alias, 'your bot')
         await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT 2018')
+
+    async def on_message(self, message):
+        ctx = await self.bot.get_context(message)
+        if ctx.command is not None:
+            return
+        if ctx.prefix is None:
+            return
+        prefix = [ctx.prefix] if isinstance(ctx.prefix, str) else ctx.prefix
+        for pfx in prefix:
+            if message.clean_content.startswith(f'{pfx}{self.fix.name}'):
+                ctx.command = self.fix
+                return await self.bot.invoke(ctx)
 
 
 def setup(bot):

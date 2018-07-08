@@ -31,8 +31,8 @@ class lower(commands.clean_content):
 
 
 class ModTools(Cog):
-    def __local_check(self, ctx: commands.Context):
-        return ctx.channel.permissions_for(ctx.author).administrator
+    async def __local_check(self, ctx: commands.Context):
+        return await self.bot.is_owner(ctx.author) or ctx.channel.permissions_for(ctx.author).administrator
 
     @commands.group(case_insensitive=True)
     async def admin(self, ctx):

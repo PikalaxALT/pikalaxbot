@@ -125,6 +125,7 @@ class PikalaxBOT(commands.Bot):
         await super().login(token, bot=bot)
 
     async def close(self):
+        await self.wall('Shutting down...')
         for cog in self.cogs.values():
             await cog.commit()
         await super().close()
@@ -167,6 +168,17 @@ class PikalaxBOT(commands.Bot):
             if hasattr(cog, attr):
                 return
 
+        if isinstance(exc, commands.CheckFailure):
+            return
+
         self.logger.error(f'Ignoring exception in command {ctx.command}:')
         self.logger.error(''.join(tb))
         print(*tb)
+
+    async def wall(self, *args, **kwargs):
+        for channel in self.get_all_channels():
+            if isinstance(channel, discord.TextChannel) and  channel.permissions_for(channel.guild.me).send_messages:
+                await channel.send(*args, *kwargs)
+
+    async def on_ready(self):
+        await self.wall('_is alive and ready for abuse!_')

@@ -16,6 +16,7 @@
 
 import asyncio
 import discord
+import re
 from discord.ext import commands
 from utils.default_cog import Cog
 from utils.markov import Chain
@@ -40,16 +41,15 @@ class Markov(Cog):
             return False
         if len(self.markov_channels) == 0:
             return False
-        if ctx.command == self.markov:
+        if ctx.invoked_with == self.markov.name:
             return True
-        if ctx.command is not None:
+        if ctx.command != self.markov:
             return False
         if ctx.me.mentioned_in(ctx.message):
             return True
-        words = ctx.message.clean_content.lower().split()
-        if ctx.me.name.lower() in words:
+        if re.search(rf'\b{ctx.me.name}\b', ctx.message.clean_content, re.I) is not None:
             return True
-        return ctx.me.nick.lower() in words
+        return re.search(rf'\b{ctx.me.nick}\b', ctx.message.clean_content, re.I) is not None
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
@@ -67,22 +67,21 @@ class Markov(Cog):
                             break
         return longest
 
-    def learn_markov(self, ctx):
-        if ctx.channel.id in self.markov_channels:
-            self.storedMsgsSet.add(ctx.message.clean_content)
-            self.chain.learn_str(ctx.message.clean_content)
+    def learn_markov(self, message):
+        if message.channel.id in self.markov_channels:
+            self.storedMsgsSet.add(message.clean_content)
+            self.chain.learn_str(message.clean_content)
 
-    def forget_markov(self, ctx):
-        if ctx.channel.id in self.markov_channels:
-            self.chain.unlearn_str(ctx.message.clean_content)
+    def forget_markov(self, message):
+        if message.channel.id in self.markov_channels:
+            self.chain.unlearn_str(message.clean_content)
 
     async def learn_markov_from_history(self, channel: discord.TextChannel):
         if channel.permissions_for(channel.guild.me).read_message_history:
             async for msg in channel.history(limit=5000):
-                ctx = await self.bot.get_context(msg)
-                self.learn_markov(ctx)
-                self.bot.logger.info(f'Markov: Initialized channel {channel}')
-                return True
+                self.learn_markov(msg)
+            self.bot.logger.info(f'Markov: Initialized channel {channel}')
+            return True
         self.bot.logger.error(f'Markov: missing ReadMessageHistory permission for {channel}')
         return False
 
@@ -90,6 +89,7 @@ class Markov(Cog):
         if not self.initialized:
             await self.fetch()
             for ch in list(self.markov_channels):
+                self.bot.logger.debug('%d', ch)
                 channel = self.bot.get_channel(ch)
                 if channel is None:
                     self.bot.logger.error(f'Markov: unable to find text channel {ch:d}')
@@ -108,27 +108,20 @@ class Markov(Cog):
             await ctx.send(f'{ctx.author.mention}: An error has occurred.')
 
     async def on_message(self, msg: discord.Message):
+        self.learn_markov(msg)
         ctx: commands.Context = await self.bot.get_context(msg)
-        self.learn_markov(ctx)
         if ctx.command == self.markov:
             return
-        ctx.command = None
-        if await self.bot.can_run(ctx):
-            ctx.command = self.markov
-            await self.bot.invoke(ctx)
+        ctx.command = self.markov
+        await self.bot.invoke(ctx)
 
     async def on_message_edit(self, old, new):
         # Remove old message
-        ctx = await self.bot.get_context(old)
-        self.forget_markov(ctx)
-
-        # Add new message
-        ctx = await self.bot.get_context(new)
-        self.learn_markov(ctx)
+        self.forget_markov(old)
+        self.learn_markov(new)
 
     async def on_message_delete(self, msg):
-        ctx = await self.bot.get_context(msg)
-        self.forget_markov(ctx)
+        self.forget_markov(msg)
 
 
 def setup(bot):

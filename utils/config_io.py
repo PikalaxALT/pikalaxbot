@@ -74,6 +74,8 @@ class Settings:
         data = defaultdict(dict)
         for cat in self.categories:
             for key, value in cat.items():
+                if key == cat:
+                    continue
                 if isinstance(value, set):
                     value = list(value)
                 data[cat.name][key] = value

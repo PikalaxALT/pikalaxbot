@@ -36,7 +36,8 @@ class cleaner_content(commands.clean_content):
 
 
 def connected_and_not_playing(ctx):
-    return ctx.voice_client.is_connected() and not ctx.voice_client.is_playing()
+    vc = ctx.voice_client
+    return vc is not None and vc.is_connected() and not vc.is_playing()
 
 
 class EspeakParamsConverter(commands.Converter):
