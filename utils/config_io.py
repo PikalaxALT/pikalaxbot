@@ -5,6 +5,9 @@ from collections import defaultdict
 
 
 class SettingsCategory:
+    def __init__(self):
+        self.name = self.__class__.__name__.lower()
+
     def items(self):
         yield from self.__dict__.items()
 
@@ -39,12 +42,7 @@ class Settings:
     credentials = Credentials()
     meta = Meta()
     user = User()
-
-    @property
-    def categories(self):
-        for key, value in self.__dict__.items():
-            if isinstance(value, SettingsCategory):
-                yield key
+    categories = credentials, meta, user
 
     def __init__(self, fname='settings.json'):
         self.fname = fname
@@ -58,13 +56,12 @@ class Settings:
 
     def commit(self):
         data = defaultdict(dict)
+        print(*self.categories)
         for cat in self.categories:
-            for key, value in getattr(self, cat).items():
+            for key, value in cat.items():
                 if isinstance(value, set):
                     value = list(value)
-                data[cat][key] = value
-        print(data)
-        return  # temporary
+                data[cat.name][key] = value
         with open(self.fname, 'w') as fp:
             json.dump(data, fp, separators=(', ', ': '), indent=4)
 

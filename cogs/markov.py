@@ -20,7 +20,7 @@ class Markov(Cog):
             return False
         if ctx.author.bot:
             return False
-        if not self.bot.user.permissions_in(ctx.channel).send_messages:
+        if not ctx.channel.permissions_for(ctx.me).permissions_in(ctx.channel).send_messages:
             return False
         if ctx.author == self.bot.user:
             return False
@@ -63,7 +63,7 @@ class Markov(Cog):
             self.chain.unlearn_str(ctx.message.clean_content)
 
     async def learn_markov_from_history(self, channel: discord.TextChannel):
-        if channel.permissions_for(self.bot.user).read_message_history:
+        if channel.permissions_for(channel.guild.me).read_message_history:
             async for msg in channel.history(limit=5000):
                 ctx = await self.bot.get_context(msg)
                 self.learn_markov(ctx)
