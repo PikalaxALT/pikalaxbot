@@ -108,46 +108,43 @@ class PikalaxBOT(commands.Bot):
         self.log_and_print(logging.ERROR, ''.join(tb))
         return tb
 
-    async def on_command_error(self, ctx: commands.Context, exc):
-        # await super().on_command_error(ctx, exc)
-        if isinstance(exc, commands.CommandNotFound):
-            return
-
-        if isinstance(exc, commands.CheckFailure):
-            return
+    def cmd_error_check(self, ctx, exc):
+        if isinstance(exc, commands.CommandNotFound) or isinstance(exc, commands.CheckFailure):
+            return False
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
-            return
+            return False
 
         if hasattr(ctx.command, 'on_error'):
-            return
+            return False
 
         cog = ctx.cog
         if cog:
             attr = '_{0.__class__.__name__}__error'.format(cog)
             if hasattr(cog, attr):
-                return
+                return False
+
+        return True
+
+    async def on_command_error(self, ctx: commands.Context, exc):
+        async def report(msg):
+            await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=10)
+
+        if not self.cmd_error_check(ctx, exc):
+            return
 
         emoji = self.command_error_emoji(ctx.guild)
         if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
-            await ctx.send(f'{ctx.author.mention}: Permission denied {emoji}',
-                           delete_after=10)
+            await report('Permission denied')
         elif isinstance(exc, commands.MissingPermissions):
-            await ctx.send(f'{ctx.author.mention}: You am missing permissions: '
-                           f'{", ".join(exc.missing_perms)} {emoji}',
-                           delete_after=10)
+            await report(f'You are missing permissions: {", ".join(exc.missing_perms)}')
         elif isinstance(exc, commands.BotMissingPermissions):
-            await ctx.send(f'{ctx.author.mention}: I am missing permissions: '
-                           f'{", ".join(exc.missing_perms)} {emoji}',
-                           delete_after=10)
+            await report(f'I am missing permissions: {", ".join(exc.missing_perms)}')
         elif exc is NotImplemented:
-            await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
-                           f'not fully implemented {emoji}',
-                           delete_after=10)
+            await report('The command or one of its dependencies is not fully implemented')
         elif isinstance(exc, commands.UserInputError):
-            await ctx.send(f'{ctx.author.mention}: **{type(exc).__name__}**: {exc}',
-                           delete_after=10)
+            await report(f'**{type(exc).__name__}**: {exc}')
         else:
             self.log_tb(ctx, exc)
 
