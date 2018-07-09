@@ -1,57 +1,68 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
-import subprocess
-import traceback
-from utils.botclass import PikalaxBOT
+from utils.default_cog import Cog
 from discord.ext import commands
-from discord.client import log
 
 
-class Core:
-    def __init__(self, bot):
-        self.bot: PikalaxBOT = bot
+class Core(Cog):
+    disabled_commands = set()
+    banlist = set()
+    game = '!pikakill'
+    config_attrs = 'disabled_commands', 'banlist', 'game'
 
     async def __global_check(self, ctx: commands.Context):
-        if not self.bot.initialized:
-            return False
-        if ctx.channel.id not in self.bot.whitelist:
-            return False
         if ctx.author.bot:
             return False
         if isinstance(ctx.command, commands.Command):
             if ctx.author == self.bot.user:
                 return True
-            if ctx.command.name in self.bot.disabled_commands:
+            if ctx.command.name in self.disabled_commands:
                 return False
-        if ctx.author.id in self.bot.banlist:
+        if ctx.author.id in self.banlist:
             return False
-        return True
+        return ctx.channel.permissions_for(ctx.me).send_messages
 
-    @commands.command(pass_context=True, aliases=['pikareboot'])
+    @commands.command(aliases=['pikareboot'])
     @commands.is_owner()
     async def pikakill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
-        for chan in self.bot.whitelist.values():
-            if ctx.invoked_with == 'pikareboot':
-                await chan.send('Rebooting to apply updates...')
-            else:
-                await chan.send(f'I don\'t feel so good, Mr. {ctx.author.display_name}...')
-        await self.bot.close(is_int=False)
+        await self.bot.close()
+
+    @commands.command()
+    @commands.is_owner()
+    async def ignore(self, ctx, person: discord.Member):
+        """Ban a member :datsheffy:"""
+        self.banlist.add(person.id)
+        self.commit()
+        await ctx.send(f'{person.display_name} is now banned from interacting with me.')
+
+    @commands.command()
+    @commands.is_owner()
+    async def unignore(self, ctx, person: discord.Member):
+        """Unban a member"""
+        self.banlist.discard(person.id)
+        self.commit()
+        await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
     async def on_ready(self):
-        typing = []
-        self.bot.whitelist = {ch.id: ch for ch in map(self.bot.get_channel, self.bot.whitelist) if ch is not None}
-        for channel in self.bot.whitelist.values():
-            typing.append(await channel.typing().__aenter__())
-        try:
-            await self.bot.on_ready()
-            for channel in self.bot.whitelist.values():
-                await channel.send('_is active and ready for abuse!_')
-        except Exception as e:
-            log.error('%s %s %s', ''.join(traceback.format_exception(type(e), e, e.__traceback__)))
-            raise e
-        finally:
-            [t.task.cancel() for t in typing]
+        activity = discord.Game(self.game)
+        await self.bot.change_presence(activity=activity)
 
 
 def setup(bot):

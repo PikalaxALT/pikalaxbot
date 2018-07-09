@@ -1,188 +1,162 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
-import logging
-import traceback
 from discord.ext import commands
+import logging
+import os
+import glob
+import traceback
 from utils.config_io import Settings
-from discord.client import log
-from utils.checks import can_learn_markov, VoiceCommandError
-from utils import markov, sql
+from utils.sql import Sql
 
 
 class PikalaxBOT(commands.Bot):
-    whitelist = []
-    debug = False
-    markov_channels = []
-    cooldown = 10
-    initialized = False
-    command_prefix = '!'
-    help_name = 'pikahelp'
-    game = f'{command_prefix}{help_name}'
-    banlist = set()
-    disabled_commands = set()
-    voice_chans = {}
-    disabled_cogs = []
-    espeak_kw = {'a': 100,
-                 's': 150,
-                 'v': 'en-us+f3',
-                 'p': 75}
+    __attr_mapping__ = {
+        'token': '_token',
+        'prefix': 'command_prefix',
+        'owner': 'owner_id'
+    }
+    __type_mapping__ = {
+        'banlist': set,
+        'disabled_commands': set,
+        'markov_channel': set
+    }
 
-    def __init__(self, script):
-        self.script = script
-        with Settings() as settings:
-            command_prefix = settings.get('meta', 'prefix', '!')
-            super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': self.help_name})
-            self._token = settings.get('credentials', 'token')
-            self.owner_id = settings.get('credentials', 'owner')
-            for key, value in settings.items('user'):
-                setattr(self, key, value)
-            self.commit()
+    def __init__(self, args, *, loop=None):
+        # Set up logger
+        self.logger = logging.getLogger('discord')
+        self.logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+        handler = logging.FileHandler(args.logfile, mode='w')
+        fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
+        handler.setFormatter(fmt)
+        self.logger.addHandler(handler)
 
-        self.chain = markov.Chain(store_lowercase=True)
-        self.storedMsgsSet = set()
-        self.banlist = set(self.banlist)
-        self.disabled_commands = set(self.disabled_commands)
+        # Load settings
+        loop = asyncio.get_event_loop() if loop is None else loop
+        self._settings_file = args.settings
+        with self.settings:
+            help_name = self.settings.user.help_name
+            command_prefix = self.settings.meta.prefix
+            disabled_cogs = self.settings.user.disabled_cogs
+        super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
 
-    def commit(self):
-        if isinstance(self.whitelist, dict):
-            whitelist = dict(self.whitelist)
-            self.whitelist = list(self.whitelist.keys())
-        else:
-            whitelist = None
-        self.token = self._token
-        self.owner = self.owner_id
-        self.prefix = self.command_prefix
-        self.disabled_commands = list(self.disabled_commands)
-        self.banlist = list(self.banlist)
-        with Settings() as settings:
-            for group in settings.categories:
-                for key in settings.keys(group):
-                    settings.set(group, key, getattr(self, key, None))
-        if whitelist:
-            self.whitelist = whitelist
-        self.disabled_commands = set(self.disabled_commands)
-        self.banlist = set(self.banlist)
-        delattr(self, 'token')
-        delattr(self, 'owner')
-        delattr(self, 'prefix')
+        # Load cogs
+        dname = os.path.dirname(__file__) or '.'
+        for cogfile in glob.glob(f'{dname}/../cogs/*.py'):
+            if os.path.isfile(cogfile) and '__init__' not in cogfile:
+                extn = f'cogs.{os.path.splitext(os.path.basename(cogfile))[0]}'
+                if extn.split('.')[1] not in disabled_cogs:
+                    try:
+                        self.load_extension(extn)
+                    except discord.ClientException:
+                        self.logger.warning(f'Failed to load cog "{extn}"')
+                    else:
+                        self.logger.info(f'Loaded cog "{extn}"')
+                else:
+                    self.logger.info(f'Skipping disabled cog "{extn}"')
 
-    def ban(self, person):
-        self.banlist.add(person.id)
-        self.commit()
+        # Set up sql database
+        with Sql() as sql:
+            sql.db_init()
 
-    def unban(self, person):
-        self.banlist.remove(person.id)
-        self.commit()
-
-    def get_nick(self, guild: discord.Guild):
-        member = guild.get_member(self.user.id)
-        return member.nick
+    @property
+    def settings(self):
+        return Settings(self._settings_file)
 
     def run(self):
-        super().run(self._token)
+        self.logger.info('Starting bot')
+        with self.settings:
+            token = self.settings.credentials.token
+        super().run(token)
 
-    def print(self, message):
-        log.debug(message)
+    async def login(self, token, *, bot=True):
+        for cog in self.cogs.values():
+            cog.fetch()
+        await super().login(token, bot=bot)
 
-    async def close(self, is_int=True):
-        if is_int and isinstance(self.whitelist, dict):
-            for channel in self.whitelist.values():
-                await channel.send('Shutting down... (console kill)')
+    async def close(self):
+        await self.wall('Shutting down...')
+        for cog in self.cogs.values():
+            cog.commit()
         await super().close()
-        self.commit()
-        sql.backup_db()
-
-    def gen_msg(self, len_max=64, n_attempts=5):
-        longest = ''
-        lng_cnt = 0
-        chain = self.chain
-        if chain is not None:
-            for i in range(n_attempts):
-                cur = chain.generate(len_max)
-                if len(cur) > lng_cnt:
-                    msg = ' '.join(cur)
-                    if i == 0 or msg not in self.storedMsgsSet:
-                        lng_cnt = len(cur)
-                        longest = msg
-                        if lng_cnt == len_max:
-                            break
-        return longest
+        Sql().backup_db()
 
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
         return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
 
-    async def on_command_error(self, ctx, exc):
-        # await super().on_command_error(ctx, exc)
-        if isinstance(exc, commands.CommandNotFound):
-            return
+    def command_error_emoji(self, guild):
+        return self.find_emoji_in_guild(guild, 'tppBurrito', 'VeggieBurrito', default='❤')
 
+    def log_and_print(self, level, msg):
+        self.logger.log(level, msg)
+        print(msg)
+
+    def log_tb(self, ctx, exc):
         tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-        emoji = self.find_emoji_in_guild(ctx.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
-        if isinstance(exc, VoiceCommandError):
-            embed = discord.Embed(color=0xff0000)
-            embed.add_field(name='Traceback', value=f'```{tb}```')
-            await ctx.send(f'An error has occurred {emoji}', embed=embed)
-        elif isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
-            await ctx.send(f'{ctx.author.mention}: Permission denied {emoji}')
-        elif isinstance(exc, commands.MissingPermissions):
-            await ctx.send(f'{ctx.author.mention}: I am missing permissions: '
-                           f'{", ".join(exc.missing_perms)}')
-        elif exc is NotImplemented:
-            await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
-                           f'not fully implemented {emoji}')
+        self.log_and_print(logging.ERROR, f'Ignoring exception in command {ctx.command}:')
+        self.log_and_print(logging.ERROR, ''.join(tb))
+        return tb
+
+    def cmd_error_check(self, ctx, exc):
+        if isinstance(exc, commands.CommandNotFound) or isinstance(exc, commands.CheckFailure):
+            return False
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
-            return
+            return False
 
         if hasattr(ctx.command, 'on_error'):
-            return
+            return False
 
         cog = ctx.cog
         if cog:
             attr = '_{0.__class__.__name__}__error'.format(cog)
             if hasattr(cog, attr):
-                return
+                return False
 
-        log.error(f'Ignoring exception in command {ctx.command}:')
-        log.error(tb)
-        # for handler in log.handlers:  # type: logging.Handler
-        #     handler.flush()
+        return True
 
-    def learn_markov(self, ctx):
-        self.storedMsgsSet.add(ctx.message.clean_content)
-        self.chain.learn_str(ctx.message.clean_content)
+    async def on_command_error(self, ctx: commands.Context, exc):
+        async def report(msg):
+            await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=10)
 
-    def forget_markov(self, ctx):
-        self.chain.unlearn_str(ctx.message.clean_content)
-    
+        if not self.cmd_error_check(ctx, exc):
+            return
+
+        emoji = self.command_error_emoji(ctx.guild)
+        if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
+            await report('Permission denied')
+        elif isinstance(exc, commands.MissingPermissions):
+            await report(f'You are missing permissions: {", ".join(exc.missing_perms)}')
+        elif isinstance(exc, commands.BotMissingPermissions):
+            await report(f'I am missing permissions: {", ".join(exc.missing_perms)}')
+        elif exc is NotImplemented:
+            await report('The command or one of its dependencies is not fully implemented')
+        elif isinstance(exc, commands.UserInputError):
+            await report(f'**{type(exc).__name__}**: {exc}')
+        else:
+            self.log_tb(ctx, exc)
+
+    async def wall(self, *args, **kwargs):
+        for channel in self.get_all_channels():
+            if isinstance(channel, discord.TextChannel) and  channel.permissions_for(channel.guild.me).send_messages:
+                await channel.send(*args, *kwargs)
+
     async def on_ready(self):
-        if not self.initialized:
-            for ch in self.markov_channels:
-                channel = self.get_channel(ch)  # type: discord.TextChannel
-                try:
-                    async for msg in channel.history(limit=5000):
-                        ctx = await self.get_context(msg)
-                        if can_learn_markov(ctx, force=True):
-                            self.learn_markov(ctx)
-                    log.info(f'Initialized channel {channel.name}')
-                except discord.Forbidden:
-                    log.error(f'Failed to get message history from {channel.name} (403 FORBIDDEN)')
-                except AttributeError:
-                    log.error(f'Failed to load chain {ch:d}')
-            self.initialized = True
-        activity = discord.Game(self.game)
-        await self.change_presence(activity=activity)
-
-    def enable_command(self, cmd):
-        res = cmd in self.disabled_commands
-        self.disabled_commands.discard(cmd)
-        self.commit()
-        return res
-
-    def disable_command(self, cmd):
-        res = cmd not in self.disabled_commands
-        self.disabled_commands.add(cmd)
-        self.commit()
-        return res
+        await self.wall('_is active and ready for abuse!_')

@@ -1,9 +1,25 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
 import math
 import random
 from utils.data import data
-from utils import sql
+from utils.sql import Sql
 from utils.game import GameBase, GameCogBase
 from discord.ext import commands
 
@@ -61,10 +77,12 @@ class HangmanGame(GameBase):
                                f'Solution: {self._solution}')
             else:
                 bonus = math.ceil(self._max_score / 10)
-                sql.increment_score(ctx.author, bonus)
+                with Sql() as sql:
+                    sql.increment_score(ctx.author, bonus)
+                score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
                                f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
             self.reset()
@@ -117,10 +135,9 @@ class HangmanGame(GameBase):
 
 
 class Hangman(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(HangmanGame, bot)
+    gamecls = HangmanGame
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def hangman(self, ctx):
         """Play Hangman"""
         if ctx.invoked_subcommand is None:

@@ -1,3 +1,19 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
 from discord.ext import commands
@@ -69,9 +85,9 @@ class TrashcansGame(GameBase):
             elif failed:
                 await ctx.send('Looks like you won\'t be fighting the Gym Leader today.')
             else:
-                score = self.score
+                score = await self.award_points()
                 await ctx.send(f'Congratulations to {ctx.author.mention} for opening the door!\n'
-                               f'The following players each earn {self.award_points():d} points:\n'
+                               f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```')
             self.reset()
         else:
@@ -122,13 +138,12 @@ class TrashcansGame(GameBase):
 
 
 class Trashcans(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(TrashcansGame, bot)
+    gamecls = TrashcansGame
 
     async def argcheck(self, ctx, *args):
         return await super().argcheck(ctx, *args, maxy=3)
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
         if ctx.invoked_subcommand is None:

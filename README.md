@@ -18,6 +18,21 @@
     "credentials": {
         "owner": "<your_id>",
         "token": "<bot_oauth>"
+    },
+    "user": {
+        "debug": <true or false>,
+        "voice_chans": [list of voice channel IDs],
+        "markov_channels": [list of text channel IDs],
+        "help_name": "<name for help command>",
+        "game": "<activity to display as playing>",
+        "espeak_kw": {
+            "a": amplitude,
+            "s": speed,
+            "v": "<voice code>",
+            "p": pitch,
+            "k": capital pitch modulation,
+            "g": gap between words
+        }
     }
 }
 ```

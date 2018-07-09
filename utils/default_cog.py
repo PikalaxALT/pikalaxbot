@@ -14,22 +14,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-import discord
-import argparse
 from utils.botclass import PikalaxBOT
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--settings', default='settings.json')
-    parser.add_argument('--logfile', default='bot.log')
-    parser.add_argument('--debug', action='store_true')
-    args = parser.parse_args()
+class Cog:
+    config_attrs = tuple()
 
-    bot = PikalaxBOT(args)
-    bot.run()
+    def __init__(self, bot):
+        self.bot: PikalaxBOT = bot
 
+    def fetch(self):
+        with self.bot.settings as settings:
+            for attr in self.config_attrs:
+                val = getattr(settings.user, attr)
+                if isinstance(val, list):
+                    val = set(val)
+                setattr(self, attr, val)
 
-if __name__ == '__main__':
-    main()
+    def commit(self):
+        with self.bot.settings as settings:
+            for attr in self.config_attrs:
+                val = getattr(self, attr)
+                if isinstance(val, set):
+                    val = list(val)
+                setattr(settings.user, attr, val)

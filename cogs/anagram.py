@@ -1,3 +1,19 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import discord
 import math
@@ -55,9 +71,10 @@ class AnagramGame(GameBase):
                                f'Solution: {self._solution}')
             else:
                 self.add_player(ctx.author)
+                score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'{ctx.author.mention} earned {self.award_points()} points for winning!')
+                               f'{ctx.author.mention} earned {score} points for winning!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
@@ -94,10 +111,9 @@ class AnagramGame(GameBase):
 
 
 class Anagram(GameCogBase):
-    def __init__(self, bot):
-        super().__init__(AnagramGame, bot)
+    gamecls = AnagramGame
 
-    @commands.group(pass_context=True, case_insensitive=True)
+    @commands.group(case_insensitive=True)
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
         if ctx.invoked_subcommand is None:
