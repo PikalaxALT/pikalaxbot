@@ -18,7 +18,7 @@ import asyncio
 import discord
 import math
 import time
-from utils import sql
+from utils.sql import Sql
 from utils.default_cog import Cog
 from discord.ext import commands
 
@@ -114,8 +114,9 @@ class GameBase:
 
     async def award_points(self):
         score = max(math.ceil(self.score / len(self._players)), 1)
-        for player in self._players:
-            await sql.increment_score(player, by=score)
+        with Sql() as sql:
+            for player in self._players:
+                sql.increment_score(player, by=score)
         return score
 
 

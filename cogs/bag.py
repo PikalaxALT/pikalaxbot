@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from utils import sql
+from utils.sql import Sql
 from utils.default_cog import Cog
 from utils.game import find_emoji
 
@@ -25,7 +25,8 @@ class Bag(Cog):
     async def bag(self, ctx):
         """Get in the bag, Nebby."""
         if ctx.invoked_subcommand is None:
-            message = await sql.read_bag()
+            with Sql() as sql:
+                message = sql.read_bag()
             if message is None:
                 emoji = find_emoji(ctx.guild, 'BibleThump', case_sensitive=False)
                 await ctx.send(f'*cannot find the bag {emoji}*')
@@ -35,7 +36,9 @@ class Bag(Cog):
     @bag.command()
     async def add(self, ctx, *, fmtstr):
         """Add a message to the bag."""
-        if await sql.add_bag(fmtstr):
+        with Sql() as sql:
+            res = sql.add_bag(fmtstr)
+        if res:
             await ctx.send('Message was successfully placed in the bag')
         else:
             await ctx.send('That message is already in the bag')
@@ -44,7 +47,9 @@ class Bag(Cog):
     @commands.is_owner()
     async def remove_bag(self, ctx, msg: str):
         """Remove a phrase from the bag"""
-        if await sql.remove_bag(msg):
+        with Sql() as sql:
+            res = sql.remove_bag(msg)
+        if res:
             await ctx.send('Removed message from bag')
         else:
             await ctx.send('Cannot remove default message from bag')
@@ -53,7 +58,8 @@ class Bag(Cog):
     @commands.is_owner()
     async def reset_bag(self, ctx):
         """Reset the bag"""
-        await sql.reset_bag()
+        with Sql() as sql:
+            sql.reset_bag()
         await ctx.send('Reset the bag')
 
 

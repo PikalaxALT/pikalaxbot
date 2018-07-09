@@ -17,7 +17,7 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils import sql
+from utils.sql import Sql
 from utils.default_cog import Cog
 
 
@@ -33,19 +33,21 @@ class Leaderboard(Cog):
         """Check your leaderboard score, or the leaderboard score of another user"""
         if person is None:
             person = ctx.author
-        score = await sql.get_score(person)
-        if score is not None:
-            rank = await sql.get_leaderboard_rank(person)
-            await ctx.send(f'{person.name} has {score:d} point(s) across all games and is #{rank:d} on the leaderboard.')
-        else:
-            await ctx.send(f'{person.name} is not yet on the leaderboard.')
+        with Sql() as sql:
+            score = sql.get_score(person)
+            if score is not None:
+                rank = sql.get_leaderboard_rank(person)
+                await ctx.send(f'{person.name} has {score:d} point(s) across all games and is #{rank:d} on the leaderboard.')
+            else:
+                await ctx.send(f'{person.name} is not yet on the leaderboard.')
 
     @leaderboard.command()
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
         msgs = []
-        for _id, name, score in await sql.get_all_scores():
-            msgs.append(f'{name}: {score:d}')
+        with Sql() as sql:
+            for _id, name, score in sql.get_all_scores():
+                msgs.append(f'{name}: {score:d}')
         if len(msgs) == 0:
             await ctx.send('The leaderboard is empty. Play some games to get your name up there!')
         else:
@@ -59,7 +61,8 @@ class Leaderboard(Cog):
     @commands.is_owner()
     async def clear_leaderboard(self, ctx):
         """Reset the leaderboard"""
-        await sql.reset_leaderboard()
+        with Sql() as sql:
+            sql.reset_leaderboard()
         await ctx.send('Leaderboard reset')
 
     @leaderboard.command(name='give')
@@ -69,7 +72,8 @@ class Leaderboard(Cog):
         if person is None:
             await ctx.send('That person does not exist')
         else:
-            await sql.increment_score(person, score)
+            with Sql() as sql:
+                sql.increment_score(person, score)
             await ctx.send(f'Gave {score:d} points to {person.name}')
 
     @commands.group()
@@ -80,13 +84,13 @@ class Leaderboard(Cog):
     @database.command(name='backup')
     async def backup_database(self, ctx):
         """Back up the database"""
-        fname = await sql.backup_db()
+        fname = Sql().backup_db()
         await ctx.send(f'Backed up to {fname}')
 
     @database.command(name='restore')
     async def restore_database(self, ctx, *, idx: int = -1):
         """Restore the database"""
-        dbbak = await sql.restore_db(idx)
+        dbbak = Sql().restore_db(idx)
         if dbbak is None:
             await ctx.send('Unable to restore backup')
         else:

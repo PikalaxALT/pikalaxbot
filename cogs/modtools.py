@@ -18,8 +18,9 @@ import asyncio
 import discord
 import tempfile
 import traceback
+import sqlite3
 from discord.ext import commands
-from utils import sql
+from utils.sql import Sql
 from utils.default_cog import Cog
 
 
@@ -74,8 +75,9 @@ class ModTools(Cog):
     async def call_sql(self, ctx, *, script):
         """Run arbitrary sql command"""
         try:
-            await sql.call_script(script)
-        except sql.sqlite3.Error:
+            with Sql() as sql:
+                sql.call_script(script)
+        except sqlite3.Error:
             tb = traceback.format_exc(limit=3)
             embed = discord.Embed(color=0xff0000)
             embed.add_field(name='Traceback', value=f'```{tb}```')

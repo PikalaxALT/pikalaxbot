@@ -19,7 +19,7 @@ import discord
 import math
 import random
 from utils.data import data
-from utils import sql
+from utils.sql import Sql
 from utils.game import GameBase, GameCogBase
 from discord.ext import commands
 
@@ -77,7 +77,8 @@ class HangmanGame(GameBase):
                                f'Solution: {self._solution}')
             else:
                 bonus = math.ceil(self._max_score / 10)
-                await sql.increment_score(ctx.author, bonus)
+                with Sql() as sql:
+                    sql.increment_score(ctx.author, bonus)
                 score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'

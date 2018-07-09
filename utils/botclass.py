@@ -22,7 +22,7 @@ import os
 import glob
 import traceback
 from utils.config_io import Settings
-from utils import sql
+from utils.sql import Sql
 
 
 class PikalaxBOT(commands.Bot):
@@ -48,7 +48,7 @@ class PikalaxBOT(commands.Bot):
 
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
-        self.settings = Settings(fname=args.settings)
+        self._settings_file = args.settings
         with self.settings:
             help_name = self.settings.user.help_name
             command_prefix = self.settings.meta.prefix
@@ -71,7 +71,12 @@ class PikalaxBOT(commands.Bot):
                     self.logger.info(f'Skipping disabled cog "{extn}"')
 
         # Set up sql database
-        sql.db_init()
+        with Sql() as sql:
+            sql.db_init()
+
+    @property
+    def settings(self):
+        return Settings(self._settings_file)
 
     def run(self):
         self.logger.info('Starting bot')
@@ -89,7 +94,7 @@ class PikalaxBOT(commands.Bot):
         for cog in self.cogs.values():
             cog.commit()
         await super().close()
-        await sql.backup_db()
+        Sql().backup_db()
 
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
