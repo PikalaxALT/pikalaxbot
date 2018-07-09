@@ -257,8 +257,8 @@ class YouTube(Cog):
         g=gap k=emphasis p=pitch s=speed v=voice"""
         await ctx.invoke(self.params, *kwargs)
 
-    @params.error()
-    @pikaparams.error()
+    @params.error
+    @pikaparams.error
     async def pikaparams_error(self, ctx: commands.Context, exc: BaseException):
         if isinstance(exc, commands.BadArgument):
             view = ctx.view

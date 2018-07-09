@@ -19,8 +19,6 @@ import aiohttp
 import os
 import random
 from discord.ext import commands
-from utils import sql
-from utils.game import find_emoji
 from utils.data import data
 from utils.default_cog import Cog
 
@@ -49,17 +47,6 @@ class HMM:
 
 
 class Meme(Cog):
-    bot_owners = {
-        'fixpika': 'PikalaxALT',
-        'fixgroudon': 'chfoo',
-        'fixyay': 'azum and tustin',
-        'fixupdater': 'tustin',
-        'fixstarmie': 'Danny',
-        'fixmeme': 'Jet'
-    }
-    bot_names = {
-        'fixyay': 'xfix\s bot'
-    }
     _nebby = HMM(
         [[0, 1, 0, 0, 0],
          [1, 2, 1, 0, 0],
@@ -92,41 +79,6 @@ class Meme(Cog):
             await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {resp} RIOT ♪ └༼ຈل͜ຈ༽┐♫')
         else:
             await ctx.send(f'ヽ༼ຈل͜ຈ༽ﾉ {resp} RIOT ヽ༼ຈل͜ຈ༽ﾉ')
-
-    @commands.group()
-    async def bag(self, ctx):
-        """Get in the bag, Nebby."""
-        if ctx.invoked_subcommand is None:
-            message = await sql.read_bag()
-            if message is None:
-                emoji = find_emoji(ctx.guild, 'BibleThump', case_sensitive=False)
-                await ctx.send(f'*cannot find the bag {emoji}*')
-            else:
-                await ctx.send(f'*{message}*')
-
-    @bag.command()
-    async def add(self, ctx, *, fmtstr):
-        """Add a message to the bag."""
-        if await sql.add_bag(fmtstr):
-            await ctx.send('Message was successfully placed in the bag')
-        else:
-            await ctx.send('That message is already in the bag')
-
-    @bag.command(name='remove')
-    @commands.is_owner()
-    async def remove_bag(self, ctx, msg: str):
-        """Remove a phrase from the bag"""
-        if await sql.remove_bag(msg):
-            await ctx.send('Removed message from bag')
-        else:
-            await ctx.send('Cannot remove default message from bag')
-
-    @bag.command(name='reset')
-    @commands.is_owner()
-    async def reset_bag(self, ctx):
-        """Reset the bag"""
-        await sql.reset_bag()
-        await ctx.send('Reset the bag')
 
     @commands.command()
     async def nebby(self, ctx):
@@ -167,25 +119,6 @@ class Meme(Cog):
                     await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
                     r.raise_for_status()
                     raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
-
-    @commands.command()
-    async def fix(self, ctx: commands.Context):
-        alias = ctx.invoked_with
-        owner = self.bot_owners.get(alias, 'already')
-        botname = self.bot_names.get(alias, 'your bot')
-        await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT 2018')
-
-    async def on_message(self, message):
-        ctx = await self.bot.get_context(message)
-        if ctx.command is not None:
-            return
-        if ctx.prefix is None:
-            return
-        prefix = [ctx.prefix] if isinstance(ctx.prefix, str) else ctx.prefix
-        for pfx in prefix:
-            if message.clean_content.startswith(f'{pfx}{self.fix.name}'):
-                ctx.command = self.fix
-                return await self.bot.invoke(ctx)
 
 
 def setup(bot):
