@@ -138,6 +138,8 @@ class ModTools(Cog):
     @cog.command(name='disable')
     async def disable_cog(self, ctx, cog: lower):
         """Disable cog"""
+        if cog == self.__class__.__name__.lower():
+            return await ctx.send(f'Cannot unload the {cog} cog!!')
         with self.bot.settings as settings:
             if cog in settings.user.disabled_cogs:
                 return await ctx.send(f'Cog "{cog}" already disabled')
@@ -148,6 +150,23 @@ class ModTools(Cog):
             else:
                 await ctx.send(f'Unloaded cog "{cog}"')
                 settings.user.disabled_cogs.add(cog)
+
+    @cog.command(name='reload')
+    async def reload_cog(self, ctx, cog: lower):
+        """Reload cog"""
+        extn = f'cogs.{cog}'
+        if extn in self.bot.extensions:
+            self.bot.unload_extension(f'cogs.{cog}')
+            try:
+                self.bot.load_extension(f'cogs.{cog}')
+            except discord.ClientException:
+                with self.bot.settings as settings:
+                    settings.user.disabled_cogs.add(cog)
+                await ctx.send(f'Could not reload {cog}, so it shall be disabled')
+            else:
+                await ctx.send(f'Reloaded cog {cog}')
+        else:
+            await ctx.send(f'Cog {cog} not loaded')
 
 
 def setup(bot):
