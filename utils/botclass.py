@@ -159,4 +159,4 @@ class PikalaxBOT(commands.Bot):
                 await channel.send(*args, *kwargs)
 
     async def on_ready(self):
-        await self.wall('_is alive and ready for abuse!_')
+        await self.wall('_is active and ready for abuse!_')
