@@ -226,3 +226,4 @@ fabric.properties
 *.bak
 /data/db.sql
 .idea/
+settings.json

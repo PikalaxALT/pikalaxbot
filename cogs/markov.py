@@ -49,7 +49,7 @@ class Markov(Cog):
             return True
         if re.search(rf'\b{ctx.me.name}\b', ctx.message.clean_content, re.I) is not None:
             return True
-        return re.search(rf'\b{ctx.me.nick}\b', ctx.message.clean_content, re.I) is not None
+        return re.search(rf'\b{ctx.guild.me.nick}\b', ctx.message.clean_content, re.I) is not None
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
@@ -87,7 +87,6 @@ class Markov(Cog):
 
     async def on_ready(self):
         if not self.initialized:
-            await self.fetch()
             for ch in list(self.markov_channels):
                 self.bot.logger.debug('%d', ch)
                 channel = self.bot.get_channel(ch)
@@ -98,14 +97,41 @@ class Markov(Cog):
                     await self.learn_markov_from_history(channel)
             self.initialized = True
 
-    @commands.command(hidden=True)
+    @commands.group(hidden=True)
     async def markov(self, ctx):
         """Generate a random word Markov chain."""
-        chain = self.gen_msg(len_max=250, n_attempts=10)
-        if chain:
-            await ctx.send(f'{ctx.author.mention}: {chain}')
+        if ctx.invoked_subcommand is None:
+            chain = self.gen_msg(len_max=250, n_attempts=10)
+            if chain:
+                await ctx.send(f'{ctx.author.mention}: {chain}')
+            else:
+                await ctx.send(f'{ctx.author.mention}: An error has occurred.')
+
+    @markov.command(name='add')
+    @commands.is_owner()
+    async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
+        """Add a Markov channel by ID or mention"""
+        if ch.id in self.markov_channels:
+            await ctx.send(f'Channel {ch} is already being tracked for Markov chains')
         else:
-            await ctx.send(f'{ctx.author.mention}: An error has occurred.')
+            async with ctx.typing():
+                if await self.learn_markov_from_history(ch):
+                    await ctx.send(f'Successfully initialized {ch}')
+                    self.markov_channels.add(ch.id)
+                    self.commit()
+                else:
+                    await ctx.send(f'Missing permissions to load {ch}')
+
+    @markov.command(name='delete')
+    @commands.is_owner()
+    async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
+        """Remove a Markov channel by ID or mention"""
+        if ch.id in self.markov_channels:
+            await ctx.send(f'Channel {ch} will no longer be learned')
+            self.markov_channels.discard(ch.id)
+            self.commit()
+        else:
+            await ctx.send(f'Channel {ch} is not being learned')
 
     async def on_message(self, msg: discord.Message):
         self.learn_markov(msg)

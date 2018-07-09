@@ -112,6 +112,22 @@ class Meme(Cog):
         else:
             await ctx.send('That message is already in the bag')
 
+    @bag.command(name='remove')
+    @commands.is_owner()
+    async def remove_bag(self, ctx, msg: str):
+        """Remove a phrase from the bag"""
+        if await sql.remove_bag(msg):
+            await ctx.send('Removed message from bag')
+        else:
+            await ctx.send('Cannot remove default message from bag')
+
+    @bag.command(name='reset')
+    @commands.is_owner()
+    async def reset_bag(self, ctx):
+        """Reset the bag"""
+        await sql.reset_bag()
+        await ctx.send('Reset the bag')
+
     @commands.command()
     async def nebby(self, ctx):
         """Pew!"""

@@ -25,10 +25,6 @@ from utils.config_io import Settings
 from utils import sql
 
 
-class VoiceCommandError(commands.CommandError):
-    """This is raised when an error occurs in a voice command."""
-
-
 class PikalaxBOT(commands.Bot):
     __attr_mapping__ = {
         'token': '_token',
@@ -77,42 +73,6 @@ class PikalaxBOT(commands.Bot):
         # Set up sql database
         sql.db_init()
 
-    @property
-    def markov_channels(self):
-        cog = self.get_cog('Markov')
-        if cog is not None:
-            return cog.markov_channels
-
-    @markov_channels.setter
-    def markov_channels(self, value):
-        cog = self.get_cog('Markov')
-        if cog is not None:
-            cog.markov_channels = set(value)
-
-    @property
-    def espeak_kw(self):
-        cog = self.get_cog('YouTube')
-        if cog is not None:
-            return cog.espeak_kw
-
-    @espeak_kw.setter
-    def espeak_kw(self, value):
-        cog = self.get_cog('YouTube')
-        if cog is not None:
-            cog.espeak_kw = value
-
-    @property
-    def voice_chans(self):
-        cog = self.get_cog('YouTube')
-        if cog is not None:
-            return cog.voice_chans
-
-    @voice_chans.setter
-    def voice_chans(self, value):
-        cog = self.get_cog('YouTube')
-        if cog is not None:
-            cog.voice_chans = value
-
     def run(self):
         self.logger.info('Starting bot')
         with self.settings:
@@ -121,13 +81,13 @@ class PikalaxBOT(commands.Bot):
 
     async def login(self, token, *, bot=True):
         for cog in self.cogs.values():
-            await cog.fetch()
+            cog.fetch()
         await super().login(token, bot=bot)
 
     async def close(self):
         await self.wall('Shutting down...')
         for cog in self.cogs.values():
-            await cog.commit()
+            cog.commit()
         await super().close()
         await sql.backup_db()
 
@@ -135,25 +95,26 @@ class PikalaxBOT(commands.Bot):
     def find_emoji_in_guild(guild, *names, default=None):
         return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
 
+    def command_error_emoji(self, guild):
+        return self.find_emoji_in_guild(guild, 'tppBurrito', 'VeggieBurrito', default='❤')
+
+    def log_and_print(self, level, msg):
+        self.logger.log(level, msg)
+        print(msg)
+
+    def log_tb(self, ctx, exc):
+        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+        self.log_and_print(logging.ERROR, f'Ignoring exception in command {ctx.command}:')
+        self.log_and_print(logging.ERROR, ''.join(tb))
+        return tb
+
     async def on_command_error(self, ctx: commands.Context, exc):
         # await super().on_command_error(ctx, exc)
         if isinstance(exc, commands.CommandNotFound):
             return
 
-        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-        emoji = self.find_emoji_in_guild(ctx.guild, 'tppBurrito', 'VeggieBurrito', default='❤')
-        if isinstance(exc, VoiceCommandError):
-            embed = discord.Embed(color=0xff0000)
-            embed.add_field(name='Traceback', value=f'```{tb}```')
-            await ctx.send(f'An error has occurred {emoji}', embed=embed)
-        elif isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
-            await ctx.send(f'{ctx.author.mention}: Permission denied {emoji}')
-        elif isinstance(exc, commands.MissingPermissions):
-            await ctx.send(f'{ctx.author.mention}: I am missing permissions: '
-                           f'{", ".join(exc.missing_perms)}')
-        elif exc is NotImplemented:
-            await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
-                           f'not fully implemented {emoji}')
+        if isinstance(exc, commands.CheckFailure):
+            return
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
@@ -168,12 +129,27 @@ class PikalaxBOT(commands.Bot):
             if hasattr(cog, attr):
                 return
 
-        if isinstance(exc, commands.CheckFailure):
-            return
-
-        self.logger.error(f'Ignoring exception in command {ctx.command}:')
-        self.logger.error(''.join(tb))
-        print(*tb)
+        emoji = self.command_error_emoji(ctx.guild)
+        if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
+            await ctx.send(f'{ctx.author.mention}: Permission denied {emoji}',
+                           delete_after=10)
+        elif isinstance(exc, commands.MissingPermissions):
+            await ctx.send(f'{ctx.author.mention}: You am missing permissions: '
+                           f'{", ".join(exc.missing_perms)} {emoji}',
+                           delete_after=10)
+        elif isinstance(exc, commands.BotMissingPermissions):
+            await ctx.send(f'{ctx.author.mention}: I am missing permissions: '
+                           f'{", ".join(exc.missing_perms)} {emoji}',
+                           delete_after=10)
+        elif exc is NotImplemented:
+            await ctx.send(f'{ctx.author.mention}: The command or one of its dependencies is '
+                           f'not fully implemented {emoji}',
+                           delete_after=10)
+        elif isinstance(exc, commands.UserInputError):
+            await ctx.send(f'{ctx.author.mention}: **{type(exc).__name__}**: {exc}',
+                           delete_after=10)
+        else:
+            self.log_tb(ctx, exc)
 
     async def wall(self, *args, **kwargs):
         for channel in self.get_all_channels():

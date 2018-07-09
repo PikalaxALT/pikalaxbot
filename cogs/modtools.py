@@ -21,7 +21,6 @@ import traceback
 from discord.ext import commands
 from utils import sql
 from utils.default_cog import Cog
-from cogs import markov
 
 
 class lower(commands.clean_content):
@@ -32,50 +31,18 @@ class lower(commands.clean_content):
 
 class ModTools(Cog):
     async def __local_check(self, ctx: commands.Context):
-        return await self.bot.is_owner(ctx.author) or ctx.channel.permissions_for(ctx.author).administrator
+        return await self.bot.is_owner(ctx.author)
 
     @commands.group(case_insensitive=True)
     async def admin(self, ctx):
         """Commands for the admin console"""
 
     @admin.group(case_insensitive=True)
-    async def markov(self, ctx):
-        """Commands to manage Markov channels"""
-
-    @markov.command(name='add')
-    async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
-        """Add a Markov channel by ID or mention"""
-        cog: markov.Markov = self.bot.get_cog('Markov')
-        if cog is None:
-            return await ctx.send('Markov cog is not loaded.')
-        if ch.id in cog.markov_channels:
-            await ctx.send(f'Channel {ch} is already being tracked for Markov chains')
-        else:
-            async with ctx.typing():
-                if await cog.learn_markov_from_history(ch):
-                    await ctx.send(f'Successfully initialized {ch}')
-                    cog.markov_channels.add(ch.id)
-                else:
-                    await ctx.send(f'Missing permissions to load {ch}')
-
-    @markov.command(name='delete')
-    async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
-        """Remove a Markov channel by ID or mention"""
-        cog: markov.Markov = self.bot.get_cog('Markov')
-        if cog is None:
-            return await ctx.send('Markov cog is not loaded.')
-        if ch.id in cog.markov_channels:
-            await ctx.send(f'Channel {ch} will no longer be learned')
-            cog.markov_channels.discard(ch.id)
-        else:
-            await ctx.send(f'Channel {ch} is not being learned')
-
-    @admin.group(case_insensitive=True)
     async def ui(self, ctx):
         """Commands to manage the bot's appearance"""
 
     @ui.command(name='nick')
-    @commands.bot_has_permissions(change_nick=True)
+    @commands.bot_has_permissions(change_nickname=True)
     async def change_nick(self, ctx: commands.Context, *, nickname: commands.clean_content = None):
         """Change or reset the bot's nickname"""
         await ctx.me.edit(nick=nickname)
@@ -103,58 +70,6 @@ class ModTools(Cog):
     async def leaderboard(self, ctx):
         """Commands for manipulating the leaderboard"""
 
-    @leaderboard.command(name='clear')
-    async def clear_leaderboard(self, ctx):
-        """Reset the leaderboard"""
-        await sql.reset_leaderboard()
-        await ctx.send('Leaderboard reset')
-
-    @leaderboard.command(name='give')
-    async def give_points(self, ctx, person: discord.Member, score: int):
-        """Give points to a player"""
-        if person is None:
-            await ctx.send('That person does not exist')
-        else:
-            await sql.increment_score(person, score)
-            await ctx.send(f'Gave {score:d} points to {person.name}')
-
-    @admin.group()
-    async def bag(self, ctx):
-        """Commands for manipulating the bag"""
-
-    @bag.command(name='remove')
-    async def remove_bag(self, ctx, msg: str):
-        """Remove a phrase from the bag"""
-        if await sql.remove_bag(msg):
-            await ctx.send('Removed message from bag')
-        else:
-            await ctx.send('Cannot remove default message from bag')
-
-    @bag.command(name='reset')
-    async def reset_bag(self, ctx):
-        """Reset the bag"""
-        await sql.reset_bag()
-        await ctx.send('Reset the bag')
-
-    @admin.group()
-    async def database(self, ctx):
-        """Commands for managing the database file"""
-
-    @database.command(name='backup')
-    async def backup_database(self, ctx):
-        """Back up the database"""
-        fname = await sql.backup_db()
-        await ctx.send(f'Backed up to {fname}')
-
-    @database.command(name='restore')
-    async def restore_database(self, ctx, *, idx: int = -1):
-        """Restore the database"""
-        dbbak = await sql.restore_db(idx)
-        if dbbak is None:
-            await ctx.send('Unable to restore backup')
-        else:
-            await ctx.send(f'Restored backup from {dbbak}')
-
     @admin.command(name='sql')
     async def call_sql(self, ctx, *, script):
         """Run arbitrary sql command"""
@@ -167,20 +82,6 @@ class ModTools(Cog):
             await ctx.send('The script failed with an error (check your syntax?)', embed=embed)
         else:
             await ctx.send('Script successfully executed')
-
-    @admin.command(name='ban')
-    async def ban_user(self, ctx, person: discord.Member):
-        """Ban a member :datsheffy:"""
-        with self.bot.settings as settings:
-            settings.user.banlist.add(person.id)
-        await ctx.send(f'{person.display_name} is now banned from interacting with me.')
-
-    @admin.command(name='unban')
-    async def unban_user(self, ctx, person: discord.Member):
-        """Unban a member"""
-        with self.bot.settings as settings:
-            settings.user.banlist.discard(person.id)
-        await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: commands.Context):

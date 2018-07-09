@@ -55,6 +55,43 @@ class Leaderboard(Cog):
                            f'{msg}\n'
                            f'```')
 
+    @leaderboard.command(name='clear')
+    @commands.is_owner()
+    async def clear_leaderboard(self, ctx):
+        """Reset the leaderboard"""
+        await sql.reset_leaderboard()
+        await ctx.send('Leaderboard reset')
+
+    @leaderboard.command(name='give')
+    @commands.is_owner()
+    async def give_points(self, ctx, person: discord.Member, score: int):
+        """Give points to a player"""
+        if person is None:
+            await ctx.send('That person does not exist')
+        else:
+            await sql.increment_score(person, score)
+            await ctx.send(f'Gave {score:d} points to {person.name}')
+
+    @commands.group()
+    @commands.is_owner()
+    async def database(self, ctx):
+        """Commands for managing the database file"""
+
+    @database.command(name='backup')
+    async def backup_database(self, ctx):
+        """Back up the database"""
+        fname = await sql.backup_db()
+        await ctx.send(f'Backed up to {fname}')
+
+    @database.command(name='restore')
+    async def restore_database(self, ctx, *, idx: int = -1):
+        """Restore the database"""
+        dbbak = await sql.restore_db(idx)
+        if dbbak is None:
+            await ctx.send('Unable to restore backup')
+        else:
+            await ctx.send(f'Restored backup from {dbbak}')
+
 
 def setup(bot):
     bot.add_cog(Leaderboard(bot))

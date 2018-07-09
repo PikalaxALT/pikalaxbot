@@ -16,16 +16,21 @@
 
 import asyncio
 import discord
+import traceback
 import youtube_dl
 import ctypes.util
 from discord.ext import commands
-from utils.botclass import PikalaxBOT, VoiceCommandError
+from utils.botclass import PikalaxBOT
 from utils.default_cog import Cog
 import subprocess
 import os
 import time
 import re
 from concurrent.futures import ThreadPoolExecutor
+
+
+class VoiceCommandError(commands.CommandError):
+    """This is raised when an error occurs in a voice command."""
 
 
 class cleaner_content(commands.clean_content):
@@ -144,7 +149,6 @@ class YouTube(Cog):
     async def on_ready(self):
         if self.load_opus():
             self.bot.logger.info('Loaded opus')
-            await self.fetch()
             for guild, chan in self.voice_chans.items():
                 ch = self.bot.get_channel(chan)
                 if isinstance(ch, discord.VoiceChannel):
@@ -177,7 +181,7 @@ class YouTube(Cog):
             if ch is None:
                 raise VoiceCommandError('Channel not found')
             if not ctx.me.permissions_in(ch).connect:
-                raise commands.MissingPermissions(['connect'])
+                raise commands.BotMissingPermissions(['connect'])
             if ch.guild != ctx.guild:
                 raise VoiceCommandError('Guild mismatch')
             if ctx.guild.id in self.voice_chans:
@@ -193,7 +197,7 @@ class YouTube(Cog):
             else:
                 await ch.connect()
             self.voice_chans[ctx.guild.id] = ch.id
-            await self.commit()
+            self.commit()
             await ctx.send('Joined the voice channel!')
 
     @pikavoice.command()
@@ -239,7 +243,7 @@ class YouTube(Cog):
             await ctx.send('Parameters could not be updated')
         else:
             self.espeak_kw = params
-            await self.commit()
+            self.commit()
             await ctx.send('Parameters successfully updated')
         finally:
             os.remove('tmp.wav')
@@ -253,10 +257,29 @@ class YouTube(Cog):
         g=gap k=emphasis p=pitch s=speed v=voice"""
         await ctx.invoke(self.params, *kwargs)
 
+    @params.error()
+    @pikaparams.error()
+    async def pikaparams_error(self, ctx: commands.Context, exc: BaseException):
+        if isinstance(exc, commands.BadArgument):
+            view = ctx.view
+            view.index = 0
+            if view.skip_string(f'{ctx.prefix}{ctx.invoked_with}'):
+                converter = EspeakParamsConverter(**self.__espeak_valid_keys)
+                while not view.eof:
+                    view.skip_ws()
+                    arg = view.get_word()
+                    try:
+                        k, v = await converter.convert(ctx, arg)
+                    except (KeyError, TypeError, ValueError):
+                        await ctx.send(f'{ctx.author.mention}: Argument "{arg}" raised {exc.__class__.__name__}: {exc}',
+                                       delete_after=10)
+            else:
+                self.bot.log_tb(ctx, exc)
+
     @commands.command()
     @commands.check(connected_and_not_playing)
     async def ytplay(self, ctx: commands.Context, url):
-        ...
+        raise NotImplemented
 
 
 def setup(bot: PikalaxBOT):

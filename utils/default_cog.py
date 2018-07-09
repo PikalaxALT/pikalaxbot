@@ -23,7 +23,7 @@ class Cog:
     def __init__(self, bot):
         self.bot: PikalaxBOT = bot
 
-    async def fetch(self):
+    def fetch(self):
         with self.bot.settings as settings:
             for attr in self.config_attrs:
                 val = getattr(settings.user, attr)
@@ -31,7 +31,7 @@ class Cog:
                     val = set(val)
                 setattr(self, attr, val)
 
-    async def commit(self):
+    def commit(self):
         with self.bot.settings as settings:
             for attr in self.config_attrs:
                 val = getattr(self, attr)

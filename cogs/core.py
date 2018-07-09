@@ -44,6 +44,22 @@ class Core(Cog):
         """Shut down the bot (owner only, manual restart required)"""
         await self.bot.close()
 
+    @commands.command()
+    @commands.is_owner()
+    async def ignore(self, ctx, person: discord.Member):
+        """Ban a member :datsheffy:"""
+        self.banlist.add(person.id)
+        self.commit()
+        await ctx.send(f'{person.display_name} is now banned from interacting with me.')
+
+    @commands.command()
+    @commands.is_owner()
+    async def unignore(self, ctx, person: discord.Member):
+        """Unban a member"""
+        self.banlist.discard(person.id)
+        self.commit()
+        await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
+
     async def on_ready(self):
         activity = discord.Game(self.game)
         await self.bot.change_presence(activity=activity)
