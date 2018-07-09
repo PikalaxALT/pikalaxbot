@@ -19,6 +19,7 @@ import discord
 import tempfile
 import traceback
 import sqlite3
+import subprocess
 from discord.ext import commands
 from utils.sql import Sql
 from utils.default_cog import Cog
@@ -152,11 +153,13 @@ class ModTools(Cog):
                 settings.user.disabled_cogs.add(cog)
 
     @cog.command(name='reload')
-    async def reload_cog(self, ctx, cog: lower):
+    async def reload_cog(self, ctx: commands.Context, cog: lower):
         """Reload cog"""
         extn = f'cogs.{cog}'
         if extn in self.bot.extensions:
-            self.bot.unload_extension(f'cogs.{cog}')
+            async with ctx.typing():
+                self.bot.unload_extension(f'cogs.{cog}')
+                subprocess.call(['git', 'pull'])
             try:
                 self.bot.load_extension(f'cogs.{cog}')
             except discord.ClientException:
