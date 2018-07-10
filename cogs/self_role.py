@@ -14,10 +14,12 @@ def bot_role_is_higher():
     return commands.check(predicate)
 
 
-class AliasedRoleConverter(commands.RoleConverter):
+class AliasedRoleConverter(commands.Converter):
     async def convert(self, ctx, argument):
         argument = ctx.cog.roles.get(ctx.guild.id, {}).get(argument.lower())
-        return await super().convert(ctx, argument)
+        if argument is None:
+            raise commands.BadArgument
+        return discord.utils.get(ctx.guild.roles, id=argument)
 
 
 class SelfAssignableRole(Cog):
