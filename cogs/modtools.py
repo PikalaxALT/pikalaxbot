@@ -157,19 +157,29 @@ class ModTools(Cog):
         """Reload cog"""
         extn = f'cogs.{cog}'
         if extn in self.bot.extensions:
+            self.bot.unload_extension(f'cogs.{cog}')
             async with ctx.typing():
-                self.bot.unload_extension(f'cogs.{cog}')
                 subprocess.call(['git', 'pull'])
             try:
                 self.bot.load_extension(f'cogs.{cog}')
-            except discord.ClientException:
+            except discord.ClientException as e:
                 with self.bot.settings as settings:
                     settings.user.disabled_cogs.add(cog)
-                await ctx.send(f'Could not reload {cog}, so it shall be disabled')
+                await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
             else:
                 await ctx.send(f'Reloaded cog {cog}')
+
+    @cog.command(name='load')
+    async def load_cog(self, ctx: commands.Context, cog: lower):
+        """Load a cog that isn't already loaded"""
+        async with ctx.typing():
+            subprocess.call(['git', 'pull'])
+        try:
+            self.bot.load_extension(f'cogs.{cog}')
+        except discord.ClientException as e:
+            await ctx.send(f'Could not load {cog}: {e}')
         else:
-            await ctx.send(f'Cog {cog} not loaded')
+            await ctx.send(f'Loaded cog {cog}')
 
 
 def setup(bot):
