@@ -16,7 +16,7 @@ def bot_role_is_higher():
 
 class AliasedRoleConverter(commands.Converter):
     async def convert(self, ctx, argument):
-        argument = ctx.cog.roles.get(ctx.guild.id, {}).get(argument.lower())
+        argument = ctx.cog.roles.get(str(ctx.guild.id), {}).get(argument.lower())
         if argument is None:
             raise commands.BadArgument
         return discord.utils.get(ctx.guild.roles, id=argument)
@@ -59,32 +59,32 @@ class SelfAssignableRole(Cog):
     @commands.is_owner()
     async def addar(self, ctx: commands.Context, alias: str.lower, *, role: discord.Role):
         """Add a role to the list of self-assignable roles"""
-        if ctx.guild.id not in self.roles:
-            self.roles[ctx.guild.id] = {alias: role.id}
-        elif alias in self.roles[ctx.guild.id]:
+        if str(ctx.guild.id) not in self.roles:
+            self.roles[str(ctx.guild.id)] = {alias: role.id}
+        elif alias in self.roles[str(ctx.guild.id)]:
             return await ctx.send(f'Role "{role}" already self-assignable"')
         else:
-            self.roles[ctx.guild.id][alias] = role.id
+            self.roles[str(ctx.guild.id)][alias] = role.id
         await ctx.send(f'Role "{role}" is now self-assignable')
 
     @commands.command()
     @commands.is_owner()
     async def rmar(self, ctx: commands.Context, alias: str.lower):
         """Remove a role from the list of self-assignable roles"""
-        if ctx.guild.id not in self.roles:
-            self.roles[ctx.guild.id] = {}
-        if alias not in self.roles[ctx.guild.id]:
+        if str(ctx.guild.id) not in self.roles:
+            self.roles[str(ctx.guild.id)] = {}
+        if alias not in self.roles[str(ctx.guild.id)]:
             return await ctx.send(f'Role "{alias}" is self-assignable"')
-        self.roles[ctx.guild.id].pop(alias)
+        self.roles[str(ctx.guild.id)].pop(alias)
         await ctx.send(f'Role "{alias}" is no longer self-assignable')
 
     @commands.command()
     async def lsar(self, ctx):
         """List self-assignable roles"""
-        if ctx.guild.id not in self.roles:
-            self.roles[ctx.guild.id] = {}
+        if str(ctx.guild.id) not in self.roles:
+            self.roles[str(ctx.guild.id)] = {}
         msg = f'Self-assignable roles for {ctx.guild}:\n'
-        roles = self.roles.get(ctx.guild.id, {})
+        roles = self.roles.get(str(ctx.guild.id), {})
         if roles:
             for alias, role_id in roles.items():
                 role = discord.utils.get(ctx.guild.roles, id=role_id)
@@ -98,6 +98,7 @@ class SelfAssignableRole(Cog):
     async def resetar(self, ctx):
         """Reset self-assignable roles"""
         self.roles = {}
+        await ctx.message.add_reaction('☑')
 
 
 def setup(bot):

@@ -184,8 +184,8 @@ class YouTube(Cog):
                 raise commands.BotMissingPermissions(['connect'])
             if ch.guild != ctx.guild:
                 raise VoiceCommandError('Guild mismatch')
-            if ctx.guild.id in self.voice_chans:
-                if ch.id == self.voice_chans[ctx.guild.id]:
+            if str(ctx.guild.id) in self.voice_chans:
+                if ch.id == self.voice_chans[str(ctx.guild.id)]:
                     raise VoiceCommandError('Already connected to that channel')
                 vcl: discord.VoiceClient = ctx.guild.voice_client
                 if vcl is None:
@@ -196,8 +196,7 @@ class YouTube(Cog):
                     await ch.connect()
             else:
                 await ch.connect()
-            self.voice_chans[ctx.guild.id] = ch.id
-            self.commit()
+            self.voice_chans[str(ctx.guild.id)] = ch.id
             await ctx.send('Joined the voice channel!')
 
     @pikavoice.command()
@@ -243,7 +242,6 @@ class YouTube(Cog):
             await ctx.send('Parameters could not be updated')
         else:
             self.espeak_kw = params
-            self.commit()
             await ctx.send('Parameters successfully updated')
         finally:
             os.remove('tmp.wav')

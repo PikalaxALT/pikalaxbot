@@ -42,3 +42,9 @@ class Cog:
                 if isinstance(val, set):
                     val = list(val)
                 setattr(settings.user, attr, val)
+
+    async def __before_invoke(self, ctx):
+        self.fetch()
+
+    async def __after_invoke(self, ctx):
+        self.commit()
