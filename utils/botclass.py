@@ -84,15 +84,7 @@ class PikalaxBOT(commands.Bot):
             token = self.settings.credentials.token
         super().run(token)
 
-    async def login(self, token, *, bot=True):
-        for cog in self.cogs.values():
-            cog.fetch()
-        await super().login(token, bot=bot)
-
     async def close(self):
-        await self.wall('Shutting down...')
-        for cog in self.cogs.values():
-            cog.commit()
         await super().close()
         Sql().backup_db()
 

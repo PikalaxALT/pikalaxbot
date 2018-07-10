@@ -22,6 +22,10 @@ class Cog:
 
     def __init__(self, bot):
         self.bot: PikalaxBOT = bot
+        self.fetch()
+
+    def __del__(self):
+        self.commit()
 
     def fetch(self):
         with self.bot.settings as settings:
