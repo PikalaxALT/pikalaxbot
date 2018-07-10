@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import time
 from discord.ext import commands
 from utils.default_cog import Cog
 
@@ -44,7 +45,7 @@ class Fix(Cog):
         alias = self.get_fix_alias(ctx)
         owner = self.bot_owners.get(alias, 'already')
         botname = self.bot_names.get(alias, 'your bot')
-        await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT 2018')
+        await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT {time.gmtime().tm_year:d}')
 
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
