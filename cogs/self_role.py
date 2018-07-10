@@ -28,8 +28,8 @@ class SelfAssignableRole(Cog):
         return ctx.guild is not None
 
     @commands.command()
-    @commands.bot_has_permissions(manage_roles=True)
     @bot_role_is_higher()
+    @commands.bot_has_permissions(manage_roles=True)
     async def iam(self, ctx: commands.Context, role: AliasedRoleConverter):
         """Assign a role to yourself"""
         if role in ctx.author.roles:
@@ -57,7 +57,7 @@ class SelfAssignableRole(Cog):
         """Add a role to the list of self-assignable roles"""
         if ctx.guild.id not in self.roles:
             self.roles[ctx.guild.id] = {alias: role.id}
-        elif role.id in self.roles[ctx.guild.id]:
+        elif alias in self.roles[ctx.guild.id]:
             return await ctx.send(f'Role "{role}" already self-assignable"')
         else:
             self.roles[ctx.guild.id][alias] = role.id
@@ -68,7 +68,7 @@ class SelfAssignableRole(Cog):
     async def rmar(self, ctx: commands.Context, alias: str.lower):
         """Remove a role from the list of self-assignable roles"""
         if ctx.guild.id not in self.roles:
-            self.roles[ctx.guild.id] = []
+            self.roles[ctx.guild.id] = {}
         if alias not in self.roles[ctx.guild.id]:
             return await ctx.send(f'Role "{alias}" is self-assignable"')
         self.roles[ctx.guild.id].pop(alias)
@@ -78,7 +78,7 @@ class SelfAssignableRole(Cog):
     async def lsar(self, ctx):
         """List self-assignable roles"""
         if ctx.guild.id not in self.roles:
-            self.roles[ctx.guild.id] = []
+            self.roles[ctx.guild.id] = {}
         msg = f'Self-assignable roles for {ctx.guild}:\n'
         roles = self.roles.get(ctx.guild.id, {})
         if roles:
@@ -88,6 +88,12 @@ class SelfAssignableRole(Cog):
         else:
             msg += f'    None\n'
         await ctx.send(msg)
+
+    @commands.command()
+    @commands.is_owner()
+    async def resetar(self, ctx):
+        """Reset self-assignable roles"""
+        self.roles = {}
 
 
 def setup(bot):
