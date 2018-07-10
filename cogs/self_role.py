@@ -13,6 +13,7 @@ class SelfAssignableRole(Cog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     async def iam(self, ctx: commands.Context, role: discord.Role):
+        """Assign a role to yourself"""
         if role.id not in self.roles.get(ctx.guild.id, []):
             await ctx.send(f'Role "{role}" is not self-assignable')
         elif role in ctx.author.roles:
@@ -24,6 +25,7 @@ class SelfAssignableRole(Cog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     async def iamnot(self, ctx: commands.Context, role: discord.Role):
+        """Unassign a role from yourself"""
         if role.id not in self.roles.get(ctx.guild.id, []):
             await ctx.send(f'Role "{role}" is not self-assignable')
         elif role not in ctx.author.roles:
@@ -35,6 +37,7 @@ class SelfAssignableRole(Cog):
     @commands.command()
     @commands.is_owner()
     async def addar(self, ctx: commands.Context, role: discord.Role):
+        """Add a role to the list of self-assignable roles"""
         if ctx.guild.id not in self.roles:
             self.roles[ctx.guild.id] = [role.id]
         elif role.id in self.roles[ctx.guild.id]:
@@ -46,6 +49,7 @@ class SelfAssignableRole(Cog):
     @commands.command()
     @commands.is_owner()
     async def rmar(self, ctx: commands.Context, role: discord.Role):
+        """Remove a role from the list of self-assignable roles"""
         if ctx.guild.id not in self.roles:
             self.roles[ctx.guild.id] = []
         if role.id not in self.roles[ctx.guild.id]:
@@ -55,6 +59,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     async def lsar(self, ctx):
+        """List self-assignable roles"""
         roles = ', '.join(str(discord.utils.get(ctx.guild.roles, id=role)) for role in self.roles[ctx.guild.id])
         await ctx.send(f'Self-assignable roles for {ctx.guild}:\n'
                        f'{roles}')

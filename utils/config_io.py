@@ -52,6 +52,7 @@ class User(SettingsCategory):
         'p': 75
     }
     banlist = []
+    roles = {}
 
 
 class Settings:
