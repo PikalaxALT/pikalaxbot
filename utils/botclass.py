@@ -98,6 +98,8 @@ class PikalaxBOT(commands.Bot):
 
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
+        if guild is None:
+            return default
         return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
 
     def command_error_emoji(self, guild):
