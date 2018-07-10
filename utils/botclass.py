@@ -85,6 +85,7 @@ class PikalaxBOT(commands.Bot):
         super().run(token)
 
     async def close(self):
+        await self.wall('Shutting down...')
         await super().close()
         Sql().backup_db()
 
