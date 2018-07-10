@@ -7,12 +7,9 @@ class SelfAssignableRole(Cog):
     roles = {}
     config_attrs = 'roles',
 
-    async def __error(self, ctx: commands.Context, exc: BaseException):
-        pass
-
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
-    async def iam(self, ctx: commands.Context, role: discord.Role):
+    async def iam(self, ctx: commands.Context, *, role: discord.Role):
         """Assign a role to yourself"""
         if role.id not in self.roles.get(ctx.guild.id, []):
             await ctx.send(f'Role "{role}" is not self-assignable')
@@ -24,7 +21,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
-    async def iamnot(self, ctx: commands.Context, role: discord.Role):
+    async def iamnot(self, ctx: commands.Context, *, role: discord.Role):
         """Unassign a role from yourself"""
         if role.id not in self.roles.get(ctx.guild.id, []):
             await ctx.send(f'Role "{role}" is not self-assignable')
@@ -36,7 +33,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def addar(self, ctx: commands.Context, role: discord.Role):
+    async def addar(self, ctx: commands.Context, *, role: discord.Role):
         """Add a role to the list of self-assignable roles"""
         if ctx.guild.id not in self.roles:
             self.roles[ctx.guild.id] = [role.id]
@@ -48,7 +45,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def rmar(self, ctx: commands.Context, role: discord.Role):
+    async def rmar(self, ctx: commands.Context, *, role: discord.Role):
         """Remove a role from the list of self-assignable roles"""
         if ctx.guild.id not in self.roles:
             self.roles[ctx.guild.id] = []
