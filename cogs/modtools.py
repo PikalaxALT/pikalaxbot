@@ -125,6 +125,7 @@ class ModTools(Cog):
     @cog.command(name='enable')
     async def enable_cog(self, ctx, *cogs: lower):
         """Enable cogs"""
+        await self.git_pull(ctx)
         for cog in cogs:
             with self.bot.settings as settings:
                 if cog not in settings.meta.disabled_cogs:
@@ -156,15 +157,18 @@ class ModTools(Cog):
                     await ctx.send(f'Unloaded cog "{cog}"')
                     settings.user.disabled_cogs.add(cog)
 
+    async def git_pull(self, ctx):
+        async with ctx.typing():
+            await self.bot.loop.run_in_executor(None, subprocess.call, ['git', 'pull'])
+
     @cog.command(name='reload')
     async def reload_cog(self, ctx: commands.Context, *cogs: lower):
         """Reload cogs"""
+        await self.git_pull(ctx)
         for cog in cogs:
             extn = f'cogs.{cog}'
             if extn in self.bot.extensions:
                 self.bot.unload_extension(f'cogs.{cog}')
-                async with ctx.typing():
-                    subprocess.call(['git', 'pull'])
                 try:
                     self.bot.load_extension(f'cogs.{cog}')
                 except discord.ClientException as e:
@@ -179,13 +183,12 @@ class ModTools(Cog):
     @cog.command(name='load')
     async def load_cog(self, ctx: commands.Context, *cogs: lower):
         """Load cogs that aren't already loaded"""
+        await self.git_pull(ctx)
         for cog in cogs:
             with self.bot.settings as settings:
                 if cog in settings.user.disabled_cogs:
                     await ctx.send(f'Cog "{cog}" is disabled!')
                     continue
-            async with ctx.typing():
-                subprocess.call(['git', 'pull'])
             try:
                 self.bot.load_extension(f'cogs.{cog}')
             except discord.ClientException as e:
