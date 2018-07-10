@@ -128,7 +128,11 @@ class PikalaxBOT(commands.Bot):
 
     async def on_command_error(self, ctx: commands.Context, exc):
         async def report(msg):
-            await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=10)
+            with self.settings:
+                debug = self.settings.user.debug
+            await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=None if debug else 10)
+            if debug:
+                self.log_tb(ctx, exc)
 
         if not self.cmd_error_check(ctx, exc):
             return
