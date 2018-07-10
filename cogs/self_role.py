@@ -27,7 +27,9 @@ class SelfAssignableRole(Cog):
     config_attrs = 'roles',
 
     def __local_check(self, ctx):
-        return ctx.guild is not None
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage('This command cannot be used in private messages.')
+        return True
 
     @commands.command()
     @bot_role_is_higher()

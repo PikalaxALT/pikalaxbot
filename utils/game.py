@@ -124,6 +124,11 @@ class GameCogBase(Cog):
     gamecls = None
     __slots__ = ('channels',)
 
+    def __local_check(self, ctx):
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage('This command cannot be used in private messages.')
+        return True
+
     def __init__(self, bot):
         if self.gamecls is None:
             raise NotImplemented('this class must be subclassed')
