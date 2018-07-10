@@ -7,8 +7,18 @@ class SelfAssignableRole(Cog):
     roles = {}
     config_attrs = 'roles',
 
+    @staticmethod
+    def bot_role_is_higher():
+        def predicate(ctx):
+            bot_pos = ctx.guild.role_hierarchy.index(ctx.guild.me.top_role)
+            author_pos = ctx.guild.role_hierarchy.index(ctx.author.top_role)
+            return bot_pos < author_pos
+
+        return commands.check(predicate)
+
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
+    @bot_role_is_higher()
     async def iam(self, ctx: commands.Context, *, role: discord.Role):
         """Assign a role to yourself"""
         if role.id not in self.roles.get(ctx.guild.id, []):
@@ -21,6 +31,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
+    @bot_role_is_higher()
     async def iamnot(self, ctx: commands.Context, *, role: discord.Role):
         """Unassign a role from yourself"""
         if role.id not in self.roles.get(ctx.guild.id, []):
