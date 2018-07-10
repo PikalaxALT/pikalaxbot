@@ -123,68 +123,75 @@ class ModTools(Cog):
         """Manage bot cogs"""
 
     @cog.command(name='enable')
-    async def enable_cog(self, ctx, cog: lower):
-        """Enable cog"""
-        with self.bot.settings as settings:
-            if cog not in settings.meta.disabled_cogs:
-                return await ctx.send(f'Cog "{cog}" already enabled or does not exist')
-            try:
-                self.bot.load_extension(f'cogs.{cog}')
-            except discord.ClientException:
-                await ctx.send(f'Failed to load cog "{cog}"')
-            else:
-                await ctx.send(f'Loaded cog "{cog}"')
-                settings.meta.disabled_cogs.discard(cog)
+    async def enable_cog(self, ctx, *cogs: lower):
+        """Enable cogs"""
+        for cog in cogs:
+            with self.bot.settings as settings:
+                if cog not in settings.meta.disabled_cogs:
+                    await ctx.send(f'Cog "{cog}" already enabled or does not exist')
+                    continue
+                try:
+                    self.bot.load_extension(f'cogs.{cog}')
+                except discord.ClientException:
+                    await ctx.send(f'Failed to load cog "{cog}"')
+                else:
+                    await ctx.send(f'Loaded cog "{cog}"')
+                    settings.meta.disabled_cogs.discard(cog)
 
     @cog.command(name='disable')
-    async def disable_cog(self, ctx, cog: lower):
-        """Disable cog"""
-        if cog == self.__class__.__name__.lower():
-            return await ctx.send(f'Cannot unload the {cog} cog!!')
-        with self.bot.settings as settings:
-            if cog in settings.user.disabled_cogs:
-                return await ctx.send(f'Cog "{cog}" already disabled')
-            try:
-                self.bot.unload_extension(f'cogs.{cog}')
-            except discord.ClientException:
-                await ctx.send(f'Failed to unload cog "{cog}"')
-            else:
-                await ctx.send(f'Unloaded cog "{cog}"')
-                settings.user.disabled_cogs.add(cog)
+    async def disable_cog(self, ctx, *cogs: lower):
+        """Disable cogs"""
+        for cog in cogs:
+            if cog == self.__class__.__name__.lower():
+                return await ctx.send(f'Cannot unload the {cog} cog!!')
+            with self.bot.settings as settings:
+                if cog in settings.user.disabled_cogs:
+                    await ctx.send(f'Cog "{cog}" already disabled')
+                    continue
+                try:
+                    self.bot.unload_extension(f'cogs.{cog}')
+                except discord.ClientException:
+                    await ctx.send(f'Failed to unload cog "{cog}"')
+                else:
+                    await ctx.send(f'Unloaded cog "{cog}"')
+                    settings.user.disabled_cogs.add(cog)
 
     @cog.command(name='reload')
-    async def reload_cog(self, ctx: commands.Context, cog: lower):
-        """Reload cog"""
-        extn = f'cogs.{cog}'
-        if extn in self.bot.extensions:
-            self.bot.unload_extension(f'cogs.{cog}')
+    async def reload_cog(self, ctx: commands.Context, *cogs: lower):
+        """Reload cogs"""
+        for cog in cogs:
+            extn = f'cogs.{cog}'
+            if extn in self.bot.extensions:
+                self.bot.unload_extension(f'cogs.{cog}')
+                async with ctx.typing():
+                    subprocess.call(['git', 'pull'])
+                try:
+                    self.bot.load_extension(f'cogs.{cog}')
+                except discord.ClientException as e:
+                    if cog == self.__class__.__name__.lower():
+                        return await ctx.send(f'Could not reload {cog}. {cog.title()} will be unavailable.')
+                    with self.bot.settings as settings:
+                        settings.user.disabled_cogs.add(cog)
+                    await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
+                else:
+                    await ctx.send(f'Reloaded cog {cog}')
+
+    @cog.command(name='load')
+    async def load_cog(self, ctx: commands.Context, *cogs: lower):
+        """Load cogs that aren't already loaded"""
+        for cog in cogs:
+            with self.bot.settings as settings:
+                if cog in settings.user.disabled_cogs:
+                    await ctx.send(f'Cog "{cog}" is disabled!')
+                    continue
             async with ctx.typing():
                 subprocess.call(['git', 'pull'])
             try:
                 self.bot.load_extension(f'cogs.{cog}')
             except discord.ClientException as e:
-                if cog == self.__class__.__name__.lower():
-                    return await ctx.send(f'Could not reload {cog}. {cog.title()} will be unavailable.')
-                with self.bot.settings as settings:
-                    settings.user.disabled_cogs.add(cog)
-                await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
+                await ctx.send(f'Could not load {cog}: {e}')
             else:
-                await ctx.send(f'Reloaded cog {cog}')
-
-    @cog.command(name='load')
-    async def load_cog(self, ctx: commands.Context, cog: lower):
-        """Load a cog that isn't already loaded"""
-        with self.bot.settings as settings:
-            if cog in settings.user.disabled_cogs:
-                return await ctx.send(f'Cog "{cog}" is disabled!')
-        async with ctx.typing():
-            subprocess.call(['git', 'pull'])
-        try:
-            self.bot.load_extension(f'cogs.{cog}')
-        except discord.ClientException as e:
-            await ctx.send(f'Could not load {cog}: {e}')
-        else:
-            await ctx.send(f'Loaded cog {cog}')
+                await ctx.send(f'Loaded cog {cog}')
 
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):
