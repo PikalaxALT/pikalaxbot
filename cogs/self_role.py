@@ -33,6 +33,7 @@ class SelfAssignableRole(Cog):
         if role in ctx.author.roles:
             await ctx.send(f'You already have role "{role}"')
         else:
+            self.bot.logger.debug(f'Adding role {role} to {ctx.author}')
             await ctx.author.add_roles(role, reason='Requested by user')
             await ctx.send(f'You now have the role "{role}"')
 
@@ -44,6 +45,7 @@ class SelfAssignableRole(Cog):
         if role not in ctx.author.roles:
             await ctx.send(f'You don\'t have the role "{role}"')
         else:
+            self.bot.logger.debug(f'Removing role {role} from {ctx.author}')
             await ctx.author.remove_roles(role, reason='Requested by user')
             await ctx.send(f'You no longer have the role "{role}"')
 

@@ -186,6 +186,12 @@ class ModTools(Cog):
         else:
             await ctx.send(f'Loaded cog {cog}')
 
+    @admin.command(name='debug')
+    async def toggle_debug(self, ctx):
+        with self.bot.settings as settings:
+            settings.user.debug = not settings.user.debug
+            await ctx.send(f'Set debug mode to {"on" if settings.user.debug else "off"}')
+
 
 def setup(bot):
     bot.add_cog(ModTools(bot))
