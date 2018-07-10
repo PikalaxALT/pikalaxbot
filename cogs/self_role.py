@@ -60,6 +60,8 @@ class SelfAssignableRole(Cog):
     @commands.command()
     async def lsar(self, ctx):
         """List self-assignable roles"""
+        if ctx.guild.id not in self.roles:
+            self.roles[ctx.guild.id] = []
         roles = ', '.join(str(discord.utils.get(ctx.guild.roles, id=role)) for role in self.roles[ctx.guild.id])
         await ctx.send(f'Self-assignable roles for {ctx.guild}:\n'
                        f'{roles}')
