@@ -118,7 +118,6 @@ class Markov(Cog):
                 if await self.learn_markov_from_history(ch):
                     await ctx.send(f'Successfully initialized {ch}')
                     self.markov_channels.add(ch.id)
-                    self.commit()
                 else:
                     await ctx.send(f'Missing permissions to load {ch}')
 
@@ -129,7 +128,6 @@ class Markov(Cog):
         if ch.id in self.markov_channels:
             await ctx.send(f'Channel {ch} will no longer be learned')
             self.markov_channels.discard(ch.id)
-            self.commit()
         else:
             await ctx.send(f'Channel {ch} is not being learned')
 

@@ -49,7 +49,6 @@ class Core(Cog):
     async def ignore(self, ctx, person: discord.Member):
         """Ban a member :datsheffy:"""
         self.banlist.add(person.id)
-        self.commit()
         await ctx.send(f'{person.display_name} is now banned from interacting with me.')
 
     @commands.command()
@@ -57,7 +56,6 @@ class Core(Cog):
     async def unignore(self, ctx, person: discord.Member):
         """Unban a member"""
         self.banlist.discard(person.id)
-        self.commit()
         await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
     async def on_ready(self):

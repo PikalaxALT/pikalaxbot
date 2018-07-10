@@ -197,7 +197,6 @@ class YouTube(Cog):
             else:
                 await ch.connect()
             self.voice_chans[ctx.guild.id] = ch.id
-            self.commit()
             await ctx.send('Joined the voice channel!')
 
     @pikavoice.command()
@@ -243,7 +242,6 @@ class YouTube(Cog):
             await ctx.send('Parameters could not be updated')
         else:
             self.espeak_kw = params
-            self.commit()
             await ctx.send('Parameters successfully updated')
         finally:
             os.remove('tmp.wav')
