@@ -64,7 +64,7 @@ class SelfAssignableRole(Cog):
             self.roles[ctx.guild.id] = []
         roles = ', '.join(str(discord.utils.get(ctx.guild.roles, id=role)) for role in self.roles[ctx.guild.id])
         await ctx.send(f'Self-assignable roles for {ctx.guild}:\n'
-                       f'{roles}')
+                       f'{roles if roles else None}')
 
 
 def setup(bot):
