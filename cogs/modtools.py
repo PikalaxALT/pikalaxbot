@@ -163,6 +163,8 @@ class ModTools(Cog):
             try:
                 self.bot.load_extension(f'cogs.{cog}')
             except discord.ClientException as e:
+                if cog == self.__class__.__name__.lower():
+                    return await ctx.send(f'Could not reload {cog}. {cog.title()} will be unavailable.')
                 with self.bot.settings as settings:
                     settings.user.disabled_cogs.add(cog)
                 await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
@@ -172,6 +174,9 @@ class ModTools(Cog):
     @cog.command(name='load')
     async def load_cog(self, ctx: commands.Context, cog: lower):
         """Load a cog that isn't already loaded"""
+        with self.bot.settings as settings:
+            if cog in settings.user.disabled_cogs:
+                return await ctx.send(f'Cog "{cog}" is disabled!')
         async with ctx.typing():
             subprocess.call(['git', 'pull'])
         try:
