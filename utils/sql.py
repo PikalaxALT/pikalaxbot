@@ -19,7 +19,7 @@ import functools
 import os
 import shutil
 import sqlite3
-import subprocess
+import glob
 import time
 
 default_bag = (
@@ -166,7 +166,7 @@ class Sql:
         return shutil.copy(self.fname, f'{self.fname}.{curtime:d}.bak')
 
     def restore_db(self, idx):
-        files = subprocess.check_output(['ls', f'{self.fname}.*.bak'])
+        files = glob.glob(f'{self.fname}.*.bak')
         if len(files) == 0:
             return None
         files.sort(reverse=True)

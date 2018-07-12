@@ -26,6 +26,7 @@ import subprocess
 import os
 import time
 import re
+import functools
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -65,18 +66,25 @@ class EspeakParamsConverter(commands.Converter):
 
 
 class EspeakAudioSource(discord.FFmpegPCMAudio):
+    def __init__(self, fname, **kwargs):
+        super().__init__(fname, **kwargs)
+        self.fname = fname
+
     @staticmethod
     def call_espeak(msg, fname, **kwargs):
         args = ['espeak', '-w', fname]
         for flag, value in kwargs.items():
             args.extend([f'-{flag}', str(value)])
         args.append(msg)
-        subprocess.check_call(args)
+        subprocess.run(args, check=True)
 
-    def __init__(self, cog, msg, *args, **kwargs):
-        self.fname = f'tmp_{time.time()}.wav'
-        self.call_espeak(msg, self.fname, **cog.espeak_kw)
-        super().__init__(self.fname, *args, **kwargs)
+    @classmethod
+    async def from_message(cls, cog, msg, **kwargs):
+        loop: asyncio.AbstractEventLoop = cog.bot.loop
+        fname = f'tmp_{time.time()}.wav'
+        partial = functools.partial(cls.call_espeak, msg, fname, **cog.espeak_kw)
+        await loop.run_in_executor(None, partial)
+        return cls(fname, **kwargs)
 
     def cleanup(self):
         super().cleanup()
@@ -134,7 +142,7 @@ class YouTube(Cog):
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
                 try:
-                    subprocess.check_call([executable, '-h'], stdout=DEVNULL, stderr=DEVNULL)
+                    subprocess.run([executable, '-h'], stdout=DEVNULL, stderr=DEVNULL, check=True)
                 except FileNotFoundError:
                     continue
                 self.ffmpeg = executable
@@ -204,8 +212,8 @@ class YouTube(Cog):
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
-        ctx.guild.voice_client.play(EspeakAudioSource(self, msg, executable=self.ffmpeg,
-                                                      before_options='-loglevel quiet'),
+        ctx.guild.voice_client.play(EspeakAudioSource.from_message(self, msg, executable=self.ffmpeg,
+                                                                   before_options='-loglevel quiet'),
                                     after=lambda e: print('Player error: %s' % e) if e else None)
 
     @commands.command()
