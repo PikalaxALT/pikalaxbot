@@ -25,7 +25,10 @@ class Cog:
         self.fetch()
 
     def __del__(self):
-        self.commit()
+        try:
+            self.commit()
+        except Exception as e:
+            pass
 
     def fetch(self):
         with self.bot.settings as settings:
