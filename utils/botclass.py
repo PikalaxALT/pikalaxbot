@@ -72,7 +72,8 @@ class PikalaxBOT(commands.Bot):
 
         # Set up sql database
         self.sql = Sql()
-        self.sql.db_init()
+        with self.sql:
+            self.sql.db_init()
 
     @property
     def settings(self):
@@ -87,7 +88,8 @@ class PikalaxBOT(commands.Bot):
     async def close(self):
         await self.wall('Shutting down...')
         await super().close()
-        self.sql.backup_db()
+        with self.sql:
+            self.sql.backup_db()
 
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
