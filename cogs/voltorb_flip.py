@@ -18,7 +18,6 @@ import asyncio
 import discord
 from discord.ext import commands
 from utils.game import GameBase, GameCogBase, find_emoji
-from utils.sql import Sql
 import random
 
 
@@ -94,13 +93,13 @@ class VoltorbFlipGame(GameBase):
         return self._level
     
     async def get_level(self, channel):
-        with Sql() as sql:
+        async with self.bot.sql as sql:
             self._level = sql.get_voltorb_level(channel)
         return self._level
 
     async def update_level(self, channel, new_level):
         self._level = new_level
-        with Sql() as sql:
+        async with self.bot.sql as sql:
             sql.set_voltorb_level(channel, new_level)
 
     def build_board(self):

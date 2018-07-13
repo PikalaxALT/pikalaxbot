@@ -21,7 +21,6 @@ import traceback
 import sqlite3
 import subprocess
 from discord.ext import commands
-from utils.sql import Sql
 from utils.default_cog import Cog
 
 
@@ -82,7 +81,7 @@ class ModTools(Cog):
     async def call_sql(self, ctx, *, script):
         """Run arbitrary sql command"""
         try:
-            with Sql() as sql:
+            with self.bot.sql as sql:
                 sql.call_script(script)
         except sqlite3.Error:
             tb = traceback.format_exc(limit=3)

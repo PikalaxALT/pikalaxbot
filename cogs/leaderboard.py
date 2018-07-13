@@ -17,7 +17,6 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils.sql import Sql
 from utils.default_cog import Cog
 
 
@@ -33,7 +32,7 @@ class Leaderboard(Cog):
         """Check your leaderboard score, or the leaderboard score of another user"""
         if person is None:
             person = ctx.author
-        with Sql() as sql:
+        async with self.bot.sql as sql:
             score = sql.get_score(person)
             if score is not None:
                 rank = sql.get_leaderboard_rank(person)
@@ -45,7 +44,7 @@ class Leaderboard(Cog):
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
         msgs = []
-        with Sql() as sql:
+        async with self.bot.sql as sql:
             for _id, name, score in sql.get_all_scores():
                 msgs.append(f'{name}: {score:d}')
         if len(msgs) == 0:
@@ -61,7 +60,7 @@ class Leaderboard(Cog):
     @commands.is_owner()
     async def clear_leaderboard(self, ctx):
         """Reset the leaderboard"""
-        with Sql() as sql:
+        async with self.bot.sql as sql:
             sql.reset_leaderboard()
         await ctx.send('Leaderboard reset')
 
@@ -72,7 +71,7 @@ class Leaderboard(Cog):
         if person is None:
             await ctx.send('That person does not exist')
         else:
-            with Sql() as sql:
+            async with self.bot.sql as sql:
                 sql.increment_score(person, score)
             await ctx.send(f'Gave {score:d} points to {person.name}')
 
@@ -84,13 +83,15 @@ class Leaderboard(Cog):
     @database.command(name='backup')
     async def backup_database(self, ctx):
         """Back up the database"""
-        fname = Sql().backup_db()
+        with self.bot.sql as sql:
+            fname = sql.backup_db()
         await ctx.send(f'Backed up to {fname}')
 
     @database.command(name='restore')
     async def restore_database(self, ctx, *, idx: int = -1):
         """Restore the database"""
-        dbbak = Sql().restore_db(idx)
+        with self.bot.sql as sql:
+            dbbak = sql.restore_db(idx)
         if dbbak is None:
             await ctx.send('Unable to restore backup')
         else:

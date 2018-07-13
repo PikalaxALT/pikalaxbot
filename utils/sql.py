@@ -89,7 +89,6 @@ class Sql:
             score = score[0]
         return score
 
-
     def increment_score(self, player, by=1):
         c = self.execute("select score from game where id = ?", (player.id,))
         score = c.fetchone()
@@ -98,10 +97,8 @@ class Sql:
         else:
             self.execute('update game set score = score + ? where id = ?', (by, player.id))
 
-
     def get_all_scores(self):
         yield from self.execute('select * from game order by score desc limit 10')
-
 
     def add_bag(self, text):
         c = self.execute('select * from meme where bag = ?', (text,))
@@ -110,13 +107,11 @@ class Sql:
             self.execute("insert into meme(bag) values (?)", (text,))
         return res
 
-
     def read_bag(self):
         c = self.execute('select bag from meme order by random() limit 1')
         msg = c.fetchone()
         if msg is not None:
             return msg[0]
-
 
     def get_voltorb_level(self, channel):
         c = self.execute('select level from voltorb where id = ?', (channel.id,))

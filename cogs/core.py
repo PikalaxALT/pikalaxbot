@@ -42,6 +42,7 @@ class Core(Cog):
     @commands.is_owner()
     async def pikakill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
+        await self.bot.wall('Rebooting to apply updates')
         await self.bot.close()
 
     @commands.command()

@@ -71,8 +71,8 @@ class PikalaxBOT(commands.Bot):
                     self.logger.info(f'Skipping disabled cog "{extn}"')
 
         # Set up sql database
-        with Sql() as sql:
-            sql.db_init()
+        self.sql = Sql()
+        self.sql.db_init()
 
     @property
     def settings(self):
@@ -87,7 +87,7 @@ class PikalaxBOT(commands.Bot):
     async def close(self):
         await self.wall('Shutting down...')
         await super().close()
-        Sql().backup_db()
+        self.sql.backup_db()
 
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
@@ -156,6 +156,3 @@ class PikalaxBOT(commands.Bot):
         for channel in self.get_all_channels():
             if isinstance(channel, discord.TextChannel) and  channel.permissions_for(channel.guild.me).send_messages:
                 await channel.send(*args, *kwargs)
-
-    async def on_ready(self):
-        await self.wall('_is active and ready for abuse!_')
