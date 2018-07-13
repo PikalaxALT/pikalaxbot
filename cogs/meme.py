@@ -18,6 +18,7 @@ import discord
 import aiohttp
 import os
 import random
+import io
 from discord.ext import commands
 from utils.data import data
 from utils.default_cog import Cog
@@ -97,28 +98,19 @@ class Meme(Cog):
     @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
-        url = ''
-        async with aiohttp.ClientSession() as cs:
+        async with aiohttp.ClientSession(raise_for_status=True) as cs:
             async with cs.get('http://inspirobot.me/api',
                               params={'generate': 'true'}) as r:  # type: aiohttp.ClientResponse
-                if r.status == 200:
-                    url = await r.text()
-                else:
-                    await ctx.send(f'InspiroBot error (phase: gen-url): {r.status:d}')
-                    r.raise_for_status()
-                    raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+                url = await r.text()
 
-            filename = os.path.basename(url)
             async with cs.get(url) as r:
-                if r.status == 200:
-                    with open(filename, 'wb') as t:
-                        t.write(await r.read())
-                    await ctx.send(file=discord.file.File(filename))
-                    os.remove(filename)
-                else:
-                    await ctx.send(f'InspiroBot error (phase: get-jpg): {r.status:d}')
-                    r.raise_for_status()
-                    raise aiohttp.ClientError(f'Abnormal status {r.status:d}')
+                stream = io.BytesIO(await r.read())
+                await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
+
+    @inspire.error
+    async def inspire_error(self, ctx, exc):
+        await ctx.send(f'An error occurred. How uninspiring.\n'
+                       f'{exc.__class__.__name__}: {exc}')
 
 
 def setup(bot):
