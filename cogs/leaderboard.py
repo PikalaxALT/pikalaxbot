@@ -32,7 +32,7 @@ class Leaderboard(Cog):
         """Check your leaderboard score, or the leaderboard score of another user"""
         if person is None:
             person = ctx.author
-        async with self.bot.sql as sql:
+        with self.bot.sql as sql:
             score = sql.get_score(person)
             if score is not None:
                 rank = sql.get_leaderboard_rank(person)
@@ -44,7 +44,7 @@ class Leaderboard(Cog):
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
         msgs = []
-        async with self.bot.sql as sql:
+        with self.bot.sql as sql:
             for _id, name, score in sql.get_all_scores():
                 msgs.append(f'{name}: {score:d}')
         if len(msgs) == 0:
@@ -60,7 +60,7 @@ class Leaderboard(Cog):
     @commands.is_owner()
     async def clear_leaderboard(self, ctx):
         """Reset the leaderboard"""
-        async with self.bot.sql as sql:
+        with self.bot.sql as sql:
             sql.reset_leaderboard()
         await ctx.send('Leaderboard reset')
 
@@ -71,7 +71,7 @@ class Leaderboard(Cog):
         if person is None:
             await ctx.send('That person does not exist')
         else:
-            async with self.bot.sql as sql:
+            with self.bot.sql as sql:
                 sql.increment_score(person, score)
             await ctx.send(f'Gave {score:d} points to {person.name}')
 

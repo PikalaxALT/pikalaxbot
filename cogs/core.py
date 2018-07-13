@@ -27,6 +27,8 @@ class Core(Cog):
     config_attrs = 'disabled_commands', 'banlist', 'game'
 
     async def __global_check(self, ctx: commands.Context):
+        if not self.bot.is_ready():
+            return False
         if ctx.author.bot:
             return False
         if isinstance(ctx.command, commands.Command):

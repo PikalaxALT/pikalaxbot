@@ -93,13 +93,13 @@ class VoltorbFlipGame(GameBase):
         return self._level
     
     async def get_level(self, channel):
-        async with self.bot.sql as sql:
+        with self.bot.sql as sql:
             self._level = sql.get_voltorb_level(channel)
         return self._level
 
     async def update_level(self, channel, new_level):
         self._level = new_level
-        async with self.bot.sql as sql:
+        with self.bot.sql as sql:
             sql.set_voltorb_level(channel, new_level)
 
     def build_board(self):
