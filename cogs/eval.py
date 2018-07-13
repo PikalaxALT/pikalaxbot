@@ -30,6 +30,8 @@ from collections import Counter
 
 
 class Eval(Cog):
+    _last_result = None
+
     @staticmethod
     def cleanup_code(content):
         """Automatically removes code blocks from the code."""
