@@ -158,3 +158,6 @@ class PikalaxBOT(commands.Bot):
         for channel in self.get_all_channels():
             if isinstance(channel, discord.TextChannel) and  channel.permissions_for(channel.guild.me).send_messages:
                 await channel.send(*args, *kwargs)
+
+    async def on_ready(self):
+        await self.wall('_is active and ready for abuse!_')
