@@ -43,6 +43,8 @@ class Markov(Cog):
             return False
         if ctx.invoked_with == self.markov.name:
             return True
+        if ctx.prefix is not None:
+            return False
         if ctx.command != self.markov:
             return False
         if ctx.me.mentioned_in(ctx.message):
