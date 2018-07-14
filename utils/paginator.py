@@ -20,6 +20,7 @@
 
 import asyncio
 import discord
+from discord.ext import commands
 import itertools
 import inspect
 import re
@@ -58,7 +59,7 @@ class Pages:
     permissions: discord.Permissions
         Our permissions for the channel.
     """
-    def __init__(self, ctx, *, entries, per_page=12, show_entry_count=True):
+    def __init__(self, ctx: commands.Context, *, entries, per_page=12, show_entry_count=True):
         self.bot = ctx.bot
         self.entries = entries
         self.message = ctx.message
@@ -319,7 +320,7 @@ def cleanup_prefix(bot, prefix):
     return prefix
 
 
-async def _can_run(cmd, ctx):
+async def _can_run(cmd, ctx: commands.Context):
     try:
         return await cmd.can_run(ctx)
     except Exception:
@@ -357,13 +358,13 @@ def _command_signature(cmd):
 
 
 class HelpPaginator(Pages):
-    def __init__(self, ctx, entries, *, per_page=4):
+    def __init__(self, ctx: commands.Context, entries, *, per_page=4):
         super().__init__(ctx, entries=entries, per_page=per_page)
         self.reaction_emojis.append(('\N{WHITE QUESTION MARK ORNAMENT}', self.show_bot_help))
         self.total = len(entries)
 
     @classmethod
-    async def from_cog(cls, ctx, cog):
+    async def from_cog(cls, ctx: commands.Context, cog):
         cog_name = cog.__class__.__name__
 
         # get the commands
@@ -378,12 +379,12 @@ class HelpPaginator(Pages):
         self.prefix = cleanup_prefix(ctx.bot, ctx.prefix)
 
         # no longer need the database
-        await ctx.release()
+        # await ctx.release()
 
         return self
 
     @classmethod
-    async def from_command(cls, ctx, command):
+    async def from_command(cls, ctx: commands.Context, command):
         try:
             entries = sorted(command.commands, key=lambda c: c.name)
         except AttributeError:
@@ -400,11 +401,11 @@ class HelpPaginator(Pages):
             self.description = command.help or 'No help given.'
 
         self.prefix = cleanup_prefix(ctx.bot, ctx.prefix)
-        await ctx.release()
+        # await ctx.release()
         return self
 
     @classmethod
-    async def from_bot(cls, ctx):
+    async def from_bot(cls, ctx: commands.Context):
         def key(c):
             return c.cog_name or '\u200bMisc'
 
@@ -431,7 +432,7 @@ class HelpPaginator(Pages):
 
         self = cls(ctx, nested_pages, per_page=1) # this forces the pagination session
         self.prefix = cleanup_prefix(ctx.bot, ctx.prefix)
-        await ctx.release()
+        # await ctx.release()
 
         # swap the get_page implementation with one that supports our style of pagination
         self.get_page = self.get_bot_page
