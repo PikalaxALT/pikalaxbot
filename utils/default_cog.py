@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 from utils.botclass import PikalaxBOT
 
 
@@ -51,3 +52,24 @@ class Cog:
 
     async def __after_invoke(self, ctx):
         self.commit()
+
+    def log(self, level, msg, *args):
+        self.bot.log_and_print(level, msg, *args)
+
+    def log_error(self, msg, *args):
+        self.log(logging.ERROR, msg, *args)
+
+    def log_info(self, msg, *args):
+        self.log(logging.INFO, msg, *args)
+
+    def log_debug(self, msg, *args):
+        self.log(logging.DEBUG, msg, *args)
+
+    def log_warning(self, msg, *args):
+        self.log(logging.WARNING, msg, *args)
+
+    def log_critical(self, msg, *args):
+        self.log(logging.CRITICAL, msg, *args)
+
+    def log_tb(self, ctx, exc):
+        self.bot.log_tb(ctx, exc)

@@ -186,7 +186,7 @@ class YouTube(Cog):
         # All errors shall be communicated to the user, and also
         # passed to the bot's on_command_error handler.
         async with ctx.channel.typing():
-            if not ctx.me.permissions_in(ch).connect:
+            if not ch.permissions_for(ctx.guild.me).connect:
                 raise commands.BotMissingPermissions(['connect'])
             if ch.guild != ctx.guild:
                 raise VoiceCommandError('Guild mismatch')

@@ -99,9 +99,9 @@ class PikalaxBOT(commands.Bot):
     def command_error_emoji(self, guild):
         return self.find_emoji_in_guild(guild, 'tppBurrito', 'VeggieBurrito', default='❤')
 
-    def log_and_print(self, level, msg):
-        self.logger.log(level, msg)
-        print(msg)
+    def log_and_print(self, level, msg, *args):
+        self.logger.log(level, msg, *args)
+        print(msg % args)
 
     def log_tb(self, ctx, exc):
         tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
