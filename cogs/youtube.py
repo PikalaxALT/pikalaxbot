@@ -157,22 +157,25 @@ class YouTube(Cog):
     async def on_ready(self):
         if self.load_opus():
             self.log_info('Loaded opus')
-            for g_id, chan in self.voice_chans.items():
-                guild = self.bot.get_guild(int(g_id))
-                ch = discord.utils.get(guild.voice_channels, id=chan)
-                if ch is None:
-                    self.log_warning(f'Channel {chan} not found')
-                    continue
-                try:
-                    await ch.connect()
-                except asyncio.TimeoutError:
-                    self.log_error('Failed to connect to voice channel %s (connection timed out)', ch.name)
-                except discord.ClientException:
-                    self.log_error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
-                else:
-                    self.log_info('Connected to voice channel %s', ch.name)
 
-            self.ready = True
+    async def join_voice_channels(self):
+        await self.bot.wait_until_ready()
+        for g_id, chan in self.voice_chans.items():
+            guild = self.bot.get_guild(int(g_id))
+            ch = discord.utils.get(guild.voice_channels, id=chan)
+            if ch is None:
+                self.log_warning(f'Channel {chan} not found')
+                continue
+            try:
+                await ch.connect()
+            except asyncio.TimeoutError:
+                self.log_error('Failed to connect to voice channel %s (connection timed out)', ch.name)
+            except discord.ClientException:
+                self.log_error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
+            else:
+                self.log_info('Connected to voice channel %s', ch.name)
+
+        self.ready = True
 
     @commands.group()
     # @commands.is_owner()
@@ -303,7 +306,9 @@ class YouTube(Cog):
 
 
 def setup(bot: PikalaxBOT):
-    bot.add_cog(YouTube(bot))
+    cog = YouTube(bot)
+    bot.add_cog(cog)
+    bot.loop.create_task(cog.join_voice_channels())
 
 
 def teardown(bot: PikalaxBOT):
