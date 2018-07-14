@@ -180,14 +180,12 @@ class YouTube(Cog):
 
     @pikavoice.command()
     @commands.is_owner()
-    async def chan(self, ctx: commands.Context, ch: discord.VoiceChannel):
+    async def chan(self, ctx: commands.Context, *, ch: discord.VoiceChannel):
         """Join a voice channel on the current server."""
 
         # All errors shall be communicated to the user, and also
         # passed to the bot's on_command_error handler.
         async with ctx.channel.typing():
-            if ch is None:
-                raise VoiceCommandError('Channel not found')
             if not ctx.me.permissions_in(ch).connect:
                 raise commands.BotMissingPermissions(['connect'])
             if ch.guild != ctx.guild:
