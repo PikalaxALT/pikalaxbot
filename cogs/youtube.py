@@ -129,7 +129,7 @@ class YouTube(Cog):
         if not discord.opus.is_loaded():
             opus_name = ctypes.util.find_library('libopus')
             if opus_name is None:
-                self.bot.logger.error('Failed to find the Opus library.')
+                self.log_error('Failed to find the Opus library.')
             else:
                 discord.opus.load_opus(opus_name)
         return discord.opus.is_loaded()
@@ -156,18 +156,21 @@ class YouTube(Cog):
 
     async def on_ready(self):
         if self.load_opus():
-            self.bot.logger.info('Loaded opus')
-            for guild, chan in self.voice_chans.items():
-                ch = self.bot.get_channel(chan)
-                if isinstance(ch, discord.VoiceChannel):
-                    try:
-                        await ch.connect()
-                    except asyncio.TimeoutError:
-                        self.bot.logger.error('Failed to connect to voice channel %s (connection timed out)', ch.name)
-                    except discord.ClientException:
-                        self.bot.logger.error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
-                    else:
-                        self.bot.logger.info('Connected to voice channel %s', ch.name)
+            self.log_info('Loaded opus')
+            for g_id, chan in self.voice_chans.items():
+                guild = self.bot.get_guild(int(g_id))
+                ch = discord.utils.get(guild.voice_channels, id=chan)
+                if ch is None:
+                    self.log_warning(f'Channel {chan} not found')
+                    continue
+                try:
+                    await ch.connect()
+                except asyncio.TimeoutError:
+                    self.log_error('Failed to connect to voice channel %s (connection timed out)', ch.name)
+                except discord.ClientException:
+                    self.log_error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
+                else:
+                    self.log_info('Connected to voice channel %s', ch.name)
 
             self.ready = True
 
