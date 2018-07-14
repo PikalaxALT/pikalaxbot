@@ -213,7 +213,10 @@ class YouTube(Cog):
             await ctx.send(f'VoiceCommandError: {exc}')
         elif isinstance(exc, commands.BadArgument):
             await ctx.send('Unable to find voice channel')
+        elif isinstance(exc, commands.NotOwner):
+            await ctx.send('You\'re not my father! :DansGame:')
         else:
+            await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
             self.bot.log_tb(ctx, exc)
 
     @pikavoice.command()
