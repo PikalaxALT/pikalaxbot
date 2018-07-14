@@ -185,25 +185,24 @@ class YouTube(Cog):
 
         # All errors shall be communicated to the user, and also
         # passed to the bot's on_command_error handler.
-        async with ctx.channel.typing():
-            if not ch.permissions_for(ctx.guild.me).connect:
-                raise commands.BotMissingPermissions(['connect'])
-            if ch.guild != ctx.guild:
-                raise VoiceCommandError('Guild mismatch')
-            if str(ctx.guild.id) in self.voice_chans:
-                if ch.id == self.voice_chans[str(ctx.guild.id)]:
-                    raise VoiceCommandError('Already connected to that channel')
-                vcl: discord.VoiceClient = ctx.guild.voice_client
-                if vcl is None:
-                    raise VoiceCommandError('Guild does not support voice connections')
-                if vcl.is_connected():
-                    await vcl.move_to(ch)
-                else:
-                    await ch.connect()
+        if not ch.permissions_for(ctx.guild.me).connect:
+            raise commands.BotMissingPermissions(['connect'])
+        if ch.guild != ctx.guild:
+            raise VoiceCommandError('Guild mismatch')
+        if str(ctx.guild.id) in self.voice_chans:
+            if ch.id == self.voice_chans[str(ctx.guild.id)]:
+                raise VoiceCommandError('Already connected to that channel')
+            vcl: discord.VoiceClient = ctx.guild.voice_client
+            if vcl is None:
+                raise VoiceCommandError('Guild does not support voice connections')
+            if vcl.is_connected():
+                await vcl.move_to(ch)
             else:
                 await ch.connect()
-            self.voice_chans[str(ctx.guild.id)] = ch.id
-            await ctx.send('Joined the voice channel!')
+        else:
+            await ch.connect()
+        self.voice_chans[str(ctx.guild.id)] = ch.id
+        await ctx.send('Joined the voice channel!')
 
     @chan.error
     async def pikavoice_chan_error(self, ctx, exc):
