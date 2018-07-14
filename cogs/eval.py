@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from utils.default_cog import Cog
+from cogs import Cog
 import textwrap
 import traceback
 import io

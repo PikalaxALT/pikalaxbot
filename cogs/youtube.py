@@ -21,7 +21,7 @@ import youtube_dl
 import ctypes.util
 from discord.ext import commands
 from utils.botclass import PikalaxBOT
-from utils.default_cog import Cog
+from cogs import Cog
 import subprocess
 import os
 import time

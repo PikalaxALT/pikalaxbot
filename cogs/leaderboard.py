@@ -17,7 +17,7 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils.default_cog import Cog
+from cogs import Cog
 
 
 class Leaderboard(Cog):

@@ -17,7 +17,7 @@
 import re
 import time
 from discord.ext import commands
-from utils.default_cog import Cog
+from cogs import Cog
 
 
 class Fix(Cog):

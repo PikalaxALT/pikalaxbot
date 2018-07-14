@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from utils.default_cog import Cog
+from cogs import Cog
 from utils.game import find_emoji
 
 

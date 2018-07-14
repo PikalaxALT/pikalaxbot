@@ -21,7 +21,7 @@ import traceback
 import sqlite3
 import subprocess
 from discord.ext import commands
-from utils.default_cog import Cog
+from cogs import Cog
 
 
 class lower(commands.clean_content):

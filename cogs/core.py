@@ -16,7 +16,7 @@
 
 import asyncio
 import discord
-from utils.default_cog import Cog
+from cogs import Cog
 from discord.ext import commands
 
 

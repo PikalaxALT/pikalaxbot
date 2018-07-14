@@ -21,7 +21,7 @@ import random
 import io
 from discord.ext import commands
 from utils.data import data
-from utils.default_cog import Cog
+from cogs import Cog
 
 
 class HMM:

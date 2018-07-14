@@ -18,7 +18,7 @@ import asyncio
 import discord
 import re
 from discord.ext import commands
-from utils.default_cog import Cog
+from cogs import Cog
 from utils.markov import Chain
 
 
