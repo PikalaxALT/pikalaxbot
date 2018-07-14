@@ -205,6 +205,15 @@ class YouTube(Cog):
             self.voice_chans[str(ctx.guild.id)] = ch.id
             await ctx.send('Joined the voice channel!')
 
+    @chan.error
+    async def pikavoice_chan_error(self, ctx, exc):
+        if isinstance(exc, commands.BotMissingPermissions):
+            await ctx.send('I don\'t have permissions to connect to that channel')
+        elif isinstance(exc, VoiceCommandError):
+            await ctx.send(f'VoiceCommandError: {exc}')
+        else:
+            await self.bot.log_tb(ctx, exc)
+
     @pikavoice.command()
     @commands.check(connected_and_not_playing)
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
