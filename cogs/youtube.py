@@ -159,7 +159,8 @@ class YouTube(Cog):
             self.log_info('Loaded opus')
 
     async def join_voice_channels(self):
-        await self.bot.wait_until_ready()
+        if not self.bot.is_ready():
+            await self.bot.wait_until_ready()
         for g_id, chan in self.voice_chans.items():
             guild = self.bot.get_guild(int(g_id))
             ch = discord.utils.get(guild.voice_channels, id=chan)
