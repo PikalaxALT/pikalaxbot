@@ -33,17 +33,15 @@ class Markov(Cog):
         self.chain = Chain(store_lowercase=True)
 
     def __local_check(self, ctx: commands.Context):
-        if ctx.invoked_subcommand is not None:
-            return True
         if not self.initialized:
             return False
         if ctx.author.bot:
             return False
-        if not ctx.channel.permissions_for(ctx.me).send_messages:
-            return False
         if len(self.markov_channels) == 0:
             return False
         if ctx.invoked_with == self.markov.name:
+            return True
+        if ctx.command.parent is not None and ctx.command.parent.name == self.markov.name:
             return True
         if ctx.prefix is not None:
             return False
