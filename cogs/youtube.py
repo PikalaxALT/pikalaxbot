@@ -154,29 +154,26 @@ class YouTube(Cog):
         self.executor = ThreadPoolExecutor()
         self.__ytdl_player = youtube_dl.YoutubeDL(self.__ytdl_format_options)
 
-    async def on_ready(self):
+    async def join_voice_channels(self):
+        await self.bot.wait_until_ready()
         if self.load_opus():
             self.log_info('Loaded opus')
+            for g_id, chan in self.voice_chans.items():
+                guild = self.bot.get_guild(int(g_id))
+                ch = discord.utils.get(guild.voice_channels, id=chan)
+                if ch is None:
+                    self.log_warning(f'Channel {chan} not found')
+                    continue
+                try:
+                    await ch.connect()
+                except asyncio.TimeoutError:
+                    self.log_error('Failed to connect to voice channel %s (connection timed out)', ch.name)
+                except discord.ClientException:
+                    self.log_error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
+                else:
+                    self.log_info('Connected to voice channel %s', ch.name)
 
-    async def join_voice_channels(self):
-        if not self.bot.is_ready():
-            await self.bot.wait_until_ready()
-        for g_id, chan in self.voice_chans.items():
-            guild = self.bot.get_guild(int(g_id))
-            ch = discord.utils.get(guild.voice_channels, id=chan)
-            if ch is None:
-                self.log_warning(f'Channel {chan} not found')
-                continue
-            try:
-                await ch.connect()
-            except asyncio.TimeoutError:
-                self.log_error('Failed to connect to voice channel %s (connection timed out)', ch.name)
-            except discord.ClientException:
-                self.log_error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
-            else:
-                self.log_info('Connected to voice channel %s', ch.name)
-
-        self.ready = True
+            self.ready = True
 
     @commands.group()
     # @commands.is_owner()
