@@ -3,14 +3,14 @@ from discord.ext import commands
 from utils.default_cog import Cog
 
 
-class Hierarchy(commands.BadArgument):
+class Hierarchy(commands.CheckFailure):
     def __init__(self):
         super().__init__('Cannot run command due to hierarchy')
 
 
 def bot_role_is_higher():
     def predicate(ctx):
-        if ctx.author == ctx.guild.owner or ctx.guild.me.top_role < ctx.author.top_role:
+        if ctx.author == ctx.guild.owner or ctx.guild.me.top_role <= ctx.author.top_role:
             raise Hierarchy
         return True
 
