@@ -5,11 +5,9 @@ from utils.default_cog import Cog
 
 def bot_role_is_higher():
     def predicate(ctx):
-        bot_pos = ctx.guild.role_hierarchy.index(ctx.guild.me.top_role)
-        author_pos = ctx.guild.role_hierarchy.index(ctx.author.top_role)
-        if bot_pos < author_pos:
-            return True
-        raise commands.BotMissingPermissions(['hierarchy'])
+        if ctx.author == ctx.guild.owner or ctx.guild.me.top_role < ctx.author.top_role:
+            raise commands.BotMissingPermissions(['hierarchy'])
+        return True
 
     return commands.check(predicate)
 
