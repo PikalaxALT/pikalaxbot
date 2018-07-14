@@ -304,5 +304,5 @@ def setup(bot: PikalaxBOT):
 
 
 def teardown(bot: PikalaxBOT):
-    for vc in bot.voice_clients:  # type: discord.VoiceClient
-        bot.loop.create_task(vc.disconnect())
+    tasks = [bot.loop.create_task(vc.disconnect()) for vc in bot.voice_clients]
+    [task.wait() for task in tasks]
