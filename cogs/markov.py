@@ -33,6 +33,8 @@ class Markov(Cog):
         self.chain = Chain(store_lowercase=True)
 
     def __local_check(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is not None:
+            return True
         if not self.initialized:
             return False
         if ctx.author.bot:
