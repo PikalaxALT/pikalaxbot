@@ -30,8 +30,8 @@ class SelfAssignableRole(Cog):
         return True
 
     @commands.command()
-    @bot_role_is_higher()
     @commands.bot_has_permissions(manage_roles=True)
+    @bot_role_is_higher()
     async def iam(self, ctx: commands.Context, role: AliasedRoleConverter):
         """Assign a role to yourself"""
         if role in ctx.author.roles:
@@ -42,8 +42,8 @@ class SelfAssignableRole(Cog):
             await ctx.send(f'You now have the role "{role}"')
 
     @commands.command()
-    @bot_role_is_higher()
     @commands.bot_has_permissions(manage_roles=True)
+    @bot_role_is_higher()
     async def iamnot(self, ctx: commands.Context, role: AliasedRoleConverter):
         """Unassign a role from yourself"""
         if role not in ctx.author.roles:
