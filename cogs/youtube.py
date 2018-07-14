@@ -211,8 +211,10 @@ class YouTube(Cog):
             await ctx.send('I don\'t have permissions to connect to that channel')
         elif isinstance(exc, VoiceCommandError):
             await ctx.send(f'VoiceCommandError: {exc}')
+        elif isinstance(exc, commands.BadArgument):
+            await ctx.send('Unable to find voice channel')
         else:
-            await self.bot.log_tb(ctx, exc)
+            self.bot.log_tb(ctx, exc)
 
     @pikavoice.command()
     @commands.check(connected_and_not_playing)
