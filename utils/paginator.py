@@ -78,7 +78,7 @@ class Pages:
             ('\N{BLACK LEFT-POINTING TRIANGLE}', self.previous_page),
             ('\N{BLACK RIGHT-POINTING TRIANGLE}', self.next_page),
             ('\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}', self.last_page),
-            ('\N{INPUT SYMBOL FOR NUMBERS}', self.numbered_page ),
+            ('\N{INPUT SYMBOL FOR NUMBERS}', self.numbered_page),
             ('\N{BLACK SQUARE FOR STOP}', self.stop_pages),
             ('\N{INFORMATION SOURCE}', self.show_help),
         ]
@@ -101,6 +101,9 @@ class Pages:
 
             if not self.permissions.read_message_history:
                 raise CannotPaginate('Bot does not have Read Message History permission.')
+        # Get PyCharm to shut up about name references
+        self.current_page = False
+        self.match = None
 
     def get_page(self, page):
         base = (page - 1) * self.per_page
@@ -169,8 +172,7 @@ class Pages:
 
     async def numbered_page(self):
         """lets you type a page number to go to"""
-        to_delete = []
-        to_delete.append(await self.channel.send('What page do you want to go to?'))
+        to_delete = [await self.channel.send('What page do you want to go to?')]
 
         def message_check(m):
             return m.author == self.author and \
@@ -193,14 +195,14 @@ class Pages:
 
         try:
             await self.channel.delete_messages(to_delete)
-        except Exception:
+        except discord.Forbidden:
             pass
 
     async def show_help(self):
         """shows this message"""
-        messages = ['Welcome to the interactive paginator!\n']
-        messages.append('This interactively allows you to see pages of text by navigating with ' \
-                        'reactions. They are as follows:\n')
+        messages = ['Welcome to the interactive paginator!\n',
+                    'This interactively allows you to see pages of text by navigating with '
+                    'reactions. They are as follows:\n']
 
         for (emoji, func) in self.reaction_emojis:
             messages.append(f'{emoji} {func.__doc__}')
@@ -250,15 +252,15 @@ class Pages:
                 self.paginating = False
                 try:
                     await self.message.clear_reactions()
-                except:
+                except discord.Forbidden:
                     pass
                 finally:
                     break
 
             try:
                 await self.message.remove_reaction(reaction, user)
-            except:
-                pass # can't remove it so don't bother doing so
+            except discord.Forbidden:
+                pass  # can't remove it so don't bother doing so
 
             await self.match()
 
@@ -308,7 +310,7 @@ class FieldPages(Pages):
 #   -> could be a subcommand
 
 
-_mention = re.compile(r'<@\!?([0-9]{1,19})>')
+_mention = re.compile(r'<@!?([0-9]{1,19})>')
 
 
 def cleanup_prefix(bot, prefix):
@@ -362,6 +364,10 @@ class HelpPaginator(Pages):
         super().__init__(ctx, entries=entries, per_page=per_page)
         self.reaction_emojis.append(('\N{WHITE QUESTION MARK ORNAMENT}', self.show_bot_help))
         self.total = len(entries)
+        # Initialize this to None to get PyCharm to stfu
+        self.prefix = None
+        self.title = None
+        self.description = None
 
     @classmethod
     async def from_cog(cls, ctx: commands.Context, cog):
@@ -417,8 +423,8 @@ class HelpPaginator(Pages):
         # 1: (cog, desc, commands) (max len == 9)
         # ...
 
-        for cog, commands in itertools.groupby(entries, key=key):
-            plausible = [cmd for cmd in commands if (await _can_run(cmd, ctx)) and not cmd.hidden]
+        for cog, cmds in itertools.groupby(entries, key=key):
+            plausible = [cmd for cmd in cmds if (await _can_run(cmd, ctx)) and not cmd.hidden]
             if len(plausible) == 0:
                 continue
 
@@ -428,9 +434,10 @@ class HelpPaginator(Pages):
             else:
                 description = inspect.getdoc(description) or discord.Embed.Empty
 
-            nested_pages.extend((cog, description, plausible[i:i + per_page]) for i in range(0, len(plausible), per_page))
+            nested_pages.extend((cog, description, plausible[i:i + per_page])
+                                for i in range(0, len(plausible), per_page))
 
-        self = cls(ctx, nested_pages, per_page=1) # this forces the pagination session
+        self = cls(ctx, nested_pages, per_page=1)  # this forces the pagination session
         self.prefix = cleanup_prefix(ctx.bot, ctx.prefix)
         # await ctx.release()
 
@@ -443,10 +450,10 @@ class HelpPaginator(Pages):
         return self
 
     def get_bot_page(self, page):
-        cog, description, commands = self.entries[page - 1]
+        cog, description, cmds = self.entries[page - 1]
         self.title = f'{cog} Commands'
         self.description = description
-        return commands
+        return cmds
 
     async def show_page(self, page, *, first=False):
         self.current_page = page
@@ -457,7 +464,8 @@ class HelpPaginator(Pages):
         self.embed.title = self.title
 
         if hasattr(self, '_is_bot'):
-            value ='For more help, join the official bot support server: https://discord.gg/DWEaqMy'
+            value = 'Want to write your own bot in Python? Join the official discord.py ' \
+                    'library server: https://discord.gg/r3sSKJJ'
             self.embed.add_field(name='Support', value=value, inline=False)
 
         self.embed.set_footer(text=f'Use "{self.prefix}help command" for more info on a command.')
@@ -517,8 +525,8 @@ class HelpPaginator(Pages):
             ('<argument>', 'This means the argument is __**required**__.'),
             ('[argument]', 'This means the argument is __**optional**__.'),
             ('[A|B]', 'This means the it can be __**either A or B**__.'),
-            ('[argument...]', 'This means you can have multiple arguments.\n' \
-                              'Now that you know the basics, it should be noted that...\n' \
+            ('[argument...]', 'This means you can have multiple arguments.\n'
+                              'Now that you know the basics, it should be noted that...\n'
                               '__**You do not type in the brackets!**__')
         )
 
