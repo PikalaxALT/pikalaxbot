@@ -58,29 +58,18 @@ class LoggingMixin:
 
 
 class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
-    __attr_mapping__ = {
-        'token': '_token',
-        'prefix': 'command_prefix',
-        'owner': 'owner_id'
-    }
-    __type_mapping__ = {
-        'banlist': set,
-        'disabled_commands': set,
-        'markov_channel': set
-    }
-
     def __init__(self, args, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
         self._settings_file = args.settings
         self.settings = Settings(args.settings)
-        help_name = self.settings.user.help_name
-        command_prefix = self.settings.meta.prefix
-        disabled_cogs = self.settings.user.disabled_cogs
+        help_name = self.settings.help_name
+        command_prefix = self.settings.prefix
+        disabled_cogs = self.settings.disabled_cogs
         super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
 
         # Set up logger
-        self.logger.setLevel(logging.DEBUG if self.settings.user.debug else logging.INFO)
+        self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
         handler = logging.FileHandler(args.logfile, mode='w')
         fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
         handler.setFormatter(fmt)
@@ -108,7 +97,7 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
 
     def run(self):
         self.logger.info('Starting bot')
-        token = self.settings.credentials.token
+        token = self.settings.token
         super().run(token)
 
     async def close(self):
@@ -149,7 +138,7 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
 
     async def on_command_error(self, ctx: commands.Context, exc):
         async def report(msg):
-            debug = self.settings.user.debug
+            debug = self.settings.debug
             await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=None if debug else 10)
             if debug:
                 self.log_tb(ctx, exc)

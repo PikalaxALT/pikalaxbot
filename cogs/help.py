@@ -32,7 +32,7 @@ class Help(Cog):
 
 
 def setup(bot):
-    bot.remove_command(bot.settings.user.help_name)
+    bot.remove_command(bot.settings.help_name)
     bot.add_cog(Help(bot))
 
 

@@ -28,7 +28,7 @@ class Cog(LoggingMixin):
 
     def fetch(self):
         for attr in self.config_attrs:
-            val = getattr(self.bot.settings.user, attr)
+            val = getattr(self.bot.settings, attr)
             if isinstance(val, list):
                 val = set(val)
             setattr(self, attr, val)
@@ -39,7 +39,7 @@ class Cog(LoggingMixin):
                 val = getattr(self, attr)
                 if isinstance(val, set):
                     val = list(val)
-                setattr(settings.user, attr, val)
+                setattr(settings, attr, val)
 
     async def __before_invoke(self, ctx):
         self.fetch()
