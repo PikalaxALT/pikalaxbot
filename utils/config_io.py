@@ -63,9 +63,9 @@ class Settings:
 
     def __init__(self, fname='settings.json'):
         self.fname = fname
+        self.fetch()
 
     def __enter__(self):
-        self.fetch()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

@@ -25,7 +25,38 @@ from utils.config_io import Settings
 from utils.sql import Sql
 
 
-class PikalaxBOT(commands.Bot):
+class LoggingMixin:
+    def __init__(self, *args, **kwargs):
+        # Set up logger
+        self.logger = logging.getLogger('discord')
+
+    def log_and_print(self, level, msg, *args):
+        self.logger.log(level, msg, *args)
+        print(msg % args)
+
+    def log_info(self, msg, *args):
+        self.log_and_print(logging.INFO, msg, *args)
+
+    def log_debug(self, msg, *args):
+        self.log_and_print(logging.DEBUG, msg, *args)
+
+    def log_warning(self, msg, *args):
+        self.log_and_print(logging.WARNING, msg, *args)
+
+    def log_error(self, msg, *args):
+        self.log_and_print(logging.ERROR, msg, *args)
+
+    def log_critical(self, msg, *args):
+        self.log_and_print(logging.CRITICAL, msg, *args)
+
+    def log_tb(self, ctx, exc):
+        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+        self.log_and_print(logging.ERROR, f'Ignoring exception in command {ctx.command}:')
+        self.log_and_print(logging.ERROR, ''.join(tb))
+        return tb
+
+
+class PikalaxBOT(commands.AutoShardedBot, LoggingMixin):
     __attr_mapping__ = {
         'token': '_token',
         'prefix': 'command_prefix',
@@ -38,22 +69,21 @@ class PikalaxBOT(commands.Bot):
     }
 
     def __init__(self, args, *, loop=None):
+        # Load settings
+        loop = asyncio.get_event_loop() if loop is None else loop
+        self._settings_file = args.settings
+        self.settings = Settings(args.settings)
+        help_name = self.settings.user.help_name
+        command_prefix = self.settings.meta.prefix
+        disabled_cogs = self.settings.user.disabled_cogs
+        super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
+
         # Set up logger
-        self.logger = logging.getLogger('discord')
-        self.logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+        self.logger.setLevel(logging.DEBUG if self.settings.user.debug else logging.INFO)
         handler = logging.FileHandler(args.logfile, mode='w')
         fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
         handler.setFormatter(fmt)
         self.logger.addHandler(handler)
-
-        # Load settings
-        loop = asyncio.get_event_loop() if loop is None else loop
-        self._settings_file = args.settings
-        with self.settings:
-            help_name = self.settings.user.help_name
-            command_prefix = self.settings.meta.prefix
-            disabled_cogs = self.settings.user.disabled_cogs
-        super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
 
         # Load cogs
         dname = os.path.dirname(__file__) or '.'
@@ -75,14 +105,9 @@ class PikalaxBOT(commands.Bot):
         with self.sql:
             self.sql.db_init()
 
-    @property
-    def settings(self):
-        return Settings(self._settings_file)
-
     def run(self):
         self.logger.info('Starting bot')
-        with self.settings:
-            token = self.settings.credentials.token
+        token = self.settings.credentials.token
         super().run(token)
 
     async def close(self):
@@ -99,42 +124,31 @@ class PikalaxBOT(commands.Bot):
     def command_error_emoji(self, guild):
         return self.find_emoji_in_guild(guild, 'tppBurrito', 'VeggieBurrito', default='❤')
 
-    def log_and_print(self, level, msg, *args):
-        self.logger.log(level, msg, *args)
-        print(msg % args)
-
-    def log_tb(self, ctx, exc):
-        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-        self.log_and_print(logging.ERROR, f'Ignoring exception in command {ctx.command}:')
-        self.log_and_print(logging.ERROR, ''.join(tb))
-        return tb
-
     def cmd_error_check(self, ctx, exc):
         if isinstance(exc, commands.CommandNotFound) or isinstance(exc, commands.CheckFailure):
             return False
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
-            print('on_command_error in extra_events')
+            self.log_and_print(logging.DEBUG, 'on_command_error in extra_events')
             return False
 
         if hasattr(ctx.command, 'on_error'):
-            print(f'{ctx.command} has on_error')
+            self.log_and_print(logging.DEBUG, f'{ctx.command} has on_error')
             return False
 
         cog = ctx.cog
         if cog:
             attr = f'_{cog.__class__.__name__}__error'
             if hasattr(cog, attr):
-                print(f'{cog.__class__.__name__} has __error')
+                self.log_and_print(logging.DEBUG, f'{cog.__class__.__name__} has __error')
                 return False
 
         return True
 
     async def on_command_error(self, ctx: commands.Context, exc):
         async def report(msg):
-            with self.settings:
-                debug = self.settings.user.debug
+            debug = self.settings.user.debug
             await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=None if debug else 10)
             if debug:
                 self.log_tb(ctx, exc)

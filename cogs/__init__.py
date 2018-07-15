@@ -15,29 +15,23 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-from utils.botclass import PikalaxBOT
+from utils.botclass import PikalaxBOT, LoggingMixin
 
 
-class Cog:
+class Cog(LoggingMixin):
     config_attrs = tuple()
 
     def __init__(self, bot):
+        super().__init__()
         self.bot: PikalaxBOT = bot
         self.fetch()
 
-    def __del__(self):
-        try:
-            self.commit()
-        except Exception as e:
-            pass
-
     def fetch(self):
-        with self.bot.settings as settings:
-            for attr in self.config_attrs:
-                val = getattr(settings.user, attr)
-                if isinstance(val, list):
-                    val = set(val)
-                setattr(self, attr, val)
+        for attr in self.config_attrs:
+            val = getattr(self.bot.settings.user, attr)
+            if isinstance(val, list):
+                val = set(val)
+            setattr(self, attr, val)
 
     def commit(self):
         with self.bot.settings as settings:
@@ -52,24 +46,3 @@ class Cog:
 
     async def __after_invoke(self, ctx):
         self.commit()
-
-    def log(self, level, msg, *args):
-        self.bot.log_and_print(level, msg, *args)
-
-    def log_error(self, msg, *args):
-        self.log(logging.ERROR, msg, *args)
-
-    def log_info(self, msg, *args):
-        self.log(logging.INFO, msg, *args)
-
-    def log_debug(self, msg, *args):
-        self.log(logging.DEBUG, msg, *args)
-
-    def log_warning(self, msg, *args):
-        self.log(logging.WARNING, msg, *args)
-
-    def log_critical(self, msg, *args):
-        self.log(logging.CRITICAL, msg, *args)
-
-    def log_tb(self, ctx, exc):
-        self.bot.log_tb(ctx, exc)
