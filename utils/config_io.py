@@ -49,7 +49,7 @@ class SettingsContainer:
     @classmethod
     def from_json(cls, fname):
         with open(fname) as fp:
-            return json.load(fp, cls=cls)
+            return cls(**json.load(fp))
 
     def to_json(self, fname):
         with open(fname) as fp:
