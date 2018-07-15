@@ -42,6 +42,7 @@ class Fix(Cog):
 
     @commands.command()
     async def fix(self, ctx: commands.Context):
+        """!fix<botname> - Nag the bot's owner to fix their bot"""
         alias = self.get_fix_alias(ctx)
         owner = self.bot_owners.get(alias, 'already')
         botname = self.bot_names.get(alias, 'your bot')

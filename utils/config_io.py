@@ -16,9 +16,6 @@
 
 import asyncio
 import json
-import os
-import types
-from collections import defaultdict
 
 
 class SettingsContainer:

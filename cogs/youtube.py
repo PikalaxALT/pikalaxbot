@@ -255,10 +255,10 @@ class YouTube(Cog):
 
     @pikavoice.command()
     async def params(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
-        f"""Update pikavoice params.
+        """Update pikavoice params.
 
         Syntax:
-        {self.bot.command_prefix}pikavoice params a=amplitude
+        !pikaparams a=amplitude
         g=gap k=emphasis p=pitch s=speed v=voice"""
         params = dict(self.espeak_kw)
         for key, value in kwargs:
@@ -275,10 +275,10 @@ class YouTube(Cog):
 
     @commands.command()
     async def pikaparams(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
-        f"""Update pikavoice params.
+        """Update pikavoice params.
 
         Syntax:
-        {self.bot.command_prefix}pikaparams a=amplitude
+        !pikaparams a=amplitude
         g=gap k=emphasis p=pitch s=speed v=voice"""
         await ctx.invoke(self.params, *kwargs)
 
@@ -301,7 +301,7 @@ class YouTube(Cog):
             else:
                 self.bot.log_tb(ctx, exc)
 
-    @commands.command()
+    @commands.command(hidden=True)
     @commands.check(connected_and_not_playing)
     async def ytplay(self, ctx: commands.Context, url):
         raise NotImplemented

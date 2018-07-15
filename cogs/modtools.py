@@ -20,6 +20,7 @@ import tempfile
 import traceback
 import sqlite3
 import subprocess
+import logging
 from discord.ext import commands
 from cogs import Cog
 
@@ -198,6 +199,15 @@ class ModTools(Cog):
     async def toggle_debug(self, ctx):
         self.debug = not self.debug
         await ctx.send(f'Set debug mode to {"on" if self.debug else "off"}')
+
+    @admin.command(name='log')
+    async def send_log(self, ctx):
+        handler = discord.utils.find(lambda h: isinstance(h, logging.FileHandler), self.bot.logger.handlers)
+        if handler is None:
+            await ctx.send('No log file handler is registered')
+        else:
+            await ctx.author.send(file=discord.File(handler.baseFilename))
+            await ctx.message.add_reaction('☑')
 
 
 def setup(bot):
