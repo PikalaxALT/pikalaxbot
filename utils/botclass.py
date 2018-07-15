@@ -56,7 +56,7 @@ class LoggingMixin:
         return tb
 
 
-class PikalaxBOT(commands.AutoShardedBot, LoggingMixin):
+class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
     __attr_mapping__ = {
         'token': '_token',
         'prefix': 'command_prefix',
