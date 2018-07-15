@@ -311,7 +311,3 @@ def setup(bot: PikalaxBOT):
     cog = YouTube(bot)
     bot.add_cog(cog)
     bot.loop.create_task(cog.join_voice_channels())
-
-
-def teardown(bot: PikalaxBOT):
-    asyncio.wait([bot.loop.create_task(vc.disconnect()) for vc in bot.voice_clients])
