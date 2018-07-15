@@ -27,6 +27,7 @@ class Fix(Cog):
         'yay': 'azum and tustin',
         'updater': 'tustin',
         'starmie': 'Danny',
+        'danny': 'Danny',
         'meme': 'Jet'
     }
     bot_names = {
