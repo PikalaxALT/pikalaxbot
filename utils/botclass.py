@@ -115,15 +115,18 @@ class PikalaxBOT(commands.Bot):
 
         # Inherit checks from super
         if self.extra_events.get('on_command_error', None):
+            print('on_command_error in extra_events')
             return False
 
         if hasattr(ctx.command, 'on_error'):
+            print(f'{ctx.command} has on_error')
             return False
 
         cog = ctx.cog
         if cog:
-            attr = '_{0.__class__.__name__}__error'.format(cog)
+            attr = f'_{cog.__class__.__name__}__error'
             if hasattr(cog, attr):
+                print(f'{cog.__class__.__name__} has __error')
                 return False
 
         return True
