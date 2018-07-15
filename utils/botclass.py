@@ -29,7 +29,7 @@ class LoggingMixin:
     def __init__(self, *args, **kwargs):
         # Set up logger
         self.logger = logging.getLogger('discord')
-        super.__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def log_and_print(self, level, msg, *args):
         self.logger.log(level, msg, *args)
