@@ -39,8 +39,7 @@ class SettingsContainer:
     roles = {}
 
     def __init__(self, **kw):
-        for key, value in self.__dict__.items():
-            setattr(self, key, kw.get(key, value))
+        self.__dict__.update(kw)
 
     @classmethod
     def from_json(cls, fname):
