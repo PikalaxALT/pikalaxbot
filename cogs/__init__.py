@@ -52,5 +52,6 @@ class Cog(LoggingMixin):
 
     async def __after_invoke(self, ctx):
         self.commit()
-        owner = self.bot.get_user(self.bot.owner_id)
-        await owner.send(f'after_invoke: {self.__class__.__name__}.{ctx.command}')
+        if self.bot.settings.debug:
+            owner = self.bot.get_user(self.bot.owner_id)
+            await owner.send(f'after_invoke: {self.__class__.__name__}.{ctx.command}')
