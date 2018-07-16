@@ -21,14 +21,14 @@ import json
 class SettingsContainer:
     token = None
     owner = None
-    prefix = '!'
+    prefix = 'pika!'
     markov_channels = []
     debug = False
     disabled_commands = []
     voice_chans = {}
     disabled_cogs = []
-    help_name = 'pikahelp'
-    game = '!pikahelp'
+    help_name = 'help'
+    game = 'pika!help'
     espeak_kw = {
         'a': 100,
         's': 150,

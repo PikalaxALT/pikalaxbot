@@ -40,9 +40,9 @@ class Core(Cog):
             return False
         return ctx.channel.permissions_for(ctx.me).send_messages
 
-    @commands.command(aliases=['pikareboot'])
+    @commands.command(aliases=['reboot'])
     @commands.is_owner()
-    async def pikakill(self, ctx: commands.Context):
+    async def kill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
         await ctx.send('Rebooting to apply updates')
         await self.bot.close()

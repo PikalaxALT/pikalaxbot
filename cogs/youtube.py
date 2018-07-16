@@ -179,8 +179,7 @@ class YouTube(Cog):
 
             self.ready = True
 
-    @commands.group()
-    # @commands.is_owner()
+    @commands.group(name='voice')
     async def pikavoice(self, ctx: commands.Context):
         """Commands for interacting with the bot in voice channels"""
         if ctx.invoked_subcommand is None:
@@ -249,7 +248,7 @@ class YouTube(Cog):
             vclient.stop()
 
     @commands.command()
-    async def pikashutup(self, ctx):
+    async def shutup(self, ctx):
         """Stop all playing audio"""
         await ctx.invoke(self.stop)
 
@@ -273,7 +272,7 @@ class YouTube(Cog):
         finally:
             os.remove('tmp.wav')
 
-    @commands.command()
+    @commands.command(name='params')
     async def pikaparams(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
         """Update pikavoice params.
 
