@@ -118,6 +118,11 @@ class Meme(Cog):
         await ctx.send(f'An error occurred. How uninspiring.\n'
                        f'{exc.__class__.__name__}: {exc}')
 
+    @commands.command()
+    async def olden(self, ctx):
+        await ctx.send('https://vignette.wikia.nocookie.net/twitchplayspokemoncrystal/images/5/5f/'
+                       'Serious_%22OLDEN%22_Times.png/revision/latest?cb=20160820193335')
+
 
 def setup(bot):
     bot.add_cog(Meme(bot))
