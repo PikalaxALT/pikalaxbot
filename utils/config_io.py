@@ -21,7 +21,7 @@ import json
 class SettingsContainer:
     token = None
     owner = None
-    prefix = 'pika!'
+    prefix = 'p!'
     markov_channels = []
     debug = False
     disabled_commands = []
@@ -39,9 +39,8 @@ class SettingsContainer:
     roles = {}
 
     def __init__(self, **kw):
-        for key, value in kw.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+        for key, value in self.__dict__.items():
+            setattr(self, key, kw.get(key, value))
 
     @classmethod
     def from_json(cls, fname):
@@ -49,13 +48,8 @@ class SettingsContainer:
             return cls(**json.load(fp))
 
     def to_json(self, fname):
-        with open(fname) as fp:
-            data = json.load(fp)
-        for key in data:
-            if hasattr(self, key):
-                data[key] = getattr(self, key)
         with open(fname, 'w') as fp:
-            json.dump(data, fp, indent=4, separators=(', ', ': '))
+            json.dump(self.__dict__, fp, indent=4, separators=(', ', ': '))
 
 
 class Settings:
