@@ -39,17 +39,15 @@ class Markov(Cog):
             return False
         if len(self.markov_channels) == 0:
             return False
-        if ctx.invoked_with == self.markov.name:
-            return True
-        if ctx.command.parent is not None and ctx.command.parent.name == self.markov.name:
-            return True
         if ctx.prefix is not None:
-            return False
+            return ctx.invoked_with == self.markov.name or ctx.command.parent == self.markov
         if ctx.command != self.markov:
             return False
         if ctx.me.mentioned_in(ctx.message):
             return True
         if re.search(rf'\b{ctx.me.name}\b', ctx.message.clean_content, re.I) is not None:
+            return True
+        if ctx.channel.guild is None:
             return True
         return re.search(rf'\b{ctx.guild.me.nick}\b', ctx.message.clean_content, re.I) is not None
 
