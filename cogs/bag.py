@@ -44,7 +44,7 @@ class Bag(Cog):
 
     @bag.command(name='remove')
     @commands.is_owner()
-    async def remove_bag(self, ctx, msg: str):
+    async def remove_bag(self, ctx, *, msg):
         """Remove a phrase from the bag"""
         with self.bot.sql as sql:
             res = sql.remove_bag(msg)
