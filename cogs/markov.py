@@ -149,4 +149,7 @@ class Markov(Cog):
 
 
 def setup(bot):
-    bot.add_cog(Markov(bot))
+    cog = Markov(bot)
+    bot.add_cog(cog)
+    if bot.is_ready():
+        asyncio.wait([bot.loop.create_task(cog.on_ready())])
