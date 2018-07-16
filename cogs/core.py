@@ -65,6 +65,15 @@ class Core(Cog):
         activity = discord.Game(self.game)
         await self.bot.change_presence(activity=activity)
 
+    async def on_guild_join(self, guild):
+        for channel in guild.channels:
+            if channel.permissions_for(guild.me).send_messages:
+                await channel.send(f'Oh hey, didn\'t notice you there. I\'m PikalaxBOT, the personal bot '
+                                   f'of {self.bot.owner.mention}. You can get an overview of my commands '
+                                   f'by typing {self.bot.settings.prefix}{self.bot.settings.help_name}.\n'
+                                   f'If you say my name or mention me in chat, I\'ll respond. I\'m learning '
+                                   f'how to talk like the rest of you by listening to other channels.')
+
 
 def setup(bot):
     bot.add_cog(Core(bot))

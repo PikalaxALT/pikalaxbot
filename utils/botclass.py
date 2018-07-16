@@ -110,6 +110,10 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
         with self.sql:
             self.sql.backup_db()
 
+    @property
+    def owner(self) -> discord.User:
+        return self.get_user(self.owner_id)
+
     @staticmethod
     def find_emoji_in_guild(guild, *names, default=None):
         if guild is None:
