@@ -65,6 +65,7 @@ class ModTools(Cog):
         activity = discord.Game(game)
         await self.bot.change_presence(activity=activity)
         self.game = game
+        self.commit()
         await ctx.send(f'I\'m now playing {game}')
 
     @ui.command(name='avatar')
