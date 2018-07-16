@@ -33,11 +33,12 @@ class lower(commands.clean_content):
 
 class ModTools(Cog):
     token = None
-    game = '!pikahelp'
+    prefix = 'p!'
+    game = 'p!help'
     disabled_commands = set()
     disabled_cogs = set()
     debug = False
-    config_attrs = 'token', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
+    config_attrs = 'token', 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
     
     async def __local_check(self, ctx: commands.Context):
         return await self.bot.is_owner(ctx.author)
@@ -60,7 +61,7 @@ class ModTools(Cog):
     @ui.command(name='game')
     async def change_game(self, ctx: commands.Context, *, game: str = None):
         """Change or reset the bot's presence"""
-        game = game or f'{ctx.prefix}pikahelp'
+        game = game or f'{ctx.prefix}help'
         activity = discord.Game(game)
         await self.bot.change_presence(activity=activity)
         self.game = game
@@ -208,6 +209,11 @@ class ModTools(Cog):
         else:
             await ctx.author.send(file=discord.File(handler.baseFilename))
             await ctx.message.add_reaction('☑')
+
+    @admin.command(name='prefix')
+    async def change_prefix(self, ctx, prefix):
+        self.prefix = prefix
+        await ctx.message.add_reaction('☑')
 
 
 def setup(bot):

@@ -28,7 +28,7 @@ class SettingsContainer:
     voice_chans = {}
     disabled_cogs = []
     help_name = 'help'
-    game = 'pika!help'
+    game = 'p!help'
     espeak_kw = {
         'a': 100,
         's': 150,
