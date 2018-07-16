@@ -57,16 +57,18 @@ class LoggingMixin:
         return tb
 
 
+def _command_prefix(bot, message):
+    return bot.settings.prefix
+
+
 class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
     def __init__(self, args, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
-        self._settings_file = args.settings
         self.settings = Settings(args.settings)
         help_name = self.settings.help_name
-        command_prefix = self.settings.prefix
         disabled_cogs = self.settings.disabled_cogs
-        super().__init__(command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
+        super().__init__(_command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
 
         # Set up logger
         self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
