@@ -40,6 +40,7 @@ class SettingsContainer:
 
     def __init__(self, **kw):
         self.__dict__.update(kw)
+        print('token', self.token)
 
     @classmethod
     def from_json(cls, fname):
