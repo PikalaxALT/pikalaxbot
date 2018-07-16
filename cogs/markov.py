@@ -45,10 +45,7 @@ class Markov(Cog):
             return False
         if ctx.me.mentioned_in(ctx.message):
             return True
-        names = (ctx.me.name,)
-        if ctx.guild is not None:
-            names += (ctx.guild.me.nick,)
-        name_grp = '|'.join(name for name in names if name is not None)
+        name_grp = '|'.join({ctx.me.name, ctx.guild.me.display_name})
         if not name_grp:
             raise commands.CheckFailure('Something fucked up!!')
         pat = re.compile(rf'\b({name_grp})\b', re.I)
