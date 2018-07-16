@@ -72,4 +72,4 @@ class Settings:
         if hasattr(self.container, key):
             setattr(self.container, key, value)
         else:
-            super().__setattr__(self, key, value)
+            super().__setattr__(key, value)
