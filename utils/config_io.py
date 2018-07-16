@@ -69,7 +69,7 @@ class Settings:
         return getattr(self.container, item)
 
     def __setattr__(self, key, value):
-        if hasattr(self.container, key):
-            setattr(self.container, key, value)
-        else:
+        if key in ('fname', 'container'):
             super().__setattr__(key, value)
+        else:
+            setattr(self.container, key, value)
