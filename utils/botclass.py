@@ -64,17 +64,18 @@ def _command_prefix(bot, message):
 
 
 class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
-    def __init__(self, args, *, loop=None):
+    def __init__(self, settings_file, logfile, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
-        self.settings = Settings(args.settings)
+        self.settings = Settings(settings_file)
+        print(self.settings.token)
         help_name = self.settings.help_name
         disabled_cogs = self.settings.disabled_cogs
         super().__init__(_command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
 
         # Set up logger
         self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
-        handler = logging.FileHandler(args.logfile, mode='w')
+        handler = logging.FileHandler(logfile, mode='w')
         fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
         handler.setFormatter(fmt)
         self.logger.addHandler(handler)
