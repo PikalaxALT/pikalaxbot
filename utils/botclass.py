@@ -33,7 +33,8 @@ class LoggingMixin:
 
     def log_and_print(self, level, msg, *args):
         self.logger.log(level, msg, *args)
-        print(msg % args)
+        if level >= self.logger.level:
+            print(msg % args)
 
     def log_info(self, msg, *args):
         self.log_and_print(logging.INFO, msg, *args)

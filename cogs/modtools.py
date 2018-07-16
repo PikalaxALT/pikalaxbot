@@ -140,6 +140,7 @@ class ModTools(Cog):
             else:
                 await ctx.send(f'Loaded cog "{cog}"')
                 self.disabled_cogs.discard(cog)
+                self.commit()
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
@@ -158,6 +159,7 @@ class ModTools(Cog):
             else:
                 await ctx.send(f'Unloaded cog "{cog}"')
                 self.disabled_cogs.add(cog)
+                self.commit()
 
     async def git_pull(self, ctx):
         async with ctx.typing():
@@ -177,6 +179,7 @@ class ModTools(Cog):
                     if cog == self.__class__.__name__.lower():
                         return await ctx.send(f'Could not reload {cog}. {cog.title()} will be unavailable.')
                     self.disabled_cogs.add(cog)
+                    self.commit()
                     await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
                 else:
                     await ctx.send(f'Reloaded cog {cog}')
@@ -199,6 +202,7 @@ class ModTools(Cog):
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):
         self.debug = not self.debug
+        self.commit()
         await ctx.send(f'Set debug mode to {"on" if self.debug else "off"}')
 
     @admin.command(name='log')
@@ -213,6 +217,7 @@ class ModTools(Cog):
     @admin.command(name='prefix')
     async def change_prefix(self, ctx, prefix):
         self.prefix = prefix
+        self.commit()
         await ctx.message.add_reaction('☑')
 
 
