@@ -17,15 +17,9 @@
 import asyncio
 import discord
 from discord.ext import commands
+import re
 from cogs import Cog
 from utils.markov import Chain
-
-
-def iter_words(view):
-    view.index = 0
-    while not view.eof:
-        yield view.get_word()
-        view.skip_ws()
 
 
 class Markov(Cog):
@@ -54,10 +48,11 @@ class Markov(Cog):
         names = (ctx.me.name,)
         if ctx.guild is not None:
             names += (ctx.guild.me.nick,)
-        for word in iter_words(ctx.view):
-            if word in names:
-                return True
-        return False
+        name_grp = '|'.join(name for name in names if name is not None)
+        if not name_grp:
+            raise commands.CheckFailure('Something fucked up!!')
+        pat = re.compile(rf'\b({name_grp})\b', re.I)
+        return pat.match(ctx.message.clean_content) is not None
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
