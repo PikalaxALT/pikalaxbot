@@ -44,7 +44,8 @@ class Sql:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._connection is not None:
             self._connection.commit()
-            self._connection.execute('vacuum')
+            self._connection.execute("vacuum")
+            self._connection.commit()
             self._connection.close()
             self._connection = None
 
@@ -52,42 +53,21 @@ class Sql:
         return self._connection.execute(script, args)
 
     def db_init(self):
-        try:
-            self.execute('select * from meme')
-        except sqlite3.OperationalError:
-            c = self.execute('create table meme (bag text)')
+        exists, = self.execute("select count(*) from sqlite_master where type='table' and name='meme'").fetchone()
+        self.execute("create table if not exists meme (bag text)")
+        if not exists:
             for line in default_bag:
-                c.execute("insert into meme(bag) values (?)", (line,))
-
-        try:
-            self.execute('select * from game')
-        except sqlite3.OperationalError:
-            self.execute('create table game (id integer, name text, score integer)')
-
-        try:
-            self.execute('select * from voltorb')
-        except sqlite3.OperationalError:
-            self.execute('create table voltorb (id integer, level integer)')
+                self.execute("insert into meme(bag) values (?)", (line,))
+        self.execute("create table if not exists game (id integer, name text, score integer)")
+        self.execute("create table if not exists voltorb (id integer, level integer)")
 
     def db_clear(self):
-        try:
-            self.execute("drop table meme")
-        except sqlite3.Error:
-            pass
-        try:
-            self.execute("drop table game")
-        except sqlite3.Error:
-            pass
-        try:
-            self.execute('drop table voltorb')
-        except sqlite3.Error:
-            pass
+        self.execute("drop table if exists meme")
+        self.execute("drop table if exists game")
+        self.execute("drop table if exists voltorb")
 
     def get_score(self, author):
-        c = self.execute('select score from game where id = ? limit 1', (author.id,))
-        score = c.fetchone()
-        if hasattr(score, '__getitem__'):
-            score = score[0]
+        score, = self.execute("select score from game where id = ?", (author.id,)).fetchone()
         return score
 
     def increment_score(self, player, by=1):
@@ -96,44 +76,44 @@ class Sql:
         if score is None:
             self.execute("insert into game values (?, ?, ?)", (player.id, player.name, by))
         else:
-            self.execute('update game set score = score + ? where id = ?', (by, player.id))
+            self.execute("update game set score = score + ? where id = ?", (by, player.id))
 
     def get_all_scores(self):
-        yield from self.execute('select * from game order by score desc limit 10')
+        yield from self.execute("select * from game order by score desc limit 10")
 
     def add_bag(self, text):
-        c = self.execute('select * from meme where bag = ?', (text,))
+        c = self.execute("select * from meme where bag = ?", (text,))
         res = c.fetchone() is None
         if res:
             self.execute("insert into meme(bag) values (?)", (text,))
         return res
 
     def read_bag(self):
-        c = self.execute('select bag from meme order by random() limit 1')
+        c = self.execute("select bag from meme order by random() limit 1")
         msg = c.fetchone()
         if msg is not None:
             return msg[0]
 
     def get_voltorb_level(self, channel):
-        c = self.execute('select level from voltorb where id = ?', (channel.id,))
+        c = self.execute("select level from voltorb where id = ?", (channel.id,))
         level = c.fetchone()
         if level is None:
-            self.execute('insert into voltorb values (?, 1)', (channel.id,))
+            self.execute("insert into voltorb values (?, 1)", (channel.id,))
             level = 1
         else:
             level, = level
         return level
 
     def set_voltorb_level(self, channel, new_level):
-        c = self.execute('select level from voltorb where id = ? limit 1', (channel.id,))
+        c = self.execute("select level from voltorb where id = ? limit 1", (channel.id,))
         level = c.fetchone()
         if level is None:
-            self.execute('insert into voltorb values (?, ?)', (channel.id, new_level))
+            self.execute("insert into voltorb values (?, ?)", (channel.id, new_level))
         else:
-            self.execute('update voltorb set level = ? where id = ?', (new_level, channel.id))
+            self.execute("update voltorb set level = ? where id = ?", (new_level, channel.id))
 
     def get_leaderboard_rank(self, player):
-        c = self.execute('select id from game order by score desc')
+        c = self.execute("select id from game order by score desc")
         for i, row in enumerate(c.fetchall()):
             id_, = row
             if id_ == player.id:
@@ -141,18 +121,18 @@ class Sql:
         return -1
 
     def reset_leaderboard(self):
-        self.execute('delete from game')
+        self.execute("delete from game")
 
     def remove_bag(self, msg):
         if msg in default_bag:
             return False
-        self.execute('delete from meme where bag = ?', (msg,))
+        self.execute("delete from meme where bag = ?", (msg,))
         return True
 
     def reset_bag(self):
-        self.execute('delete from meme')
+        self.execute("delete from meme")
         for msg in default_bag:
-            self.execute('insert into meme values (?)', (msg,))
+            self.execute("insert into meme values (?)", (msg,))
 
     def backup_db(self):
         curtime = int(time.time())
