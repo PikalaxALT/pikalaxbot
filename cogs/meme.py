@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import discord
 import aiohttp
 import os
@@ -57,6 +58,14 @@ class Meme(Cog):
         'pew! '
     )
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.cs = aiohttp.ClientSession(raise_for_status=True)
+
+    def __del__(self):
+        task = self.bot.loop.create_task(self.cs.close())
+        asyncio.wait([task])
+
     @commands.command()
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
@@ -98,14 +107,11 @@ class Meme(Cog):
     @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
-        async with aiohttp.ClientSession(raise_for_status=True) as cs:
-            async with cs.get('http://inspirobot.me/api',
-                              params={'generate': 'true'}) as r:  # type: aiohttp.ClientResponse
-                url = await r.text()
-
-            async with cs.get(url) as r:
-                stream = io.BytesIO(await r.read())
-                await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
+        r = await self.cs.get('http://inspirobot.me/api', params={'generate': 'true'})
+        url = await r.text()
+        r = await self.cs.get(url)
+        stream = io.BytesIO(await r.read())
+        await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
 
     @inspire.error
     async def inspire_error(self, ctx, exc):
