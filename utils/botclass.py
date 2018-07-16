@@ -58,6 +58,8 @@ class LoggingMixin:
 
 
 def _command_prefix(bot, message):
+    if isinstance(message.channel, discord.DMChannel):
+        return ''
     return bot.settings.prefix
 
 
