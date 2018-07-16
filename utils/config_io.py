@@ -40,7 +40,6 @@ class SettingsContainer:
 
     def __init__(self, **kw):
         self.__dict__.update(kw)
-        print('token', self.token)
 
     @classmethod
     def from_json(cls, fname):
@@ -68,3 +67,6 @@ class Settings:
 
     def __getattr__(self, item):
         return getattr(self.container, item)
+
+    def __setattr__(self, key, value):
+        setattr(self.container, key, value)

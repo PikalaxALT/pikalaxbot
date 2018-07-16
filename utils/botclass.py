@@ -68,7 +68,6 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
         self.settings = Settings(settings_file)
-        print(self.settings.token)
         help_name = self.settings.help_name
         disabled_cogs = self.settings.disabled_cogs
         super().__init__(_command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
