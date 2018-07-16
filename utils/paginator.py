@@ -463,7 +463,7 @@ class HelpPaginator(Pages):
         self.embed.description = self.description
         self.embed.title = self.title
 
-        if hasattr(self, '_is_bot') and self.bot.user.permissions_in(self.channel).embed_links:
+        if hasattr(self, '_is_bot'):
             value = 'Want to write your own bot in Python? Join the official discord.py ' \
                     'library server: https://discord.gg/r3sSKJJ'
             self.embed.add_field(name='Support', value=value, inline=False)
