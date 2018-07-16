@@ -18,43 +18,34 @@ import asyncio
 import json
 
 
-class SettingsContainer:
-    token = None
-    owner = None
-    prefix = 'p!'
-    markov_channels = []
-    debug = False
-    disabled_commands = []
-    voice_chans = {}
-    disabled_cogs = []
-    help_name = 'help'
-    game = 'p!help'
-    espeak_kw = {
+_defaults = {
+    'token': None,
+    'owner': None,
+    'prefix': 'p!',
+    'markov_channels': [],
+    'debug': False,
+    'disabled_commands': [],
+    'voice_chans': {},
+    'disabled_cogs': [],
+    'help_name': 'help',
+    'game': 'p!help',
+    'espeak_kw': {
         'a': 100,
         's': 150,
         'v': 'en-us+f3',
         'p': 75
-    }
-    banlist = []
-    roles = {}
-
-    def __init__(self, **kw):
-        self.__dict__.update(kw)
-
-    @classmethod
-    def from_json(cls, fname):
-        with open(fname) as fp:
-            return cls(**json.load(fp))
-
-    def to_json(self, fname):
-        with open(fname, 'w') as fp:
-            json.dump(self.__dict__, fp, indent=4, separators=(', ', ': '))
+    },
+    'banlist': [],
+    'roles': {}
+}
 
 
 class Settings:
     def __init__(self, fname='settings.json'):
-        self.fname = fname
-        self.container = SettingsContainer.from_json(fname)
+        self._fname = fname
+        self._container = _defaults
+        with open(fname) as fp:
+            self._container.update(json.load(fp))
 
     def __enter__(self):
         return self
@@ -63,13 +54,14 @@ class Settings:
         self.commit()
 
     def commit(self):
-        self.container.to_json(self.fname)
+        with open(self._fname, 'w') as fp:
+            json.dump(self._container, fp, indent=4, separators=(', ', ': '))
 
     def __getattr__(self, item):
-        return getattr(self.container, item)
+        return self._container.get(item)
 
     def __setattr__(self, key, value):
-        if key in ('fname', 'container'):
+        if key.startswith('_'):
             super().__setattr__(key, value)
         else:
-            setattr(self.container, key, value)
+            self._container[key] = value

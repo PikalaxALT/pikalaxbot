@@ -27,7 +27,9 @@ class Cog(LoggingMixin):
         self.fetch()
 
     def fetch(self):
+        self.log_debug(f'Fetching {self.__class__.__name__}')
         for attr in self.config_attrs:
+            self.log_debug(attr)
             val = getattr(self.bot.settings, attr)
             if isinstance(val, list):
                 val = set(val)
@@ -36,6 +38,7 @@ class Cog(LoggingMixin):
     def commit(self):
         with self.bot.settings as settings:
             for attr in self.config_attrs:
+                self.log_debug(attr)
                 val = getattr(self, attr)
                 if isinstance(val, set):
                     val = list(val)
