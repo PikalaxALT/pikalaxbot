@@ -16,10 +16,16 @@
 
 import asyncio
 import discord
-import re
 from discord.ext import commands
 from cogs import Cog
 from utils.markov import Chain
+
+
+def iter_words(view):
+    view.index = 0
+    while not view.eof:
+        yield view.get_word()
+        view.skip_ws()
 
 
 class Markov(Cog):
@@ -45,11 +51,13 @@ class Markov(Cog):
             return False
         if ctx.me.mentioned_in(ctx.message):
             return True
-        if re.search(rf'\b{ctx.me.name}\b', ctx.message.clean_content, re.I) is not None:
-            return True
-        if ctx.channel.guild is None:
-            return True
-        return re.search(rf'\b{ctx.guild.me.nick}\b', ctx.message.clean_content, re.I) is not None
+        names = (ctx.me.name,)
+        if ctx.guild is not None:
+            names += (ctx.guild.me.nick,)
+        for word in iter_words(ctx.view):
+            if word in names:
+                return True
+        return False
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
