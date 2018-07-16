@@ -43,7 +43,9 @@ class Sql:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._connection is not None:
-            self._connection.__exit__(exc_type, exc_val, exc_tb)
+            self._connection.commit()
+            self._connection.execute('vacuum')
+            self._connection.close()
             self._connection = None
 
     def execute(self, script, args=()):
@@ -80,7 +82,6 @@ class Sql:
             self.execute('drop table voltorb')
         except sqlite3.Error:
             pass
-        self.execute('vacuum')
 
     def get_score(self, author):
         c = self.execute('select score from game where id = ? limit 1', (author.id,))
@@ -141,18 +142,15 @@ class Sql:
 
     def reset_leaderboard(self):
         self.execute('delete from game')
-        self.execute('vacuum')
 
     def remove_bag(self, msg):
         if msg in default_bag:
             return False
         self.execute('delete from meme where bag = ?', (msg,))
-        self.execute('vacuum')
         return True
 
     def reset_bag(self):
         self.execute('delete from meme')
-        self.execute('vacuum')
         for msg in default_bag:
             self.execute('insert into meme values (?)', (msg,))
 
