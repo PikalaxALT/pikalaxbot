@@ -49,7 +49,7 @@ class Markov(Cog):
         if not name_grp:
             raise commands.CheckFailure('Something fucked up!!')
         pat = re.compile(rf'\b({name_grp})\b', re.I)
-        return pat.match(ctx.message.clean_content) is not None
+        return pat.search(ctx.message.clean_content) is not None
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
