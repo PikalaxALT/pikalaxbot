@@ -269,7 +269,8 @@ class VoltorbFlip(GameCogBase):
     async def voltorb(self, ctx):
         """Play Voltorb Flip"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect voltorb subcommand passed')
+            await ctx.send(f'Incorrect voltorb subcommand passed. '
+                           f'Try {ctx.prefix}{self.bot.settings.help_name} voltorb')
 
     @voltorb.command()
     async def start(self, ctx):

@@ -147,7 +147,8 @@ class Trashcans(GameCogBase):
     async def trashcans(self, ctx):
         """Play trashcans"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect trashcans subcommand passed. Try `{ctx.prefix}pikahelp trashcans`')
+            await ctx.send(f'Incorrect trashcans subcommand passed. '
+                           f'Try `{ctx.prefix}{self.bot.settings.help_name} trashcans`')
 
     @trashcans.command()
     async def start(self, ctx):

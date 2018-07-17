@@ -140,7 +140,8 @@ class Hangman(GameCogBase):
     async def hangman(self, ctx):
         """Play Hangman"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect hangman subcommand passed. Try `{ctx.prefix}pikahelp hangman`')
+            await ctx.send(f'Incorrect hangman subcommand passed. '
+                           f'Try `{ctx.prefix}{self.bot.settings.help_name} hangman`')
 
     @hangman.command()
     async def start(self, ctx):

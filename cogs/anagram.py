@@ -117,7 +117,8 @@ class Anagram(GameCogBase):
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect anagram subcommand passed. Try `{ctx.prefix}pikahelp anagram`')
+            await ctx.send(f'Incorrect anagram subcommand passed. '
+                           f'Try `{ctx.prefix}{self.bot.settings.help_name} anagram`')
 
     @anagram.command()
     async def start(self, ctx: commands.Context):
