@@ -124,7 +124,7 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
         return self.find_emoji_in_guild(guild, 'tppBurrito', 'VeggieBurrito', default='❤')
 
     def cmd_error_check(self, ctx, exc):
-        if isinstance(exc, commands.CommandNotFound) or isinstance(exc, commands.CheckFailure):
+        if isinstance(exc, commands.CommandNotFound):
             return False
 
         # Inherit checks from super
