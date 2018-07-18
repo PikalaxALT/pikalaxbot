@@ -166,6 +166,8 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
             await report('The command or one of its dependencies is not fully implemented')
         elif isinstance(exc, commands.UserInputError):
             await report(f'**{type(exc).__name__}**: {exc}')
+        elif isinstance(exc, commands.CheckFailure):
+            return
         else:
             self.log_tb(ctx, exc)
 
