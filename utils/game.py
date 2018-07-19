@@ -29,6 +29,42 @@ def find_emoji(guild, name, case_sensitive=True):
     return discord.utils.find(lambda e: lower(name) == lower(e.name), guild.emojis)
 
 
+class BadGameArgument(commands.BadArgument):
+    pass
+
+
+class BoardCoords(commands.Converter):
+    def __init__(self, minx=1, maxx=5, miny=1, maxy=5):
+        super().__init__()
+        self.minx = minx
+        self.maxx = maxx
+        self.miny = miny
+        self.maxy = maxy
+
+    async def convert(self, ctx, argument):
+        if isinstance(argument, tuple):
+            return argument
+        try:
+            argument = argument.lower()
+            if argument.startswith(tuple('abcde')):
+                x = ord(argument[0]) - 0x60
+                y = int(argument[1])
+            else:
+                y, x = map(int, argument.split())
+            assert self.minx <= x <= self.maxx and self.miny <= y <= self.maxy
+            return x - 1, y - 1
+        except (ValueError, AssertionError) as e:
+            raise BadGameArgument from e
+
+
+async def _error(cog, ctx, exc):
+    if isinstance(exc, BadGameArgument):
+        await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                       f'Try using two numbers (i.e. 2 5) or a letter '
+                       f'and a number (i.e. c2).',
+                       delete_after=10)
+
+
 class GameBase:
     __slots__ = (
         'bot', '_timeout', '_lock', '_max_score', '_state', '_running', '_message', '_task',
@@ -87,13 +123,13 @@ class GameBase:
         await asyncio.sleep(self._timeout)
         if self.running:
             await ctx.send('Time\'s up!')
-            asyncio.ensure_future(self.end(ctx, failed=True), loop=self.bot.loop)
+            self.bot.create_task(self.end(ctx, failed=True))
             self._task = None
 
     async def start(self, ctx):
         self.running = True
         self._message = await ctx.send(self)
-        self._task = asyncio.ensure_future(self.timeout(ctx), loop=self.bot.loop)
+        self._task = self.bot.loop.create_task(self.timeout(ctx))
         self.start_time = time.time()
 
     async def end(self, ctx, failed=False, aborted=False):
@@ -133,22 +169,12 @@ class GameCogBase(Cog):
             raise NotImplemented('this class must be subclassed')
         super().__init__(bot)
         self.channels = {}
+        self.__error = _error
 
     def __getitem__(self, channel):
         if channel not in self.channels:
             self.channels[channel] = self.gamecls(self.bot)
         return self.channels[channel]
-
-    @staticmethod
-    def convert_args(*args):
-        if len(args) >= 2:
-            y, x = map(int, args[:2])
-            yield x
-            yield y
-        else:
-            y, x, *rest = args[0].lower()
-            yield ord(y) - 0x60
-            yield int(x)
 
     async def game_cmd(self, cmd, ctx, *args, **kwargs):
         async with self[ctx.channel.id] as game:
@@ -158,18 +184,3 @@ class GameCogBase(Cog):
                                delete_after=10)
             else:
                 await cb(ctx, *args, **kwargs)
-
-    async def argcheck(self, ctx, *args, minx=1, maxx=5, miny=1, maxy=5):
-        exc = None
-        try:
-            x, y = self.convert_args(*args)
-        except ValueError as e:
-            exc = e
-        else:
-            if minx <= x <= maxx and miny <= y <= maxy:
-                return x - 1, y - 1
-        await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
-                       f'Try using two numbers (i.e. 2 5) or a letter '
-                       f'and a number (i.e. c2).',
-                       delete_after=10)
-        raise commands.CommandError from exc

@@ -17,7 +17,7 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils.game import GameBase, GameCogBase, find_emoji
+from utils.game import GameBase, GameCogBase, find_emoji, BoardCoords
 import random
 
 
@@ -262,6 +262,9 @@ class VoltorbFlipGame(GameBase):
                            delete_after=10)
 
 
+converter = BoardCoords()
+
+
 class VoltorbFlip(GameCogBase):
     gamecls = VoltorbFlipGame
 
@@ -283,37 +286,34 @@ class VoltorbFlip(GameCogBase):
         await ctx.invoke(self.start)
 
     @voltorb.command()
-    async def guess(self, ctx, *args):
+    async def guess(self, ctx, *, args: converter):
         """Reveal a square and either claim its coins or blow it up"""
-        x, y = await self.argcheck(ctx, *args)
-        await self.game_cmd('guess', ctx, x, y)
+        await self.game_cmd('guess', ctx, *args)
 
     @commands.command(name='voltguess', aliases=['vgu', 'vg'])
-    async def voltorb_guess(self, ctx, *args):
+    async def voltorb_guess(self, ctx, *, args: converter):
         """Reveal a square and either claim its coins or blow it up"""
-        await ctx.invoke(self.guess, *args)
+        await ctx.invoke(self.guess, args)
 
     @voltorb.command()
-    async def flag(self, ctx, *args):
+    async def flag(self, ctx, *, args: converter):
         """Flag a square"""
-        x, y = await self.argcheck(ctx, *args)
-        await self.game_cmd('flag', ctx, x, y)
+        await self.game_cmd('flag', ctx, *args)
 
     @commands.command(name='voltflag', aliases=['vfl', 'vf'])
-    async def voltorb_flag(self, ctx, *args):
+    async def voltorb_flag(self, ctx, *, args: converter):
         """Flag a square"""
-        await ctx.invoke(self.flag, *args)
+        await ctx.invoke(self.flag, args)
 
     @voltorb.command()
-    async def unflag(self, ctx, *args):
+    async def unflag(self, ctx, *, args: converter):
         """Unflag a square"""
-        x, y = await self.argcheck(ctx, *args)
-        await self.game_cmd('unflag', ctx, x, y)
+        await self.game_cmd('unflag', ctx, *args)
 
     @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
-    async def voltorb_unflag(self, ctx, *args):
+    async def voltorb_unflag(self, ctx, *, args: converter):
         """Unflag a square"""
-        await ctx.invoke(self.unflag, *args)
+        await ctx.invoke(self.unflag, args)
 
     @voltorb.command()
     @commands.is_owner()

@@ -17,7 +17,7 @@
 import asyncio
 import discord
 from discord.ext import commands
-from utils.game import GameBase, GameCogBase
+from utils.game import GameBase, GameCogBase, BoardCoords
 import random
 
 
@@ -137,11 +137,11 @@ class TrashcansGame(GameBase):
                            delete_after=10)
 
 
+converter = BoardCoords(maxy=3)
+
+
 class Trashcans(GameCogBase):
     gamecls = TrashcansGame
-
-    async def argcheck(self, ctx, *args):
-        return await super().argcheck(ctx, *args, maxy=3)
 
     @commands.group(case_insensitive=True)
     async def trashcans(self, ctx):
@@ -161,15 +161,14 @@ class Trashcans(GameCogBase):
         await ctx.invoke(self.start)
 
     @trashcans.command()
-    async def guess(self, ctx, *args):
+    async def guess(self, ctx, *, args: converter):
         """Make a guess, if you dare"""
-        x, y = await self.argcheck(ctx, *args)
-        await self.game_cmd('guess', ctx, x, y)
+        await self.game_cmd('guess', ctx, *args)
 
     @commands.command(name='trashguess', aliases=['tgu', 'tg'])
-    async def trashcans_guess(self, ctx, *args):
+    async def trashcans_guess(self, ctx, *, args: converter):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.guess, *args)
+        await ctx.invoke(self.guess, args)
 
     @trashcans.command()
     @commands.is_owner()

@@ -88,7 +88,7 @@ class ModTools(Cog):
                 sql.call_script(script)
         except sqlite3.Error:
             tb = traceback.format_exc(limit=3)
-            embed = discord.Embed(color=0xff0000)
+            embed = discord.Embed(color=discord.Color.red())
             embed.add_field(name='Traceback', value=f'```{tb}```')
             await ctx.send('The script failed with an error (check your syntax?)', embed=embed)
         else:
