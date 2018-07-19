@@ -192,6 +192,9 @@ class Trashcans(GameCogBase):
         """Show the board in a new message"""
         await ctx.invoke(self.show)
 
+    async def __error(self, ctx, exc):
+        await super()._error(ctx, exc)
+
 
 def setup(bot):
     bot.add_cog(Trashcans(bot))

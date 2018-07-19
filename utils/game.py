@@ -47,22 +47,14 @@ class BoardCoords(commands.Converter):
         try:
             argument = argument.lower()
             if argument.startswith(tuple('abcde')):
-                x = ord(argument[0]) - 0x60
-                y = int(argument[1])
+                y = ord(argument[0]) - 0x60
+                x = int(argument[1])
             else:
                 y, x = map(int, argument.split())
             assert self.minx <= x <= self.maxx and self.miny <= y <= self.maxy
             return x - 1, y - 1
         except (ValueError, AssertionError) as e:
             raise BadGameArgument from e
-
-
-async def _error(cog, ctx, exc):
-    if isinstance(exc, BadGameArgument):
-        await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
-                       f'Try using two numbers (i.e. 2 5) or a letter '
-                       f'and a number (i.e. c2).',
-                       delete_after=10)
 
 
 class GameBase:
@@ -169,7 +161,6 @@ class GameCogBase(Cog):
             raise NotImplemented('this class must be subclassed')
         super().__init__(bot)
         self.channels = {}
-        self.__error = _error
 
     def __getitem__(self, channel):
         if channel not in self.channels:
@@ -180,7 +171,15 @@ class GameCogBase(Cog):
         async with self[ctx.channel.id] as game:
             cb = getattr(game, cmd)
             if cb is None:
-                await ctx.send(f'{ctx.author.mention}: Invalid command: !{self.groupname} {cmd}',
+                await ctx.send(f'{ctx.author.mention}: Invalid command: '
+                               f'{ctx.prefix}{self.gamecls.__class__.__name__.lower()} {cmd}',
                                delete_after=10)
             else:
                 await cb(ctx, *args, **kwargs)
+
+    async def _error(self, ctx, exc):
+        if isinstance(exc, BadGameArgument):
+            await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
+                           f'Try using two numbers (i.e. 2 5) or a letter '
+                           f'and a number (i.e. c2).',
+                           delete_after=10)
