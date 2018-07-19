@@ -103,22 +103,6 @@ class Meme(Cog):
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
     @commands.command()
-    @commands.is_nsfw()
-    @commands.bot_has_permissions(attach_files=True)
-    async def inspire(self, ctx: commands.Context):
-        """Generate an inspirational poster using inspirobot.me"""
-        r = await self.cs.get('http://inspirobot.me/api', params={'generate': 'true'})
-        url = await r.text()
-        r = await self.cs.get(url)
-        stream = io.BytesIO(await r.read())
-        await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
-
-    @inspire.error
-    async def inspire_error(self, ctx, exc):
-        await ctx.send(f'An error occurred. How uninspiring.\n'
-                       f'{exc.__class__.__name__}: {exc}')
-
-    @commands.command()
     async def olden(self, ctx):
         await ctx.send('https://vignette.wikia.nocookie.net/twitchplayspokemoncrystal/images/5/5f/'
                        'Serious_%22OLDEN%22_Times.png/revision/latest?cb=20160820193335')

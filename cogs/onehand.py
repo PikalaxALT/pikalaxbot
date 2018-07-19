@@ -1,6 +1,8 @@
 import asyncio
 import aiohttp
 import discord
+import io
+import os
 from discord.ext import commands
 from cogs import Cog
 
@@ -18,6 +20,7 @@ class OneHand(Cog):
         asyncio.wait([task])
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def e6(self, ctx: commands.Context, *params):
         try:
             num = min(max(int(params[-1]), 1), 5)
@@ -50,6 +53,27 @@ class OneHand(Cog):
     async def e6_error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, aiohttp.ClientError):
             await ctx.send(f'Could not reach e621: {exc}')
+
+    @commands.command()
+    @commands.bot_has_permissions(attach_files=True)
+    async def inspire(self, ctx: commands.Context):
+        """Generate an inspirational poster using inspirobot.me"""
+        r = await self._cs.get('http://inspirobot.me/api', params={'generate': 'true'})
+        url = await r.text()
+        r = await self._cs.get(url)
+        stream = io.BytesIO(await r.read())
+        await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
+
+    @inspire.error
+    async def inspire_error(self, ctx, exc):
+        if isinstance(exc, aiohttp.ClientError):
+            await ctx.send(f'Could not reach inspirobot.me: {exc}')
+
+    async def __error(self, ctx:commands.Context, exc: Exception):
+        if isinstance(exc, commands.BotMissingPermissions):
+            await ctx.send(exc)
+        elif isinstance(exc, commands.CheckFailure):
+            await ctx.send('This command is age-restricted and cannot be used in this channel.')
 
 
 def setup(bot):
