@@ -22,6 +22,7 @@ class OneHand(Cog):
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
     async def e6(self, ctx: commands.Context, *params):
+        """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
         try:
             num = min(max(int(params[-1]), 1), 5)
             params = params[:-1]
