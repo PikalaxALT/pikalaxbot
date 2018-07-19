@@ -144,13 +144,13 @@ class VoltorbFlipGame(GameBase):
         return ':white_square_button:'
 
     def __str__(self):
-        colbombcounts = [f':bomb:{self.colsum(x):d}' for x in range(5)]
+        colbombcounts = [f'　{self.colsum(x):d}' for x in range(5)]
         colcoincounts = [f'x{self.colsum(x, True):d}' for x in range(5)]
         rowbombcounts = [f':bomb:{self.rowsum(y):d}' for y in range(5)]
         rowcoincounts = [f'x{self.rowsum(y, True):d}' for y in range(5)]
         state = f'LEVEL: {self.level}\n' \
                 f'BOARD STATE:\n'
-        state += '{}|{}|{}|{}|{}\n'.format(*colbombcounts)
+        state += '{}|{}|{}|{}|{}:bomb:\n'.format(*colbombcounts)
         state += ' {} | {} | {} | {} | {}\n'.format(*colcoincounts)
         for y in range(5):
             state += ''.join(self.get_element_char(x, y) for x in range(5))
