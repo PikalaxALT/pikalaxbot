@@ -13,6 +13,10 @@ class OneHand(Cog):
         super().__init__(bot)
         self._cs = aiohttp.ClientSession(raise_for_status=True)
 
+    def __del__(self):
+        task = self.bot.loop.create_task(self._cs.close())
+        asyncio.wait([task])
+
     @commands.command()
     async def e6(self, ctx: commands.Context, *params):
         try:
@@ -41,6 +45,11 @@ class OneHand(Cog):
             embed.set_image(url=imagespec['file_url'])
             embed.set_footer(text='e621', icon_url='http://i.imgur.com/RrHrSOi.png')
             await ctx.send(embed=embed)
+
+    @e6.error
+    async def e6_error(self, ctx: commands.Context, exc: Exception):
+        if isinstance(exc, aiohttp.ClientError):
+            await ctx.send(f'Could not reach e621: {exc}')
 
 
 def setup(bot):
