@@ -53,7 +53,8 @@ class OneHand(Cog):
     @e6.error
     async def e6_error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, aiohttp.ClientError):
-            await ctx.send(f'Could not reach e621: {exc}')
+            await ctx.send(f'Could not reach e621: {exc}',
+                           delete_after=10)
 
     @commands.command()
     @commands.bot_has_permissions(attach_files=True)
@@ -68,13 +69,17 @@ class OneHand(Cog):
     @inspire.error
     async def inspire_error(self, ctx, exc):
         if isinstance(exc, aiohttp.ClientError):
-            await ctx.send(f'Could not reach inspirobot.me: {exc}')
+            await ctx.send(f'Could not reach inspirobot.me: {exc}',
+                           delete_after=10)
 
     async def __error(self, ctx:commands.Context, exc: Exception):
         if isinstance(exc, commands.BotMissingPermissions):
             await ctx.send(exc)
         elif isinstance(exc, commands.CheckFailure):
-            await ctx.send('This command is age-restricted and cannot be used in this channel.')
+            await ctx.send('This command is age-restricted and cannot be used in this channel.',
+                           delete_after=10)
+        else:
+            self.log_tb(ctx, exc)
 
 
 def setup(bot):
