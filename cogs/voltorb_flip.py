@@ -293,7 +293,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltguess', aliases=['vgu', 'vg'])
     async def voltorb_guess(self, ctx, *, args: converter):
         """Reveal a square and either claim its coins or blow it up"""
-        await ctx.invoke(self.guess, args)
+        await ctx.invoke(self.guess, args=args)
 
     @voltorb.command()
     async def flag(self, ctx, *, args: converter):
@@ -303,7 +303,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltflag', aliases=['vfl', 'vf'])
     async def voltorb_flag(self, ctx, *, args: converter):
         """Flag a square"""
-        await ctx.invoke(self.flag, args)
+        await ctx.invoke(self.flag, args=args)
 
     @voltorb.command()
     async def unflag(self, ctx, *, args: converter):
@@ -313,7 +313,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
     async def voltorb_unflag(self, ctx, *, args: converter):
         """Unflag a square"""
-        await ctx.invoke(self.unflag, args)
+        await ctx.invoke(self.unflag, args=args)
 
     @voltorb.command()
     @commands.is_owner()

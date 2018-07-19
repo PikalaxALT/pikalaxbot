@@ -168,7 +168,7 @@ class Trashcans(GameCogBase):
     @commands.command(name='trashguess', aliases=['tgu', 'tg'])
     async def trashcans_guess(self, ctx, *, args: converter):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.guess, args)
+        await ctx.invoke(self.guess, args=args)
 
     @trashcans.command()
     @commands.is_owner()
