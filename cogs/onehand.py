@@ -35,8 +35,8 @@ class OneHand(Cog):
             description = f'**Score:** {score} | ' \
                           f'**Resolution:** {width} x {height} | ' \
                           f'**Link:** [Click Here](https://e621.net/post/show/{pic_id})'
-            color = discord.Color.from_rgb(67, 181, 129)
-            embed = discord.Embed(title=tags, color=color, description=description)
+            color = discord.Color.from_rgb(1, 46, 87)
+            embed = discord.Embed(color=color, description=description)
             embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
             embed.set_image(url=imagespec['file_url'])
             embed.set_footer(text='e621', icon_url='http://i.imgur.com/RrHrSOi.png')
