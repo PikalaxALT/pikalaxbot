@@ -234,7 +234,7 @@ class YouTube(Cog):
                                                       before_options='-loglevel quiet')
         ctx.guild.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
 
-    @commands.command()
+    @commands.command(name='say')
     async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
                                                          escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""

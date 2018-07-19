@@ -32,7 +32,7 @@ class OneHand(Cog):
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
         r = await self._cs.get('https://e621.net/post/index.json',
-                               headers={'User-Agent': 'PikalaxBOT'},
+                               headers={'User-Agent': self.bot.user.name},
                                params={'tags': ' '.join(params), 'limit': num})
         j = await r.json()
         for imagespec in j:
