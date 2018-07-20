@@ -92,6 +92,16 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
             os.remove(self.fname)
 
 
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+
+        self.data = data
+
+        self.title = data.get('title')
+        self.url = data.get('url')
+
+
 class YouTube(Cog):
     __ytdl_format_options = {
         'format': 'bestaudio/best',
@@ -124,6 +134,23 @@ class YouTube(Cog):
 
     def __local_check(self, ctx):
         return self.ready
+
+    async def _get_ytdl_player(self, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: self.__ytdl_player.extract_info(url, download=not stream))
+
+        if 'entries' in data:
+            # take first item from a playlist
+            data = data['entries'][0]
+
+        filename = data['url'] if stream else self.__ytdl_player.prepare_filename(data)
+        return YTDLSource(discord.FFmpegPCMAudio(filename, executable=self.ffmpeg, before_options='-loglevel quiet',
+                                                 **self.__ffmpeg_options), data=data)
+
+    @staticmethod
+    def player_after(exc):
+        if exc:
+            print(f'Player error: {exc}')
 
     def load_opus(self):
         if not discord.opus.is_loaded():
@@ -232,7 +259,7 @@ class YouTube(Cog):
         """Use eSpeak to say the message aloud in the voice channel."""
         player = await EspeakAudioSource.from_message(self, msg, executable=self.ffmpeg,
                                                       before_options='-loglevel quiet')
-        ctx.guild.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+        ctx.guild.voice_client.play(player, after=self.player_after)
 
     @commands.command(name='say')
     async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
@@ -302,8 +329,17 @@ class YouTube(Cog):
 
     @commands.command(hidden=True)
     @commands.check(connected_and_not_playing)
-    async def ytplay(self, ctx: commands.Context, url):
-        raise NotImplemented
+    async def ytplay(self, ctx: commands.Context, *, url):
+        """Stream a YouTube video"""
+        player = await self._get_ytdl_player(url, loop=self.bot.loop, stream=True)
+        ctx.voice_client.play(player, after=self.player_after)
+
+    @ytplay.error
+    async def ytplay_error(self, ctx, exc):
+        await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
+
+    async def __after_invoke(self, ctx):
+        self.commit()
 
 
 def setup(bot: PikalaxBOT):
