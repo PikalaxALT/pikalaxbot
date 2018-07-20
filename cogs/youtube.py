@@ -144,7 +144,7 @@ class YouTube(Cog):
             data = data['entries'][0]
 
         filename = data['url'] if stream else self.__ytdl_player.prepare_filename(data)
-        return YTDLSource(discord.FFmpegPCMAudio(filename, executable=self.ffmpeg, before_options='-loglevel quiet',
+        return YTDLSource(discord.FFmpegPCMAudio(filename, executable=self.ffmpeg,
                                                  **self.__ffmpeg_options), data=data)
 
     @staticmethod
