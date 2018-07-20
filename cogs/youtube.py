@@ -91,10 +91,10 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
         assert os.path.exists(fname)
         return cls(fname, **kwargs)
 
-    def cleanup(self):
-        super().cleanup()
-        if os.path.exists(self.fname):
-            os.remove(self.fname)
+    # def cleanup(self):
+    #     super().cleanup()
+    #     if os.path.exists(self.fname):
+    #         os.remove(self.fname)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
