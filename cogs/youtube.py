@@ -41,9 +41,10 @@ class cleaner_content(commands.clean_content):
         return argument
 
 
-def connected_and_not_playing(ctx):
+def voice_client_not_playing(ctx):
+    # Change: Don't care anymore if the voice client exists or is playing.
     vc = ctx.voice_client
-    return vc is not None and vc.is_connected() and not vc.is_playing()
+    return vc is None or not vc.is_playing()
 
 
 class EspeakParamsConverter(commands.Converter):
@@ -131,9 +132,6 @@ class YouTube(Cog):
         'k': int
     }
 
-    def __local_check(self, ctx):
-        return self.ready
-
     async def _get_ytdl_player(self, url, *, loop=None, stream=False):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: self.__ytdl_player.extract_info(url, download=not stream))
@@ -161,8 +159,8 @@ class YouTube(Cog):
 
     def __init__(self, bot: PikalaxBOT):
         super().__init__(bot)
-        self.ready = False
         self.connections = {}
+        self.load_opus()
 
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
@@ -178,31 +176,7 @@ class YouTube(Cog):
 
         self.executor = ThreadPoolExecutor()
         self.__ytdl_player = youtube_dl.YoutubeDL(self.__ytdl_format_options)
-
-    async def join_voice_channel(self, ch: discord.VoiceChannel):
-        if self.load_opus():
-            await self.bot.wait_until_ready()
-            if ch is None:
-                self.log_warning(f'Channel {ch.id} not found')
-            else:
-                try:
-                    await ch.connect()
-                except asyncio.TimeoutError:
-                    self.log_error('Failed to connect to voice channel %s (connection timed out)', ch.name)
-                except discord.ClientException:
-                    self.log_error('Failed to connect to voice channel %s (duplicate connection)', ch.name)
-                else:
-                    self.log_info('Connected to voice channel %s', ch.name)
-
-    async def join_voice_channels(self):
-        await self.bot.wait_until_ready()
-        if self.load_opus():
-            self.log_info('Loaded opus')
-            for channel_id in self.voice_chans.values():
-                ch = self.bot.get_channel(channel_id)
-                await self.join_voice_channel(ch)
-
-            self.ready = True
+        self.timeout_tasks = {}
 
     @commands.group(name='voice')
     async def pikavoice(self, ctx: commands.Context):
@@ -251,7 +225,7 @@ class YouTube(Cog):
             self.bot.log_tb(ctx, exc)
 
     @pikavoice.command()
-    @commands.check(connected_and_not_playing)
+    @commands.check(voice_client_not_playing)
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
@@ -259,7 +233,7 @@ class YouTube(Cog):
         ctx.guild.voice_client.play(player, after=self.player_after)
 
     @commands.command(name='say')
-    @commands.check(connected_and_not_playing)
+    @commands.check(voice_client_not_playing)
     async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
                                                          escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
@@ -326,7 +300,7 @@ class YouTube(Cog):
                 self.bot.log_tb(ctx, exc)
 
     @commands.command(hidden=True)
-    @commands.check(connected_and_not_playing)
+    @commands.check(voice_client_not_playing)
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
         player = await self._get_ytdl_player(url, loop=self.bot.loop, stream=True)
@@ -336,11 +310,56 @@ class YouTube(Cog):
     async def ytplay_error(self, ctx, exc):
         await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
 
-    async def __after_invoke(self, ctx):
+    @ytplay.before_invoke
+    @say.before_invoke
+    @pikasay.before_invoke
+    async def voice_cmd_ensure_connected(self, ctx):
+        task = self.timeout_tasks.get(ctx.guild.id)
+        if task is not None:
+            task.cancel()
+        vc: discord.VoiceClient = ctx.guild.voice_client
+        if vc is None or not vc.is_connected():
+            chan = self.voice_chans.get(str(ctx.guild.id))
+            if chan is None:
+                raise VoiceCommandError('No voice channel has been configured for this guild')
+            vchan = self.bot.get_channel(chan)
+            if vchan is None:
+                raise VoiceCommandError('The voice channel configured for this guild could not be retrieved')
+            if not vchan.permissions_for(ctx.guild.me).connect:
+                raise VoiceCommandError('I do not have permission to connect to the voice channel '
+                                        'configured for this guild')
+            await vchan.connect()
+
+    @staticmethod
+    async def idle_timeout(ctx):
+        await asyncio.sleep(600)
+        await ctx.voice_client.disconnect()
+
+    @ytplay.after_invoke
+    @say.after_invoke
+    @pikasay.after_invoke
+    @shutup.after_invoke
+    @stop.after_invoke
+    async def voice_cmd_start_idle_timeout(self, ctx):
+        def done():
+            self.timeout_tasks.pop(ctx.guild.id, None)
+
+        task = self.bot.loop.create_task(self.idle_timeout(ctx))
+        task.add_done_callback(done)
+        self.timeout_tasks[ctx.guild.id] = task
+
+    @params.before_invoke
+    @pikaparams.before_invoke
+    @chan.before_invoke
+    async def pikaparams_before_invoke(self, ctx):
+        self.fetch()
+
+    @params.after_invoke
+    @pikaparams.after_invoke
+    @chan.after_invoke
+    async def pikaparams_after_invoke(self, ctx):
         self.commit()
 
 
 def setup(bot: PikalaxBOT):
-    cog = YouTube(bot)
-    bot.add_cog(cog)
-    bot.loop.create_task(cog.join_voice_channels())
+    bot.add_cog(YouTube(bot))
