@@ -70,13 +70,24 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
         super().__init__(fname, **kwargs)
         self.fname = fname
 
+    @staticmethod
+    async def call_espeak(msg, fname, *, loop=None, **kwargs):
+        flags = ' '.join(f'-{flag} {value}' for flag, value in kwargs.items())
+        args = f'espeak -w {fname} {flags} "{msg}"'
+        fut = await asyncio.create_subprocess_shell(args, loop=loop, stderr=-1, stdout=-1)
+        out, err = fut.communicate()
+        if fut.returncode != 0:
+            raise subprocess.CalledProcessError(fut.returncode, args, out, err)
+        return out, err
+
     @classmethod
     async def from_message(cls, cog, msg, **kwargs):
         fname = f'{os.getcwd()}/{time.time()}.wav'
-        flags = ' '.join(f'-{flag} {value}' for flag, value in cog.espeak_kw.items())
-        args = f'espeak -w {fname} {flags} "{msg}"'
-        fut = await asyncio.create_subprocess_shell(args, loop=cog.bot.loop)
-        await fut.wait()
+        out, err = await cls.call_espeak(msg, fname, loop=cog.bot.loop, **cog.espeak_kw)
+        cog.log_info('**STDOUT**')
+        cog.log_info(out.decode())
+        cog.log_info('**STDERR**')
+        cog.log_info(err.decode())
         assert os.path.exists(fname)
         return cls(fname, **kwargs)
 
@@ -283,7 +294,11 @@ class YouTube(Cog):
         for key, value in kwargs:
             params[key] = (str if key == 'v' else int)(value)
         try:
-            EspeakAudioSource.call_espeak('Test', 'tmp.wav', **params)
+            out, err = await EspeakAudioSource.call_espeak('Test', 'tmp.wav', **params)
+            self.log_info('**STDOUT**')
+            self.log_info(out.decode())
+            self.log_info('**STDERR**')
+            self.log_info(err.decode())
         except subprocess.CalledProcessError:
             await ctx.send('Parameters could not be updated')
         else:
