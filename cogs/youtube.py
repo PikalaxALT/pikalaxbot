@@ -144,7 +144,17 @@ class YouTube(Cog):
         return YTDLSource(discord.FFmpegPCMAudio(filename, **self.__ffmpeg_options), data=data)
 
     @staticmethod
-    def player_after(exc):
+    async def idle_timeout(ctx):
+        await asyncio.sleep(600)
+        await ctx.voice_client.disconnect()
+
+    def player_after(self, ctx, exc):
+        def done():
+            self.timeout_tasks.pop(ctx.guild.id, None)
+
+        task = self.bot.loop.create_task(self.idle_timeout(ctx))
+        task.add_done_callback(done)
+        self.timeout_tasks[ctx.guild.id] = task
         if exc:
             print(f'Player error: {exc}')
 
@@ -230,7 +240,7 @@ class YouTube(Cog):
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
-        ctx.guild.voice_client.play(player, after=self.player_after)
+        ctx.guild.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
 
     @commands.command(name='say')
     @commands.check(voice_client_not_playing)
@@ -304,7 +314,7 @@ class YouTube(Cog):
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
         player = await self._get_ytdl_player(url, loop=self.bot.loop, stream=True)
-        ctx.voice_client.play(player, after=self.player_after)
+        ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
 
     @ytplay.error
     async def ytplay_error(self, ctx, exc):
@@ -329,24 +339,6 @@ class YouTube(Cog):
                 raise VoiceCommandError('I do not have permission to connect to the voice channel '
                                         'configured for this guild')
             await vchan.connect()
-
-    @staticmethod
-    async def idle_timeout(ctx):
-        await asyncio.sleep(600)
-        await ctx.voice_client.disconnect()
-
-    @ytplay.after_invoke
-    @say.after_invoke
-    @pikasay.after_invoke
-    @shutup.after_invoke
-    @stop.after_invoke
-    async def voice_cmd_start_idle_timeout(self, ctx):
-        def done():
-            self.timeout_tasks.pop(ctx.guild.id, None)
-
-        task = self.bot.loop.create_task(self.idle_timeout(ctx))
-        task.add_done_callback(done)
-        self.timeout_tasks[ctx.guild.id] = task
 
     @params.before_invoke
     @pikaparams.before_invoke
