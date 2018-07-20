@@ -41,9 +41,15 @@ class OneHand(Cog):
                 width = imagespec['width']
                 height = imagespec['height']
                 pic_id = imagespec['id']
-                description = f'**Score:** {score} | ' \
-                              f'**Resolution:** {width} x {height} | ' \
-                              f'**Link:** [Click Here](https://e621.net/post/show/{pic_id})'
+                file_ext = imagespec['file_ext']
+                if file_ext in ('webm', 'swf'):
+                    description = f'**Score:** {score} | ' \
+                                  f'**Link:** [Click Here](https://e621.net/post/show/{pic_id})\n' \
+                                  f'*This file ({file_ext}) cannot be previewed or embedded.*'
+                else:
+                    description = f'**Score:** {score} | ' \
+                                  f'**Resolution:** {width} x {height} | ' \
+                                  f'**Link:** [Click Here](https://e621.net/post/show/{pic_id})'
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
