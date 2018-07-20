@@ -206,7 +206,7 @@ class ModTools(Cog):
         self.commit()
         await ctx.send(f'Set debug mode to {"on" if self.debug else "off"}')
 
-    @admin.command(name='log')
+    @admin.command(name='log', aliases=['logs'])
     async def send_log(self, ctx):
         handler = discord.utils.find(lambda h: isinstance(h, logging.FileHandler), self.bot.logger.handlers)
         if handler is None:
