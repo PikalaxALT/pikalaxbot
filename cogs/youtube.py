@@ -144,8 +144,7 @@ class YouTube(Cog):
             data = data['entries'][0]
 
         filename = data['url'] if stream else self.__ytdl_player.prepare_filename(data)
-        return YTDLSource(discord.FFmpegPCMAudio(filename, executable=self.ffmpeg,
-                                                 **self.__ffmpeg_options), data=data)
+        return YTDLSource(discord.FFmpegPCMAudio(filename, **self.__ffmpeg_options), data=data)
 
     @staticmethod
     def player_after(exc):
@@ -257,8 +256,7 @@ class YouTube(Cog):
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
-        player = await EspeakAudioSource.from_message(self, msg, executable=self.ffmpeg,
-                                                      before_options='-loglevel quiet')
+        player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
         ctx.guild.voice_client.play(player, after=self.player_after)
 
     @commands.command(name='say')
