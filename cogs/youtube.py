@@ -71,19 +71,16 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
         self.fname = fname
 
     @staticmethod
-    def call_espeak(msg, fname, **kwargs):
-        args = ['espeak', '-w', fname]
-        for flag, value in kwargs.items():
-            args.extend([f'-{flag}', str(value)])
-        args.append(msg)
-        subprocess.run(args, check=True)
+    async def call_espeak(msg, *, loop=None, **kwargs):
+        flags = ' '.join(f'-{flag} {value}' for flag, value in kwargs.items())
+        args = f'espeak {flags} "{msg}"'
+        fut = await asyncio.create_subprocess_exec(args, check=True, loop=loop)
+        await fut.wait()
 
     @classmethod
     async def from_message(cls, cog, msg, **kwargs):
-        loop: asyncio.AbstractEventLoop = cog.bot.loop
         fname = f'tmp_{time.time()}.wav'
-        partial = functools.partial(cls.call_espeak, msg, fname, **cog.espeak_kw)
-        await loop.run_in_executor(None, partial)
+        await cls.call_espeak(msg, loop=cog.bot.loop, w=fname, **cog.espeak_kw)
         return cls(fname, **kwargs)
 
     def cleanup(self):

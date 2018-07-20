@@ -164,7 +164,9 @@ class ModTools(Cog):
 
     async def git_pull(self, ctx):
         async with ctx.typing():
-            await self.bot.loop.run_in_executor(None, subprocess.run, ['git', 'pull'])
+            fut = await self.bot.loop.subprocess_shell('git pull')
+            await fut.wait()
+        return fut.returncode == 0
 
     @cog.command(name='reload')
     async def reload_cog(self, ctx: commands.Context, *cogs: lower):

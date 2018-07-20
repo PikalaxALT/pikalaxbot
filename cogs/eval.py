@@ -72,7 +72,8 @@ class Eval(Cog):
         func = env['func']
         try:
             with redirect_stdout(stdout):
-                ret = await func()
+                fut = func()
+                ret = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
         except Exception as e:
             value = stdout.getvalue()
             value = value.replace(self.bot.settings.token, '')
