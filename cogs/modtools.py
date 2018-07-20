@@ -164,7 +164,7 @@ class ModTools(Cog):
 
     async def git_pull(self, ctx):
         async with ctx.typing():
-            fut = await self.bot.loop.subprocess_shell('git pull')
+            fut = await asyncio.create_subprocess_shell('git pull', loop=self.bot.loop)
             await fut.wait()
         return fut.returncode == 0
 
