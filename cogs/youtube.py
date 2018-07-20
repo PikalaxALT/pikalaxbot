@@ -116,7 +116,7 @@ class YouTube(Cog):
         'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
     }
     __ffmpeg_options = {
-        'before_options': '-nostdin -loglevel warning',
+        'before_options': '-nostdin -loglevel trace',
         'options': '-vn'
     }
     espeak_kw = {}
