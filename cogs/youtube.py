@@ -78,23 +78,17 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
         out, err = await fut.communicate()
         if fut.returncode != 0:
             raise subprocess.CalledProcessError(fut.returncode, args, out, err)
-        return out, err
 
     @classmethod
     async def from_message(cls, cog, msg, **kwargs):
         fname = f'{os.getcwd()}/{time.time()}.wav'
-        out, err = await cls.call_espeak(msg, fname, loop=cog.bot.loop, **cog.espeak_kw)
-        cog.log_info('**STDOUT**')
-        cog.log_info(out.decode())
-        cog.log_info('**STDERR**')
-        cog.log_info(err.decode())
-        assert os.path.exists(fname)
+        await cls.call_espeak(msg, fname, loop=cog.bot.loop, **cog.espeak_kw)
         return cls(fname, **kwargs)
 
-    # def cleanup(self):
-    #     super().cleanup()
-    #     if os.path.exists(self.fname):
-    #         os.remove(self.fname)
+    def cleanup(self):
+        super().cleanup()
+        if os.path.exists(self.fname):
+            os.remove(self.fname)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -294,11 +288,7 @@ class YouTube(Cog):
         for key, value in kwargs:
             params[key] = (str if key == 'v' else int)(value)
         try:
-            out, err = await EspeakAudioSource.call_espeak('Test', 'tmp.wav', **params)
-            self.log_info('**STDOUT**')
-            self.log_info(out.decode())
-            self.log_info('**STDERR**')
-            self.log_info(err.decode())
+            await EspeakAudioSource.call_espeak('Test', 'tmp.wav', **params)
         except subprocess.CalledProcessError:
             await ctx.send('Parameters could not be updated')
         else:
