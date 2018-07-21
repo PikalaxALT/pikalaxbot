@@ -165,17 +165,20 @@ class YouTube(Cog):
         def done():
             self.timeout_tasks.pop(ctx.guild.id, None)
 
-        playlist: YouTubePlaylistHandler = self.yt_players.get(ctx.guild.id)
+        playlist: YouTubePlaylistHandler = self.yt_players[ctx.guild.id]
         if exc:
             print(f'Player error: {exc}')
-        elif ctx.command == self.ytplay and playlist:
-            player = playlist.popleft()
-            self.bot.loop.create_task(self.play(ctx, player))
-        else:
-            self.bot.loop.create_task(playlist.destroy_task())
-            task = self.bot.loop.create_task(self.idle_timeout(ctx))
-            task.add_done_callback(done)
-            self.timeout_tasks[ctx.guild.id] = task
+            return
+        if ctx.command == self.ytplay:
+            if playlist:
+                player = playlist.popleft()
+                self.bot.loop.create_task(self.play(ctx, player))
+                return
+            else:
+                self.bot.loop.create_task(playlist.destroy_task())
+        task = self.bot.loop.create_task(self.idle_timeout(ctx))
+        task.add_done_callback(done)
+        self.timeout_tasks[ctx.guild.id] = task
 
     async def play(self, ctx, player):
         ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
@@ -260,7 +263,7 @@ class YouTube(Cog):
     async def stop(self, ctx: commands.Context):
         """Stop all playing audio"""
         vclient: discord.VoiceClient = ctx.voice_client
-        player = self.yt_players.pop(ctx.guild.id)
+        player = self.yt_players[ctx.guild.id]
         await player.destroy_task()
         if vclient.is_playing():
             vclient.stop()
@@ -325,7 +328,7 @@ class YouTube(Cog):
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
         new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
-        playlist: YouTubePlaylistHandler = self.yt_players.get(ctx.guild.id)
+        playlist: YouTubePlaylistHandler = self.yt_players[ctx.guild.id]
         playlist.extend(new_players)
         if not ctx.voice_client.is_playing():
             player = playlist.popleft()
