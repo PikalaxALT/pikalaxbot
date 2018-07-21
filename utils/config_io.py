@@ -20,7 +20,6 @@ import json
 
 _defaults = {
     'token': None,
-    'owner': None,
     'prefix': 'p!',
     'markov_channels': [],
     'debug': False,
@@ -33,7 +32,9 @@ _defaults = {
         'a': 100,
         's': 150,
         'v': 'en-us+f3',
-        'p': 75
+        'p': 75,
+        'g': 1,
+        'k': 2
     },
     'banlist': [],
     'roles': {}

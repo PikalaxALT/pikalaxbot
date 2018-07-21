@@ -114,14 +114,8 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
     def owner(self) -> discord.User:
         return self.get_user(self.owner_id)
 
-    @staticmethod
-    def find_emoji_in_guild(guild, *names, default=None):
-        if guild is None:
-            return default
-        return discord.utils.find(lambda e: e.name in names, guild.emojis) or default
-
     def command_error_emoji(self, guild):
-        return self.find_emoji_in_guild(guild, 'tppBurrito', 'VeggieBurrito', default='❤')
+        return self.get_emoji(470039807754633217) or '❤'
 
     def cmd_error_check(self, ctx, exc):
         if isinstance(exc, commands.CommandNotFound):
@@ -174,11 +168,9 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
     async def _before_invoke(self, ctx):
         ctx.cog.fetch()
         if self.settings.debug:
-            owner = self.get_user(self.owner_id)
-            await owner.send(f'before_invoke: {ctx.cog.__class__.__name__}.{ctx.command}')
+            await self.owner.send(f'before_invoke: {ctx.cog.__class__.__name__}.{ctx.command}')
 
     async def _after_invoke(self, ctx):
         ctx.cog.commit()
         if self.settings.debug:
-            owner = self.get_user(self.owner_id)
-            await owner.send(f'after_invoke: {ctx.cog.__class__.__name__}.{ctx.command}')
+            await self.owner.send(f'after_invoke: {ctx.cog.__class__.__name__}.{ctx.command}')

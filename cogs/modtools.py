@@ -19,7 +19,6 @@ import discord
 import tempfile
 import traceback
 import sqlite3
-import subprocess
 import logging
 from discord.ext import commands
 from cogs import Cog
@@ -97,7 +96,7 @@ class ModTools(Cog):
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: commands.Context):
         """Sends the bot's OAUTH token."""
-        await self.bot.get_user(self.bot.owner_id).send(self.token)
+        await self.bot.owner.send(self.token)
         await ctx.message.add_reaction('☑')
 
     @admin.group(name='command', )
@@ -222,6 +221,28 @@ class ModTools(Cog):
         self.prefix = prefix
         self.commit()
         await ctx.message.add_reaction('☑')
+    
+    @disable_cog.before_invoke
+    @disable_command.before_invoke
+    @reload_cog.before_invoke
+    @enable_cog.before_invoke
+    @enable_command.before_invoke
+    @load_cog.before_invoke
+    @change_prefix.before_invoke
+    @change_game.before_invoke
+    async def change_settings_before_invoke(self, ctx):
+        self.fetch()
+    
+    @disable_cog.after_invoke
+    @disable_command.after_invoke
+    @reload_cog.after_invoke
+    @enable_cog.after_invoke
+    @enable_command.after_invoke
+    @load_cog.after_invoke
+    @change_prefix.after_invoke
+    @change_game.after_invoke
+    async def change_settings_after_invoke(self, ctx):
+        self.commit()
 
 
 def setup(bot):
