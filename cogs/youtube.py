@@ -16,7 +16,6 @@
 
 import asyncio
 import discord
-import traceback
 import youtube_dl
 import ctypes.util
 from discord.ext import commands
@@ -26,8 +25,19 @@ import subprocess
 import os
 import time
 import re
-import functools
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures._base import Error
+from collections import deque, OrderedDict
+
+player_rxns = OrderedDict()
+
+
+def player_reaction(emoji):
+    def decorator(coro):
+        player_rxns[emoji] = coro
+        return coro
+
+    return decorator
 
 
 class VoiceCommandError(commands.CommandError):
@@ -101,6 +111,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.title = data.get('title')
         self.url = data.get('url')
 
+    @classmethod
+    def from_info(cls, filename, video, **kwargs):
+        return cls(discord.FFmpegPCMAudio(filename, **kwargs), data=video)
+
 
 class YouTube(Cog):
     __ytdl_format_options = {
@@ -132,41 +146,6 @@ class YouTube(Cog):
         'k': int
     }
 
-    async def _get_ytdl_player(self, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: self.__ytdl_player.extract_info(url, download=not stream))
-
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-
-        filename = data['url'] if stream else self.__ytdl_player.prepare_filename(data)
-        return YTDLSource(discord.FFmpegPCMAudio(filename, **self.__ffmpeg_options), data=data)
-
-    @staticmethod
-    async def idle_timeout(ctx):
-        await asyncio.sleep(600)
-        await ctx.voice_client.disconnect()
-
-    def player_after(self, ctx, exc):
-        def done():
-            self.timeout_tasks.pop(ctx.guild.id, None)
-
-        task = self.bot.loop.create_task(self.idle_timeout(ctx))
-        task.add_done_callback(done)
-        self.timeout_tasks[ctx.guild.id] = task
-        if exc:
-            print(f'Player error: {exc}')
-
-    def load_opus(self):
-        if not discord.opus.is_loaded():
-            opus_name = ctypes.util.find_library('libopus')
-            if opus_name is None:
-                self.log_error('Failed to find the Opus library.')
-            else:
-                discord.opus.load_opus(opus_name)
-        return discord.opus.is_loaded()
-
     def __init__(self, bot: PikalaxBOT):
         super().__init__(bot)
         self.connections = {}
@@ -185,8 +164,124 @@ class YouTube(Cog):
                 raise discord.ClientException('ffmpeg or avconv not installed')
 
         self.executor = ThreadPoolExecutor()
-        self.__ytdl_player = youtube_dl.YoutubeDL(self.__ytdl_format_options)
+        self.__ytdl_extractor = youtube_dl.YoutubeDL(self.__ytdl_format_options)
         self.timeout_tasks = {}
+        self.yt_players = deque()
+        self.player_message = {}
+        self.player_controls = {}
+    
+    def get_ytdl_player(self, video, *, stream=False):
+        filename = video['url'] if stream else self.__ytdl_extractor.prepare_filename(video)
+        return YTDLSource.from_info(filename, video, **self.__ffmpeg_options)
+
+    async def prepare_ytdl_playlist(self, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: self.__ytdl_extractor.extract_info(url, download=not stream,
+                                                                                           ie_key='youtube'))
+
+        if 'entries' in data:
+            playlist = data['entries']
+        else:
+            playlist = [data]
+
+        new_players = [self.get_ytdl_player(video, stream=stream) for video in playlist]
+        self.yt_players.extend(new_players)
+
+    @staticmethod
+    async def idle_timeout(ctx):
+        await asyncio.sleep(600)
+        await ctx.voice_client.disconnect()
+
+    @player_reaction('⏭')
+    async def yt_skip_video(self, ctx):
+        ctx.voice_client.stop()
+
+    @player_reaction('⏹')
+    async def yt_cancel_playlist(self, ctx):
+        await self.destroy_ytplayer_message(ctx)
+        ctx.voice_client.stop()
+
+    @player_reaction('⏸')
+    @player_reaction('▶')
+    async def yt_pause_playlist(self, ctx: commands.Context):
+        if ctx.voice_client.is_paused():
+            ctx.voice_client.resume()
+        else:
+            ctx.voice_client.pause()
+
+    async def ytplayer_controls(self, ctx):
+        def predicate(rxn, usr):
+            msg = self.player_message.get(ctx.guild.id)
+            return rxn.message.id == msg.id and rxn.emoji in player_rxns
+
+        while True:
+            tasks = [self.bot.wait_for(event, check=predicate) for event in ('reaction_add', 'reaction_remove')]
+            done, left = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            try:
+                reaction, user = done.pop().result()
+            except IndexError:
+                break
+            except Error as e:
+                raise VoiceCommandError from e
+            for task in left:
+                task.cancel()
+            await player_rxns[reaction.emoji](ctx)
+
+    async def set_ytplayer_message(self, ctx, **fields):
+        msg = self.player_message.get(ctx.guild.id)
+        if msg:
+            await msg.edit(**fields)
+        else:
+            msg = await ctx.send(**fields)
+            for emoji in player_rxns:
+                await msg.add_reaction(emoji)
+            self.player_message[ctx.guild.id] = msg
+            task = self.player_controls.get(ctx.guild.id)
+            if not task:
+                task = self.bot.loop.create_task(self.ytplayer_controls(ctx))
+                self.player_controls[ctx.guild.id] = task
+
+    async def destroy_ytplayer_message(self, ctx):
+        msg = self.player_message.pop(ctx.guild.id)
+        task = self.player_controls.pop(ctx.guild.id)
+        if msg:
+            await msg.delete()
+        if task:
+            task.cancel()
+
+    def player_after(self, ctx, exc):
+        def done():
+            self.timeout_tasks.pop(ctx.guild.id, None)
+
+        if exc:
+            print(f'Player error: {exc}')
+
+        elif ctx.command == self.ytplay and self.yt_players:
+            player = self.yt_players.popleft()
+            self.bot.loop.create_task(self.play(ctx, player))
+        else:
+            self.bot.loop.create_task(self.destroy_ytplayer_message(ctx))
+            task = self.bot.loop.create_task(self.idle_timeout(ctx))
+            task.add_done_callback(done)
+            self.timeout_tasks[ctx.guild.id] = task
+
+    async def play(self, ctx, player):
+        ctx.guild.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
+        if ctx.command == self.ytplay:
+            data = player.data
+            thumbnail_url = data['thumbnails'][0]['url']
+            embed = discord.Embed(title=player.title)
+            embed.set_image(url=thumbnail_url)
+            await self.set_ytplayer_message(ctx, embed=embed)
+
+    def load_opus(self):
+        if not discord.opus.is_loaded():
+            opus_name = ctypes.util.find_library('libopus')
+            if opus_name is None:
+                self.log_error('Failed to find the Opus library.')
+            else:
+                discord.opus.load_opus(opus_name)
+        return discord.opus.is_loaded()
 
     @commands.group(name='voice')
     async def pikavoice(self, ctx: commands.Context):
@@ -240,7 +335,7 @@ class YouTube(Cog):
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
-        ctx.guild.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
+        self.play(ctx, player)
 
     @commands.command(name='say')
     @commands.check(voice_client_not_playing)
@@ -253,6 +348,7 @@ class YouTube(Cog):
     async def stop(self, ctx: commands.Context):
         """Stop all playing audio"""
         vclient: discord.VoiceClient = ctx.guild.voice_client
+        self.yt_players.clear()
         if vclient.is_playing():
             vclient.stop()
 
@@ -309,12 +405,16 @@ class YouTube(Cog):
             else:
                 self.bot.log_tb(ctx, exc)
 
+    async def yt_respond_to_rxn(self, reaction: discord.Reaction, user: discord.User):
+        pass
+
     @commands.command(hidden=True)
-    @commands.check(voice_client_not_playing)
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
-        player = await self._get_ytdl_player(url, loop=self.bot.loop, stream=True)
-        ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
+        await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
+        if not ctx.voice_client.is_playing():
+            player = self.yt_players.popleft()
+            await self.play(ctx, player)
 
     @ytplay.error
     async def ytplay_error(self, ctx, exc):
