@@ -39,7 +39,7 @@ class cleaner_content(commands.clean_content):
 
 def voice_client_not_playing(ctx):
     # Change: Don't care anymore if the voice client exists or is playing.
-    vc = ctx.voice_client
+    vc = ctx.guild.voice_client
     return vc is None or not vc.is_playing()
 
 
@@ -103,7 +103,7 @@ class YouTube(Cog):
         'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
     }
     __ffmpeg_options = {
-        'before_options': '-loglevel trace',
+        'before_options': '-loglevel error',
         'options': '-vn'
     }
     espeak_kw = {}
@@ -159,7 +159,7 @@ class YouTube(Cog):
     @staticmethod
     async def idle_timeout(ctx):
         await asyncio.sleep(600)
-        await ctx.voice_client.disconnect()
+        await ctx.guild.voice_client.disconnect()
 
     def player_after(self, ctx, exc):
         def done():
@@ -178,7 +178,7 @@ class YouTube(Cog):
             self.timeout_tasks[ctx.guild.id] = task
 
     async def play(self, ctx, player):
-        ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
+        ctx.guild.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
         if ctx.command == self.ytplay:
             data = player.data
             thumbnail_url = data['thumbnails'][0]['url']
@@ -215,7 +215,7 @@ class YouTube(Cog):
         if str(ctx.guild.id) in self.voice_chans:
             if ch.id == self.voice_chans[str(ctx.guild.id)]:
                 raise VoiceCommandError('Already connected to that channel')
-            vcl: discord.VoiceClient = ctx.voice_client
+            vcl: discord.VoiceClient = ctx.guild.voice_client
             if vcl is None:
                 raise VoiceCommandError('Guild does not support voice connections')
             if vcl.is_connected():
@@ -259,7 +259,7 @@ class YouTube(Cog):
     @pikavoice.command()
     async def stop(self, ctx: commands.Context):
         """Stop all playing audio"""
-        vclient: discord.VoiceClient = ctx.voice_client
+        vclient: discord.VoiceClient = ctx.guild.voice_client
         player = self.yt_players.pop(ctx.guild.id)
         await player.destroy_task()
         if vclient.is_playing():
@@ -327,7 +327,7 @@ class YouTube(Cog):
         new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
         playlist: YouTubePlaylistHandler = self.yt_players.get(ctx.guild.id)
         playlist.extend(new_players)
-        if not ctx.voice_client.is_playing():
+        if not ctx.guild.voice_client.is_playing():
             player = playlist.popleft()
             await self.play(ctx, player)
 
@@ -342,7 +342,7 @@ class YouTube(Cog):
         task = self.timeout_tasks.get(ctx.guild.id)
         if task is not None:
             task.cancel()
-        vc: discord.VoiceClient = ctx.voice_client
+        vc: discord.VoiceClient = ctx.guild.voice_client
         if vc is None or not vc.is_connected():
             chan = self.voice_chans.get(str(ctx.guild.id))
             if chan is None:
