@@ -21,22 +21,22 @@ def player_reaction(emoji):
 
 @player_reaction('⏭')
 async def yt_skip_video(self, ctx):
-    ctx.guild.voice_client.stop()
+    ctx.voice_client.stop()
 
 
 @player_reaction('⏹')
 async def yt_cancel_playlist(self, ctx):
     await self.destroy_ytplayer_message(ctx)
-    ctx.guild.voice_client.stop()
+    ctx.voice_client.stop()
 
 
 @player_reaction('⏸')
 @player_reaction('▶')
 async def yt_pause_playlist(self, ctx: commands.Context):
-    if ctx.guild.voice_client.is_paused():
-        ctx.guild.voice_client.resume()
+    if ctx.voice_client.is_paused():
+        ctx.voice_client.resume()
     else:
-        ctx.guild.voice_client.pause()
+        ctx.voice_client.pause()
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
