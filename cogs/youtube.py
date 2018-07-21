@@ -103,7 +103,7 @@ class YouTube(Cog):
         'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
     }
     __ffmpeg_options = {
-        'before_options': '-loglevel quiet',
+        'before_options': '-loglevel error',
         'options': '-vn'
     }
     espeak_kw = {}
