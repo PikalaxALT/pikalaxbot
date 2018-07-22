@@ -167,26 +167,12 @@ class YouTube(Cog):
 
         if exc:
             print(f'Player error: {exc}')
-            return
-        if ctx.command == self.ytplay:
-            if self.yt_players[ctx.guild.id]:
-                player = self.yt_players[ctx.guild.id].popleft()
-                self.bot.loop.create_task(self.play(ctx, player))
-                return
-            else:
-                self.bot.loop.create_task(self.yt_players[ctx.guild.id].destroy_task())
-        task = self.bot.loop.create_task(self.idle_timeout(ctx))
-        task.add_done_callback(done)
-        self.timeout_tasks[ctx.guild.id] = task
-
-    async def play(self, ctx, player):
-        ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
-        if ctx.command == self.ytplay:
-            data = player.data
-            thumbnail_url = data['thumbnails'][0]['url']
-            embed = discord.Embed(title=player.title)
-            embed.set_image(url=thumbnail_url)
-            await self.yt_players[ctx.guild.id].set_message(ctx, embed=embed)
+        if self.yt_players[ctx.guild.id]:
+            self.bot.loop.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
+        else:
+            task = self.bot.loop.create_task(self.idle_timeout(ctx))
+            task.add_done_callback(done)
+            self.timeout_tasks[ctx.guild.id] = task
 
     def load_opus(self):
         if not discord.opus.is_loaded():
@@ -249,7 +235,7 @@ class YouTube(Cog):
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
-        await self.play(ctx, player)
+        ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
 
     @commands.command(name='say')
     @commands.check(voice_client_not_playing)
@@ -328,9 +314,9 @@ class YouTube(Cog):
         """Stream a YouTube video"""
         new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
         self.yt_players[ctx.guild.id].extend(new_players)
+        await ctx.message.add_reaction('☑')
         if not ctx.voice_client.is_playing():
-            player = self.yt_players[ctx.guild.id].popleft()
-            await self.play(ctx, player)
+            await self.yt_players[ctx.guild.id].play_next(ctx)
 
     @ytplay.error
     async def ytplay_error(self, ctx, exc):

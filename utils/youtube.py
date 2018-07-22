@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from concurrent.futures._base import Error
 from collections import OrderedDict, deque
+from datetime import timedelta
 
 player_rxns = OrderedDict()
 
@@ -39,6 +40,7 @@ class YouTubePlaylistHandler:
         self.message: discord.Message = None
         self.task: asyncio.Task = None
         self.playlist = deque()
+        self.now_playing: YTDLSource = None
     
     def __bool__(self):
         return len(self.playlist) > 0
@@ -69,11 +71,37 @@ class YouTubePlaylistHandler:
                 task.cancel()
             await player_rxns[reaction.emoji](self, ctx)
 
-    async def set_message(self, ctx, **fields):
-        if self.message:
-            await self.message.edit(**fields)
+    def player_after(self, ctx, exc):
+        def done():
+            ctx.cog.timeout_tasks.pop(ctx.guild.id, None)
+
+        if exc:
+            print(f'Player error: {exc}')
+            return
+        if self:
+            self.loop.create_task(self.play_next(ctx))
         else:
-            self.message = await ctx.send(**fields)
+            self.loop.create_task(self.destroy_task())
+            task = self.loop.create_task(ctx.cog.idle_timeout(ctx))
+            task.add_done_callback(done)
+            ctx.cog.timeout_tasks[ctx.guild.id] = task
+
+    async def play_next(self, ctx):
+        self.now_playing = self.playlist.popleft()
+        ctx.voice_client.play(self.now_playing, after=lambda exc: ctx.cog.player_after(ctx, exc))
+        data = self.now_playing.data
+        thumbnail_url = data['thumbnails'][0]['url']
+        description = data['description']
+        if len(description) > 250:
+            description = f'{description[:250]}...'
+        embed = discord.Embed(title=self.now_playing.title, description=description)
+        embed.set_image(url=thumbnail_url)
+        delta = timedelta(seconds=data['duration'])
+        embed.set_footer(text=f'Duration: {delta}')
+        if self.message:
+            await self.message.edit(embed=embed)
+        else:
+            self.message = await ctx.send(embed=embed)
             for emoji in player_rxns:
                 await self.message.add_reaction(emoji)
             if not self.task:
@@ -105,10 +133,19 @@ async def yt_cancel_playlist(handler: YouTubePlaylistHandler, ctx: commands.Cont
     ctx.voice_client.stop()
 
 
-@player_reaction('⏸')
-@player_reaction('▶')
+@player_reaction('⏯')
 async def yt_pause_playlist(handler: YouTubePlaylistHandler, ctx: commands.Context):
     if ctx.voice_client.is_paused():
         ctx.voice_client.resume()
     else:
         ctx.voice_client.pause()
+
+
+@player_reaction('🔼')
+async def yt_volume_up(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    ctx.voice_client.player.volume += 0.04
+
+
+@player_reaction('🔽')
+async def yt_volume_down(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    ctx.voice_client.player.volume -= 0.04
