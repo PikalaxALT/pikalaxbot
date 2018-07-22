@@ -165,17 +165,16 @@ class YouTube(Cog):
         def done():
             self.timeout_tasks.pop(ctx.guild.id, None)
 
-        playlist: YouTubePlaylistHandler = self.yt_players[ctx.guild.id]
         if exc:
             print(f'Player error: {exc}')
             return
         if ctx.command == self.ytplay:
-            if playlist:
-                player = playlist.popleft()
+            if self.yt_players[ctx.guild.id]:
+                player = self.yt_players[ctx.guild.id].popleft()
                 self.bot.loop.create_task(self.play(ctx, player))
                 return
             else:
-                self.bot.loop.create_task(playlist.destroy_task())
+                self.bot.loop.create_task(self.yt_players[ctx.guild.id].destroy_task())
         task = self.bot.loop.create_task(self.idle_timeout(ctx))
         task.add_done_callback(done)
         self.timeout_tasks[ctx.guild.id] = task
@@ -328,10 +327,9 @@ class YouTube(Cog):
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
         new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
-        playlist: YouTubePlaylistHandler = self.yt_players[ctx.guild.id]
-        playlist.extend(new_players)
+        self.yt_players[ctx.guild.id].extend(new_players)
         if not ctx.voice_client.is_playing():
-            player = playlist.popleft()
+            player = self.yt_players[ctx.guild.id].popleft()
             await self.play(ctx, player)
 
     @ytplay.error

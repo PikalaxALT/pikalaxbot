@@ -17,12 +17,10 @@
 import asyncio
 import discord
 import aiohttp
-import os
 import random
-import io
 from discord.ext import commands
 from utils.data import data
-from cogs import Cog
+from cogs import Cog, has_client_session
 
 
 class HMM:
@@ -60,26 +58,24 @@ class Meme(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.cs = aiohttp.ClientSession(raise_for_status=True)
+        self.cs: aiohttp.ClientSession = None
 
-    def __del__(self):
+    def __unload(self):
         task = self.bot.loop.create_task(self.cs.close())
         asyncio.wait([task])
 
+    async def on_ready(self):
+        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
+
     @commands.command()
+    @commands.check(has_client_session)
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
         data = {'Subject1': subj1, 'Subject2': subj2}
-        async with aiohttp.ClientSession() as cs:
-            async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=data) as r:
-                if r.status == 200:
-                    res = await r.text()
-                    await ctx.send(res)
-                else:
-                    await ctx.send(f'Do you like vore? I don\'t, but apparently the WatchOut4Snakes server does. '
-                                   f'Status code: {r.status}')
-                    raise discord.HTTPException(r.status, r.reason)
+        r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=data)
+        res = await r.text()
+        await ctx.send(res)
 
     @commands.command()
     async def riot(self, ctx, *args):

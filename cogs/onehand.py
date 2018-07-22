@@ -4,20 +4,23 @@ import discord
 import io
 import os
 from discord.ext import commands
-from cogs import Cog
+from cogs import Cog, has_client_session
 
 
 class OneHand(Cog):
     async def __local_check(self, ctx: commands.Context):
-        return isinstance(ctx.channel, discord.TextChannel) and ctx.channel.is_nsfw()
+        return isinstance(ctx.channel, discord.TextChannel) and ctx.channel.is_nsfw() and has_client_session(ctx)
 
     def __init__(self, bot):
         super().__init__(bot)
-        self._cs = aiohttp.ClientSession(raise_for_status=True)
+        self.cs: aiohttp.ClientSession = None
 
-    def __del__(self):
-        task = self.bot.loop.create_task(self._cs.close())
+    def __unload(self):
+        task = self.bot.loop.create_task(self.cs.close())
         asyncio.wait([task])
+
+    async def on_ready(self):
+        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
@@ -31,7 +34,7 @@ class OneHand(Cog):
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
-        r = await self._cs.get('https://e621.net/post/index.json',
+        r = await self.cs.get('https://e621.net/post/index.json',
                                headers={'User-Agent': self.bot.user.name},
                                params={'tags': ' '.join(params), 'limit': num})
         j = await r.json()
@@ -69,9 +72,9 @@ class OneHand(Cog):
     @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
-        r = await self._cs.get('http://inspirobot.me/api', params={'generate': 'true'})
+        r = await self.cs.get('http://inspirobot.me/api', params={'generate': 'true'})
         url = await r.text()
-        r = await self._cs.get(url)
+        r = await self.cs.get(url)
         stream = io.BytesIO(await r.read())
         await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
 

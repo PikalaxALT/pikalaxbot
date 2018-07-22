@@ -19,26 +19,6 @@ def player_reaction(emoji):
     return decorator
 
 
-@player_reaction('⏭')
-async def yt_skip_video(self, ctx):
-    ctx.voice_client.stop()
-
-
-@player_reaction('⏹')
-async def yt_cancel_playlist(self, ctx):
-    await self.destroy_ytplayer_message(ctx)
-    ctx.voice_client.stop()
-
-
-@player_reaction('⏸')
-@player_reaction('▶')
-async def yt_pause_playlist(self, ctx: commands.Context):
-    if ctx.voice_client.is_paused():
-        ctx.voice_client.resume()
-    else:
-        ctx.voice_client.pause()
-
-
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
@@ -100,10 +80,35 @@ class YouTubePlaylistHandler:
                 self.task = self.loop.create_task(self.controls_task(ctx))
 
     async def destroy_task(self):
-        if not self.task.cancelled():
-            self.task.cancel()
+        task = self.task
+        message = self.message
+        self.task = None
+        self.message = None
+        if task is not None and not task.cancelled():
+            task.cancel()
         self.playlist.clear()
-        try:
-            await self.message.delete()
-        except discord.HTTPException:
-            pass
+        if message is not None:
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+
+
+@player_reaction('⏭')
+async def yt_skip_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    ctx.voice_client.stop()
+
+
+@player_reaction('⏹')
+async def yt_cancel_playlist(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    await handler.destroy_task()
+    ctx.voice_client.stop()
+
+
+@player_reaction('⏸')
+@player_reaction('▶')
+async def yt_pause_playlist(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    if ctx.voice_client.is_paused():
+        ctx.voice_client.resume()
+    else:
+        ctx.voice_client.pause()

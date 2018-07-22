@@ -18,6 +18,10 @@ import logging
 from utils.botclass import PikalaxBOT, LoggingMixin
 
 
+def has_client_session(ctx):
+    return ctx.cog.cs is not None
+
+
 class Cog(LoggingMixin):
     config_attrs = tuple()
 
