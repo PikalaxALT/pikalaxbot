@@ -149,9 +149,8 @@ class GameBase:
 
 class GameCogBase(Cog):
     gamecls = None
-    __slots__ = ('channels',)
 
-    def __local_check(self, ctx):
+    def _local_check(self, ctx):
         if ctx.guild is None:
             raise commands.NoPrivateMessage('This command cannot be used in private messages.')
         return True

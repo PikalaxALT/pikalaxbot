@@ -113,6 +113,9 @@ class AnagramGame(GameBase):
 class Anagram(GameCogBase):
     gamecls = AnagramGame
 
+    def __local_check(self, ctx):
+        return self._local_check(ctx)
+
     @commands.group(case_insensitive=True)
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
@@ -161,6 +164,9 @@ class Anagram(GameCogBase):
     async def anagram_show(self, ctx):
         """Show the board in a new message"""
         await ctx.invoke(self.show)
+
+    async def __error(self, ctx, exc):
+        await self._error(ctx, exc)
 
 
 def setup(bot):

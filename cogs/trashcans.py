@@ -143,6 +143,9 @@ converter = BoardCoords(maxy=3)
 class Trashcans(GameCogBase):
     gamecls = TrashcansGame
 
+    def __local_check(self, ctx):
+        return self._local_check(ctx)
+
     @commands.group(case_insensitive=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
@@ -193,7 +196,7 @@ class Trashcans(GameCogBase):
         await ctx.invoke(self.show)
 
     async def __error(self, ctx, exc):
-        await super()._error(ctx, exc)
+        await self._error(ctx, exc)
 
 
 def setup(bot):
