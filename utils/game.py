@@ -183,3 +183,6 @@ class GameCogBase(Cog):
                            f'Try using two numbers (i.e. 2 5) or a letter '
                            f'and a number (i.e. c2).',
                            delete_after=10)
+        elif isinstance(exc, commands.NoPrivateMessage):
+            await ctx.send(exc)
+        self.log_tb(ctx, exc)
