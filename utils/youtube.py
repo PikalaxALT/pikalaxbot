@@ -58,18 +58,26 @@ class YouTubePlaylistHandler:
         def predicate(rxn, usr):
             return rxn.message.id == self.message.id and rxn.emoji in player_rxns
 
+        def del_predicate(msg):
+            return msg.id == self.message.id
+
         while True:
             tasks = [ctx.bot.wait_for(event, check=predicate) for event in ('reaction_add', 'reaction_remove')]
+            tasks.append(ctx.bot.wait_for('message_delete', check=del_predicate))
             done, left = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             try:
-                reaction, user = done.pop().result()
+                resp = done.pop().result()
             except IndexError:
                 break
             except Error as e:
                 raise VoiceCommandError from e
             for task in left:
                 task.cancel()
-            await player_rxns[reaction.emoji](self, ctx)
+            if isinstance(resp, tuple) and len(resp) == 2:
+                reaction, user = resp
+                await player_rxns[reaction.emoji](self, ctx)
+            else:
+                self.loop.create_task(self.destroy_task())
 
     def player_after(self, ctx, exc):
         def done():
@@ -116,10 +124,7 @@ class YouTubePlaylistHandler:
             task.cancel()
         self.playlist.clear()
         if message is not None:
-            try:
-                await message.delete()
-            except discord.HTTPException:
-                pass
+            await message.delete()
 
 
 @player_reaction('⏭')
