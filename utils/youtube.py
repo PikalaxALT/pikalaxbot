@@ -35,7 +35,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class YouTubePlaylistHandler:
-    def __init__(self, *, loop=None):
+    def __init__(self, cog, *, loop=None):
+        self.cog = cog
         self.loop = loop or asyncio.get_event_loop()
         self.message: discord.Message = None
         self.task: asyncio.Task = None
@@ -90,9 +91,7 @@ class YouTubePlaylistHandler:
             self.loop.create_task(self.play_next(ctx))
         else:
             self.loop.create_task(self.destroy_task())
-            task = self.loop.create_task(ctx.cog.idle_timeout(ctx))
-            task.add_done_callback(done)
-            ctx.cog.timeout_tasks[ctx.guild.id] = task
+            self.cog.start_timeout(ctx)
 
     async def play_next(self, ctx):
         self.now_playing = self.playlist.popleft()
