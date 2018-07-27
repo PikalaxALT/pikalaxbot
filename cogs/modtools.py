@@ -31,13 +31,12 @@ class lower(commands.clean_content):
 
 
 class ModTools(Cog):
-    token = None
     prefix = 'p!'
     game = 'p!help'
     disabled_commands = set()
     disabled_cogs = set()
     debug = False
-    config_attrs = 'token', 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
+    config_attrs = 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
     
     async def __local_check(self, ctx: commands.Context):
         return await self.bot.is_owner(ctx.author)
@@ -64,7 +63,6 @@ class ModTools(Cog):
         activity = discord.Game(game)
         await self.bot.change_presence(activity=activity)
         self.game = game
-        self.commit()
         await ctx.send(f'I\'m now playing {game}')
 
     @ui.command(name='avatar')
@@ -96,7 +94,7 @@ class ModTools(Cog):
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: commands.Context):
         """Sends the bot's OAUTH token."""
-        await self.bot.owner.send(self.token)
+        await self.bot.owner.send(self.bot.http.token)
         await ctx.message.add_reaction('☑')
 
     @admin.group(name='command', )
@@ -140,7 +138,6 @@ class ModTools(Cog):
             else:
                 await ctx.send(f'Loaded cog "{cog}"')
                 self.disabled_cogs.discard(cog)
-                self.commit()
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
@@ -159,7 +156,6 @@ class ModTools(Cog):
             else:
                 await ctx.send(f'Unloaded cog "{cog}"')
                 self.disabled_cogs.add(cog)
-                self.commit()
 
     async def git_pull(self, ctx):
         async with ctx.typing():
@@ -181,7 +177,6 @@ class ModTools(Cog):
                     if cog == self.__class__.__name__.lower():
                         return await ctx.send(f'Could not reload {cog}. {cog.title()} will be unavailable.')
                     self.disabled_cogs.add(cog)
-                    self.commit()
                     await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
                 else:
                     await ctx.send(f'Reloaded cog {cog}')
@@ -204,7 +199,6 @@ class ModTools(Cog):
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):
         self.debug = not self.debug
-        self.commit()
         await ctx.send(f'Set debug mode to {"on" if self.debug else "off"}')
 
     @admin.command(name='log', aliases=['logs'])
@@ -219,7 +213,6 @@ class ModTools(Cog):
     @admin.command(name='prefix')
     async def change_prefix(self, ctx, prefix):
         self.prefix = prefix
-        self.commit()
         await ctx.message.add_reaction('☑')
     
     @disable_cog.before_invoke

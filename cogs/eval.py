@@ -76,12 +76,13 @@ class Eval(Cog):
                 ret = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
         except Exception as e:
             value = stdout.getvalue()
-            value = value.replace(self.bot.settings.token, '')
+            if value:
+                value = value.replace(self.bot.http.token, '')
             await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
         else:
             value = stdout.getvalue()
             if value:
-                value = value.replace(self.bot.settings.token, '')
+                value = value.replace(self.bot.http.token, '')
             try:
                 await ctx.message.add_reaction('\u2705')
             except:

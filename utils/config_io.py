@@ -37,16 +37,18 @@ _defaults = {
         'k': 2
     },
     'banlist': [],
-    'roles': {}
+    'roles': {},
+    'watches': {}
 }
 
 
-class Settings:
-    def __init__(self, fname='settings.json'):
+class Settings(dict):
+    def __init__(self, fname='settings.json', *, loop=None):
+        super().__init__(**_defaults)
         self._fname = fname
-        self._container = _defaults
+        self._loop = loop or asyncio.get_event_loop()
         with open(fname) as fp:
-            self._container.update(json.load(fp))
+            self.update(json.load(fp))
 
     def __enter__(self):
         return self
@@ -54,15 +56,21 @@ class Settings:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.commit()
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._loop.run_in_executor(None, self.commit)
+
     def commit(self):
         with open(self._fname, 'w') as fp:
-            json.dump(self._container, fp, indent=4, separators=(', ', ': '))
+            json.dump(self, fp, indent=4, separators=(', ', ': '))
 
     def __getattr__(self, item):
-        return self._container.get(item)
+        return self.get(item)
 
     def __setattr__(self, key, value):
         if key.startswith('_'):
             super().__setattr__(key, value)
         else:
-            self._container[key] = value
+            self[key] = value

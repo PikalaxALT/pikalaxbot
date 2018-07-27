@@ -68,7 +68,7 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
     def __init__(self, settings_file, logfile, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
-        self.settings = Settings(settings_file)
+        self.settings = Settings(settings_file, loop=loop)
         help_name = self.settings.help_name
         disabled_cogs = self.settings.disabled_cogs
         super().__init__(_command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
@@ -102,7 +102,7 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
 
     def run(self):
         self.logger.info('Starting bot')
-        token = self.settings.token
+        token = self.settings.token or input('Bot OAUTH2 token: ')
         super().run(token)
 
     async def close(self):
