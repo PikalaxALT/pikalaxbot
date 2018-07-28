@@ -116,14 +116,13 @@ class YouTubePlaylistHandler:
         delta = timedelta(seconds=data['duration'])
         embed.set_footer(text=f'Duration: {delta}')
         if self.message:
-            await self.message.edit(embed=embed)
-        else:
-            self.message = await ctx.send(embed=embed)
-            for emoji in player_rxns:
-                await self.message.add_reaction(emoji)
-            if not self.task:
-                self.task = self.loop.create_task(self.controls_task(ctx))
-                self.task.add_done_callback(controls_task_after)
+            await self.message.delete()
+        self.message = await ctx.send(embed=embed)
+        for emoji in player_rxns:
+            await self.message.add_reaction(emoji)
+        if not self.task:
+            self.task = self.loop.create_task(self.controls_task(ctx))
+            self.task.add_done_callback(controls_task_after)
 
     async def destroy_task(self):
         task = self.task
@@ -137,11 +136,6 @@ class YouTubePlaylistHandler:
             await message.delete()
 
 
-@player_reaction('⏭')
-async def yt_skip_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
-    ctx.voice_client.stop()
-
-
 @player_reaction('⏮')
 async def yt_prev_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
     handler.playlist.appendleft(handler.now_playing)
@@ -152,8 +146,11 @@ async def yt_prev_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
 
 @player_reaction('⏹')
 async def yt_cancel_playlist(handler: YouTubePlaylistHandler, ctx: commands.Context):
-    await handler.destroy_task()
-    ctx.voice_client.stop()
+    async def kill_now():
+        await handler.destroy_task()
+        ctx.voice_client.stop()
+
+    handler.loop.create_task(kill_now())
 
 
 @player_reaction('⏯')
@@ -172,3 +169,8 @@ async def yt_volume_up(handler: YouTubePlaylistHandler, ctx: commands.Context):
 @player_reaction('🔽')
 async def yt_volume_down(handler: YouTubePlaylistHandler, ctx: commands.Context):
     handler.now_playing.volume -= 0.04
+
+
+@player_reaction('⏭')
+async def yt_skip_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    ctx.voice_client.stop()
