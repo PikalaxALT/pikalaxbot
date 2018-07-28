@@ -76,9 +76,13 @@ class YouTubePlaylistHandler:
                 task.cancel()
             if isinstance(resp, tuple) and len(resp) == 2:
                 reaction, user = resp
-                await player_rxns[reaction.emoji](self, ctx)
+                try:
+                    await player_rxns[reaction.emoji](self, ctx)
+                except Exception as exc:
+                    self.cog.log_tb(ctx, exc)
             else:
-                self.loop.create_task(self.destroy_task())
+                break
+        self.loop.create_task(self.destroy_task())
 
     def player_after(self, ctx, exc):
         def done():
