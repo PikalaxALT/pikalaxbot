@@ -166,9 +166,9 @@ async def yt_pause_playlist(handler: YouTubePlaylistHandler, ctx: commands.Conte
 
 @player_reaction('🔼')
 async def yt_volume_up(handler: YouTubePlaylistHandler, ctx: commands.Context):
-    ctx.voice_client.player.volume += 0.04
+    handler.now_playing.volume += 0.04
 
 
 @player_reaction('🔽')
 async def yt_volume_down(handler: YouTubePlaylistHandler, ctx: commands.Context):
-    ctx.voice_client.player.volume -= 0.04
+    handler.now_playing.volume -= 0.04
