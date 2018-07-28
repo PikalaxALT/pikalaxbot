@@ -41,6 +41,7 @@ class YouTubePlaylistHandler:
         self.message: discord.Message = None
         self.task: asyncio.Task = None
         self.playlist = deque()
+        self.playedlist = []
         self.now_playing: YTDLSource = None
     
     def __bool__(self):
@@ -48,9 +49,6 @@ class YouTubePlaylistHandler:
     
     def __len__(self):
         return len(self.playlist)
-    
-    def popleft(self):
-        return self.playlist.popleft()
     
     def extend(self, iterable):
         self.playlist.extend(iterable)
@@ -66,14 +64,14 @@ class YouTubePlaylistHandler:
             tasks = [ctx.bot.wait_for(event, check=predicate) for event in ('reaction_add', 'reaction_remove')]
             tasks.append(ctx.bot.wait_for('message_delete', check=del_predicate))
             done, left = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in left:
+                task.cancel()
             try:
                 resp = done.pop().result()
             except IndexError:
                 break
             except Error as e:
                 raise VoiceCommandError from e
-            for task in left:
-                task.cancel()
             if isinstance(resp, tuple) and len(resp) == 2:
                 reaction, user = resp
                 try:
@@ -96,8 +94,16 @@ class YouTubePlaylistHandler:
         else:
             self.loop.create_task(self.destroy_task())
             self.cog.start_timeout(ctx)
+            self.playedlist = []
 
     async def play_next(self, ctx):
+        def controls_task_after():
+            exc = self.task.exception()
+            if exc:
+                self.cog.log_tb(ctx, exc)
+
+        if self.now_playing:
+            self.playedlist.append(self.now_playing)
         self.now_playing = self.playlist.popleft()
         ctx.voice_client.play(self.now_playing, after=lambda exc: ctx.cog.player_after(ctx, exc))
         data = self.now_playing.data
@@ -117,6 +123,7 @@ class YouTubePlaylistHandler:
                 await self.message.add_reaction(emoji)
             if not self.task:
                 self.task = self.loop.create_task(self.controls_task(ctx))
+                self.task.add_done_callback(controls_task_after)
 
     async def destroy_task(self):
         task = self.task
@@ -132,6 +139,14 @@ class YouTubePlaylistHandler:
 
 @player_reaction('⏭')
 async def yt_skip_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    ctx.voice_client.stop()
+
+
+@player_reaction('⏮')
+async def yt_prev_video(handler: YouTubePlaylistHandler, ctx: commands.Context):
+    handler.playlist.appendleft(handler.now_playing)
+    if handler.playedlist:
+        handler.playlist.appendleft(handler.playedlist.pop())
     ctx.voice_client.stop()
 
 
