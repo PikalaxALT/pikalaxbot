@@ -315,7 +315,7 @@ class YouTube(Cog):
     @commands.command(hidden=True)
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
-        new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
+        new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=False)
         self.yt_players[ctx.guild.id].extend(new_players)
         await ctx.message.add_reaction('☑')
         if not ctx.voice_client.is_playing():

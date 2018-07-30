@@ -70,16 +70,17 @@ class YouTubePlaylistHandler:
                 resp = done.pop().result()
             except IndexError:
                 break
-            except Error as e:
-                raise VoiceCommandError from e
-            if isinstance(resp, tuple) and len(resp) == 2:
-                reaction, user = resp
-                try:
-                    await player_rxns[reaction.emoji](self, ctx)
-                except Exception as exc:
-                    self.cog.log_tb(ctx, exc)
+            except Error as exc:
+                self.cog.log_tb(ctx, exc)
             else:
-                break
+                if isinstance(resp, tuple) and len(resp) == 2:
+                    reaction, user = resp
+                    try:
+                        await player_rxns[reaction.emoji](self, ctx)
+                    except Exception as exc:
+                        self.cog.log_tb(ctx, exc)
+                else:
+                    break
         self.loop.create_task(self.destroy_task())
 
     def player_after(self, ctx, exc):
