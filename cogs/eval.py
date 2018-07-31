@@ -77,12 +77,12 @@ class Eval(Cog):
         except Exception as e:
             value = stdout.getvalue()
             if value:
-                value = value.replace(self.bot.http.token, '')
+                value = value.replace(self.bot.http.token, '{TOKEN}')
             await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
         else:
             value = stdout.getvalue()
             if value:
-                value = value.replace(self.bot.http.token, '')
+                value = value.replace(self.bot.http.token, '{TOKEN}')
             try:
                 await ctx.message.add_reaction('\u2705')
             except:
