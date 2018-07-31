@@ -93,8 +93,7 @@ class Eval(Cog):
                     await ctx.send(f'```py\n{value}\n```')
             else:
                 self._last_result = ret
-                if isinstance(ret, str):
-                    ret = ret.replace(self.bot.http.token, '{TOKEN}')
+                ret = str(ret).replace(self.bot.http.token, '{TOKEN}')
                 await ctx.send(f'```py\n{value}{ret}\n```')
 
 
