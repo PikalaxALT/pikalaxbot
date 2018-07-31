@@ -31,15 +31,15 @@ class Core(Cog):
             return False
         if ctx.author.bot:
             return False
+        if not ctx.channel.permissions_for(ctx.me).send_messages:
+            return False
         self.fetch()
         if isinstance(ctx.command, commands.Command):
             if await self.bot.is_owner(ctx.author):
                 return True
             if ctx.command.name in self.disabled_commands:
                 return False
-        if ctx.author.id in self.banlist:
-            return False
-        return ctx.channel.permissions_for(ctx.me).send_messages
+        return ctx.author.id not in self.banlist
 
     @commands.command(aliases=['reboot'])
     @commands.is_owner()
