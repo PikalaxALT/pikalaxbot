@@ -111,11 +111,10 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
             self.sql.backup_db()
 
     @property
-    def owner(self) -> discord.User:
-        return self.get_user(self.owner_id)
-
-    def command_error_emoji(self, guild):
-        return self.get_emoji(470039807754633217) or '❤'
+    def command_error_emoji(self):
+        guild: discord.Guild = self.get_guild(148079346685313034)
+        emoji = discord.utils.get(guild.emojis, name='tppBurrito')
+        return emoji
 
     def cmd_error_check(self, ctx, exc):
         if isinstance(exc, commands.CommandNotFound):
@@ -149,7 +148,7 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
         if not self.cmd_error_check(ctx, exc):
             return
 
-        emoji = self.command_error_emoji(ctx.guild)
+        emoji = self.command_error_emoji
         if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
             await report('Permission denied')
         elif isinstance(exc, commands.MissingPermissions):

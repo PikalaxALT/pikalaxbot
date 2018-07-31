@@ -62,7 +62,7 @@ class SelfAssignableRole(Cog):
     @iamnot.error
     async def assign_roles_error(self, ctx: commands.Context, exc: BaseException):
         if isinstance(exc, (commands.BotMissingPermissions, commands.BadArgument)):
-            emoji = self.bot.command_error_emoji(ctx.guild)
+            emoji = self.bot.command_error_emoji
             await ctx.send(f'**{exc.__class__.__name__}**: {exc} {emoji}')
 
     @commands.command()
