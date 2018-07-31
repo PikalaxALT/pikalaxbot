@@ -70,6 +70,7 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
     @staticmethod
     async def call_espeak(msg, fname, *, loop=None, **kwargs):
         flags = ' '.join(f'-{flag} {value}' for flag, value in kwargs.items())
+        msg = msg.replace('"', '\\"')
         args = f'espeak -w {fname} {flags} "{msg}"'
         fut = await asyncio.create_subprocess_shell(args, loop=loop, stderr=-1, stdout=-1)
         out, err = await fut.communicate()
