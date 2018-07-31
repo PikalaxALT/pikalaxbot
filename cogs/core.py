@@ -31,8 +31,9 @@ class Core(Cog):
             return False
         if ctx.author.bot:
             return False
+        self.fetch()
         if isinstance(ctx.command, commands.Command):
-            if ctx.author == self.bot.user:
+            if await self.bot.is_owner(ctx.author):
                 return True
             if ctx.command.name in self.disabled_commands:
                 return False
