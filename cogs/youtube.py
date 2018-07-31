@@ -264,9 +264,7 @@ class YouTube(Cog):
     async def params(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
         """Update pikavoice params.
 
-        Syntax:
-        !pikaparams a=amplitude
-        g=gap k=emphasis p=pitch s=speed v=voice"""
+        Syntax: p!params a=amplitude g=gap k=emphasis p=pitch s=speed v=voice"""
         params = dict(self.espeak_kw)
         for key, value in kwargs:
             params[key] = (str if key == 'v' else int)(value)
