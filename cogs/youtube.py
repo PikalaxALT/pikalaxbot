@@ -175,8 +175,6 @@ class YouTube(Cog):
             print(f'Player error: {exc}')
         if self.yt_players[ctx.guild.id]:
             self.bot.loop.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
-        else:
-            self.start_timeout(ctx)
 
     def load_opus(self):
         if not discord.opus.is_loaded():

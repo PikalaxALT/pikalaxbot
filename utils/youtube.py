@@ -94,7 +94,6 @@ class YouTubePlaylistHandler:
             self.loop.create_task(self.play_next(ctx))
         else:
             self.loop.create_task(self.destroy_task())
-            self.cog.start_timeout(ctx)
             self.playedlist = []
 
     async def play_next(self, ctx):
