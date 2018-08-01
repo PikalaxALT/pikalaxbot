@@ -118,13 +118,13 @@ class Eval(Cog):
             buffer = io.StringIO()
             buffer.write(stdout)
             buffer.seek(0)
-            await ctx.send('stdout', file=discord.File(buffer, stdout))
+            await ctx.send(file=discord.File(buffer, 'stdout.txt'))
             buffer.close()
         if len(stderr) >= 1024:
             buffer = io.StringIO()
             buffer.write(stderr)
             buffer.seek(0)
-            await ctx.send('stderr', file=discord.File(buffer, stderr))
+            await ctx.send(file=discord.File(buffer, 'stderr.txt'))
             buffer.close()
 
 
