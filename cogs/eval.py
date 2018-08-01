@@ -109,11 +109,23 @@ class Eval(Cog):
         returncode = process.returncode
         color = discord.Color.red() if returncode else discord.Color.green()
         embed = discord.Embed(title=f'Process returned with code {returncode}', color=color)
-        if stdout:
+        if 0 < len(stdout) < 1024:
             embed.add_field(name='stdout', value=stdout)
-        if stderr:
+        if 0 < len(stderr) < 1024:
             embed.add_field(name='stderr', value=stderr)
         await ctx.send(embed=embed)
+        if len(stdout) >= 1024:
+            buffer = io.TextIOBase()
+            buffer.write(stdout)
+            buffer.seek(0)
+            await ctx.send('stdout', file=discord.File(buffer, stdout))
+            buffer.close()
+        if len(stderr) >= 1024:
+            buffer = io.TextIOBase()
+            buffer.write(stderr)
+            buffer.seek(0)
+            await ctx.send('stderr', file=discord.File(buffer, stderr))
+            buffer.close()
 
 
 def setup(bot):
