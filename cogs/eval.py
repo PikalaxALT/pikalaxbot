@@ -115,13 +115,13 @@ class Eval(Cog):
             embed.add_field(name='stderr', value=stderr)
         await ctx.send(embed=embed)
         if len(stdout) >= 1024:
-            buffer = io.TextIOBase()
+            buffer = io.StringIO()
             buffer.write(stdout)
             buffer.seek(0)
             await ctx.send('stdout', file=discord.File(buffer, stdout))
             buffer.close()
         if len(stderr) >= 1024:
-            buffer = io.TextIOBase()
+            buffer = io.StringIO()
             buffer.write(stderr)
             buffer.seek(0)
             await ctx.send('stderr', file=discord.File(buffer, stderr))
