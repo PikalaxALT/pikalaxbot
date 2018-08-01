@@ -20,6 +20,7 @@ import textwrap
 import traceback
 import io
 from contextlib import redirect_stdout
+from asyncio.subprocess import PIPE
 
 # To expose to eval
 import asyncio
@@ -93,8 +94,26 @@ class Eval(Cog):
                     await ctx.send(f'```py\n{value}\n```')
             else:
                 self._last_result = ret
-                ret = str(ret).replace(self.bot.http.token, '{TOKEN}')
-                await ctx.send(f'```py\n{value}{ret}\n```')
+                await ctx.send(f'```py\n{value}{ret}\n```'.replace(self.bot.http.token, '{TOKEN}'))
+
+    @commands.command(name='shell')
+    @commands.is_owner()
+    async def eval_cmd(self, ctx, *, body):
+        """Evaluates a shell script"""
+
+        body = self.cleanup_code(body)
+        process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
+        stdout, stderr = await process.communicate()
+        stdout = stdout.decode().replace(self.bot.http.token, '{TOKEN}')
+        stderr = stderr.decode().replace(self.bot.http.token, '{TOKEN}')
+        returncode = process.returncode
+        color = discord.Color.red() if returncode else discord.Color.green()
+        embed = discord.Embed(title=f'Process returned with code {returncode}', color=color)
+        if stdout:
+            embed.add_field(name='stdout', value=stdout)
+        if stderr:
+            embed.add_field(name='stderr', value=stderr)
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
