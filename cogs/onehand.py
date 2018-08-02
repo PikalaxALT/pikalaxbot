@@ -20,7 +20,7 @@ class OneHand(Cog):
 
     def __unload(self):
         task = self.bot.loop.create_task(self.cs.close())
-        asyncio.wait([task])
+        asyncio.wait([task], timeout=60)
 
     async def on_ready(self):
         self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
