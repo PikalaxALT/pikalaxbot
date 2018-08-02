@@ -135,15 +135,15 @@ class Eval(ClientSessionCog):
 
         process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
         exc = None
-        try:
-            fut = process.communicate()
-            stdout, stderr = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
-            await ctx.message.add_reaction('\u2705')
-        except Exception as e:
-            exc = e
-        finally:
+        async with ctx.typing():
+            try:
+                fut = process.communicate()
+                stdout, stderr = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+            except Exception as e:
+                exc = e
             returncode = process.returncode
-            color = discord.Color.red() if returncode != 0 or exc else discord.Color.green()
+            errored = returncode != 0 or exc
+            color = discord.Color.red() if errored else discord.Color.green()
             title = f'Process exited with status code {returncode}' if returncode is not None else 'Process timed out'
             embed = discord.Embed(title=title, color=color)
             files = [
@@ -153,10 +153,11 @@ class Eval(ClientSessionCog):
             if exc:
                 tb = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
                 files.append(await self.format_embed_value(embed, 'traceback', tb))
-            await ctx.send(embed=embed)
-            for fl in files:
-                if fl is not None:
-                    await ctx.send(file=fl)
+        await ctx.send(embed=embed)
+        for fl in files:
+            if fl is not None:
+                await ctx.send(file=fl)
+        await ctx.message.add_reaction('✅' if errored else '❌')
 
 
 def setup(bot):
