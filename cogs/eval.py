@@ -118,7 +118,7 @@ class Eval(Cog):
                 await ctx.send(self.mask_token(f'```py\n{value}{ret}\n```'))
 
     async def format_embed_value(self, embed, name, content):
-        if content is not None:
+        if content:
             content = self.mask_token(content)
             value = f'```{content}```' if len(content) < 1000 else await self.hastebin(content)
             embed.add_field(name=name, value=value)
@@ -134,18 +134,22 @@ class Eval(Cog):
         stderr = io.StringIO()
 
         process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
+        exc = None
         try:
             with redirect_stdout(stdout), redirect_stderr(stderr):
                 fut = process.communicate()
                 await asyncio.wait_for(fut, 60, loop=self.bot.loop)
             await ctx.message.add_reaction('\u2705')
+        except Exception as e:
+            exc = e
         finally:
             returncode = process.returncode
             color = discord.Color.red() if returncode else discord.Color.green()
-            embed = discord.Embed(title='Process exited with status code {returncode}', color=color)
+            embed = discord.Embed(title=f'Process exited with status code {returncode}', color=color)
             await self.format_embed_value(embed, 'stdout', stdout.getvalue())
             await self.format_embed_value(embed, 'stderr', stdout.getvalue())
-            await self.format_embed_value(embed, 'traceback', traceback.format_exc())
+            if exc:
+                await self.format_embed_value(embed, 'traceback', traceback.format_exc())
             await ctx.send(embed=embed)
 
 
