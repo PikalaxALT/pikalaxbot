@@ -120,7 +120,13 @@ class Eval(Cog):
     async def format_embed_value(self, embed, name, content):
         if content:
             content = self.mask_token(content)
-            value = f'```{content}```' if len(content) < 1000 else await self.hastebin(content)
+            if len(content) >= 1000:
+                try:
+                    value = await self.hastebin(content)
+                except aiohttp.ClientResponseError:
+                    return discord.File(io.StringIO(content), 'stdout.txt')
+            else:
+                value = f'```{content}```' if len(content) < 1000 else await self.hastebin(content)
             embed.add_field(name=name, value=value)
 
     @commands.command(name='shell')
@@ -145,12 +151,15 @@ class Eval(Cog):
             color = discord.Color.red() if returncode != 0 or exc else discord.Color.green()
             title = f'Process exited with status code {returncode}' if returncode is not None else 'Process timed out'
             embed = discord.Embed(title=title, color=color)
-            await self.format_embed_value(embed, 'stdout', stdout.decode())
-            await self.format_embed_value(embed, 'stderr', stderr.decode())
+            stdout_f = await self.format_embed_value(embed, 'stdout', stdout.decode())
+            stderr_f = await self.format_embed_value(embed, 'stderr', stderr.decode())
             if exc:
                 tb = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-                await self.format_embed_value(embed, 'traceback', tb)
+                tb_f = await self.format_embed_value(embed, 'traceback', tb)
             await ctx.send(embed=embed)
+            for fl in (stdout_f, stderr_f, tb_f):
+                if fl is not None:
+                    await ctx.send(file=fl)
 
 
 def setup(bot):
