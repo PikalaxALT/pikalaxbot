@@ -119,9 +119,9 @@ class Eval(ClientSessionCog):
                 try:
                     value = await self.hastebin(content)
                 except aiohttp.ClientResponseError:
-                    return discord.File(io.StringIO(content), 'stdout.txt')
+                    return discord.File(io.StringIO(content), f'{name}.txt')
             else:
-                value = f'```{content}```' if len(content) < 1000 else await self.hastebin(content)
+                value = f'```{content}```'
             embed.add_field(name=name, value=value)
 
     @commands.command(name='shell')
