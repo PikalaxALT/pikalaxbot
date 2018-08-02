@@ -19,8 +19,9 @@ from cogs import Cog
 import textwrap
 import traceback
 import io
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
 from asyncio.subprocess import PIPE
+import aiohttp
 
 # To expose to eval
 import asyncio
@@ -33,6 +34,23 @@ from collections import Counter
 class Eval(Cog):
     _last_result = None
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.cs: aiohttp.ClientSession = None
+
+    def __unload(self):
+        task = self.bot.loop.create_task(self.cs.close())
+        asyncio.wait([task])
+
+    async def on_ready(self):
+        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
+
+    async def hastebin(self, content):
+        res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
+        post = await res.json()
+        uri = post['key']
+        return f'https://hastebin.com/{uri}'
+
     @staticmethod
     def cleanup_code(content):
         """Automatically removes code blocks from the code."""
@@ -42,6 +60,9 @@ class Eval(Cog):
 
         # remove `foo`
         return content.strip('` \n')
+
+    def mask_token(self, value):
+        return value.replace(self.bot.http.token, '{TOKEN}')
 
     @commands.command(name='eval')
     @commands.is_owner()
@@ -78,12 +99,12 @@ class Eval(Cog):
         except Exception as e:
             value = stdout.getvalue()
             if value:
-                value = value.replace(self.bot.http.token, '{TOKEN}')
+                value = self.mask_token(value)
             await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
         else:
             value = stdout.getvalue()
             if value:
-                value = value.replace(self.bot.http.token, '{TOKEN}')
+                value = self.mask_token(value)
             try:
                 await ctx.message.add_reaction('\u2705')
             except:
@@ -94,12 +115,13 @@ class Eval(Cog):
                     await ctx.send(f'```py\n{value}\n```')
             else:
                 self._last_result = ret
-                await ctx.send(f'```py\n{value}{ret}\n```'.replace(self.bot.http.token, '{TOKEN}'))
+                await ctx.send(self.mask_token(f'```py\n{value}{ret}\n```'))
 
-    @eval_cmd.error
-    async def eval_cmd_error(self, ctx, exc):
-        await ctx.send(f'`{exc.__class__.__name__}: {exc}`')
-        self.log_tb(ctx, exc)
+    async def format_embed_value(self, embed, name, content):
+        if content is not None:
+            content = self.mask_token(content)
+            value = f'```{content}```' if len(content) < 1000 else await self.hastebin(content)
+            embed.add_field(name=name, value=value)
 
     @commands.command(name='shell')
     @commands.is_owner()
@@ -107,30 +129,24 @@ class Eval(Cog):
         """Evaluates a shell script"""
 
         body = self.cleanup_code(body)
+
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
         process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
-        stdout, stderr = await process.communicate()
-        stdout = stdout.decode().replace(self.bot.http.token, '{TOKEN}')
-        stderr = stderr.decode().replace(self.bot.http.token, '{TOKEN}')
-        returncode = process.returncode
-        color = discord.Color.red() if returncode else discord.Color.green()
-        embed = discord.Embed(title=f'Process returned with code {returncode}', color=color)
-        if 0 < len(stdout) < 1024:
-            embed.add_field(name='stdout', value=stdout)
-        if 0 < len(stderr) < 1024:
-            embed.add_field(name='stderr', value=stderr)
-        await ctx.send(embed=embed)
-        if len(stdout) >= 1024:
-            buffer = io.StringIO()
-            buffer.write(stdout)
-            buffer.seek(0)
-            await ctx.send(file=discord.File(buffer, 'stdout.txt'))
-            buffer.close()
-        if len(stderr) >= 1024:
-            buffer = io.StringIO()
-            buffer.write(stderr)
-            buffer.seek(0)
-            await ctx.send(file=discord.File(buffer, 'stderr.txt'))
-            buffer.close()
+        try:
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                fut = process.communicate()
+                await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+            await ctx.message.add_reaction('\u2705')
+        finally:
+            returncode = process.returncode
+            color = discord.Color.red() if returncode else discord.Color.green()
+            embed = discord.Embed(title='Process exited with status code {returncode}', color=color)
+            await self.format_embed_value(embed, 'stdout', stdout.getvalue())
+            await self.format_embed_value(embed, 'stderr', stdout.getvalue())
+            await self.format_embed_value(embed, 'traceback', traceback.format_exc())
+            await ctx.send(embed=embed)
 
 
 def setup(bot):
