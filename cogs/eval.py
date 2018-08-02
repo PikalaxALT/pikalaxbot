@@ -129,26 +129,23 @@ class Eval(Cog):
         """Evaluates a shell script"""
 
         body = self.cleanup_code(body)
-
-        stdout = io.StringIO()
-        stderr = io.StringIO()
+        stdout = b''
+        stderr = b''
 
         process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
         exc = None
         try:
             fut = process.communicate()
-            s_out, s_err = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
-            stdout.write(s_out)
-            stdout.write(s_err)
+            stdout, stderr = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
             await ctx.message.add_reaction('\u2705')
         except Exception as e:
             exc = e
         finally:
             returncode = process.returncode
-            color = discord.Color.red() if returncode else discord.Color.green()
+            color = discord.Color.red() if returncode or exc else discord.Color.green()
             embed = discord.Embed(title=f'Process exited with status code {returncode}', color=color)
-            await self.format_embed_value(embed, 'stdout', stdout.getvalue())
-            await self.format_embed_value(embed, 'stderr', stdout.getvalue())
+            await self.format_embed_value(embed, 'stdout', stdout.decode())
+            await self.format_embed_value(embed, 'stderr', stderr.decode())
             if exc:
                 await self.format_embed_value(embed, 'traceback', traceback.format_exc())
             await ctx.send(embed=embed)
