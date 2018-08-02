@@ -142,12 +142,13 @@ class Eval(Cog):
             exc = e
         finally:
             returncode = process.returncode
-            color = discord.Color.red() if returncode or exc else discord.Color.green()
-            embed = discord.Embed(title=f'Process exited with status code {returncode}', color=color)
+            color = discord.Color.red() if returncode != 0 or exc else discord.Color.green()
+            title = f'Process exited with status code {returncode}' if returncode is not None else 'Process timed out'
+            embed = discord.Embed(title=title, color=color)
             await self.format_embed_value(embed, 'stdout', stdout.decode())
             await self.format_embed_value(embed, 'stderr', stderr.decode())
             if exc:
-                await self.format_embed_value(embed, 'traceback', traceback.format_exc())
+                await self.format_embed_value(embed, 'traceback', traceback.format_exception(type(exc), exc, exc.__traceback__))
             await ctx.send(embed=embed)
 
 
