@@ -148,7 +148,8 @@ class Eval(Cog):
             await self.format_embed_value(embed, 'stdout', stdout.decode())
             await self.format_embed_value(embed, 'stderr', stderr.decode())
             if exc:
-                await self.format_embed_value(embed, 'traceback', traceback.format_exception(type(exc), exc, exc.__traceback__))
+                tb = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+                await self.format_embed_value(embed, 'traceback', tb)
             await ctx.send(embed=embed)
 
 
