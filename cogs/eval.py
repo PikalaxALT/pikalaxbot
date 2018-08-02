@@ -136,9 +136,10 @@ class Eval(Cog):
         process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
         exc = None
         try:
-            with redirect_stdout(stdout), redirect_stderr(stderr):
-                fut = process.communicate()
-                await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+            fut = process.communicate()
+            s_out, s_err = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+            stdout.write(s_out)
+            stdout.write(s_err)
             await ctx.message.add_reaction('\u2705')
         except Exception as e:
             exc = e
