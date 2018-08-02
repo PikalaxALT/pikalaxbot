@@ -96,6 +96,11 @@ class Eval(Cog):
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```'.replace(self.bot.http.token, '{TOKEN}'))
 
+    @eval_cmd.error
+    async def eval_cmd_error(self, ctx, exc):
+        await ctx.send(f'`{exc.__class__.__name__}: {exc}`')
+        self.log_tb(ctx, exc)
+
     @commands.command(name='shell')
     @commands.is_owner()
     async def eval_cmd(self, ctx, *, body):
