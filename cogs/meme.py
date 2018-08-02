@@ -20,7 +20,7 @@ import aiohttp
 import random
 from discord.ext import commands
 from utils.data import data
-from cogs import Cog, has_client_session
+from cogs import ClientSessionCog, has_client_session
 
 
 class HMM:
@@ -46,7 +46,7 @@ class HMM:
                 break
 
 
-class Meme(Cog):
+class Meme(ClientSessionCog):
     _nebby = HMM(
         [[0, 1, 0, 0, 0],
          [1, 2, 1, 0, 0],
@@ -56,16 +56,9 @@ class Meme(Cog):
         'pew! '
     )
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.cs: aiohttp.ClientSession = None
-
     def __unload(self):
         task = self.bot.loop.create_task(self.cs.close())
         asyncio.wait([task], timeout=60)
-
-    async def on_ready(self):
-        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
 
     @commands.command()
     @commands.check(has_client_session)

@@ -4,26 +4,19 @@ import discord
 import io
 import os
 from discord.ext import commands
-from cogs import Cog, has_client_session
+from cogs import ClientSessionCog, has_client_session
 
 
 TPPServer = discord.Object(148079346685313034)
 
 
-class OneHand(Cog):
+class OneHand(ClientSessionCog):
     async def __local_check(self, ctx: commands.Context):
         return has_client_session(ctx) and ctx.guild.id != TPPServer.id
-
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.cs: aiohttp.ClientSession = None
 
     def __unload(self):
         task = self.bot.loop.create_task(self.cs.close())
         asyncio.wait([task], timeout=60)
-
-    async def on_ready(self):
-        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:

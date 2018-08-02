@@ -15,11 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from cogs import Cog
+from cogs import ClientSessionCog, has_client_session
 import textwrap
 import traceback
 import io
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import redirect_stdout
 from asyncio.subprocess import PIPE
 import aiohttp
 
@@ -31,21 +31,16 @@ import datetime
 from collections import Counter
 
 
-class Eval(Cog):
+class Eval(ClientSessionCog):
     _last_result = None
-
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.cs: aiohttp.ClientSession = None
 
     def __unload(self):
         task = self.bot.loop.create_task(self.cs.close())
         asyncio.wait([task], timeout=60)
 
-    async def on_ready(self):
-        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
-
     async def hastebin(self, content):
+        if self.cs is None or self.cs.closed:
+            self.cs = aiohttp.ClientSession(raise_for_status=True)
         res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
         post = await res.json()
         uri = post['key']
