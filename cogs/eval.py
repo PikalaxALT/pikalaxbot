@@ -103,7 +103,7 @@ class Eval(Cog):
 
     @commands.command(name='shell')
     @commands.is_owner()
-    async def eval_cmd(self, ctx, *, body):
+    async def shell_cmd(self, ctx, *, body):
         """Evaluates a shell script"""
 
         body = self.cleanup_code(body)
