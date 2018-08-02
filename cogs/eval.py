@@ -157,7 +157,7 @@ class Eval(ClientSessionCog):
         for fl in files:
             if fl is not None:
                 await ctx.send(file=fl)
-        await ctx.message.add_reaction('✅' if errored else '❌')
+        await ctx.message.add_reaction('❌' if errored else '✅')
 
 
 def setup(bot):
