@@ -27,9 +27,11 @@ class OneHand(ClientSessionCog):
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
-        r = await self.cs.get(f'https://{name}.net/post/index.json',
-                               headers={'User-Agent': self.bot.user.name},
-                               params={'tags': ' '.join(params), 'limit': num})
+        r = await self.cs.get(
+            f'https://{name}.net/post/index.json',
+            headers={'User-Agent': self.bot.user.name},
+            params={'tags': ' '.join(params), 'limit': num}
+        )
         j = await r.json()
         if j:
             for imagespec in j:

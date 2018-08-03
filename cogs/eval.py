@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from cogs import ClientSessionCog, has_client_session
+from cogs import ClientSessionCog
 import textwrap
 import traceback
 import io
@@ -58,6 +58,43 @@ class Eval(ClientSessionCog):
 
     def mask_token(self, value):
         return value.replace(self.bot.http.token, '{TOKEN}')
+    
+    @staticmethod
+    async def try_add_reaction(message, emoji):
+        try:
+            await message.add_reaction(emoji)
+        except discord.HTTPException:
+            pass
+    
+    @staticmethod
+    def format_tb(exc):
+        if exc:
+            return ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__))
+        return ''
+
+    async def format_embed_value(self, embed, name, content):
+        if content:
+            content = self.mask_token(content)
+            if len(content) >= 1000:
+                try:
+                    value = await self.hastebin(content)
+                except aiohttp.ClientResponseError:
+                    return discord.File(io.StringIO(content), f'{name}.txt')
+            else:
+                value = f'```{content}```'
+            embed.add_field(name=name, value=value)
+
+    async def send_eval_result(self, ctx, exc, title_ok, title_failed, **values):
+        errored = exc is not None
+        title = title_failed if errored else title_ok
+        color = discord.Color.red() if errored else discord.Color.green()
+        embed = discord.Embed(title=title, color=color)
+        files = [await self.format_embed_value(embed, name, content) for name, content in values.items()]
+        await self.try_add_reaction(ctx.message, '❌' if errored else '✅')
+        await ctx.send(embed=embed)
+        for file in files:
+            if file is not None:
+                await ctx.send(file=file)
 
     @commands.command(name='eval')
     @commands.is_owner()
@@ -87,42 +124,24 @@ class Eval(ClientSessionCog):
             return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
         func = env['func']
-        try:
-            with redirect_stdout(stdout):
-                fut = func()
-                ret = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
-        except Exception as e:
-            value = stdout.getvalue()
-            if value:
-                value = self.mask_token(value)
-            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
-        else:
-            value = stdout.getvalue()
-            if value:
-                value = self.mask_token(value)
+        exc = None
+        ret = None
+        async with ctx.typing():
             try:
-                await ctx.message.add_reaction('\u2705')
-            except:
-                pass
-
-            if ret is None:
-                if value:
-                    await ctx.send(f'```py\n{value}\n```')
-            else:
-                self._last_result = ret
-                await ctx.send(self.mask_token(f'```py\n{value}{ret}\n```'))
-
-    async def format_embed_value(self, embed, name, content):
-        if content:
-            content = self.mask_token(content)
-            if len(content) >= 1000:
-                try:
-                    value = await self.hastebin(content)
-                except aiohttp.ClientResponseError:
-                    return discord.File(io.StringIO(content), f'{name}.txt')
-            else:
-                value = f'```{content}```'
-            embed.add_field(name=name, value=value)
+                with redirect_stdout(stdout):
+                    fut = func()
+                    ret = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+            except Exception as e:
+                exc = e
+            await self.send_eval_result(
+                ctx,
+                exc,
+                'Eval completed successfully',
+                'An exception has occurred',
+                ret=ret,
+                stdout=stdout.getvalue(),
+                traceback=self.format_tb(exc)
+            )
 
     @commands.command(name='shell')
     @commands.is_owner()
@@ -141,23 +160,16 @@ class Eval(ClientSessionCog):
                 stdout, stderr = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
             except Exception as e:
                 exc = e
-            returncode = process.returncode
-            errored = returncode != 0 or exc
-            color = discord.Color.red() if errored else discord.Color.green()
-            title = f'Process exited with status code {returncode}' if returncode is not None else 'Process timed out'
-            embed = discord.Embed(title=title, color=color)
-            files = [
-                await self.format_embed_value(embed, 'stdout', stdout.decode()),
-                await self.format_embed_value(embed, 'stderr', stderr.decode())
-            ]
-            if exc:
-                tb = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-                files.append(await self.format_embed_value(embed, 'traceback', tb))
-        await ctx.send(embed=embed)
-        for fl in files:
-            if fl is not None:
-                await ctx.send(file=fl)
-        await ctx.message.add_reaction('❌' if errored else '✅')
+
+            await self.send_eval_result(
+                ctx,
+                exc,
+                f'Process exited successfull',
+                'An exception has occurred' if process.returncode is not None else 'Request timed out',
+                stdout=stdout.decode(),
+                stderr=stderr.decode(),
+                traceback=self.format_tb(exc)
+            )
 
 
 def setup(bot):
