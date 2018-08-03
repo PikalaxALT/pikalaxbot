@@ -117,9 +117,8 @@ class Eval(ClientSessionCog):
         body = self.cleanup_code(body)
         stdout = io.StringIO()
 
-        to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
-
         try:
+            to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
             exec(to_compile, env)
         except Exception as e:
             return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
