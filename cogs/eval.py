@@ -73,6 +73,7 @@ class Eval(ClientSessionCog):
         return ''
 
     async def format_embed_value(self, embed, name, content):
+        content = format(content)
         if content:
             content = self.mask_token(content)
             if len(content) >= 1000:
