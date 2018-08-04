@@ -95,7 +95,12 @@ class Meme(ClientSessionCog):
     async def olden(self, ctx):
         await ctx.send('https://vignette.wikia.nocookie.net/twitchplayspokemoncrystal/images/5/5f/'
                        'Serious_%22OLDEN%22_Times.png/revision/latest?cb=20160820193335')
-
+      
+    @commands.command()
+    async def song(self, ctx, *args):
+        """Copypasta based on the Donger Song"""
+        resp = ' '.join(args)
+        await ctx.send(f"I like to raise my {resp} I do it all the time ヽ༼ຈل͜ຈ༽ﾉ and every time its lowered┌༼ຈل͜ຈ༽┐ I cry and start to whine ┌༼@ل͜@༽┐But never need to worry ༼ ºل͟º༽ my {resp}'s staying strong ヽ༼ຈل͜ຈ༽ﾉA {resp} saved is a {resp} earned so sing the {resp} song! ᕦ༼ຈل͜ຈ༽ᕤ"
 
 def setup(bot):
     bot.add_cog(Meme(bot))
