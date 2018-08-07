@@ -110,10 +110,6 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
         with self.sql:
             self.sql.backup_db()
 
-    def get_any_emoji(self, **attrs):
-        emojis = [emoji for emoji in guild.emojis for guild in self.guilds]
-        return discord.utils.get(emojis, **attrs)
-
     @property
     def command_error_emoji(self):
         return self.get_emoji(356887966947344384)

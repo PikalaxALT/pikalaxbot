@@ -4,17 +4,15 @@ from cogs import Cog
 
 
 class Hierarchy(commands.CheckFailure):
-    def __init__(self):
-        super().__init__('Cannot run command due to hierarchy')
+    pass
 
 
-def bot_role_is_higher():
-    def predicate(ctx):
-        if ctx.author == ctx.guild.owner or ctx.guild.me.top_role <= ctx.author.top_role:
-            raise Hierarchy
-        return True
-
-    return commands.check(predicate)
+def bot_role_is_higher(ctx):
+    if ctx.author == ctx.guild.owner:
+        raise Hierarchy('Cannot manage roles of the guild owner')
+    if ctx.me.top_role <= ctx.author.top_role:
+        raise Hierarchy('Your top role is above mine in the hierarchy')
+    return True
 
 
 class AliasedRoleConverter(commands.Converter):
@@ -36,7 +34,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
-    @bot_role_is_higher()
+    @commands.check(bot_role_is_higher)
     async def iam(self, ctx: commands.Context, role: AliasedRoleConverter):
         """Assign a role to yourself"""
         if role in ctx.author.roles:
@@ -48,7 +46,7 @@ class SelfAssignableRole(Cog):
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
-    @bot_role_is_higher()
+    @commands.check(bot_role_is_higher)
     async def iamnot(self, ctx: commands.Context, role: AliasedRoleConverter):
         """Unassign a role from yourself"""
         if role not in ctx.author.roles:
@@ -61,9 +59,10 @@ class SelfAssignableRole(Cog):
     @iam.error
     @iamnot.error
     async def assign_roles_error(self, ctx: commands.Context, exc: BaseException):
-        if isinstance(exc, (commands.BotMissingPermissions, commands.BadArgument)):
+        if isinstance(exc, (commands.BotMissingPermissions, commands.BadArgument, Hierarchy)):
             emoji = self.bot.command_error_emoji
             await ctx.send(f'**{exc.__class__.__name__}**: {exc} {emoji}')
+        self.log_tb(ctx, exc)
 
     @commands.command()
     @commands.is_owner()

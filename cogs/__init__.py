@@ -63,3 +63,11 @@ class ClientSessionCog(Cog):
     async def get_cs(self):
         await self.bot.wait_until_ready()
         self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
+
+    async def hastebin(self, content):
+        if self.cs is None or self.cs.closed:
+            self.cs = aiohttp.ClientSession(raise_for_status=True)
+        res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
+        post = await res.json()
+        uri = post['key']
+        return f'https://hastebin.com/{uri}'
