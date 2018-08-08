@@ -19,10 +19,6 @@ import asyncio
 from utils.botclass import PikalaxBOT, LoggingMixin
 
 
-def has_client_session(ctx):
-    return ctx.cog.cs is not None
-
-
 class Cog(LoggingMixin):
     config_attrs = tuple()
 
@@ -49,20 +45,13 @@ class Cog(LoggingMixin):
                     val = list(val)
                 setattr(settings, attr, val)
 
+    @property
+    def cs(self):
+        return self.bot.user_cs
 
-class ClientSessionCog(Cog):
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.cs: aiohttp.ClientSession = None
-        self.bot.loop.create_task(self.get_cs())
-
-    def __unload(self):
-        task = self.bot.loop.create_task(self.cs.close())
-        asyncio.wait([task], timeout=60)
-
-    async def get_cs(self):
-        await self.bot.wait_until_ready()
-        self.cs = aiohttp.ClientSession(raise_for_status=True, loop=self.bot.loop)
+    @cs.setter
+    def cs(self, value):
+        self.bot.user_cs = value
 
     async def hastebin(self, content):
         if self.cs is None or self.cs.closed:

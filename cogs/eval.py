@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from cogs import ClientSessionCog
+from cogs import Cog
 import textwrap
 import traceback
 import io
@@ -31,12 +31,8 @@ import datetime
 from collections import Counter
 
 
-class Eval(ClientSessionCog):
+class Eval(Cog):
     _last_result = None
-
-    def __unload(self):
-        task = self.bot.loop.create_task(self.cs.close())
-        asyncio.wait([task], timeout=60)
 
     async def hastebin(self, content):
         if self.cs is None or self.cs.closed:

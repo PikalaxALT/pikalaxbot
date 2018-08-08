@@ -46,7 +46,7 @@ class Core(Cog):
     async def kill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
         await ctx.send('Rebooting to apply updates')
-        await self.bot.close()
+        await self.bot.logout()
 
     @commands.command()
     @commands.is_owner()

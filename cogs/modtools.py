@@ -21,7 +21,7 @@ import traceback
 import sqlite3
 import logging
 from discord.ext import commands
-from cogs import ClientSessionCog
+from cogs import Cog
 
 
 class lower(commands.clean_content):
@@ -30,17 +30,13 @@ class lower(commands.clean_content):
         return arg.lower()
 
 
-class ModTools(ClientSessionCog):
+class ModTools(Cog):
     prefix = 'p!'
     game = 'p!help'
     disabled_commands = set()
     disabled_cogs = set()
     debug = False
     config_attrs = 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
-
-    def __unload(self):
-        task = self.bot.loop.create_task(self.cs.close())
-        asyncio.wait([task], timeout=60)
 
     async def __local_check(self, ctx: commands.Context):
         return await self.bot.is_owner(ctx.author)

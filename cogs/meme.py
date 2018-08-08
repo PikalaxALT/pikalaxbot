@@ -16,11 +16,10 @@
 
 import asyncio
 import discord
-import aiohttp
 import random
 from discord.ext import commands
 from utils.data import data
-from cogs import ClientSessionCog, has_client_session
+from cogs import Cog
 
 
 class HMM:
@@ -46,7 +45,7 @@ class HMM:
                 break
 
 
-class Meme(ClientSessionCog):
+class Meme(Cog):
     _nebby = HMM(
         [[0, 1, 0, 0, 0],
          [1, 2, 1, 0, 0],
@@ -56,12 +55,7 @@ class Meme(ClientSessionCog):
         'pew! '
     )
 
-    def __unload(self):
-        task = self.bot.loop.create_task(self.cs.close())
-        asyncio.wait([task], timeout=60)
-
     @commands.command()
-    @commands.check(has_client_session)
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """

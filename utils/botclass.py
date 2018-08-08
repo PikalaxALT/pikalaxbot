@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import aiohttp
 import asyncio
 import discord
 from discord.ext import commands
@@ -100,13 +101,21 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
         with self.sql:
             self.sql.db_init()
 
+        # Create client session
+        async def create_cs():
+            self.user_cs = aiohttp.ClientSession(raise_for_status=True)
+
+        self.user_cs: aiohttp.ClientSession = None
+        self.loop.run_until_complete(create_cs())
+
     def run(self):
         self.logger.info('Starting bot')
         token = self.settings.token or input('Bot OAUTH2 token: ')
         super().run(token)
 
-    async def close(self):
-        await super().close()
+    async def logout(self):
+        await self.user_cs.close()
+        await self.close()
         with self.sql:
             self.sql.backup_db()
 
