@@ -6,7 +6,7 @@ from cogs import Cog
 
 
 class Poll(Cog):
-    TIMEOUT = 60.0
+    TIMEOUT = 60
 
     async def do_poll(self, ctx, prompt, emojis, options, content=None):
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
