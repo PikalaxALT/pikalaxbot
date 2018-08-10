@@ -31,6 +31,7 @@ class Markov(Cog):
         self.initialized = False
         self.storedMsgsSet = set()
         self.chain = Chain(store_lowercase=True)
+        self.bot.loop.create_task(self.init_chain())
 
     def __local_check(self, ctx: commands.Context):
         if not self.initialized:
@@ -85,17 +86,17 @@ class Markov(Cog):
         self.bot.logger.error(f'Markov: missing ReadMessageHistory permission for {channel}')
         return False
 
-    async def on_ready(self):
-        if not self.initialized:
-            for ch in list(self.markov_channels):
-                self.bot.logger.debug('%d', ch)
-                channel = self.bot.get_channel(ch)
-                if channel is None:
-                    self.bot.logger.error(f'Markov: unable to find text channel {ch:d}')
-                    self.markov_channels.discard(ch)
-                else:
-                    await self.learn_markov_from_history(channel)
-            self.initialized = True
+    async def init_chain(self):
+        await self.bot.wait_until_ready()
+        for ch in list(self.markov_channels):
+            self.bot.logger.debug('%d', ch)
+            channel = self.bot.get_channel(ch)
+            if channel is None:
+                self.bot.logger.error(f'Markov: unable to find text channel {ch:d}')
+                self.markov_channels.discard(ch)
+            else:
+                await self.learn_markov_from_history(channel)
+        self.initialized = True
 
     @commands.group(hidden=True)
     async def markov(self, ctx):
@@ -149,7 +150,4 @@ class Markov(Cog):
 
 
 def setup(bot):
-    cog = Markov(bot)
-    bot.add_cog(cog)
-    if bot.is_ready():
-        asyncio.wait([bot.loop.create_task(cog.on_ready())])
+    bot.add_cog(Markov(bot))
