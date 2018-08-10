@@ -43,6 +43,10 @@ class Poll(Cog):
             content = f'SUDDEN DEATH between {len(emojis)} options'
         await ctx.send(f'Winner: {emojis[0]}: {options[0]}')
 
+    async def __error(self, ctx, exc):
+        await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
+        self.log_tb(ctx, exc)
+
 
 def setup(bot):
     bot.add_cog(Poll(bot))

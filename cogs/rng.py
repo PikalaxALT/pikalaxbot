@@ -32,5 +32,10 @@ class Rng(Cog):
         await ctx.send(f'Rolled {count} {sides}-sided {dice}.  Result:\n'
                        f'{rollstr}')
 
+    async def __error(self, ctx, exc):
+        await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
+        self.log_tb(ctx, exc)
+
+
 def setup(bot):
     bot.add_cog(Rng(bot))
