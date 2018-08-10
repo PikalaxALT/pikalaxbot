@@ -19,7 +19,13 @@ class Poll(Cog):
         for emoji in emojis:
             await msg.remove_reaction(emoji, self.bot.user)
         msg = await ctx.channel.get_message(msg.id)
-        votes = [rxn.count for rxn in msg.reactions if rxn.emoji in emojis]
+        votes = []
+        for emoji in emojis:
+            rxn = discord.utils.get(msg.reactions, emoji=emoji)
+            if rxn is None:
+                votes.append(0)
+            else:
+                votes.append(rxn.count)
         winner_count = max(votes)
         tie_emoji = []
         tie_opts = []
