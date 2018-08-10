@@ -10,11 +10,10 @@ class DiceRollConverter(commands.Converter):
         argument = argument.lower()
         count, sides = argument.split('d')
         if not (count or sides):
-            raise commands.BadArgument(f'When supplying an argument to {ctx.prefix}{ctx.command}, '
-                                       f'at least one of count or sides must be provided.')
+            raise ValueError
         count = int(count) if count else 1
         sides = int(sides) if sides else 6
-        assert count in range(1, 200) and sides in range(2, 100)
+        assert 1 <= count <= 200 and 2 <= sides <= 100
         return count, sides
 
 
@@ -24,7 +23,7 @@ class Rng(Cog):
         await ctx.send(random.choice(args))
 
     @commands.command()
-    async def roll(self, ctx, *, params: DiceRollConverter = (1, 6)):
+    async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
         count, sides = params
         rolls = [str(random.randint(1, sides)) for i in range(count)]
         rollstr = ', '.join(rolls)
@@ -33,7 +32,21 @@ class Rng(Cog):
                        f'{rollstr}')
 
     async def __error(self, ctx, exc):
-        await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
+        if isinstance(exc, commands.ConversionError):
+            orig = exc.original
+            if isinstance(orig, AssertionError):
+                await ctx.send(f'Argument to {ctx.prefix}{ctx.command} must not be more than 200 dice, '
+                               f'and each die must have between 2 and 100 sides.')
+                exc = None
+            elif isinstance(orig, ValueError):
+                await ctx.send(f'Argument to {ctx.prefix}{ctx.command} must be of the form [N]d[S], '
+                               f'where N is the number of dice and S is the number of sides per die. '
+                               f'Both N and S are optional, but at least one must be supplied.')
+                exc = None
+            elif orig is not None:
+                exc = orig
+        if exc is not None:
+            await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
         self.log_tb(ctx, exc)
 
 
