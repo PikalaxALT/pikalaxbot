@@ -26,7 +26,7 @@ class Rng(Cog):
     @commands.command()
     async def roll(self, ctx, *, params: DiceRollConverter = (1, 6)):
         count, sides = params
-        rolls = [str(random.randint(1, sides) for i in range(count))]
+        rolls = [str(random.randint(1, sides)) for i in range(count)]
         rollstr = ', '.join(rolls)
         dice = 'die' if count == 1 else 'dice'
         await ctx.send(f'Rolled {count} {sides}-sided {dice}.  Result:\n'
