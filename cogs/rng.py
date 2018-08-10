@@ -24,7 +24,7 @@ class Rng(Cog):
         await ctx.send(random.choice(args))
 
     @commands.command()
-    async def roll(self, ctx, *, params=(1, 6)):
+    async def roll(self, ctx, *, params: DiceRollConverter = (1, 6)):
         count, sides = params
         rolls = [random.randint(1, sides) for i in range(count)]
         rollstr = ', '.join(rolls)
