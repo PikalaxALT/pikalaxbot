@@ -21,7 +21,6 @@ from discord.ext import commands
 import logging
 import os
 import glob
-import traceback
 from utils.config_io import Settings
 from utils.sql import Sql
 
@@ -32,31 +31,32 @@ class LoggingMixin:
         self.logger = logging.getLogger('discord')
         super().__init__(*args, **kwargs)
 
-    def log_and_print(self, level, msg, *args):
-        self.logger.log(level, msg, *args)
+    def log_and_print(self, level, msg, *args, **kwargs):
+        self.logger.log(level, msg, *args, **kwargs)
         if level >= self.logger.level:
             print(msg % args)
 
-    def log_info(self, msg, *args):
-        self.log_and_print(logging.INFO, msg, *args)
+    def log_info(self, msg, *args, **kwargs):
+        self.log_and_print(logging.INFO, msg, *args, **kwargs)
 
-    def log_debug(self, msg, *args):
-        self.log_and_print(logging.DEBUG, msg, *args)
+    def log_debug(self, msg, *args, **kwargs):
+        self.log_and_print(logging.DEBUG, msg, *args, **kwargs)
 
-    def log_warning(self, msg, *args):
-        self.log_and_print(logging.WARNING, msg, *args)
+    def log_warning(self, msg, *args, **kwargs):
+        self.log_and_print(logging.WARNING, msg, *args, **kwargs)
 
-    def log_error(self, msg, *args):
-        self.log_and_print(logging.ERROR, msg, *args)
+    def log_error(self, msg, *args, **kwargs):
+        self.log_and_print(logging.ERROR, msg, *args, **kwargs)
 
-    def log_critical(self, msg, *args):
-        self.log_and_print(logging.CRITICAL, msg, *args)
+    def log_critical(self, msg, *args, **kwargs):
+        self.log_and_print(logging.CRITICAL, msg, *args, **kwargs)
 
     def log_tb(self, ctx, exc):
-        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-        self.log_and_print(logging.ERROR, f'Ignoring exception in command {ctx.command}:')
-        self.log_and_print(logging.ERROR, ''.join(tb))
-        return tb
+        self.log_and_print(
+            logging.ERROR,
+            f'Ignoring exception in command {ctx.command}:',
+            exc_info=(exc.__class__, exc, exc.__traceback__)
+        )
 
 
 def _command_prefix(bot, message):
