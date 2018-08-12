@@ -120,6 +120,10 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
             self.sql.backup_db()
 
     @property
+    def owner(self):
+        return self.get_user(self.owner_id)
+
+    @property
     def command_error_emoji(self):
         return self.get_emoji(356887966947344384)
 
