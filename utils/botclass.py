@@ -125,7 +125,8 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
 
     @property
     def command_error_emoji(self):
-        return self.get_emoji(356887966947344384)
+        return discord.utils.get(self.emojis, name='tppBurrito')
+        # return self.get_emoji(356887966947344384)
 
     def cmd_error_check(self, ctx, exc):
         if isinstance(exc, commands.CommandNotFound):

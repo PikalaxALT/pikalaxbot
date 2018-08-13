@@ -3,6 +3,7 @@ import discord
 import datetime
 from discord.ext import commands
 from cogs import Cog
+import time
 
 
 class Poll(Cog):
@@ -13,19 +14,39 @@ class Poll(Cog):
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
         msg: discord.Message = await ctx.send(content, embed=embed)
-        for emoji in emojis:
-            await msg.add_reaction(emoji)
-        await asyncio.sleep(self.TIMEOUT)
-        for emoji in emojis:
-            await msg.remove_reaction(emoji, self.bot.user)
-        msg = await ctx.channel.get_message(msg.id)
-        votes = []
-        for emoji in emojis:
-            rxn = discord.utils.get(msg.reactions, emoji=emoji)
-            if rxn is None:
-                votes.append(0)
+
+        # This setup is to ensure that each user gets max one vote
+        votes_d = {}
+
+        def check1(rxn, athr):
+            return rxn.message.id == msg.id and rxn.emoji in emojis and athr.id not in votes_d
+
+        def check2(rxn, athr):
+            return rxn.message.id == msg.id and rxn.emoji == votes_d.get(athr.id)
+
+        end = time.time() + self.TIMEOUT
+        while True:
+            tasks = [
+                self.bot.wait_for('reaction_add', check=check1),
+                self.bot.wait_for('reaction_remove', check=check2)
+            ]
+            now = time.time()
+            done, left = await asyncio.wait(tasks, timeout=end - now, return_when=asyncio.FIRST_COMPLETED)
+            [task.cancel() for task in left]
+            try:
+                reaction, author = done.pop().result()
+            except IndexError:  # asyncio.wait does not raise TimeoutError, so this is how we detect timeout.
+                break
+            vote = votes_d.get(author.id)
+            if vote is None:  # This was a reaction_add event
+                votes_d[author.id] = reaction.emoji
+            elif vote == reaction.emoji:  # This was a reaction_remove event
+                del votes_d[author.id]
             else:
-                votes.append(rxn.count)
+                raise ValueError('Our checks passed when neither should have!')
+
+        votes_l = list(votes_d.values())
+        votes = [votes_l.count(emoji) for emoji in emojis]
         winner_count = max(votes)
         tie_emoji = []
         tie_opts = []
@@ -43,7 +64,8 @@ class Poll(Cog):
             raise ValueError('Not enough options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 10 else '\U0001f51f' for i in range(nopt)]
-        content = f'Vote using emoji reactions.  You have {self.TIMEOUT:d} seconds from when the last option appears.'
+        content = f'Vote using emoji reactions.  You have {self.TIMEOUT:d} seconds from when the last option appears.  ' \
+                  f'Max one vote per user.  To change your vote, clear your original selection first.'
         while len(emojis) > 1:
             count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content)
             content = f'SUDDEN DEATH between {len(emojis)} options'
