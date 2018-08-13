@@ -31,7 +31,7 @@ class Rng(Cog):
         await ctx.send(f'Rolled {count} {sides}-sided {dice}.  Result:\n'
                        f'{rollstr}')
 
-    @commands.command()
+    @commands.command(name='someone')
     @commands.is_owner()
     async def ping_random(self, ctx: commands.Context):
         await ctx.send(random.choice(ctx.channel.members).mention)
