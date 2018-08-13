@@ -214,28 +214,6 @@ class ModTools(Cog):
     async def change_prefix(self, ctx, prefix):
         self.prefix = prefix
         await ctx.message.add_reaction('☑')
-    
-    @disable_cog.before_invoke
-    @disable_command.before_invoke
-    @reload_cog.before_invoke
-    @enable_cog.before_invoke
-    @enable_command.before_invoke
-    @load_cog.before_invoke
-    @change_prefix.before_invoke
-    @change_game.before_invoke
-    async def change_settings_before_invoke(self, ctx):
-        self.fetch()
-    
-    @disable_cog.after_invoke
-    @disable_command.after_invoke
-    @reload_cog.after_invoke
-    @enable_cog.after_invoke
-    @enable_command.after_invoke
-    @load_cog.after_invoke
-    @change_prefix.after_invoke
-    @change_game.after_invoke
-    async def change_settings_after_invoke(self, ctx):
-        self.commit()
 
 
 def setup(bot):

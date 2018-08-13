@@ -342,18 +342,6 @@ class YouTube(Cog):
                                         'configured for this guild')
             await vchan.connect()
 
-    @params.before_invoke
-    @pikaparams.before_invoke
-    @chan.before_invoke
-    async def pikaparams_before_invoke(self, ctx):
-        self.fetch()
-
-    @params.after_invoke
-    @pikaparams.after_invoke
-    @chan.after_invoke
-    async def pikaparams_after_invoke(self, ctx):
-        self.commit()
-
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(YouTube(bot))

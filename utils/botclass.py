@@ -175,13 +175,3 @@ class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
             return
         else:
             self.log_tb(ctx, exc)
-
-    async def _before_invoke(self, ctx):
-        ctx.cog.fetch()
-        if self.settings.debug:
-            await self.owner.send(f'before_invoke: {ctx.cog.__class__.__name__}.{ctx.command}')
-
-    async def _after_invoke(self, ctx):
-        ctx.cog.commit()
-        if self.settings.debug:
-            await self.owner.send(f'after_invoke: {ctx.cog.__class__.__name__}.{ctx.command}')

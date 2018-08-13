@@ -27,6 +27,15 @@ def main():
     args = parser.parse_args()
 
     bot = PikalaxBOT(args.settings, args.logfile)
+
+    @bot.before_invoke
+    async def before_invoke(ctx):
+        ctx.cog.fetch()
+
+    @bot.after_invoke
+    async def after_invoke(ctx):
+        ctx.cog.commit()
+
     bot.run()
 
 

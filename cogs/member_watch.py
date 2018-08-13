@@ -15,7 +15,7 @@ class MemberWatch(Cog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.watches = defaultdict(lambda: dict)
+        self.watches = defaultdict(dict)
 
     @commands.group()
     async def watch(self, ctx: commands.Context):
@@ -23,6 +23,7 @@ class MemberWatch(Cog):
 
     @watch.command(name='add')
     async def add_watch(self, ctx: commands.Context, user: discord.User):
+        self.watches = defaultdict(dict, **self.watches)
         if user.id in self.watches[ctx.guild.id]:
             raise MemberWatchError(f'Already watching {user}')
         self.watches[ctx.guild.id][user.id] = ctx.channel.id
@@ -30,6 +31,7 @@ class MemberWatch(Cog):
 
     @watch.command(name='del')
     async def del_watch(self, ctx: commands.Context, user: discord.User):
+        self.watches = defaultdict(dict, **self.watches)
         if user in self.watches[ctx.guild.id]:
             self.watches[ctx.guild.id].pop(user.id)
             await ctx.send(f'Removed the watch for {user} in this channel.')
@@ -51,13 +53,6 @@ class MemberWatch(Cog):
         if member.id in self.watches[member.guild.id]:
             channel = member.guild.get_channel(self.watches[member.guild.id])
             await channel.send(f'@everyone {member} has left the server. Panic mode!')
-
-    async def __before_invoke(self, ctx):
-        self.fetch()
-        self.watches = defaultdict(dict, **self.watches)
-
-    async def __after_invoke(self, ctx):
-        self.commit()
 
 
 def setup(bot: PikalaxBOT):
