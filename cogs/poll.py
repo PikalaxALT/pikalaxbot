@@ -1,6 +1,5 @@
 import asyncio
 import discord
-import datetime
 from discord.ext import commands
 from cogs import Cog
 import time
