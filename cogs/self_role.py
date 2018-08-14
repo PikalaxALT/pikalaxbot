@@ -61,7 +61,7 @@ class SelfAssignableRole(Cog):
     async def assign_roles_error(self, ctx: commands.Context, exc: BaseException):
         if isinstance(exc, (commands.BotMissingPermissions, commands.BadArgument, Hierarchy)):
             emoji = self.bot.command_error_emoji
-            await ctx.send(f'**{exc.__class__.__name__}**: {exc} {emoji}')
+            await ctx.send(f'**{exc.__class__.__name__}**: {exc} {emoji}', delete_after=10)
         self.log_tb(ctx, exc)
 
     @commands.command()
