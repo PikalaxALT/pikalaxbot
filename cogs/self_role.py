@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from cogs import Cog
+from cogs import BaseCog
 
 
 class Hierarchy(commands.CheckFailure):
@@ -23,7 +23,7 @@ class AliasedRoleConverter(commands.Converter):
         return discord.utils.get(ctx.guild.roles, id=role_id)
 
 
-class SelfAssignableRole(Cog):
+class SelfAssignableRole(BaseCog):
     roles = {}
     config_attrs = 'roles',
 

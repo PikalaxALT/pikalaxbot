@@ -14,15 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
+import re
+
 import discord
 from discord.ext import commands
-import re
-from cogs import Cog
+
+from cogs import BaseCog
 from utils.markov import Chain
 
 
-class Markov(Cog):
+class Markov(BaseCog):
     markov_channels = set()
     config_attrs = 'markov_channels',
 

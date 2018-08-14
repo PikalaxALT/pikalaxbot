@@ -14,13 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-import discord
 import math
-import random
+
+from discord.ext import commands
+
 from utils.data import data
 from utils.game import GameBase, GameCogBase
-from discord.ext import commands
 
 
 class HangmanGame(GameBase):

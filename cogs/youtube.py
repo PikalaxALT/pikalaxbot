@@ -20,7 +20,7 @@ import youtube_dl
 import ctypes.util
 from discord.ext import commands
 from utils.botclass import PikalaxBOT
-from cogs import Cog
+from cogs import BaseCog
 import subprocess
 import os
 import time
@@ -89,7 +89,7 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
             os.remove(self.fname)
 
 
-class YouTube(Cog):
+class YouTube(BaseCog):
     __ytdl_format_options = {
         'format': 'bestaudio/best',
         'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',

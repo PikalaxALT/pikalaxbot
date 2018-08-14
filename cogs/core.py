@@ -14,13 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
 import discord
-from cogs import Cog
 from discord.ext import commands
 
+from cogs import BaseCog
 
-class Core(Cog):
+
+class Core(BaseCog):
     disabled_commands = set()
     banlist = set()
     game = '!pikakill'

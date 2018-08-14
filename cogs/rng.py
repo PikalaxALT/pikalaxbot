@@ -1,8 +1,8 @@
-import asyncio
-import discord
 import random
+
 from discord.ext import commands
-from cogs import Cog
+
+from cogs import BaseCog
 
 
 class DiceRollConverter(commands.Converter):
@@ -17,13 +17,16 @@ class DiceRollConverter(commands.Converter):
         return count, sides
 
 
-class Rng(Cog):
+class Rng(BaseCog):
     @commands.command()
     async def choose(self, ctx: commands.Context, *args):
+        """Choose between multiple options separated by spaces.
+        Use quotes to wrap multi-word options."""
         await ctx.send(random.choice(args))
 
     @commands.command()
     async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
+        """Roll one or more dice with a given number of sides."""
         count, sides = params
         rolls = [str(random.randint(1, sides)) for i in range(count)]
         rollstr = ', '.join(rolls)
@@ -34,6 +37,7 @@ class Rng(Cog):
     @commands.command(name='someone')
     @commands.is_owner()
     async def ping_random(self, ctx: commands.Context):
+        """Ping a random person in the channel."""
         await ctx.send(random.choice(ctx.channel.members).mention)
 
     async def __error(self, ctx, exc):

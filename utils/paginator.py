@@ -305,7 +305,7 @@ class FieldPages(Pages):
             await self.message.add_reaction(reaction)
 
 # ?help
-# ?help Cog
+# ?help BaseCog
 # ?help command
 #   -> could be a subcommand
 

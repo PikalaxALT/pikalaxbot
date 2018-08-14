@@ -15,11 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import aiohttp
-import asyncio
+
 from utils.botclass import PikalaxBOT, LoggingMixin
 
 
-class Cog(LoggingMixin):
+class BaseCog(LoggingMixin):
     config_attrs = tuple()
 
     def __init__(self, bot):

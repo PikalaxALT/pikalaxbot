@@ -14,12 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-import discord
 import random
+
 from discord.ext import commands
+
+from cogs import BaseCog
 from utils.data import data
-from cogs import Cog
 
 
 class HMM:
@@ -45,7 +45,7 @@ class HMM:
                 break
 
 
-class Meme(Cog):
+class Meme(BaseCog):
     _nebby = HMM(
         [[0, 1, 0, 0, 0],
          [1, 2, 1, 0, 0],

@@ -1,16 +1,17 @@
-import asyncio
 import aiohttp
-import discord
 import io
 import os
-from discord.ext import commands
-from cogs import Cog
 
+import aiohttp
+import discord
+from discord.ext import commands
+
+from cogs import BaseCog
 
 TPPServer = discord.Object(148079346685313034)
 
 
-class OneHand(Cog):
+class OneHand(BaseCog):
     async def __local_check(self, ctx: commands.Context):
         return ctx.guild.id != TPPServer.id
 

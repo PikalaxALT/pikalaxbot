@@ -15,11 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from cogs import Cog
+from cogs import BaseCog
 from utils.game import find_emoji
 
 
-class Bag(Cog):
+class Bag(BaseCog):
     @commands.group()
     async def bag(self, ctx):
         """Get in the bag, Nebby."""

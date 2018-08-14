@@ -14,13 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
 import discord
 from discord.ext import commands
-from cogs import Cog
+
+from cogs import BaseCog
 
 
-class Leaderboard(Cog):
+class Leaderboard(BaseCog):
     @commands.group(case_insensitive=True)
     async def leaderboard(self, ctx: commands.Context):
         """Commands to check the leaderboard"""

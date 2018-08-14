@@ -1,11 +1,11 @@
 import asyncio
 import discord
 from discord.ext import commands
-from cogs import Cog
+from cogs import BaseCog
 import time
 
 
-class Poll(Cog):
+class Poll(BaseCog):
     TIMEOUT = 60
 
     async def do_poll(self, ctx, prompt, emojis, options, content=None):
@@ -57,6 +57,8 @@ class Poll(Cog):
 
     @commands.command(name='poll')
     async def poll_cmd(self, ctx: commands.Context, prompt, *options):
+        """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
+        tiebreakers as needed.  Use quotes to enclose multi-word prompt and options."""
         if len(options) > 10:
             raise ValueError('Too many options!')
         if len(options) < 1:

@@ -21,16 +21,17 @@ import traceback
 import sqlite3
 import logging
 from discord.ext import commands
-from cogs import Cog
+from cogs import BaseCog
 
 
-class lower(commands.clean_content):
-    async def convert(self, ctx, argument):
-        arg = await super().convert(ctx, argument)
+class lower(str):
+    @classmethod
+    async def convert(cls, ctx, argument):
+        arg = await commands.clean_content().convert(ctx, argument)
         return arg.lower()
 
 
-class ModTools(Cog):
+class ModTools(BaseCog):
     prefix = 'p!'
     game = 'p!help'
     disabled_commands = set()
@@ -129,7 +130,7 @@ class ModTools(Cog):
         await self.git_pull(ctx)
         for cog in cogs:
             if cog not in self.disabled_cogs:
-                await ctx.send(f'Cog "{cog}" already enabled or does not exist')
+                await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
                 continue
             try:
                 self.bot.load_extension(f'cogs.{cog}')
@@ -147,7 +148,7 @@ class ModTools(Cog):
                 await ctx.send(f'Cannot unload the {cog} cog!!')
                 continue
             if cog in self.disabled_cogs:
-                await ctx.send(f'Cog "{cog}" already disabled')
+                await ctx.send(f'BaseCog "{cog}" already disabled')
                 continue
             try:
                 self.bot.unload_extension(f'cogs.{cog}')
@@ -187,7 +188,7 @@ class ModTools(Cog):
         await self.git_pull(ctx)
         for cog in cogs:
             if cog in self.disabled_cogs:
-                await ctx.send(f'Cog "{cog}" is disabled!')
+                await ctx.send(f'BaseCog "{cog}" is disabled!')
                 continue
             try:
                 self.bot.load_extension(f'cogs.{cog}')
