@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from discord.ext import commands
-from cogs import Cog
+# To expose to eval
+import asyncio
+import io
 import textwrap
 import traceback
-import io
-from contextlib import redirect_stdout
 from asyncio.subprocess import PIPE
+from contextlib import redirect_stdout
+
 import aiohttp
 
 # To expose to eval
@@ -30,8 +31,10 @@ import re
 import datetime
 from collections import Counter
 
+from cogs import BaseCog
 
-class Eval(Cog):
+
+class Eval(BaseCog):
     _last_result = None
 
     async def hastebin(self, content):

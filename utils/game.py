@@ -18,7 +18,7 @@ import asyncio
 import discord
 import math
 import time
-from cogs import Cog
+from cogs import BaseCog
 from discord.ext import commands
 
 
@@ -149,7 +149,7 @@ class GameBase:
         return score
 
 
-class GameCogBase(Cog):
+class GameCogBase(BaseCog):
     gamecls = None
 
     def _local_check(self, ctx):

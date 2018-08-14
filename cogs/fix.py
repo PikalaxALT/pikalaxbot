@@ -17,10 +17,10 @@
 import re
 import time
 from discord.ext import commands
-from cogs import Cog
+from cogs import BaseCog
 
 
-class Fix(Cog):
+class Fix(BaseCog):
     bot_owners = {
         'pika': 'PikalaxALT',
         'groudon': 'chfoo',

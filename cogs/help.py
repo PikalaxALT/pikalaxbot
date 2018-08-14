@@ -1,10 +1,10 @@
-import discord
 from discord.ext import commands
-from cogs import Cog
+
+from cogs import BaseCog
 from utils.paginator import HelpPaginator
 
 
-class Help(Cog):
+class Help(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.bot.command(**bot.help_attrs)(self._help)

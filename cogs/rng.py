@@ -1,8 +1,8 @@
-import asyncio
-import discord
 import random
+
 from discord.ext import commands
-from cogs import Cog
+
+from cogs import BaseCog
 
 
 class DiceRollConverter(commands.Converter):
@@ -17,7 +17,7 @@ class DiceRollConverter(commands.Converter):
         return count, sides
 
 
-class Rng(Cog):
+class Rng(BaseCog):
     @commands.command()
     async def choose(self, ctx: commands.Context, *args):
         """Choose between multiple options separated by spaces.

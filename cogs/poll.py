@@ -1,11 +1,11 @@
 import asyncio
 import discord
 from discord.ext import commands
-from cogs import Cog
+from cogs import BaseCog
 import time
 
 
-class Poll(Cog):
+class Poll(BaseCog):
     TIMEOUT = 60
 
     async def do_poll(self, ctx, prompt, emojis, options, content=None):

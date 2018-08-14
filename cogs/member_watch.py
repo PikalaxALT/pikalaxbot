@@ -1,16 +1,17 @@
-import asyncio
-import discord
 from collections import defaultdict
+
+import discord
 from discord.ext import commands
+
+from cogs import BaseCog
 from utils.botclass import PikalaxBOT
-from cogs import Cog
 
 
 class MemberWatchError(commands.CommandError):
     pass
 
 
-class MemberWatch(Cog):
+class MemberWatch(BaseCog):
     config_attrs = 'watches',
 
     def __init__(self, bot):
