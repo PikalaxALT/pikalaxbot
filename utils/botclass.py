@@ -65,7 +65,7 @@ def _command_prefix(bot, message):
     return bot.settings.prefix
 
 
-class PikalaxBOT(LoggingMixin, commands.AutoShardedBot):
+class PikalaxBOT(LoggingMixin, commands.Bot):
     def __init__(self, settings_file, logfile, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
