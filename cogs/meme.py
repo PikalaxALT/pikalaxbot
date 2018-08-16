@@ -59,8 +59,8 @@ class Meme(BaseCog):
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
-        data = {'Subject1': subj1, 'Subject2': subj2}
-        r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=data)
+        params = {'Subject1': subj1, 'Subject2': subj2}
+        r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params)
         res = await r.text()
         await ctx.send(res)
 

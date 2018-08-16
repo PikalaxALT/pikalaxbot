@@ -65,8 +65,10 @@ class Poll(BaseCog):
             raise ValueError('Not enough options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 10 else '\U0001f51f' for i in range(nopt)]
-        content = f'Vote using emoji reactions.  You have {self.TIMEOUT:d} seconds from when the last option appears.  ' \
-                  f'Max one vote per user.  To change your vote, clear your original selection first.'
+        content = f'Vote using emoji reactions.  ' \
+                  f'You have {self.TIMEOUT:d} seconds from when the last option appears.  ' \
+                  f'Max one vote per user.  ' \
+                  f'To change your vote, clear your original selection first.'
         while len(emojis) > 1:
             count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content)
             content = f'SUDDEN DEATH between {len(emojis)} options'

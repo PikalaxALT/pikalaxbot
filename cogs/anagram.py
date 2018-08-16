@@ -22,6 +22,7 @@ from utils.data import data
 from utils.game import GameBase, GameCogBase
 
 
+# noinspection PyAttributeOutsideInit
 class AnagramGame(GameBase):
     def __init__(self, bot, attempts=3):
         self._attempts = attempts

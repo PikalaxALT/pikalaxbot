@@ -77,6 +77,7 @@ class GameBase:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self._lock.release()
 
+    # noinspection PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit
     def reset(self):
         self._state = None
         self._running = False
@@ -98,6 +99,7 @@ class GameBase:
     def running(self):
         return self._running
 
+    # noinspection PyAttributeOutsideInit
     @running.setter
     def running(self, state):
         self._running = state
@@ -117,6 +119,7 @@ class GameBase:
             await ctx.send('Time\'s up!')
             self.bot.loop.create_task(self.end(ctx, failed=True))
 
+    # noinspection PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit
     async def start(self, ctx):
         def destroy_self():
             self._task = None
@@ -134,6 +137,7 @@ class GameBase:
             return True
         return False
 
+    # noinspection PyAttributeOutsideInit
     async def show(self, ctx):
         if self.running:
             await self._message.delete()

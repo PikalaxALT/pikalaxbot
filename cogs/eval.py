@@ -16,6 +16,7 @@
 
 # To expose to eval
 import asyncio
+from discord.ext import commands
 import io
 import textwrap
 import traceback
@@ -36,14 +37,6 @@ from cogs import BaseCog
 
 class Eval(BaseCog):
     _last_result = None
-
-    async def hastebin(self, content):
-        if self.cs is None or self.cs.closed:
-            self.cs = aiohttp.ClientSession(raise_for_status=True)
-        res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
-        post = await res.json()
-        uri = post['key']
-        return f'https://hastebin.com/{uri}'
 
     @staticmethod
     def cleanup_code(content):

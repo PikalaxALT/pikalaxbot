@@ -36,7 +36,8 @@ class Leaderboard(BaseCog):
             score = sql.get_score(person)
             if score is not None:
                 rank = sql.get_leaderboard_rank(person)
-                await ctx.send(f'{person.name} has {score:d} point(s) across all games and is #{rank:d} on the leaderboard.')
+                await ctx.send(f'{person.name} has {score:d} point(s) across all games '
+                               f'and is #{rank:d} on the leaderboard.')
             else:
                 await ctx.send(f'{person.name} is not yet on the leaderboard.')
 
