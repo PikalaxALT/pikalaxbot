@@ -9,7 +9,6 @@ class Help(BaseCog):
         super().__init__(bot)
         self.bot.command(**bot.help_attrs)(self._help)
 
-    @commands.command(name='help')
     async def _help(self, ctx: commands.Context, *, command=None):
         """Shows help about a command or the bot"""
 
