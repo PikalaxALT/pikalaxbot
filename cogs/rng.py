@@ -55,7 +55,8 @@ class Rng(BaseCog):
             elif orig is not None:
                 exc = orig
         if exc is not None:
-            await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
+            await ctx.send(f'**{exc.__class__.__name__}:** {exc} {self.bot.command_error_emoji}',
+                           delete_after=10)
         self.log_tb(ctx, exc)
 
 
