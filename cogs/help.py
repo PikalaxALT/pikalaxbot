@@ -35,9 +35,6 @@ class Help(BaseCog):
             exc = exc.orig
         await ctx.send(exc)
 
-    async def on_command_error(self, ctx, exc):
-        await self.help_error(ctx, exc)
-
 
 def setup(bot):
     help_name = bot.help_attrs['name']
