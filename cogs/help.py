@@ -8,6 +8,7 @@ class Help(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.help_cmd = commands.command(**bot.help_attrs)(self._help)
+        self.help_cmd.error(self.help_error)
 
     async def _help(self, ctx: commands.Context, *, command=None):
         """Shows help about a command or the bot"""
@@ -28,7 +29,7 @@ class Help(BaseCog):
 
         await p.paginate()
 
-    async def __error(self, ctx, exc):
+    async def help_error(self, ctx, exc):
         self.log_tb(ctx, exc)
         if hasattr(exc, 'orig'):
             exc = exc.orig
