@@ -26,6 +26,7 @@ def setup(bot):
 
             await p.paginate()
 
+        @_help.error
         async def help_error(self, ctx, exc):
             self.log_tb(ctx, exc)
             if hasattr(exc, 'orig'):
