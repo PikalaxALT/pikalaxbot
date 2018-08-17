@@ -110,7 +110,8 @@ class YouTubePlaylistHandler:
         thumbnail_url = data['thumbnails'][0]['url']
         description = data['description']
         if len(description) > 250:
-            description = f'{description[:250]}...'
+            # Cut off the description to max 250 characters, removing the last word
+            description = f'{description[249::-1].split(None, 1)[1][::-1]} ...'
         embed = discord.Embed(title=self.now_playing.title, description=description)
         embed.set_image(url=thumbnail_url)
         delta = timedelta(seconds=data['duration'])
