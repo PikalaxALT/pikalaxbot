@@ -35,7 +35,8 @@ class Help(BaseCog):
 
 
 def setup(bot):
-    bot.remove_command(bot.settings.help_name)
+    help_name = bot.help_attrs['name']
+    bot.remove_command(help_name)
     bot.add_cog(Help(bot))
 
 
