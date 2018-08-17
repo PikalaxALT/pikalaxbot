@@ -121,7 +121,7 @@ class GameBase:
 
     # noinspection PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit
     async def start(self, ctx):
-        def destroy_self():
+        def destroy_self(task):
             self._task = None
 
         self.running = True

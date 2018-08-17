@@ -97,8 +97,8 @@ class YouTubePlaylistHandler:
             self.playedlist = []
 
     async def play_next(self, ctx):
-        def controls_task_after():
-            exc = self.task.exception()
+        def controls_task_after(task):
+            exc = task.exception()
             if exc:
                 self.cog.log_tb(ctx, exc)
 
