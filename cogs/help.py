@@ -9,7 +9,6 @@ def setup(bot):
         @commands.command(**bot.help_attrs)
         async def _help(self, ctx: commands.Context, *, command=None):
             """Shows help about a command or the bot"""
-            print('User invoked the help command owo')
 
             if command is None:
                 p = await HelpPaginator.from_bot(ctx)
