@@ -106,7 +106,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             self.user_cs = aiohttp.ClientSession(raise_for_status=True)
 
         self.user_cs: aiohttp.ClientSession = None
-        self.loop.run_until_complete(create_cs())
+        self.loop.create_task(create_cs())
 
     def run(self):
         self.logger.info('Starting bot')

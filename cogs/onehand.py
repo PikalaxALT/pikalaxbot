@@ -8,12 +8,14 @@ from discord.ext import commands
 
 from cogs import BaseCog
 
-TPPServer = discord.Object(148079346685313034)
+TPP_SERVER = discord.Object(148079346685313034)
+OVER = discord.Object(468049971145342987)
+CONE_OF_SHAME = discord.Object(473974608165470219)
 
 
 class OneHand(BaseCog):
     async def __local_check(self, ctx: commands.Context):
-        return ctx.guild.id != TPPServer.id
+        return ctx.guild.id != TPP_SERVER.id
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:
@@ -60,6 +62,8 @@ class OneHand(BaseCog):
     async def e6(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
         await self.get_bad_dragon(ctx, 'e621', *params)
+        if ctx.channel.id == OVER.id and any('pikalax' in param.lower() for param in params):
+            await ctx.author.add_roles(CONE_OF_SHAME)
 
     @e6.error
     async def e6_error(self, ctx: commands.Context, exc: Exception):
@@ -103,6 +107,10 @@ class OneHand(BaseCog):
                            delete_after=10)
         else:
             self.log_tb(ctx, exc)
+
+    async def on_message(self, message: discord.Message):
+        if message.channel.id == OVER.id and message.content.lower().startswith('f.e6 pikalax'):
+            await message.author.add_roles(CONE_OF_SHAME)
 
 
 def setup(bot):
