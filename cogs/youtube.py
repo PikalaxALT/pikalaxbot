@@ -108,8 +108,7 @@ class YouTube(BaseCog):
         'options': '-vn'
     }
     espeak_kw = {}
-    voice_chans = {}
-    config_attrs = 'espeak_kw', 'voice_chans'
+    config_attrs = 'espeak_kw',
     __espeak_valid_keys = {
         'a': int,
         's': int,
@@ -139,7 +138,7 @@ class YouTube(BaseCog):
         self.executor = ThreadPoolExecutor()
         self.__ytdl_extractor = youtube_dl.YoutubeDL(self.__ytdl_format_options)
         self.timeout_tasks = {}
-        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler(self, loop=self.bot.loop))
+        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler(loop=self.bot.loop))
 
     def get_ytdl_player(self, video, *, stream=False):
         filename = video['url'] if stream else self.__ytdl_extractor.prepare_filename(video)
@@ -163,7 +162,7 @@ class YouTube(BaseCog):
         await ctx.voice_client.disconnect()
 
     def start_timeout(self, ctx):
-        def done():
+        def done(unused):
             self.timeout_tasks.pop(ctx.guild.id, None)
 
         task = self.bot.loop.create_task(self.idle_timeout(ctx))
@@ -175,6 +174,8 @@ class YouTube(BaseCog):
             print(f'Player error: {exc}')
         if self.yt_players[ctx.guild.id]:
             self.bot.loop.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
+        else:
+            self.start_timeout(ctx)
 
     def load_opus(self):
         if not discord.opus.is_loaded():
@@ -190,46 +191,6 @@ class YouTube(BaseCog):
         """Commands for interacting with the bot in voice channels"""
         if ctx.invoked_subcommand is None:
             raise commands.CommandInvokeError('Invalid subcommand')
-
-    @pikavoice.command()
-    @commands.is_owner()
-    async def chan(self, ctx: commands.Context, *, ch: discord.VoiceChannel):
-        """Join a voice channel on the current server."""
-
-        # All errors shall be communicated to the user, and also
-        # passed to the bot's on_command_error handler.
-        if not ch.permissions_for(ctx.guild.me).connect:
-            raise commands.BotMissingPermissions(['connect'])
-        if ch.guild != ctx.guild:
-            raise VoiceCommandError('Guild mismatch')
-        if str(ctx.guild.id) in self.voice_chans:
-            if ch.id == self.voice_chans[str(ctx.guild.id)]:
-                raise VoiceCommandError('Already connected to that channel')
-            vcl: discord.VoiceClient = ctx.voice_client
-            if vcl is None:
-                raise VoiceCommandError('Guild does not support voice connections')
-            if vcl.is_connected():
-                await vcl.move_to(ch)
-            else:
-                await ch.connect()
-        else:
-            await ch.connect()
-        self.voice_chans[str(ctx.guild.id)] = ch.id
-        await ctx.send('Joined the voice channel!')
-
-    @chan.error
-    async def pikavoice_chan_error(self, ctx, exc):
-        if isinstance(exc, commands.BotMissingPermissions):
-            await ctx.send('I don\'t have permissions to connect to that channel')
-        elif isinstance(exc, VoiceCommandError):
-            await ctx.send(f'VoiceCommandError: {exc}')
-        elif isinstance(exc, commands.BadArgument):
-            await ctx.send('Unable to find voice channel')
-        elif isinstance(exc, commands.NotOwner):
-            await ctx.send('You\'re not my father! :DansGame:')
-        else:
-            await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
-            self.bot.log_tb(ctx, exc)
 
     @pikavoice.command()
     @commands.check(voice_client_not_playing)
@@ -325,18 +286,15 @@ class YouTube(BaseCog):
     @ytplay.before_invoke
     @say.before_invoke
     @pikasay.before_invoke
-    async def voice_cmd_ensure_connected(self, ctx):
+    async def voice_cmd_ensure_connected(self, ctx: commands.Context):
         task = self.timeout_tasks.get(ctx.guild.id)
         if task is not None:
             task.cancel()
         vc: discord.VoiceClient = ctx.voice_client
         if vc is None or not vc.is_connected():
-            chan = self.voice_chans.get(str(ctx.guild.id))
-            if chan is None:
-                raise VoiceCommandError('No voice channel has been configured for this guild')
-            vchan = self.bot.get_channel(chan)
+            vchan = ctx.author.voice.channel
             if vchan is None:
-                raise VoiceCommandError('The voice channel configured for this guild could not be retrieved')
+                raise VoiceCommandError('Invoker is not connected to voice')
             if not vchan.permissions_for(ctx.guild.me).connect:
                 raise VoiceCommandError('I do not have permission to connect to the voice channel '
                                         'configured for this guild')

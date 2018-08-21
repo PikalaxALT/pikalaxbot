@@ -35,8 +35,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class YouTubePlaylistHandler:
-    def __init__(self, cog, *, loop=None):
-        self.cog = cog
+    def __init__(self, *, loop=None):
         self.loop = loop or asyncio.get_event_loop()
         self.message: discord.Message = None
         self.task: asyncio.Task = None
@@ -71,14 +70,14 @@ class YouTubePlaylistHandler:
             except IndexError:
                 break
             except Error as exc:
-                self.cog.log_tb(ctx, exc)
+                ctx.cog.log_tb(ctx, exc)
             else:
                 if isinstance(resp, tuple) and len(resp) == 2:
                     reaction, user = resp
                     try:
                         await player_rxns[reaction.emoji](self, ctx)
                     except Exception as exc:
-                        self.cog.log_tb(ctx, exc)
+                        ctx.cog.log_tb(ctx, exc)
                 else:
                     break
         self.loop.create_task(self.destroy_task())
@@ -100,7 +99,8 @@ class YouTubePlaylistHandler:
         def controls_task_after(task):
             exc = task.exception()
             if exc:
-                self.cog.log_tb(ctx, exc)
+                ctx.cog.log_tb(ctx, exc)
+            ctx.cog.start_timeout(ctx)
 
         if self.now_playing:
             self.playedlist.append(self.now_playing)
