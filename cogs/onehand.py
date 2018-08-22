@@ -61,6 +61,7 @@ class OneHand(BaseCog):
     async def give_cone(ctx: typing.Union[discord.Message, commands.Context]):
         if ctx.channel.id == OVER.id and discord.utils.get(ctx.author.roles, id=CONE_OF_SHAME.id):
             await ctx.author.add_roles(CONE_OF_SHAME, reason='Looked for porn of my husbando')
+            await ctx.bot.owner.send(f'Gave cone to {ctx.author.name}')
 
     @commands.command()
     @commands.is_nsfw()
