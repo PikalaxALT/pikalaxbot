@@ -1,6 +1,7 @@
 import aiohttp
 import io
 import os
+import typing
 
 import aiohttp
 import discord
@@ -56,14 +57,19 @@ class OneHand(BaseCog):
         else:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
+    @staticmethod
+    async def give_cone(ctx: typing.Union[discord.Message, commands.Context]):
+        if ctx.channel.id == OVER.id and discord.utils.get(ctx.author.roles, id=CONE_OF_SHAME.id):
+            await ctx.author.add_roles(CONE_OF_SHAME, reason='Looked for porn of my husbando')
+
     @commands.command()
     @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
     async def e6(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
         await self.get_bad_dragon(ctx, 'e621', *params)
-        if ctx.channel.id == OVER.id and any('pikalax' in param.lower() for param in params):
-            await ctx.author.add_roles(CONE_OF_SHAME)
+        if any('pikalax' in param.lower() for param in params):
+            await self.give_cone(ctx)
 
     @e6.error
     async def e6_error(self, ctx: commands.Context, exc: Exception):
@@ -109,8 +115,8 @@ class OneHand(BaseCog):
             self.log_tb(ctx, exc)
 
     async def on_message(self, message: discord.Message):
-        if message.channel.id == OVER.id and message.content.lower().startswith('f.e6 pikalax'):
-            await message.author.add_roles(CONE_OF_SHAME)
+        if message.content.lower().startswith('f.e6 pikalax'):
+            await self.give_cone(message)
 
 
 def setup(bot):
