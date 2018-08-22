@@ -12,7 +12,7 @@ def bot_role_is_higher(ctx):
         raise Hierarchy('Cannot manage roles of the guild owner')
     if ctx.me.top_role <= ctx.author.top_role:
         raise Hierarchy('Your top role is above mine in the hierarchy')
-    print('\N{WHITE CHECK MARK}')
+    print('\N{WHITE HEAVY CHECK MARK}')
     return True
 
 
