@@ -36,7 +36,7 @@ class SelfAssignableRole(BaseCog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @commands.check(bot_role_is_higher)
-    async def iam(self, ctx: commands.Context, role: AliasedRoleConverter):
+    async def iam(self, ctx: commands.Context, *, role: AliasedRoleConverter):
         """Assign a role to yourself"""
         if role in ctx.author.roles:
             await ctx.send(f'You already have role "{role}"')
@@ -48,7 +48,7 @@ class SelfAssignableRole(BaseCog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @commands.check(bot_role_is_higher)
-    async def iamnot(self, ctx: commands.Context, role: AliasedRoleConverter):
+    async def iamnot(self, ctx: commands.Context, *, role: AliasedRoleConverter):
         """Unassign a role from yourself"""
         if role not in ctx.author.roles:
             await ctx.send(f'You don\'t have the role "{role}"')

@@ -54,12 +54,14 @@ class ModTools(BaseCog):
     @commands.bot_has_permissions(change_nickname=True)
     async def change_nick(self, ctx: commands.Context, *, nickname: commands.clean_content = None):
         """Change or reset the bot's nickname"""
+
         await ctx.me.edit(nick=nickname)
         await ctx.send('OwO')
 
     @ui.command(name='game')
     async def change_game(self, ctx: commands.Context, *, game: str = None):
         """Change or reset the bot's presence"""
+
         game = game or f'{ctx.prefix}help'
         activity = discord.Game(game)
         await self.bot.change_presence(activity=activity)
@@ -81,20 +83,24 @@ class ModTools(BaseCog):
     @admin.command(name='sql')
     async def call_sql(self, ctx, *, script):
         """Run arbitrary sql command"""
-        try:
-            with self.bot.sql as sql:
-                sql.call_script(script)
-        except sqlite3.Error:
+
+        with self.bot.sql as sql:
+            sql.call_script(script)
+        await ctx.send('Script successfully executed')
+
+    @call_sql.error
+    async def sql_error(self, ctx, exc):
+        if isinstance(exc, sqlite3.Error):
             tb = traceback.format_exc(limit=3)
             embed = discord.Embed(color=discord.Color.red())
             embed.add_field(name='Traceback', value=f'```{tb}```')
             await ctx.send('The script failed with an error (check your syntax?)', embed=embed)
-        else:
-            await ctx.send('Script successfully executed')
+        self.log_tb(ctx, exc)
 
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: commands.Context):
         """Sends the bot's OAUTH token."""
+
         await self.bot.owner.send(self.bot.http.token)
         await ctx.message.add_reaction('☑')
 
@@ -105,6 +111,7 @@ class ModTools(BaseCog):
     @admin_cmd.command(name='disable')
     async def disable_command(self, ctx: commands.Context, *, cmd):
         """Disable a command"""
+
         if cmd in self.disabled_commands:
             await ctx.send(f'{cmd} is already disabled')
         else:
@@ -114,6 +121,7 @@ class ModTools(BaseCog):
     @admin_cmd.command(name='enable')
     async def enable_command(self, ctx: commands.Context, *, cmd):
         """Enable a command"""
+
         if cmd in self.disabled_commands:
             self.disabled_commands.discard(cmd)
             await ctx.message.add_reaction('☑')
@@ -127,6 +135,7 @@ class ModTools(BaseCog):
     @cog.command(name='enable')
     async def enable_cog(self, ctx, *cogs: lower):
         """Enable cogs"""
+
         await self.git_pull(ctx)
         for cog in cogs:
             if cog not in self.disabled_cogs:
@@ -143,6 +152,7 @@ class ModTools(BaseCog):
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
         """Disable cogs"""
+
         for cog in cogs:
             if cog == self.__class__.__name__.lower():
                 await ctx.send(f'Cannot unload the {cog} cog!!')
@@ -167,6 +177,7 @@ class ModTools(BaseCog):
     @cog.command(name='reload')
     async def reload_cog(self, ctx: commands.Context, *cogs: lower):
         """Reload cogs"""
+
         await self.git_pull(ctx)
         for cog in cogs:
             extn = f'cogs.{cog}'
@@ -185,6 +196,7 @@ class ModTools(BaseCog):
     @cog.command(name='load')
     async def load_cog(self, ctx: commands.Context, *cogs: lower):
         """Load cogs that aren't already loaded"""
+
         await self.git_pull(ctx)
         for cog in cogs:
             if cog in self.disabled_cogs:
@@ -199,11 +211,15 @@ class ModTools(BaseCog):
 
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):
+        """Toggle debug mode"""
+
         self.debug = not self.debug
         await ctx.send(f'Set debug mode to {"on" if self.debug else "off"}')
 
     @admin.command(name='log', aliases=['logs'])
     async def send_log(self, ctx):
+        """DM the logfile to the bot's owner"""
+
         handler = discord.utils.find(lambda h: isinstance(h, logging.FileHandler), self.bot.logger.handlers)
         if handler is None:
             await ctx.send('No log file handler is registered')
@@ -213,6 +229,8 @@ class ModTools(BaseCog):
 
     @admin.command(name='prefix')
     async def change_prefix(self, ctx, prefix):
+        """Update the bot's command prefix"""
+
         self.prefix = prefix
         await ctx.message.add_reaction('☑')
 
