@@ -3,6 +3,7 @@ import random
 from discord.ext import commands
 
 from cogs import BaseCog
+from utils.data import data
 
 
 class DiceRollConverter(commands.Converter):
@@ -40,9 +41,18 @@ class Rng(BaseCog):
         """Ping a random person in the channel."""
         await ctx.send(random.choice(ctx.channel.members).mention)
 
+    @commands.group()
+    async def random(self, ctx):
+        """RNG-related commands"""
+
+    @random.command(name='pokemon')
+    async def random_pokemon(self, ctx):
+        """Get a random Pokemon name"""
+        await ctx.send(data.random_pokemon_name())
+
     async def __error(self, ctx, exc):
+        orig = getattr(exc, 'original', exc)
         if isinstance(exc, commands.ConversionError):
-            orig = exc.original
             if isinstance(orig, AssertionError):
                 await ctx.send(f'Argument to {ctx.prefix}{ctx.command} must not be more than 200 dice, '
                                f'and each die must have between 2 and 100 sides.')
