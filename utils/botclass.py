@@ -102,16 +102,17 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             self.sql.db_init()
 
         # Create client session
-        async def create_cs():
-            self.user_cs = aiohttp.ClientSession(raise_for_status=True)
-
-        self.user_cs: aiohttp.ClientSession = None
-        self.loop.create_task(create_cs())
+        self.user_cs = None
+        self.ensure_client_session()
 
     def run(self):
         self.logger.info('Starting bot')
         token = self.settings.token or input('Bot OAUTH2 token: ')
         super().run(token)
+    
+    def ensure_client_session(self):
+        if self.user_cs is None or self.user_cs.closed:
+            self.user_cs = aiohttp.ClientSession(raise_for_status=True, loop=self.loop)
 
     async def logout(self):
         await self.user_cs.close()

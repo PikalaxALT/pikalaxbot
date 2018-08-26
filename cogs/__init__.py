@@ -54,9 +54,7 @@ class BaseCog(LoggingMixin):
         self.bot.user_cs = value
 
     async def hastebin(self, content):
-        if self.cs is None or self.cs.closed:
-            # noinspection PyAttributeOutsideInit
-            self.cs = aiohttp.ClientSession(raise_for_status=True)
+        self.bot.ensure_client_session()
         res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
         post = await res.json()
         uri = post['key']
