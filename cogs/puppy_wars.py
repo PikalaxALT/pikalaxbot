@@ -190,7 +190,7 @@ class PuppyWars(BaseCog):
         content = content.replace('PLACEHOLDER', ctx.deadinsky.display_name)
         await ctx.send(content)
 
-    @commands.command(aliases=['pscore'])
+    @commands.command(aliases=['pscore', 'score'])
     async def dscore(self, ctx: commands.Context):
         """Show the puppy score"""
         async with self.bot.sql as sql:
