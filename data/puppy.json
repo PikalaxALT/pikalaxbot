@@ -1,0 +1,146 @@
+[
+	{
+		"setup": "{deadinsky} turns into an alleyway and is met with five puppies. It looks like they had been waiting for him...",
+		"win_score": 4,
+		"lose_score": 1,
+		"payoff": {
+			"2": "{deadinsky} jumps out of the way of their attack and lands behind the gang of puppies. He does a hurricane kick, knocking the puppies around a bunch before they can scamper.",
+			"1": "The puppies all jump {deadinsky} all at once, but he manages to dodge and fend off the majority of their hits. He kicks them down and they scamper.",
+			"0": "{deadinsky} turns and runs, but the puppies are right on his tail, nipping at his heels. He manages to smack one of them before he loses them down another alley.",
+			"-1": "{deadinsky} turns and runs, but the puppies are on top of him before he can get far. They kick his ass a few times over. He manages to get away eventually.",
+			"-2": "{deadinsky} turns to run, but there's another group of puppies that have closed in behind him. When he wakes next near the dumpster, he finds himself shoeless and missing his wallet again."
+		}
+	},
+	{
+		"setup": "{deadinsky} sits in the park, eating a banana. Unbeknownst to him, a cadre of ninja-puppies is lying in wait in a tree just above him...",
+		"win_score": 4,
+		"lose_score": 0,
+		"payoff": {
+			"2": "The hair on the back of {deadinsky}'s neck stands on end, and he know's he's surrounded moments before the ninja-puppies strike. They attack, but he fends them off effortlessly with his own mod-ninja skills. The banana and victory were delicious.",
+			"1": "{deadinsky} just happens to lean over as the first ninja-puppy makes his strike. The shurikin misses, and deadinsky uses his own mod-ninja abilities to fend off the rest of the clan. His banana fell into the dirt during the kurfuffle, however.",
+			"0": "{deadinsky} goes to take a bite of the banana when it is cut in half by a shuriken. He scampers as the ninja-puppies fall from the tree and go after him, but he manages to get away unharmed...",
+			"-1": "{deadinsky} goes to take a bite of the banana when it is cut in half by a shuriken. Another shuriken pins his sleeves to the tree. The ninja-puppies decend upon him and knock him out. His banana is now ant food.",
+			"-2": "{deadinsky} goes to take a bite of the banana when he is knocked out cold from behind by one of the ninja-puppies. When he wakes next in an alleyway, his banana is smeared all over his shirt, and his wallet was missing again."
+		}
+	},
+	{
+		"setup": "{deadinsky} comes upon a small ragged puppy all alone on the sidewalk. He instinctively goes to kick it.",
+		"win_score": 2,
+		"lose_score": 0,
+		"payoff": {
+			"2": "{deadinsky} swings his foot at the poor puppy and punts it across the street. It smacks into a second puppy, and into a third and fourth. {deadinsky} continues to walk smugly down the street.",
+			"1": "{deadinsky} swings his foot at the poor puppy. The puppy latches onto his foot and it takes Dead a couple shakes to send it flying across the street into another one. {deadinsky} continues to walk down the street.",
+			"0": "{deadinsky} swings his foot at the puppy, and there's a distinct squeek as it is punted across the street. It was a decoy... {deadinsky} is saddened by this development.",
+			"-1": "{deadinsky} swings his foot at the puppy, and there's a distinct squeek as his foot smacks into it. The decoy puppy then bounces back on the bungie that ties it to the nearby lampost and smacks into {deadinsky}'s face. The pain and letdown sting.",
+			"-2": "{deadinsky} swings his foot at the puppy, and there's the distinct sound of metal scraping against metal. The trapdoor under where the decoy puppy was opens and dead plummets into the water below. When he wakes next, he is still wet and missing his wallet again."
+		}
+	}, 
+	{
+		"setup": "A puppy steps outside a coffee shop and finds {deadinsky} there staring down at him. The puppy sets its coffee down on the sidewalk next to the door.",
+		"win_score": 2,
+		"lose_score": 0,
+		"payoff": {
+			"2": "{deadinsky} does a flying kick and punts the puppy into the coffee shop, where it pings off three other puppies at a table across the room. He also gently knocks over the puppy's coffee before strolling off.",
+			"1": "{deadinsky} fakes left. The puppy falls for it as {deadinsky}'s foot comes around from the right and knocks it into its coffee. {deadinsky} walks away, pleased, while the puppy shakes off the coffee all over itself.",
+			"0": "{deadinsky} goes for the kick, but the puppy ducks around behind dead and places a paw on the small of his back. {deadinsky} tries to turn to face him several times, but the puppy stays behind dead. Finally Dead turns and spots the puppy escaping. He knocks over its coffee in anger.",
+			"-1": "{deadinsky} goes for the grapple, but the puppy catches hold and reverses it. The puppy slams {deadinsky} against the wall of the coffee shop. It then goes and picks up its coffee and moves quickly away before Dead can get his bearings again.",
+			"-2": "{deadinsky} kicks at the puppy, but the puppy dodges and lands on Dead's face. The puppy then proceeds to punch Dead in the nose so hard, he's knocked out cold. The puppy grabs its coffee and also takes {deadinsky}'s wallet for good measure."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} comes around the corner and face-to-face with a giant metal mech standing in the street, towering over him. It is piloted by five puppies wearing 5 different colored jumpsuits.",
+		"win_score": 5,
+		"lose_score": 0,
+		"payoff": {
+			"2": "The mech starts firing as {deadinsky} slides between its legs. He quickly ties them together and then, with a kick from the ground, shoves the mech backwards. It staggers, cannot catch itself, and falls over, and explodes. The five puppies blast off, Team Rocket style.",
+			"1": "The mech starts firing as {deadinsky} dives back into the alley he came from. The mech follows him in, and Dead comes from above and lands on its head. He takes its head off with a few well-placed kicks, and the mech falls down, blind and beaten.",
+			"0": "The mech starts firing as {deadinsky} dives back into the alley he came from. The mech lines up with the alley and continues firing after him, and Dead is forced to continue retreating. He gets away safely.",
+			"-1": "The mech starts firing as {deadinsky} goes to dive back into the alley he came from, but the sticky bullets hit his leg, pinning him in the street. The mech lines up and punts him five blocks away, where he manages to escape before any follow up.",
+			"-2": "The mech starts firing sticky inflating balls at {deadinsky}, which he isn't fast enough to dodge. He is soon encased in them and loses conciousness as the mech approaches. He next wakes many blocks away, battered, bruised, and missing his wallet again."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} walks down the street when he is suddenly picked up by his shirt by a puppy in super-puppy garb. The puppy flies high up into the air with {deadinsky}.",
+		"win_score": 3,
+		"lose_score": 0,
+		"payoff": {
+			"2": "{deadinsky} pulls the Kryptonite he was lucky to have on him and shoves it in the super-pup's muzzle. The super-pup loses his powers and begins falling. {deadinsky} kicks off him and does a rolling landing on a nearby skyscraper.",
+			"1": "{deadinsky} pulls the Kryptonite he was lucky to have on him and smacks the super-pup's face with it. It reels back, letting go of {deadinsky}. {deadinsky} manages to do a rolling-landing on a nearby skyscraper. The super-pup comes around for a second go, but Dead ducks out of sight.",
+			"0": "{deadinsky} manages to wrestle his way out of the super-pup's grasp and do a rolling-landing on top of a skyscraper nearby. The super-pup come around for another grab, but {deadinsky} manages to shoe it away with the Kryptonite he luckily had on him.",
+			"-1": "{deadinsky} can't seem to pull out of the super-pup's grasp. It flies high into the sky and then throws {deadinsky} down at the ground. {deadinsky} manages to slow his fall and aim for a deep lake. He comes out not unharmed and drenched.",
+			"-2": "The superpup flies him up and up. The Space Core floats by. Then the pup flips him over and starts speeding towards the earth. {deadinsky} passes out on the way down from the G-forces. He wakes to find himself in the middle of a crater and without his wallet again."
+		}
+	},
+	{
+		"setup": "{deadinsky} is sitting in an outdoor cafe, reading quietly. There are puppies two tables down who are keeping their distance, but Dead hadn't taken notice. Suddenly, a car comes around the corner on two wheels. Five puppies inside the car lean out and open fire on the cafe and {deadinsky}.",
+		"win_score": 5,
+		"lose_score": 3,
+		"payoff": {
+			"2": "{deadinsky} upturns his table for cover as the bullets destory the cafe's porch around him. The bullets destroy the table of puppies. Dead throws a grenade in front of the car, and the car blows sky high, sending the puppies inside flying. Dead escapes the scene unharmed, as the puppy ambulence arrives.",
+			"1": "{deadinsky} upturns his table for cover as the bullets destory the cafe's porch area and tear up the table the other puppies were at. {deadinsky} throws a grenade at the car and it blows the back off it, but manages to get away. {deadinsky} walks away from the scene unharmed.",
+			"0": "{deadinsky} upturns his table for cover as the bullets destroy the cafe's porch area and tear up the table the other puppies were at. {deadinsky} manages to dodge most of the bullets, but he's still hit. {deadinsky} limps away from the scene. Lotid magic will heal his superficial wounds.",
+			"-1": "{deadinsky} upturns his table for cover, but the bullets destory the cafe's porch area, and he's injured. The puppies who were at the table nearby fare none better. {deadinsky} drags himself away from the scene. Lotid magic will heal him, but he lost that fight.",
+			"-2": "{deadinsky} dives for cover, but there is no cover from the volley of hundreds of bullets, which tears up the entire patio. When {deadinsky} awakens next, the puppy ambulence is pulling away with the puppies that were at the table nearby, and possibly his wallet, which was missing again."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} strolls down the street when suddenly the sidewalk in front of him shoots up to block his way. He turns to see a puppy shift its footing, and rocks come up from the ground and float around it.",
+		"win_score": 3,
+		"lose_score": 0,
+		"payoff": {
+			"2": "The earthbending puppy fires the rocks at {deadinsky}, who dodges them by flipping sideways. {deadinsky} lands next to the puppy and, before it could retaliate, Dead tases the puppy with his handheld taser. He then kicks the puppy down the street.",
+			"1": "The earthbending puppy fires the rocks at {deadinsky}, who barely dodges them. The puppy opens a rift in the ground, but Dead is in the air with a flying kick. The puppy changes stance to counter, but is too late and Dead's foot connects with its muzzle. It sails down the steet as Dead dusts himself off.",
+			"0": "The earthbending puppy fires the rocks at {deadinsky}, who dodges them sideways. He dives around more thrown rocks and down an alleyway and up a catwalk. The puppy continues to throw stones and attempt to crush him, but Dead is long gone within a few minutes.",
+			"-1": "The earthbending puppy stares {deadinsky} down, the spiky rocks floating around it. Dead goes to dive at the puppy with a taser, but the puppy shifts its weight slightly and suddenly {deadinsky} is in a painful split. The puppy summons three spikes of land to punt {deadinsky} several blocks away.",
+			"-2": "The earthbending puppy stares {deadinsky} down, the spiky rocks floating around it. Dead goes for his handheld taser, but the puppy shifts its stance and suddenly {deadinsky} is neck-deep in the ground, the contents of his pocket flung around him. The puppy takes his wallet, again, and scampers happily away."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} is waiting at a bus stop when a sudden blast of fire shoots past his face. He dodges backwards to see the blast of fire came from a puppy's paw. The firebending puppy changes stance, and fire spits out its muzzle in anger.",
+		"win_score": 2,
+		"lose_score": 0,
+		"payoff": {
+			"2": "{deadinsky} dodges a few blasts of fire bent in his direction and does a summersault over the puppy. He lands and, before the puppy can react, Dead shoves his handheld taser into the puppy's spine. It collapses, and Dead punts it down the street.",
+			"1": "{deadinsky} feints past a few blasts of fire bent in his direction and deflects a punch of fire aimed at his face. He then shoves his handheld taser into the puppy's spine, and punts the unconcious pup down the street.",
+			"0": "The puppy does a roundhouse kick and blasts some more fire in {deadinsky}'s direction, which he barely dodges. He spots the bus coming and rushes towards it. A blast of fire bounces off the bus as Dead dives inside and the driver floors it at Dead's insistance.",
+			"-1": "The puppy punches fire at {deadinsky} as he dodges as best he can. But the punches come too quickly and he's soon surrounded by a ring of fire. The puppy then bends the fire into a flaming whirlwind and rockets {deadinsky} into the sky.",
+			"-2": "The puppy does a lengthy dance, calling fire to surround {deadinsky} before Dead could get away. It then bends the fire into a whirlwind that rockets {deadinsky} straight into the side of a building. When dead wakes again, his clothes are charred and his wallet is missing again."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} is strolling through the park when he comes across a puppy meditating under a tree. It had a strange blue arrow painted across its back and ending at its head. Like any puppy, he decides to kick it.",
+		"win_score": 1,
+		"lose_score": 0,
+		"payoff": {
+			"2": "{deadinsky} punts the puppy up into the air, but the puppy stops itself in midair. {deadinsky} can hear it crying and vowing revenge as it flew away on the wind.",
+			"1": "{deadinsky}'s foot connects with the puppy's cheek, and the puppy takes that energy and rolls away from him. It paws its cheek in anger and, grabbing a branch, slaps a wave of wind at {deadinsky}. {deadinsky} stands his ground against the gust, but when he looks back, the puppy had gone.",
+			"0": "When {deadinsky} goes to kick the meditating puppy, it effortlessly dodges on the wind, without even opening its eyes. He kicks again, but it dodges again. He kicks a third time, but it leaps up on the air given off by the swing of his foot and bounces up the tree, away from him.",
+			"-1": "When {deadinsky} goes to kick the meditating puppy, it effortlessly dodges and leaves {deadinsky} off-balance. It lands on top of Dead and continues meditating. Dead goes to shove it off, but it dodges again and lands on a ball of air, balancing on one paw, a short distance away. Dead tries once more to kick it, but it rolls merrily away. ",
+			"-2": "When {deadinsky} goes to kick the meditating puppy, a blast of wind comes from behind and knocks {deadinsky} down, the puppy tripping him. {deadinsky} looks up to see the puppy balancing on one paw on a ball of air, with his wallet floating around it. Dead goes to grab his wallet back, but the puppy rides merrily away on the air scooter."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} turns to walk across a bridge when he sees a puppy standing, staring him down, in the middle of the bridge. {deadinsky} starts rushing up to kick it, and moments before his foot connects, the puppy bends some water out of river below.",
+		"win_score": 2,
+		"lose_score": 0,
+		"payoff": {
+			"2": "{deadinsky} was prepared for this, however, and what looked like a kick was actually the preperation for a summersault, which resulted in his handheld taser smacking the puppy across the spine. The water the puppy was bending from the river splashes down across the bridge. Dead proceeds to punt the puppy into the river.",
+			"1": "{deadinsky} reacts just soon enough to turn his kick into a dodge roll sideways around the puppy. The puppy follows him, water-whipping spots where he used to be. Dead just barely gets his handheld taser into the puppy's side, and a bunch of water that was aiming to grab him sloshes down on his head. He punts the puppy into the river.",
+			"0": "{deadinsky} reacts just soon enough to redirect his foot up over the puppy and its glob of water, and jump over the puppies attempts to water whip at his feet. He takes off running, zig-zag-dodging the icicle shards the puppy throws at him. He manages to duck around the corner and get away.",
+			"-1": "{deadinsky} doesn't quite react fast enough, and his kick gets absorbed into the floating glob of water the puppy controls. The momentum of the kick transfers through the bent water and smacks Dead sideways up over the railing of the beidge. He falls into the water and swims to shore quickly before the puppy could finish the whirlpool it was creating behind him.",
+			"-2": "{deadinsky} doesn't quite react fast enough, and his kick gets absorbed into the floating glob of water the puppy controls. The momentum of the kick transfers through the bent water and smacks Dead sideways into the railing of the bridge. He is pinned to the railing by a rain of icicles. When he wakes next, he find himself on the river's shoreline and his wallet is missing again."
+		}
+	}, 
+	{
+		"setup": "{deadinsky} walks through the center of town when he is stopped by 5 teenage puppies. As he watches, they perform strange movements with their arms and, with some background explosions, suddenly have color-coded suits and helmets on. They charge at {deadinsky}.",
+		"win_score": 10,
+		"lose_score": 0,
+		"payoff": {
+			"2": "Suddenly, a strange staff slams into the ground next to {deadinsky}, and he's suddenly as tall as the buildings around him. He kicks all 5 puppies with ease and also a couple buildings as well before he returns to normal size.",
+			"1": "{deadinsky} faces them head on and begins flipping around them and smacking them against walls and trees. The puppies lose their suits inexplicably as they fall, and soon he is standing over all of them, gloating. Then he kicks them across the city center.",
+			"0": "{deadinsky} backflips away from them and begins running. They fly at him and perform martial arts moves, but before they can reach him, a squad of gray dudes looking vaguly like {deadinsky} get between him and the puppies. They hold them off, and Dead gets away.",
+			"-1": "{deadinsky} turns to run, but the five puppies surround him quickly. He attempts to fend off their martial arts attacks, to no avail. Soon, they perform a power attack and {deadinsky} falls over and inexplicable explosions erupt around him as the teenage puppies pose.",
+			"-2": "{deadinsky} turns to run, but finds his way blocked by a giant mech foot. The teenage puppies jump inprobably high into the mech and proceed to kick him clear across town. when he wakes again, he finds himself in a pile of rubble and his wallet missing again."
+		}
+	}
+]

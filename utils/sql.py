@@ -52,39 +52,45 @@ class Sql:
 
     def db_init(self):
         exists, = self.execute("select count(*) from sqlite_master where type='table' and name='meme'").fetchone()
-        self.execute("create table if not exists meme (bag text)")
+        self.execute("create table if not exists meme (bag text primary key)")
         if not exists:
             for line in default_bag:
                 self.execute("insert into meme(bag) values (?)", (line,))
-        self.execute("create table if not exists game (id integer, name text, score integer)")
-        self.execute("create table if not exists voltorb (id integer, level integer)")
+        self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
+        self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
+        self.execute("create table if not exists puppy (uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
 
     def db_clear(self):
         self.execute("drop table if exists meme")
         self.execute("drop table if exists game")
         self.execute("drop table if exists voltorb")
+        self.execute("drop table if exists puppy")
 
     def get_score(self, author):
         score, = self.execute("select score from game where id = ?", (author.id,)).fetchone()
         return score
 
     def increment_score(self, player, by=1):
-        c = self.execute("select score from game where id = ?", (player.id,))
-        score = c.fetchone()
-        if score is None:
-            self.execute("insert into game values (?, ?, ?)", (player.id, player.name, by))
-        else:
-            self.execute("update game set score = score + ? where id = ?", (by, player.id))
+        script = f"""
+        insert into game values ({player.id}, {player.name}, {by})
+        on conflict (id) do update game set score = score + {by} where id = {player.id};
+        """
+        self.call_script(script)
 
     def get_all_scores(self):
         yield from self.execute("select * from game order by score desc limit 10")
 
     def add_bag(self, text):
-        c = self.execute("select * from meme where bag = ?", (text,))
-        res = c.fetchone() is None
-        if res:
-            self.execute("insert into meme(bag) values (?)", (text,))
-        return res
+        script = f"""
+        insert into meme(bag) values {text}
+        on conflict (bag) fail;
+        """
+        try:
+            self.call_script(script)
+        except sqlite3.Error:
+            return False
+        else:
+            return True
 
     def read_bag(self):
         c = self.execute("select bag from meme order by random() limit 1")
@@ -103,12 +109,11 @@ class Sql:
         return level
 
     def set_voltorb_level(self, channel, new_level):
-        c = self.execute("select level from voltorb where id = ? limit 1", (channel.id,))
-        level = c.fetchone()
-        if level is None:
-            self.execute("insert into voltorb values (?, ?)", (channel.id, new_level))
-        else:
-            self.execute("update voltorb set level = ? where id = ?", (new_level, channel.id))
+        script = f"""
+        insert into voltorb values ({channel.id}, {new_level})
+        on conflict (id) do update voltorb set level = {new_level} where id = {channel.id};
+        """
+        self.call_script(script)
 
     def get_leaderboard_rank(self, player):
         c = self.execute("select id from game order by score desc")
@@ -132,6 +137,30 @@ class Sql:
         for msg in default_bag:
             self.execute("insert into meme values (?)", (msg,))
 
+    def puppy_add_uranium(self):
+        self.execute("update puppy set uranium = uranium + 1")
+
+    def update_puppy_score(self, by):
+        self.execute("update puppy set score_puppy = score_puppy + ?", (by,))
+
+    def update_dead_score(self, by):
+        self.execute("update puppy set score_dead = score_dead + ?", (by,))
+
+    def get_uranium(self):
+        c = self.execute("select uranium from puppy")
+        uranium, = c.fetchone()
+        return uranium
+
+    def get_puppy_score(self):
+        c = self.execute("select score_puppy from puppy")
+        score, = c.fetchone()
+        return score
+
+    def get_dead_score(self):
+        c = self.execute("select score_dead from puppy")
+        score, = c.fetchone()
+        return score
+
     def backup_db(self):
         curtime = int(time.time())
         return shutil.copy(self.fname, f'{self.fname}.{curtime:d}.bak')
@@ -146,4 +175,4 @@ class Sql:
         return dbbak
 
     def call_script(self, script):
-        self.execute(script)
+        return self._connection.executescript(script)
