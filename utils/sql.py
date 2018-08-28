@@ -31,6 +31,10 @@ default_bag = (
 
 
 class Sql(aiosqlite.Connection):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.commit()
+        await super().__aexit__(exc_type, exc_val, exc_tb)
+
     async def db_init(self):
         c = await self.execute("select count(*) from sqlite_master where type='table' and name='meme'")
         exists, = await c.fetchone()
@@ -160,10 +164,4 @@ class Sql(aiosqlite.Connection):
 
 def connect(database, *, loop=None, **kwargs):
     """Create and return a connection proxy to the sqlite database."""
-    if loop is None:
-        loop = asyncio.get_event_loop()
-
-    def connector() -> sqlite3.Connection:
-        return sqlite3.connect(database, **kwargs)
-
-    return Sql(connector, loop)
+    return Sql(lambda: sqlite3.connect(database, **kwargs), loop or asyncio.get_event_loop())
