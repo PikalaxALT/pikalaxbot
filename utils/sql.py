@@ -18,7 +18,6 @@ import aiosqlite
 import sqlite3
 import asyncio
 import glob
-import os
 import shutil
 import time
 
@@ -44,8 +43,11 @@ class Sql(aiosqlite.Connection):
                 await self.execute("insert into meme(bag) values (?)", (line,))
                 await self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
                 await self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
-                await self.execute("create table if not exists puppy (uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
-                await self.execute("insert into puppy default values")
+                await self.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
+                try:
+                    await self.execute("insert into puppy default values")
+                except sqlite3.IntegrityError:
+                    pass
 
     async def db_clear(self):
         await self.execute("drop table if exists meme")
