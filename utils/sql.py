@@ -73,9 +73,9 @@ class Sql:
     def increment_score(self, player, by=1):
         script = f"""
         insert into game values ({player.id}, {player.name}, {by})
-        on conflict (id) do update game set score = score + {by} where id = {player.id};
+        on conflict (id) do update game set score = score + {by} where id = {player.id}
         """
-        self.call_script(script)
+        self.execute(script)
 
     def get_all_scores(self):
         yield from self.execute("select * from game order by score desc limit 10")
@@ -83,10 +83,10 @@ class Sql:
     def add_bag(self, text):
         script = f"""
         insert into meme(bag) values {text}
-        on conflict (bag) fail;
+        on conflict (bag) fail
         """
         try:
-            self.call_script(script)
+            self.execute(script)
         except sqlite3.Error:
             return False
         else:
@@ -111,9 +111,9 @@ class Sql:
     def set_voltorb_level(self, channel, new_level):
         script = f"""
         insert into voltorb values ({channel.id}, {new_level})
-        on conflict (id) do update voltorb set level = {new_level} where id = {channel.id};
+        on conflict (id) do update voltorb set level = {new_level} where id = {channel.id}
         """
-        self.call_script(script)
+        self.execute(script)
 
     def get_leaderboard_rank(self, player):
         c = self.execute("select id from game order by score desc")
