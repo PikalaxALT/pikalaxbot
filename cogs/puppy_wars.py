@@ -186,9 +186,9 @@ class PuppyWars(BaseCog):
     async def dkick(self, ctx: commands.Context):
         """Kick a deadinsky"""
         content = self.do_kick(ctx)
-        content = content.replace('puppy', 'Deadinsky')
+        content = content.replace('puppy', 'PLACEHOLDER')
         content = content.replace(ctx.deadinsky.display_name, 'puppy')
-        content = content.replace('Deadinsky', ctx.deadinsky.display_name)
+        content = content.replace('PLACEHOLDER', ctx.deadinsky.display_name)
         await ctx.send(content)
 
     @commands.command(aliases=['pscore'])
