@@ -83,7 +83,7 @@ class PuppyWars(BaseCog):
         async with self.bot.sql as sql:
             # Uranium
             if ctx.author == ctx.deadinsky and random.random() < self.CHANCE_URANIUM:
-                sql.puppy_add_uranium(1)
+                await sql.puppy_add_uranium(1)
                 return f'{ctx.deadinsky.display_name} finds some {self.NAME_URANIUM} lying on the ground, ' \
                        f'and pockets it.'
 

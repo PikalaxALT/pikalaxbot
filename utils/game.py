@@ -149,7 +149,7 @@ class GameBase:
         score = max(math.ceil(self.score / len(self._players)), 1)
         async with self.bot.sql as sql:
             for player in self._players:
-                sql.increment_score(player, by=score)
+                await sql.increment_score(player, by=score)
         return score
 
 
