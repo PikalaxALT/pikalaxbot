@@ -188,7 +188,7 @@ class PuppyWars(BaseCog):
         content = self.do_kick(ctx)
         content = content.replace('puppy', 'Deadinsky')
         content = content.replace(ctx.deadinsky.display_name, 'puppy')
-        content = content.repalce('Deadinsky', ctx.deadinsky.display_name)
+        content = content.replace('Deadinsky', ctx.deadinsky.display_name)
         await ctx.send(content)
 
     @commands.command(aliases=['pscore'])
