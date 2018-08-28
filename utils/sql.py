@@ -59,6 +59,7 @@ class Sql:
         self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
         self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
         self.execute("create table if not exists puppy (uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
+        self.execute("insert into puppy default values")
 
     def db_clear(self):
         self.execute("drop table if exists meme")
