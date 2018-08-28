@@ -30,24 +30,7 @@ default_bag = (
 )
 
 
-class Sql:
-    def __init__(self, fname='data/db.sql', loop=None):
-        self.fname = fname
-        os.makedirs(os.path.dirname(fname), exist_ok=True)
-        self._connection: aiosqlite.Connection = aiosqlite.connect(self.fname, loop=loop)
-        self._connection.start()
-
-    async def __aenter__(self):
-        await self._connection._connect()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._connection.commit()
-        await self._connection.close()
-
-    async def execute(self, script, args=()):
-        return await self._connection.execute(script, args)
-
+class Sql(aiosqlite.Connection):
     async def db_init(self):
         c = await self.execute("select count(*) from sqlite_master where type='table' and name='meme'")
         exists, = await c.fetchone()
@@ -163,16 +146,24 @@ class Sql:
 
     async def backup_db(self):
         curtime = int(time.time())
-        return shutil.copy(self.fname, f'{self.fname}.{curtime:d}.bak')
+        return shutil.copy('data/db.sql', f'data/db.sql.{curtime:d}.bak')
 
     async def restore_db(self, idx):
-        files = glob.glob(f'{self.fname}.*.bak')
+        files = glob.glob(f'data/db.sql.*.bak')
         if len(files) == 0:
             return None
         files.sort(reverse=True)
         dbbak = files[(idx - 1) % len(files)]
-        shutil.copy(dbbak, self.fname)
+        shutil.copy(dbbak, self.database)
         return dbbak
 
-    async def call_script(self, script):
-        return self._connection.executescript(script)
+
+def connect(database, *, loop=None, **kwargs):
+    """Create and return a connection proxy to the sqlite database."""
+    if loop is None:
+        loop = asyncio.get_event_loop()
+
+    def connector() -> sqlite3.Connection:
+        return sqlite3.connect(database, **kwargs)
+
+    return Sql(connector, loop)

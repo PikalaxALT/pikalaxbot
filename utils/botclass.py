@@ -22,7 +22,7 @@ import logging
 import os
 import glob
 from utils.config_io import Settings
-from utils.sql import Sql
+from utils.sql import connect
 
 
 class LoggingMixin:
@@ -96,18 +96,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 else:
                     self.logger.info(f'Skipping disabled cog "{extn}"')
 
-        # Set up sql database
-        self.sql = Sql(loop=self.loop)
-
         async def init_sql():
-            async with self.sql:
-                await self.sql.db_init()
+            async with self.sql as sql:
+                await sql.db_init()
 
         self.loop.create_task(init_sql())
 
         # Create client session
         self.user_cs = None
         self.ensure_client_session()
+
+    @property
+    def sql(self):
+        return connect('data/db.sql', loop=self.loop)
 
     def run(self):
         self.logger.info('Starting bot')
@@ -121,8 +122,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     async def logout(self):
         await self.user_cs.close()
         await self.close()
-        async with self.sql:
-            await self.sql.backup_db()
+        async with self.sql as sql:
+            await sql.backup_db()
 
     @property
     def owner(self):

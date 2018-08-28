@@ -85,7 +85,7 @@ class ModTools(BaseCog):
         """Run arbitrary sql command"""
 
         async with self.bot.sql as sql:
-            await sql.call_script(script)
+            await sql.executescript(script)
         await ctx.send('Script successfully executed')
 
     @call_sql.error
