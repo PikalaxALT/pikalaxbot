@@ -18,7 +18,7 @@ class PuppyWars(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        with open('../data/puppy.json') as fp:
+        with open('data/puppy.json') as fp:
             self.dndstyle = json.load(fp)
 
     @staticmethod
