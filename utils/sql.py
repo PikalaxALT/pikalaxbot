@@ -83,7 +83,7 @@ class Sql:
 
     async def get_all_scores(self):
         c = await self.execute("select * from game order by score desc limit 10")
-        for row in c.fetchall():
+        for row in await c.fetchall():
             yield row
 
     async def add_bag(self, text):

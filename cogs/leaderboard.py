@@ -46,7 +46,7 @@ class Leaderboard(BaseCog):
         """Check the top 10 players on the leaderboard"""
         msgs = []
         async with self.bot.sql as sql:
-            for _id, name, score in await sql.get_all_scores():
+            async for _id, name, score in sql.get_all_scores():
                 msgs.append(f'{name}: {score:d}')
         if len(msgs) == 0:
             await ctx.send('The leaderboard is empty. Play some games to get your name up there!')
