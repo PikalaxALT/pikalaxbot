@@ -98,8 +98,12 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         # Set up sql database
         self.sql = Sql()
-        with self.sql:
-            self.sql.db_init()
+
+        async def init_sql():
+            async with self.sql:
+                await self.sql.db_init()
+
+        self.loop.create_task(init_sql())
 
         # Create client session
         self.user_cs = None
@@ -117,7 +121,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     async def logout(self):
         await self.user_cs.close()
         await self.close()
-        with self.sql:
+        async with self.sql:
             self.sql.backup_db()
 
     @property

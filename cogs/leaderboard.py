@@ -32,10 +32,10 @@ class Leaderboard(BaseCog):
         """Check your leaderboard score, or the leaderboard score of another user"""
         if person is None:
             person = ctx.author
-        with self.bot.sql as sql:
-            score = sql.get_score(person)
+        async with self.bot.sql as sql:
+            score = await sql.get_score(person)
             if score is not None:
-                rank = sql.get_leaderboard_rank(person)
+                rank = await sql.get_leaderboard_rank(person)
                 await ctx.send(f'{person.name} has {score:d} point(s) across all games '
                                f'and is #{rank:d} on the leaderboard.')
             else:
@@ -45,8 +45,8 @@ class Leaderboard(BaseCog):
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
         msgs = []
-        with self.bot.sql as sql:
-            for _id, name, score in sql.get_all_scores():
+        async with self.bot.sql as sql:
+            for _id, name, score in await sql.get_all_scores():
                 msgs.append(f'{name}: {score:d}')
         if len(msgs) == 0:
             await ctx.send('The leaderboard is empty. Play some games to get your name up there!')
@@ -61,8 +61,8 @@ class Leaderboard(BaseCog):
     @commands.is_owner()
     async def clear_leaderboard(self, ctx):
         """Reset the leaderboard"""
-        with self.bot.sql as sql:
-            sql.reset_leaderboard()
+        async with self.bot.sql as sql:
+            await sql.reset_leaderboard()
         await ctx.send('Leaderboard reset')
 
     @leaderboard.command(name='give')
@@ -72,8 +72,8 @@ class Leaderboard(BaseCog):
         if person is None:
             await ctx.send('That person does not exist')
         else:
-            with self.bot.sql as sql:
-                sql.increment_score(person, score)
+            async with self.bot.sql as sql:
+                await sql.increment_score(person, score)
             await ctx.send(f'Gave {score:d} points to {person.name}')
 
     @commands.group()
@@ -84,15 +84,15 @@ class Leaderboard(BaseCog):
     @database.command(name='backup')
     async def backup_database(self, ctx):
         """Back up the database"""
-        with self.bot.sql as sql:
-            fname = sql.backup_db()
+        async with self.bot.sql as sql:
+            fname = await sql.backup_db()
         await ctx.send(f'Backed up to {fname}')
 
     @database.command(name='restore')
     async def restore_database(self, ctx, *, idx: int = -1):
         """Restore the database"""
-        with self.bot.sql as sql:
-            dbbak = sql.restore_db(idx)
+        async with self.bot.sql as sql:
+            dbbak = await sql.restore_db(idx)
         if dbbak is None:
             await ctx.send('Unable to restore backup')
         else:

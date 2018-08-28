@@ -79,8 +79,8 @@ class PuppyWars(BaseCog):
                   f'VS Puppies [{puppy_rolls}] = {successes[1]} Successes{puppy_crit}'
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
-    def do_kick(self, ctx: commands.Context):
-        with self.bot.sql as sql:
+    async def do_kick(self, ctx: commands.Context):
+        async with self.bot.sql as sql:
             # Uranium
             if ctx.author == ctx.deadinsky and random.random() < self.CHANCE_URANIUM:
                 sql.puppy_add_uranium(1)
@@ -91,18 +91,18 @@ class PuppyWars(BaseCog):
             dead_is_here = ctx.deadinsky.status.online
             if dead_is_here and random.random() < self.CHANCE_SHOWDOWN:
                 deaddelta, pupdelta, content = self.do_showdown()
-                sql.update_dead_score(deaddelta)
-                sql.update_puppy_score(pupdelta)
+                await sql.update_dead_score(deaddelta)
+                await sql.update_puppy_score(pupdelta)
                 return content.format(deadinsky=ctx.deadinsky.display_name)
 
             # Pupnado
             rngval = random.random()
-            dead_score = sql.get_dead_score()
-            puppy_score = sql.get_puppy_score()
+            dead_score = await sql.get_dead_score()
+            puppy_score = await sql.get_puppy_score()
             if dead_is_here and dead_score > 30 and dead_score > puppy_score + 45 and rngval < self.CHANCE_PUPNADO:
                 score_diff = (dead_score - puppy_score)
                 by = round(score_diff * (random.random() * 0.2 + 0.9))
-                sql.update_puppy_score(by)
+                await sql.update_puppy_score(by)
                 return f"""
         {ctx.author.mention} is walking down the road on an abnormally calm day. 
         It is several minutes before he notices the low rumbling sound all around him... 
@@ -115,29 +115,28 @@ class PuppyWars(BaseCog):
                 num = random.randint(8, 16)
                 if ctx.author == ctx.deadinsky:
                     ref = 'Almost' if num < 12 else 'Over'
-                    sql.update_puppy_score(num)
+                    await sql.update_puppy_score(num)
                     return f'{ref} a dozen puppies suddenly fall from the sky onto {ctx.author.mention} ' \
                            f'and curbstomp him.'
                 elif dead_is_here:
                     ref = 'maybe' if num < 12 else 'over'
-                    sql.update_puppy_score(num)
+                    await sql.update_puppy_score(num)
                     return f'{ctx.author.mention} watches as {ref} a dozen puppies spring from nowhere and ' \
                            f'ambush {ctx.deadinsky.display_name}, beating him to the curb.'
                 else:
                     ref = 'nearly' if num < 12 else 'over'
                     return f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, ' \
                            f'but instead gets ganged up on by {ref} a dozen puppies.'
-                return
 
             if rngval > 1 - self.CHANCE_DOZEN:
                 num = random.randint(8, 13)
                 if ctx.author == ctx.deadinsky:
-                    sql.update_dead_score(num)
+                    await sql.update_dead_score(num)
                     return f'{ctx.author.mention} comes across a dog carrier with about a ' \
                            f'dozen puppies inside. He overturns the whole box with his foot!'
                 elif dead_is_here:
                     ref = 'Maybe' if num < 12 else 'Over'
-                    sql.update_dead_score(num)
+                    await sql.update_dead_score(num)
                     return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} punts a dog carrier. ' \
                            f'{ref} a dozen puppies run in terror from the overturned box.'
                 else:
@@ -148,22 +147,22 @@ class PuppyWars(BaseCog):
 
             if rngval < self.CHANCE_PUPWIN:
                 if ctx.author == ctx.deadinsky:
-                    sql.update_puppy_score(1)
+                    await sql.update_puppy_score(1)
                     return f'A puppy kicks {ctx.author.mention}.'
                 elif dead_is_here:
-                    sql.update_puppy_score(1)
+                    await sql.update_puppy_score(1)
                     return f'{ctx.author.mention} watches as a puppy kicks {ctx.deadinsky.display_name}\'s ass.'
                 else:
                     return f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, ' \
                            f'but instead the puppy dodges and kicks {ctx.author.mention}.'
 
             if ctx.author == ctx.deadinsky:
-                sql.update_dead_score(1)
+                await sql.update_dead_score(1)
                 return f'{ctx.author.mention} kicks a puppy.'
             elif ctx.author.id == self.AZUM4ROLL:
                 role = discord.utils.get(ctx.guild.roles, id=self.OFFICER_ROLE) or 'Officer'
                 if dead_is_here:
-                    sql.update_dead_score(1)
+                    await sql.update_dead_score(1)
                     return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} accidentally ' \
                            f'makes a puppy an {role} while trying to kick it.'
                 else:
@@ -172,7 +171,7 @@ class PuppyWars(BaseCog):
                            f'permissions to do so anyway.'
             else:
                 if dead_is_here:
-                    sql.update_dead_score(1)
+                    await sql.update_dead_score(1)
                     return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} kicks a puppy.'
                 else:
                     return f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf.'
@@ -180,12 +179,12 @@ class PuppyWars(BaseCog):
     @commands.command(aliases=['kick'])
     async def pkick(self, ctx: commands.Context):
         """Kick a puppy"""
-        await ctx.send(self.do_kick(ctx))
+        await ctx.send(await self.do_kick(ctx))
 
     @commands.command()
     async def dkick(self, ctx: commands.Context):
         """Kick a deadinsky"""
-        content = self.do_kick(ctx)
+        content = await self.do_kick(ctx)
         content = content.replace('puppy', 'PLACEHOLDER')
         content = content.replace(ctx.deadinsky.display_name, 'puppy')
         content = content.replace('PLACEHOLDER', ctx.deadinsky.display_name)
@@ -194,9 +193,9 @@ class PuppyWars(BaseCog):
     @commands.command(aliases=['pscore'])
     async def dscore(self, ctx: commands.Context):
         """Show the puppy score"""
-        with self.bot.sql as sql:
-            dead_score = sql.get_dead_score()
-            puppy_score = sql.get_puppy_score()
+        async with self.bot.sql as sql:
+            dead_score = await sql.get_dead_score()
+            puppy_score = await sql.get_puppy_score()
 
         if 66 < dead_score < 77:
             await ctx.send(f'{ctx.deadinsky.display_name}: 66+{dead_score - 66}, Puppies: {puppy_score}')

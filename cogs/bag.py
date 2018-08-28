@@ -24,8 +24,8 @@ class Bag(BaseCog):
     async def bag(self, ctx):
         """Get in the bag, Nebby."""
         if ctx.invoked_subcommand is None:
-            with self.bot.sql as sql:
-                message = sql.read_bag()
+            async with self.bot.sql as sql:
+                message = await sql.read_bag()
             if message is None:
                 emoji = find_emoji(ctx.guild, 'BibleThump', case_sensitive=False)
                 await ctx.send(f'*cannot find the bag {emoji}*')
@@ -35,8 +35,8 @@ class Bag(BaseCog):
     @bag.command()
     async def add(self, ctx, *, fmtstr):
         """Add a message to the bag."""
-        with self.bot.sql as sql:
-            res = sql.add_bag(fmtstr)
+        async with self.bot.sql as sql:
+            res = await sql.add_bag(fmtstr)
         if res:
             await ctx.send('Message was successfully placed in the bag')
         else:
@@ -46,8 +46,8 @@ class Bag(BaseCog):
     @commands.is_owner()
     async def remove_bag(self, ctx, *, msg):
         """Remove a phrase from the bag"""
-        with self.bot.sql as sql:
-            res = sql.remove_bag(msg)
+        async with self.bot.sql as sql:
+            res = await sql.remove_bag(msg)
         if res:
             await ctx.send('Removed message from bag')
         else:
@@ -57,8 +57,8 @@ class Bag(BaseCog):
     @commands.is_owner()
     async def reset_bag(self, ctx):
         """Reset the bag"""
-        with self.bot.sql as sql:
-            sql.reset_bag()
+        async with self.bot.sql as sql:
+            await sql.reset_bag()
         await ctx.send('Reset the bag')
 
 

@@ -147,7 +147,7 @@ class GameBase:
 
     async def award_points(self):
         score = max(math.ceil(self.score / len(self._players)), 1)
-        with self.bot.sql as sql:
+        async with self.bot.sql as sql:
             for player in self._players:
                 sql.increment_score(player, by=score)
         return score
