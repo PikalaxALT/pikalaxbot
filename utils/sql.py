@@ -50,7 +50,8 @@ class Sql:
         return await self._connection.execute(script, args)
 
     async def db_init(self):
-        exists, = await self.execute("select count(*) from sqlite_master where type='table' and name='meme'").fetchone()
+        c = await self.execute("select count(*) from sqlite_master where type='table' and name='meme'")
+        exists, = await c.fetchone()
         await self.execute("create table if not exists meme (bag text primary key)")
         if not exists:
             for line in default_bag:
@@ -68,7 +69,8 @@ class Sql:
 
     async def get_score(self, author):
         try:
-            score, = await self.execute("select score from game where id = ?", (author.id,)).fetchone()
+            c = await self.execute("select score from game where id = ?", (author.id,))
+            score, = await c.fetchone()
         except ValueError:
             score = None
         return score
@@ -80,7 +82,8 @@ class Sql:
             await self.execute("update game set score = score + ? where id = ?", (by, player.id))
 
     async def get_all_scores(self):
-        async for row in self.execute("select * from game order by score desc limit 10"):
+        c = await self.execute("select * from game order by score desc limit 10")
+        for row in c.fetchall():
             yield row
 
     async def add_bag(self, text):
@@ -93,13 +96,13 @@ class Sql:
 
     async def read_bag(self):
         c = await self.execute("select bag from meme order by random() limit 1")
-        msg = c.fetchone()
+        msg = await c.fetchone()
         if msg is not None:
             return msg[0]
 
     async def get_voltorb_level(self, channel):
         c = await self.execute("select level from voltorb where id = ?", (channel.id,))
-        level = c.fetchone()
+        level = await c.fetchone()
         if level is None:
             await self.execute("insert into voltorb values (?, 1)", (channel.id,))
             level = 1
@@ -115,7 +118,7 @@ class Sql:
 
     async def get_leaderboard_rank(self, player):
         c = await self.execute("select id from game order by score desc")
-        for i, row in enumerate(c.fetchall()):
+        for i, row in enumerate(await c.fetchall()):
             id_, = row
             if id_ == player.id:
                 return i + 1
@@ -146,17 +149,17 @@ class Sql:
 
     async def get_uranium(self):
         c = await self.execute("select uranium from puppy")
-        uranium, = c.fetchone()
+        uranium, = await c.fetchone()
         return uranium
 
     async def get_puppy_score(self):
         c = await self.execute("select score_puppy from puppy")
-        score, = c.fetchone()
+        score, = await c.fetchone()
         return score
 
     async def get_dead_score(self):
         c = await self.execute("select score_dead from puppy")
-        score, = c.fetchone()
+        score, = await c.fetchone()
         return score
 
     async def backup_db(self):
