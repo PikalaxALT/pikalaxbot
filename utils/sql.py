@@ -67,27 +67,25 @@ class Sql:
         self.execute("drop table if exists puppy")
 
     def get_score(self, author):
-        score, = self.execute("select score from game where id = ?", (author.id,)).fetchone()
+        try:
+            score, = self.execute("select score from game where id = ?", (author.id,)).fetchone()
+        except ValueError:
+            score = None
         return score
 
     def increment_score(self, player, by=1):
-        script = f"""
-        insert into game values ({player.id}, {player.name}, {by})
-        on conflict (id) do update game set score = score + {by} where id = {player.id}
-        """
-        self.execute(script)
+        try:
+            self.execute("insert into game values (?, ?, ?)", (player.id, player.name, by))
+        except sqlite3.IntegrityError:
+            self.execute("update game set score = score + ? where id = ?", (by, player.id))
 
     def get_all_scores(self):
         yield from self.execute("select * from game order by score desc limit 10")
 
     def add_bag(self, text):
-        script = f"""
-        insert into meme(bag) values {text}
-        on conflict (bag) fail
-        """
         try:
-            self.execute(script)
-        except sqlite3.Error:
+            self.execute("insert into meme(bag) values (?)", (text,))
+        except sqlite3.IntegrityError:
             return False
         else:
             return True
@@ -109,11 +107,10 @@ class Sql:
         return level
 
     def set_voltorb_level(self, channel, new_level):
-        script = f"""
-        insert into voltorb values ({channel.id}, {new_level})
-        on conflict (id) do update voltorb set level = {new_level} where id = {channel.id}
-        """
-        self.execute(script)
+        try:
+            self.execute("insert into voltorb values (?, ?)", (channel.id, new_level))
+        except sqlite3.IntegrityError:
+            self.execute("update voltorb set level = ? where id = ?", (new_level, channel.id))
 
     def get_leaderboard_rank(self, player):
         c = self.execute("select id from game order by score desc")
