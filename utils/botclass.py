@@ -122,7 +122,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         await self.user_cs.close()
         await self.close()
         async with self.sql:
-            self.sql.backup_db()
+            await self.sql.backup_db()
 
     @property
     def owner(self):
