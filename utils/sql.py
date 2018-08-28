@@ -35,9 +35,10 @@ class Sql:
         self.fname = fname
         os.makedirs(os.path.dirname(fname), exist_ok=True)
         self._connection: aiosqlite.Connection = aiosqlite.connect(self.fname, loop=loop)
+        self._connection.start()
 
     async def __aenter__(self):
-        await self._connection.__aenter__()
+        await self._connection._connect()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
