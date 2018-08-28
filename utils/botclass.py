@@ -97,7 +97,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                     self.logger.info(f'Skipping disabled cog "{extn}"')
 
         # Set up sql database
-        self.sql = Sql()
+        self.sql = Sql(loop=self.loop)
 
         async def init_sql():
             async with self.sql:
