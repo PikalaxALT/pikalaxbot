@@ -79,25 +79,21 @@ class PuppyWars(BaseCog):
                   f'VS Puppies [{puppy_rolls}] = {successes[1]} Successes{puppy_crit}'
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
-    @commands.command(name='kick', aliases=['pkick', 'dkick'])
-    async def pkick(self, ctx: commands.Context):
-        """Kick a puppy"""
+    def do_kick(self, ctx: commands.Context):
         with self.bot.sql as sql:
             # Uranium
             if ctx.author == ctx.deadinsky and random.random() < self.CHANCE_URANIUM:
-                await ctx.send(f'{ctx.deadinsky.display_name} finds some {self.NAME_URANIUM} lying on the ground, '
-                               f'and pockets it.')
                 sql.puppy_add_uranium(1)
-                return
+                return f'{ctx.deadinsky.display_name} finds some {self.NAME_URANIUM} lying on the ground, ' \
+                       f'and pockets it.'
 
             # Rolloff
             dead_is_here = ctx.deadinsky.status.online
             if dead_is_here and random.random() < self.CHANCE_SHOWDOWN:
                 deaddelta, pupdelta, content = self.do_showdown()
-                await ctx.send(content.format(deadinsky=ctx.deadinsky.display_name))
                 sql.update_dead_score(deaddelta)
                 sql.update_puppy_score(pupdelta)
-                return
+                return content.format(deadinsky=ctx.deadinsky.display_name)
 
             # Pupnado
             rngval = random.random()
@@ -106,84 +102,94 @@ class PuppyWars(BaseCog):
             if dead_is_here and dead_score > 30 and dead_score > puppy_score + 45 and rngval < self.CHANCE_PUPNADO:
                 score_diff = (dead_score - puppy_score)
                 by = round(score_diff * (random.random() * 0.2 + 0.9))
-                await ctx.send(f"""
-{ctx.author.mention} is walking down the road on an abnormally calm day. 
-It is several minutes before he notices the low rumbling sound all around him... 
-He looks behind him, and a look of terror strikes his face. 
-He turns and starts sprinting away as fast as he can. But there is no way he 
-can outrun it. The pupnado is soon upon him....
-                """)
                 sql.update_puppy_score(by)
-                return
+                return f"""
+        {ctx.author.mention} is walking down the road on an abnormally calm day. 
+        It is several minutes before he notices the low rumbling sound all around him... 
+        He looks behind him, and a look of terror strikes his face. 
+        He turns and starts sprinting away as fast as he can. But there is no way he 
+        can outrun it. The pupnado is soon upon him....
+                        """
 
             if rngval < self.CHANCE_DOZEN:
                 num = random.randint(8, 16)
                 if ctx.author == ctx.deadinsky:
                     ref = 'Almost' if num < 12 else 'Over'
-                    await ctx.send(f'{ref} a dozen puppies suddenly fall from the sky onto {ctx.author.mention} '
-                                   f'and curbstomp him.')
                     sql.update_puppy_score(num)
+                    return f'{ref} a dozen puppies suddenly fall from the sky onto {ctx.author.mention} ' \
+                           f'and curbstomp him.'
                 elif dead_is_here:
                     ref = 'maybe' if num < 12 else 'over'
-                    await ctx.send(f'{ctx.author.mention} watches as {ref} a dozen puppies spring from nowhere and '
-                                   f'ambush {ctx.deadinsky.display_name}, beating him to the curb.')
                     sql.update_puppy_score(num)
+                    return f'{ctx.author.mention} watches as {ref} a dozen puppies spring from nowhere and ' \
+                           f'ambush {ctx.deadinsky.display_name}, beating him to the curb.'
                 else:
                     ref = 'nearly' if num < 12 else 'over'
-                    await ctx.send(f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, '
-                                   f'but instead gets ganged up on by {ref} a dozen puppies.')
+                    return f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, ' \
+                           f'but instead gets ganged up on by {ref} a dozen puppies.'
                 return
 
             if rngval > 1 - self.CHANCE_DOZEN:
                 num = random.randint(8, 13)
                 if ctx.author == ctx.deadinsky:
-                    await ctx.send(f'{ctx.author.mention} comes across a dog carrier with about a '
-                                   f'dozen puppies inside. He overturns the whole box with his foot!')
                     sql.update_dead_score(num)
+                    return f'{ctx.author.mention} comes across a dog carrier with about a ' \
+                           f'dozen puppies inside. He overturns the whole box with his foot!'
                 elif dead_is_here:
                     ref = 'Maybe' if num < 12 else 'Over'
-                    await ctx.send(f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} punts a dog carrier. '
-                                   f'{ref} a dozen puppies run in terror from the overturned box.')
                     sql.update_dead_score(num)
+                    return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} punts a dog carrier. ' \
+                           f'{ref} a dozen puppies run in terror from the overturned box.'
                 else:
                     ref = 'nearly' if num < 12 else 'over'
-                    await ctx.send(f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf. '
-                                   f'The pup flies into a nearby dog carrier with {ref} a dozen puppies inside and '
-                                   f'knocks it over.')
-                return
+                    return f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf. ' \
+                           f'The pup flies into a nearby dog carrier with {ref} a dozen puppies inside and ' \
+                           f'knocks it over.'
 
             if rngval < self.CHANCE_PUPWIN:
                 if ctx.author == ctx.deadinsky:
-                    await ctx.send(f'A puppy kicks {ctx.author.mention}.')
                     sql.update_puppy_score(1)
+                    return f'A puppy kicks {ctx.author.mention}.'
                 elif dead_is_here:
-                    await ctx.send(f'{ctx.author.mention} watches as a puppy kicks {ctx.deadinsky.display_name}\'s ass.')
                     sql.update_puppy_score(1)
+                    return f'{ctx.author.mention} watches as a puppy kicks {ctx.deadinsky.display_name}\'s ass.'
                 else:
-                    await ctx.send(f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, '
-                                   f'but instead the puppy dodges and kicks {ctx.author.mention}.')
-                return
+                    return f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, ' \
+                           f'but instead the puppy dodges and kicks {ctx.author.mention}.'
 
             if ctx.author == ctx.deadinsky:
-                await ctx.send(f'{ctx.author.mention} kicks a puppy.')
                 sql.update_dead_score(1)
+                return f'{ctx.author.mention} kicks a puppy.'
             elif ctx.author.id == self.AZUM4ROLL:
                 role = discord.utils.get(ctx.guild.roles, id=self.OFFICER_ROLE) or 'Officer'
                 if dead_is_here:
-                    await ctx.send(f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} accidentally '
-                                   f'makes a puppy an {role} while trying to kick it.')
                     sql.update_dead_score(1)
+                    return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} accidentally ' \
+                           f'makes a puppy an {role} while trying to kick it.'
                 else:
-                    await ctx.send(f'{ctx.author.mention} almost accidentally makes a puppy an {role} '
-                                   f'on {ctx.deadinsky.display_name}\'s behalf, but they don\'t have the necessary '
-                                   f'permissions to do so anyway.')
+                    return f'{ctx.author.mention} almost accidentally makes a puppy an {role} ' \
+                           f'on {ctx.deadinsky.display_name}\'s behalf, but they don\'t have the necessary ' \
+                           f'permissions to do so anyway.'
             else:
                 if dead_is_here:
-                    await ctx.send(f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} kicks a puppy.')
                     sql.update_dead_score(1)
+                    return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} kicks a puppy.'
                 else:
-                    await ctx.send(f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf.')
-            return  # not necessary, but makes the command structure visually consistent
+                    return f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf.'
+
+    @commands.command(aliases=['kick'])
+    async def pkick(self, ctx: commands.Context):
+        """Kick a puppy"""
+        await ctx.send(self.do_kick(ctx))
+
+    @commands.command()
+    async def dkick(self, ctx: commands.Context):
+        """Kick a deadinsky"""
+        content = self.do_kick(ctx)
+        content = content.replace('puppy', 'Deadinsky')
+        content = content.replace(ctx.deadinsky.display_name, 'puppy')
+        content = content.repalce('Deadinsky', ctx.deadinsky.display_name)
+        await ctx.send(content)
 
     @commands.command(aliases=['pscore'])
     async def dscore(self, ctx: commands.Context):
