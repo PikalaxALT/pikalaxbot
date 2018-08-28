@@ -37,6 +37,7 @@ class Sql:
         self._connection: aiosqlite.Connection = aiosqlite.connect(self.fname, loop=loop)
 
     async def __aenter__(self):
+        await self._connection.__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
