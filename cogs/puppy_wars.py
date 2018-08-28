@@ -204,7 +204,15 @@ class PuppyWars(BaseCog):
             await ctx.send(f'{ctx.deadinsky.display_name}: {dead_score}, Puppies: {puppy_score}')
     
     async def __before_invoke(self, ctx: commands.Context):
-        ctx.deadinsky = ctx.guild.get_member(self.DEADINSKY)
+        class Dummyinsky66:
+            class Status:
+                online = False
+
+            id = self.DEADINSKY
+            display_name = 'Deadinsky'
+            status = Status()
+
+        ctx.deadinsky = ctx.guild.get_member(self.DEADINSKY) or Dummyinsky66()
 
 
 def setup(bot):
