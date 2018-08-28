@@ -202,6 +202,20 @@ class PuppyWars(BaseCog):
             await ctx.send(f'{ctx.deadinsky.display_name}: 66+{dead_score - 66}, Puppies: {puppy_score}')
         else:
             await ctx.send(f'{ctx.deadinsky.display_name}: {dead_score}, Puppies: {puppy_score}')
+
+    @commands.command()
+    async def ckick(self, ctx: commands.Context):
+        """Kick a cat"""
+        catrevenge = [
+            f"the cat wraps around {ctx.author.mention}'s leg and scratches it violently.",
+            f"the cat dodges and jumps onto {ctx.author.mention}'s face.",
+            f"misses, and the cat trips {ctx.author.mention} instead.",
+            f"is instead crushed by a sudden army of cats HALO jumping in from above.",
+            f"{ctx.author.mention} slips hard on the cat's squeeky toy and falls in the cat's litterbox.",
+            f"the cat springs into the air and claws {ctx.author.mention} in the face before the kick connects.",
+            f"the cat is a bastard and simply doesn't let it happen.",
+        ]
+        await ctx.send(f'{ctx.author.mention} goes to kick a cat, but {random.choice(catrevenge)}')
     
     async def __before_invoke(self, ctx: commands.Context):
         class Dummyinsky66:
