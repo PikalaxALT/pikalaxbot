@@ -43,8 +43,6 @@ class Sql:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self._connection.commit()
-        await self._connection.execute("vacuum")
-        await self._connection.commit()
 
     async def execute(self, script, args=()):
         return await self._connection.execute(script, args)
