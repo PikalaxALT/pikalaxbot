@@ -66,8 +66,7 @@ class PuppyWars(BaseCog):
         dice = [[], []]
 
         for i in range(2):
-            ndice = 0
-            while ndice < pool[i]:
+            while len(dice[i]) < pool[i]:
                 rval = random.randint(1, 6)
                 if rval >= 4:
                     successes[i] += 1
@@ -111,11 +110,11 @@ class PuppyWars(BaseCog):
                 by = round(score_diff * (random.random() * 0.2 + 0.9))
                 await sql.update_puppy_score(by)
                 return f"""
-        {ctx.author.mention} is walking down the road on an abnormally calm day. 
-        It is several minutes before he notices the low rumbling sound all around him... 
-        He looks behind him, and a look of terror strikes his face. 
-        He turns and starts sprinting away as fast as he can. But there is no way he 
-        can outrun it. The pupnado is soon upon him....
+{ctx.author.mention} is walking down the road on an abnormally calm day. 
+It is several minutes before he notices the low rumbling sound all around him... 
+He looks behind him, and a look of terror strikes his face. 
+He turns and starts sprinting away as fast as he can. But there is no way he 
+can outrun it. The pupnado is soon upon him....
                         """
 
             if rngval < self.CHANCE_DOZEN:
