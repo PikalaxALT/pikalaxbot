@@ -30,6 +30,14 @@ default_bag = (
 
 
 class Sql(aiosqlite.Connection):
+    def __init__(self, database, *, loop=None, **kwargs):
+        def connector():
+            return sqlite3.connect(database, **kwargs)
+
+        loop = loop or asyncio.get_event_loop()
+        super().__init__(connector, loop=loop)
+        self.database = database
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.commit()
         await super().__aexit__(exc_type, exc_val, exc_tb)
@@ -45,7 +53,7 @@ class Sql(aiosqlite.Connection):
                 await self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
                 await self.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
                 try:
-                    await self.execute("insert into puppy default values")
+                    await self.execute("insert into puppy(sentinel) values (66)")
                 except sqlite3.IntegrityError:
                     pass
 
@@ -152,18 +160,19 @@ class Sql(aiosqlite.Connection):
 
     async def backup_db(self):
         curtime = int(time.time())
-        return shutil.copy('data/db.sql', f'data/db.sql.{curtime:d}.bak')
+        dbbak = f'{self.database}.{curtime:d}.bak'
+        return await self._loop.run_in_executor(None, shutil.copy, self.database, dbbak)
 
     async def restore_db(self, idx):
-        files = glob.glob(f'data/db.sql.*.bak')
+        files = glob.glob(f'{self.database}.*.bak')
         if len(files) == 0:
             return None
         files.sort(reverse=True)
         dbbak = files[(idx - 1) % len(files)]
-        shutil.copy(dbbak, self.database)
+        await self._loop.run_in_executor(shutil.copy, dbbak, self.database)
         return dbbak
 
 
 def connect(database, *, loop=None, **kwargs):
     """Create and return a connection proxy to the sqlite database."""
-    return Sql(lambda: sqlite3.connect(database, **kwargs), loop or asyncio.get_event_loop())
+    return Sql(database, loop=loop, **kwargs)
