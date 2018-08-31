@@ -3,6 +3,13 @@ import discord
 from discord.ext import commands
 import random
 from cogs import BaseCog
+import typing
+
+
+class PuppyWarsContext(commands.Context):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.deadinsky: typing.Union[discord.Member, discord.User] = None
 
 
 class PuppyWars(BaseCog):
@@ -79,7 +86,7 @@ class PuppyWars(BaseCog):
                   f'VS Puppies [{puppy_rolls}] = {successes[1]} Successes{puppy_crit}'
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
-    async def do_kick(self, ctx: commands.Context):
+    async def do_kick(self, ctx: PuppyWarsContext):
         async with self.bot.sql as sql:
             # Uranium
             if ctx.author == ctx.deadinsky and random.random() < self.CHANCE_URANIUM:
@@ -88,7 +95,7 @@ class PuppyWars(BaseCog):
                        f'and pockets it.'
 
             # Rolloff
-            dead_is_here = ctx.deadinsky.status.online
+            dead_is_here = isinstance(ctx.deadinsky, discord.Member) and ctx.deadinsky.status == discord.Status.online
             if dead_is_here and random.random() < self.CHANCE_SHOWDOWN:
                 deaddelta, pupdelta, content = self.do_showdown()
                 await sql.update_dead_score(deaddelta)
@@ -177,12 +184,12 @@ class PuppyWars(BaseCog):
                     return f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf.'
 
     @commands.command(aliases=['kick'])
-    async def pkick(self, ctx: commands.Context):
+    async def pkick(self, ctx: PuppyWarsContext):
         """Kick a puppy"""
         await ctx.send(await self.do_kick(ctx))
 
     @commands.command()
-    async def dkick(self, ctx: commands.Context):
+    async def dkick(self, ctx: PuppyWarsContext):
         """Kick a deadinsky"""
         content = await self.do_kick(ctx)
         content = content.replace('puppy', 'PLACEHOLDER')
@@ -191,7 +198,7 @@ class PuppyWars(BaseCog):
         await ctx.send(content)
 
     @commands.command(aliases=['pscore', 'score'])
-    async def dscore(self, ctx: commands.Context):
+    async def dscore(self, ctx: PuppyWarsContext):
         """Show the puppy score"""
         async with self.bot.sql as sql:
             dead_score = await sql.get_dead_score()
@@ -203,7 +210,7 @@ class PuppyWars(BaseCog):
             await ctx.send(f'{ctx.deadinsky.display_name}: {dead_score}, Puppies: {puppy_score}')
 
     @commands.command()
-    async def ckick(self, ctx: commands.Context):
+    async def ckick(self, ctx: PuppyWarsContext):
         """Kick a cat"""
         catrevenge = [
             f"the cat wraps around {ctx.author.mention}'s leg and scratches it violently.",
@@ -216,16 +223,8 @@ class PuppyWars(BaseCog):
         ]
         await ctx.send(f'{ctx.author.mention} goes to kick a cat, but {random.choice(catrevenge)}')
     
-    async def __before_invoke(self, ctx: commands.Context):
-        class Dummyinsky66:
-            class Status:
-                online = False
-
-            id = self.DEADINSKY
-            display_name = 'Deadinsky'
-            status = Status()
-
-        ctx.deadinsky = ctx.guild.get_member(self.DEADINSKY) or Dummyinsky66()
+    async def __before_invoke(self, ctx: PuppyWarsContext):
+        ctx.deadinsky = ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
 
 
 def setup(bot):
