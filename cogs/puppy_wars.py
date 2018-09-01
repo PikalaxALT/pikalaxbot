@@ -14,7 +14,6 @@ class PuppyWarsContext(commands.Context):
 
 class PuppyWars(BaseCog):
     DEADINSKY = 120002774653075457
-    AZUM4ROLL = 151017345823801344
     OFFICER_ROLE = 484054660655742996
     CHANCE_SHOWDOWN = 0.10
     CHANCE_PUPNADO = 0.03
@@ -165,16 +164,15 @@ can outrun it. The pupnado is soon upon him....
             if ctx.author == ctx.deadinsky:
                 await sql.update_dead_score(1)
                 return f'{ctx.author.mention} kicks a puppy.'
-            elif ctx.author.id == self.AZUM4ROLL:
+            elif ctx.author.guild_permissions.manage_roles:
                 role = discord.utils.get(ctx.guild.roles, id=self.OFFICER_ROLE) or 'Officer'
                 if dead_is_here:
                     await sql.update_dead_score(1)
                     return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} accidentally ' \
                            f'makes a puppy an {role} while trying to kick it.'
                 else:
-                    return f'{ctx.author.mention} almost accidentally makes a puppy an {role} ' \
-                           f'on {ctx.deadinsky.display_name}\'s behalf, but they don\'t have the necessary ' \
-                           f'permissions to do so anyway.'
+                    return f'{ctx.author.mention} accidentally makes a puppy an {role} ' \
+                           f'on {ctx.deadinsky.display_name}\'s behalf.'
             else:
                 if dead_is_here:
                     await sql.update_dead_score(1)
@@ -224,6 +222,36 @@ can outrun it. The pupnado is soon upon him....
     
     async def __before_invoke(self, ctx: PuppyWarsContext):
         ctx.deadinsky = ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
+
+    async def dead_arrives(self, channel: discord.TextChannel, deadinsky: discord.Member):
+        rngval = random.random()
+        if rngval < self.CHANCE_URANIUM:
+            await channel.send(f'As {deadinsky.display_name} walks into the room, he accidentally steps on some '
+                               f'{self.NAME_URANIUM}. He pockets it.')
+            with self.bot.sql as sql:
+                await sql.puppy_add_uranium()
+        elif rngval < 0.45:
+            puppy_actions = [
+                    f'a bucket falls on his head and two puppies fall down on it and smack it. '
+                    f'They run off as {deadinsky.display_name} gets his bearings.',
+                    f'a cup of warm coffee flies across the room from a dense group of puppies and '
+                    f'beans {deadinsky.display_name} in the head.',
+                    f'he steps on a rake with a bone attached to the end of it. It smacks him across the face.',
+                    f'suddenly a whip creame pie smacks into his face. The puppies in the room scatter.',
+                    f'a puppy swings from the ceiling, leaps off, and kicks him in the face, before running off.'
+            ]
+            await channel.send(f'{deadinsky.display_name} walks into the room and {random.choice(puppy_actions)}')
+            with self.bot.sql as sql:
+                await sql.update_puppy_score(1)
+        else:
+            await channel.send(f'As {deadinsky.display_name} walks into the room, the puppies in the area tense up '
+                               f'and turn to face him.')
+
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
+        if after.id == self.DEADINSKY and after.status == discord.Status.online:
+            for channel in after.guild.channels:
+                if channel.permissions_for(after.guild.me).send_messages:
+                    await self.dead_arrives(channel, after)
 
 
 def setup(bot):
