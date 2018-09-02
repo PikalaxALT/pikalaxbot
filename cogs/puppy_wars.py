@@ -6,14 +6,6 @@ from cogs import BaseCog
 import typing
 
 
-# This class is defined solely to suppress warnings.
-# The actual object used is simply a commands.Context
-class PuppyWarsContext(commands.Context):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.deadinsky: typing.Union[discord.Member, discord.User] = None
-
-
 class PuppyWars(BaseCog):
     DEADINSKY = 120002774653075457
     OFFICER_ROLE = 484054660655742996
@@ -28,6 +20,9 @@ class PuppyWars(BaseCog):
         super().__init__(bot)
         with open('data/puppy.json') as fp:
             self.dndstyle = json.load(fp)
+    
+    def deadinsky(self, ctx: commands.Context):
+        return ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
 
     @staticmethod
     def get_result(score, setup='', win_score=0, lose_score=0, payoff={}):
@@ -86,21 +81,22 @@ class PuppyWars(BaseCog):
                   f'VS Puppies [{puppy_rolls}] = {successes[1]} Successes{puppy_crit}'
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
-    async def do_kick(self, ctx: PuppyWarsContext):
+    async def do_kick(self, ctx: commands.Context):
+        deadinsky = self.deadinsky(ctx)
         async with self.bot.sql as sql:
             # Uranium
-            if ctx.author == ctx.deadinsky and random.random() < self.CHANCE_URANIUM:
+            if ctx.author == deadinsky and random.random() < self.CHANCE_URANIUM:
                 await sql.puppy_add_uranium(1)
-                return f'{ctx.deadinsky.display_name} finds some {self.NAME_URANIUM} lying on the ground, ' \
+                return f'{deadinsky.display_name} finds some {self.NAME_URANIUM} lying on the ground, ' \
                        f'and pockets it.'
 
             # Rolloff
-            dead_is_here = isinstance(ctx.deadinsky, discord.Member) and ctx.deadinsky.status == discord.Status.online
+            dead_is_here = isinstance(deadinsky, discord.Member) and deadinsky.status == discord.Status.online
             if dead_is_here and random.random() < self.CHANCE_SHOWDOWN:
                 deaddelta, pupdelta, content = self.do_showdown()
                 await sql.update_dead_score(deaddelta)
                 await sql.update_puppy_score(pupdelta)
-                return content.format(deadinsky=ctx.deadinsky.display_name)
+                return content.format(deadinsky=deadinsky.display_name)
 
             # Pupnado
             rngval = random.random()
@@ -120,7 +116,7 @@ can outrun it. The pupnado is soon upon him....
 
             if rngval < self.CHANCE_DOZEN:
                 num = random.randint(8, 16)
-                if ctx.author == ctx.deadinsky:
+                if ctx.author == deadinsky:
                     ref = 'Almost' if num < 12 else 'Over'
                     await sql.update_puppy_score(num)
                     return f'{ref} a dozen puppies suddenly fall from the sky onto {ctx.author.mention} ' \
@@ -129,87 +125,89 @@ can outrun it. The pupnado is soon upon him....
                     ref = 'maybe' if num < 12 else 'over'
                     await sql.update_puppy_score(num)
                     return f'{ctx.author.mention} watches as {ref} a dozen puppies spring from nowhere and ' \
-                           f'ambush {ctx.deadinsky.display_name}, beating him to the curb.'
+                           f'ambush {deadinsky.display_name}, beating him to the curb.'
                 else:
                     ref = 'nearly' if num < 12 else 'over'
-                    return f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, ' \
+                    return f'{ctx.author.mention} goes to kick a puppy on {deadinsky.display_name}\'s behalf, ' \
                            f'but instead gets ganged up on by {ref} a dozen puppies.'
 
             if rngval > 1 - self.CHANCE_DOZEN:
                 num = random.randint(8, 13)
-                if ctx.author == ctx.deadinsky:
+                if ctx.author == deadinsky:
                     await sql.update_dead_score(num)
                     return f'{ctx.author.mention} comes across a dog carrier with about a ' \
                            f'dozen puppies inside. He overturns the whole box with his foot!'
                 elif dead_is_here:
                     ref = 'Maybe' if num < 12 else 'Over'
                     await sql.update_dead_score(num)
-                    return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} punts a dog carrier. ' \
+                    return f'{ctx.author.mention} watches as {deadinsky.display_name} punts a dog carrier. ' \
                            f'{ref} a dozen puppies run in terror from the overturned box.'
                 else:
                     ref = 'nearly' if num < 12 else 'over'
-                    return f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf. ' \
+                    return f'{ctx.author.mention} kicks a puppy on {deadinsky.display_name}\'s behalf. ' \
                            f'The pup flies into a nearby dog carrier with {ref} a dozen puppies inside and ' \
                            f'knocks it over.'
 
             if rngval < self.CHANCE_PUPWIN:
-                if ctx.author == ctx.deadinsky:
+                if ctx.author == deadinsky:
                     await sql.update_puppy_score(1)
                     return f'A puppy kicks {ctx.author.mention}.'
                 elif dead_is_here:
                     await sql.update_puppy_score(1)
-                    return f'{ctx.author.mention} watches as a puppy kicks {ctx.deadinsky.display_name}\'s ass.'
+                    return f'{ctx.author.mention} watches as a puppy kicks {deadinsky.display_name}\'s ass.'
                 else:
-                    return f'{ctx.author.mention} goes to kick a puppy on {ctx.deadinsky.display_name}\'s behalf, ' \
+                    return f'{ctx.author.mention} goes to kick a puppy on {deadinsky.display_name}\'s behalf, ' \
                            f'but instead the puppy dodges and kicks {ctx.author.mention}.'
 
-            if ctx.author == ctx.deadinsky:
+            if ctx.author == deadinsky:
                 await sql.update_dead_score(1)
                 return f'{ctx.author.mention} kicks a puppy.'
             elif ctx.author.guild_permissions.manage_roles:
                 role = discord.utils.get(ctx.guild.roles, id=self.OFFICER_ROLE) or 'Officer'
                 if dead_is_here:
                     await sql.update_dead_score(1)
-                    return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} accidentally ' \
+                    return f'{ctx.author.mention} watches as {deadinsky.display_name} accidentally ' \
                            f'makes a puppy an {role} while trying to kick it.'
                 else:
                     return f'{ctx.author.mention} accidentally makes a puppy an {role} ' \
-                           f'on {ctx.deadinsky.display_name}\'s behalf.'
+                           f'on {deadinsky.display_name}\'s behalf.'
             else:
                 if dead_is_here:
                     await sql.update_dead_score(1)
-                    return f'{ctx.author.mention} watches as {ctx.deadinsky.display_name} kicks a puppy.'
+                    return f'{ctx.author.mention} watches as {deadinsky.display_name} kicks a puppy.'
                 else:
-                    return f'{ctx.author.mention} kicks a puppy on {ctx.deadinsky.display_name}\'s behalf.'
+                    return f'{ctx.author.mention} kicks a puppy on {deadinsky.display_name}\'s behalf.'
 
     @commands.command(aliases=['kick'])
-    async def pkick(self, ctx: PuppyWarsContext):
+    async def pkick(self, ctx: commands.Context):
         """Kick a puppy"""
         await ctx.send(await self.do_kick(ctx))
 
     @commands.command()
-    async def dkick(self, ctx: PuppyWarsContext):
+    async def dkick(self, ctx: commands.Context):
         """Kick a deadinsky"""
+        deadinsky = self.deadinsky(ctx)
         content = await self.do_kick(ctx)
         content = content.replace('puppy', 'PLACEHOLDER')
-        content = content.replace(ctx.deadinsky.display_name, 'puppy')
-        content = content.replace('PLACEHOLDER', ctx.deadinsky.display_name)
+        content = content.replace(deadinsky.display_name, 'puppy')
+        content = content.replace('PLACEHOLDER', deadinsky.display_name)
         await ctx.send(content)
 
     @commands.command(aliases=['pscore', 'score'])
-    async def dscore(self, ctx: PuppyWarsContext):
+    async def dscore(self, ctx: commands.Context):
         """Show the puppy score"""
+        deadinsky = self.deadinsky(ctx)
         async with self.bot.sql as sql:
             dead_score = await sql.get_dead_score()
             puppy_score = await sql.get_puppy_score()
 
         if 66 < dead_score < 77:
-            await ctx.send(f'{ctx.deadinsky.display_name}: 66+{dead_score - 66}, Puppies: {puppy_score}')
+            await ctx.send(f'{deadinsky.display_name}: 66+{dead_score - 66}, Puppies: {puppy_score}')
         else:
-            await ctx.send(f'{ctx.deadinsky.display_name}: {dead_score}, Puppies: {puppy_score}')
+            await ctx.send(f'{deadinsky.display_name}: {dead_score}, Puppies: {puppy_score}')
 
     @commands.command()
-    async def ckick(self, ctx: PuppyWarsContext):
+    async def ckick(self, ctx: commands.Context):
         """Kick a cat"""
         catrevenge = [
             f"the cat wraps around {ctx.author.mention}'s leg and scratches it violently.",
@@ -221,9 +219,6 @@ can outrun it. The pupnado is soon upon him....
             f"the cat is a bastard and simply doesn't let it happen.",
         ]
         await ctx.send(f'{ctx.author.mention} goes to kick a cat, but {random.choice(catrevenge)}')
-    
-    async def __before_invoke(self, ctx: PuppyWarsContext):
-        ctx.deadinsky = ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
 
     async def dead_arrives(self, channel: discord.TextChannel, deadinsky: discord.Member):
         rngval = random.random()
@@ -249,6 +244,7 @@ can outrun it. The pupnado is soon upon him....
             await channel.send(f'As {deadinsky.display_name} walks into the room, the puppies in the area tense up '
                                f'and turn to face him.')
 
+    # Listen for when Deadinsky comes online
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if after.id == self.DEADINSKY and after.status == discord.Status.online:
             for channel in after.guild.channels:
