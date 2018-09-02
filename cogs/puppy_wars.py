@@ -6,6 +6,8 @@ from cogs import BaseCog
 import typing
 
 
+# This class is defined solely to suppress warnings.
+# The actual object used is simply a commands.Context
 class PuppyWarsContext(commands.Context):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -106,7 +108,7 @@ class PuppyWars(BaseCog):
             puppy_score = await sql.get_puppy_score()
             if dead_is_here and dead_score > 30 and dead_score > puppy_score + 45 and rngval < self.CHANCE_PUPNADO:
                 score_diff = (dead_score - puppy_score)
-                by = round(score_diff * (random.random() * 0.2 + 0.9))
+                by = int(score_diff * (random.random() * 0.2 + 0.9))
                 await sql.update_puppy_score(by)
                 return f"""
 {ctx.author.mention} is walking down the road on an abnormally calm day. 
