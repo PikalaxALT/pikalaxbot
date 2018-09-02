@@ -220,13 +220,13 @@ can outrun it. The pupnado is soon upon him....
         ]
         await ctx.send(f'{ctx.author.mention} goes to kick a cat, but {random.choice(catrevenge)}')
 
-    async def dead_arrives(self, channel: discord.TextChannel, deadinsky: discord.Member):
+    async def dead_arrives(self, deadinsky: discord.Member):
         rngval = random.random()
         if rngval < self.CHANCE_URANIUM:
-            await channel.send(f'As {deadinsky.display_name} walks into the room, he accidentally steps on some '
-                               f'{self.NAME_URANIUM}. He pockets it.')
-            with self.bot.sql as sql:
+            async with self.bot.sql as sql:
                 await sql.puppy_add_uranium()
+            return f'As {deadinsky.display_name} walks into the room, he accidentally steps on some ' \
+                   f'{self.NAME_URANIUM}. He pockets it.'
         elif rngval < 0.45:
             puppy_actions = [
                     f'a bucket falls on his head and two puppies fall down on it and smack it. '
@@ -237,23 +237,24 @@ can outrun it. The pupnado is soon upon him....
                     f'suddenly a whip creame pie smacks into his face. The puppies in the room scatter.',
                     f'a puppy swings from the ceiling, leaps off, and kicks him in the face, before running off.'
             ]
-            await channel.send(f'{deadinsky.display_name} walks into the room and {random.choice(puppy_actions)}')
-            with self.bot.sql as sql:
+            async with self.bot.sql as sql:
                 await sql.update_puppy_score(1)
+            return f'{deadinsky.display_name} walks into the room and {random.choice(puppy_actions)}'
         else:
-            await channel.send(f'As {deadinsky.display_name} walks into the room, the puppies in the area tense up '
-                               f'and turn to face him.')
+            return f'As {deadinsky.display_name} walks into the room, the puppies in the area tense up ' \
+                   f'and turn to face him.'
 
     # Listen for when Deadinsky comes online
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         self.log_info(f'fired member update for {after} in {after.guild}')
         if after.id == self.DEADINSKY and after.status == discord.Status.online:
             self.log_info('deadinsky is here')
+            content = await self.dead_arrives(after)
             for channel in after.guild.channels:
                 self.log_info(f'trying channel {channel}')
                 if channel.permissions_for(after.guild.me).send_messages:
                     self.log_info(f'sending tense puppies message')
-                    await self.dead_arrives(channel, after)
+                    await channel.send(content)
 
 
 def setup(bot):
