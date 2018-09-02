@@ -185,7 +185,10 @@ can outrun it. The pupnado is soon upon him....
     @staticmethod
     def pkick_replace(content, deadname):
         foo = 'PLACEHOLDER'
-        return content.replace('puppy', foo).replace('puppie', foo).replace(deadname, 'puppy').replace(foo, deadname)
+        content = content.replace('puppy', foo).replace('puppie', foo).replace(deadname, 'puppy').replace(foo, deadname)
+        if content.startswith('pupp'):
+            content = content.capitalize()
+        return content
 
     @commands.command()
     async def dkick(self, ctx: commands.Context):
