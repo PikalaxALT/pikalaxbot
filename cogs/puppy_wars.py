@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 import random
 from cogs import BaseCog
-import typing
 
 
 class PuppyWars(BaseCog):
@@ -183,14 +182,17 @@ can outrun it. The pupnado is soon upon him....
         """Kick a puppy"""
         await ctx.send(await self.do_kick(ctx))
 
+    @staticmethod
+    def pkick_replace(content, deadname):
+        foo = 'PLACEHOLDER'
+        return content.replace('puppy', foo).replace('puppie', foo).replace(deadname, 'puppy').replace(foo, deadname)
+
     @commands.command()
     async def dkick(self, ctx: commands.Context):
         """Kick a deadinsky"""
         deadinsky = self.deadinsky(ctx)
         content = await self.do_kick(ctx)
-        content = content.replace('puppy', 'PLACEHOLDER')
-        content = content.replace(deadinsky.display_name, 'puppy')
-        content = content.replace('PLACEHOLDER', deadinsky.display_name)
+        content = self.pkick_replace(content, deadinsky.display_name)
         await ctx.send(content)
 
     @commands.command(aliases=['pscore', 'score'])
