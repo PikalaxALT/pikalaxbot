@@ -250,7 +250,7 @@ can outrun it. The pupnado is soon upon him....
         if after.id == self.DEADINSKY and after.status == discord.Status.online:
             self.log_info('deadinsky is here')
             content = await self.dead_arrives(after)
-            for channel in after.guild.channels:
+            for channel in after.guild.text_channels:
                 self.log_info(f'trying channel {channel}')
                 if channel.permissions_for(after.guild.me).send_messages:
                     self.log_info(f'sending tense puppies message')
