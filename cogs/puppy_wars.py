@@ -17,6 +17,7 @@ class PuppyWars(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
+        self.did_showdown = False
         with open('data/puppy.json') as fp:
             self.dndstyle = json.load(fp)
     
@@ -81,10 +82,11 @@ class PuppyWars(BaseCog):
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
     async def do_kick(self, ctx: commands.Context):
+        self.did_showdown = False
         deadinsky = self.deadinsky(ctx)
         async with self.bot.sql as sql:
             # Uranium
-            if ctx.author == deadinsky and random.random() < self.CHANCE_URANIUM:
+            if ctx.command.name == 'pkick' and ctx.author == deadinsky and random.random() < self.CHANCE_URANIUM:
                 await sql.puppy_add_uranium(1)
                 return f'{deadinsky.display_name} finds some {self.NAME_URANIUM} lying on the ground, ' \
                        f'and pockets it.'
@@ -95,6 +97,7 @@ class PuppyWars(BaseCog):
                 deaddelta, pupdelta, content = self.do_showdown()
                 await sql.update_dead_score(deaddelta)
                 await sql.update_puppy_score(pupdelta)
+                self.did_showdown = True
                 return content.format(deadinsky=deadinsky.display_name)
 
             # Pupnado
@@ -185,7 +188,9 @@ can outrun it. The pupnado is soon upon him....
     @staticmethod
     def pkick_replace(content, deadname):
         foo = 'PLACEHOLDER'
-        content = content.replace('puppy', foo).replace('puppie', foo).replace(deadname, 'puppy').replace(foo, deadname)
+        content = content.replace('puppy', foo).replace('puppie', foo).replace('pup', foo)
+        content = content.replace('Puppy', foo).replace('Puppie', foo).replace('Pup', foo)
+        content = content.replace(deadname, 'puppy').replace(foo, deadname)
         if content.startswith('pupp'):
             content = content.capitalize()
         return content
@@ -195,7 +200,8 @@ can outrun it. The pupnado is soon upon him....
         """Kick a deadinsky"""
         deadinsky = self.deadinsky(ctx)
         content = await self.do_kick(ctx)
-        content = self.pkick_replace(content, deadinsky.display_name)
+        if not self.did_showdown:
+            content = self.pkick_replace(content, deadinsky.display_name)
         await ctx.send(content)
 
     @commands.command(aliases=['pscore', 'score'])
