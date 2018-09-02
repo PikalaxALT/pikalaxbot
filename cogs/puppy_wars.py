@@ -257,14 +257,10 @@ can outrun it. The pupnado is soon upon him....
 
     # Listen for when Deadinsky comes online
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        self.log_info(f'fired member update for {after} in {after.guild}')
         if after.id == self.DEADINSKY and after.status == discord.Status.online:
-            self.log_info('deadinsky is here')
             content = await self.dead_arrives(after)
             for channel in after.guild.text_channels:
-                self.log_info(f'trying channel {channel}')
                 if channel.permissions_for(after.guild.me).send_messages:
-                    self.log_info(f'sending tense puppies message')
                     await channel.send(content)
 
 
