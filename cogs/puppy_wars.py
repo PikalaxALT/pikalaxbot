@@ -77,7 +77,7 @@ class PuppyWars(BaseCog):
         dead_crit = ' **[CRIT]**' if differential >= 3 else ''
         puppy_crit = ' **[CRIT]**' if differential <= -3 else ''
         rolloff = f'Roll off: ' \
-                  f'{{deadinsky}} [{dead_rolls}] = {successes[0]} Successes{dead_crit}' \
+                  f'{{deadinsky}} [{dead_rolls}] = {successes[0]} Successes{dead_crit} ' \
                   f'VS Puppies [{puppy_rolls}] = {successes[1]} Successes{puppy_crit}'
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
