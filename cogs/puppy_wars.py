@@ -200,7 +200,7 @@ can outrun it. The pupnado is soon upon him....
         """Kick a deadinsky"""
         deadinsky = self.deadinsky(ctx)
         content = await self.do_kick(ctx)
-        if not self.did_showdown:
+        if not isinstance(deadinsky, discord.Member) or deadinsky.status != discord.Status.online:
             content = self.pkick_replace(content, deadinsky.display_name)
         await ctx.send(content)
 
