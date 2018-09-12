@@ -17,6 +17,7 @@
 # Credits to Tustin2121, who wrote the original Puppy Kicker for Q20PokemonBot
 
 import json
+import datetime
 import discord
 from discord.ext import commands
 import random
@@ -24,6 +25,7 @@ from cogs import BaseCog
 
 
 class PuppyWars(BaseCog):
+    TPP_GUILD = 148079346685313034
     DEADINSKY = 120002774653075457
     OFFICER_ROLE = 484054660655742996
     CHANCE_SHOWDOWN = 0.10
@@ -32,13 +34,24 @@ class PuppyWars(BaseCog):
     CHANCE_PUPWIN = 0.30
     CHANCE_URANIUM = 0.005
     NAME_URANIUM = "Kikatanium"
+    ONLINE_STATES = discord.Status.online, discord.Status.idle
+    COOLDOWN = datetime.timedelta(seconds=60)
 
     def __init__(self, bot):
         super().__init__(bot)
         self.did_showdown = False
+        self.dead_is_online = False
+        self.last = None
         with open('data/puppy.json') as fp:
             self.dndstyle = json.load(fp)
-    
+
+    async def init_deadinsky(self):
+        await self.bot.wait_until_ready()
+        tpp_guild = self.bot.get_guild(self.TPP_GUILD)
+        if tpp_guild is not None:
+            deadinsky = tpp_guild.get_member(self.DEADINSKY)
+            self.dead_is_online = deadinsky.status in self.ONLINE_STATES
+
     def deadinsky(self, ctx: commands.Context):
         return ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
 
@@ -275,11 +288,16 @@ can outrun it. The pupnado is soon upon him....
 
     # Listen for when Deadinsky comes online
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if after.id == self.DEADINSKY and after.status == discord.Status.online:
-            content = await self.dead_arrives(after)
-            for channel in after.guild.text_channels:
-                if channel.permissions_for(after.guild.me).send_messages:
-                    await channel.send(content)
+        if after.id == self.DEADINSKY:
+            new_status = after.status in self.ONLINE_STATES
+            now = datetime.datetime.utcnow()
+            if new_status > self.dead_is_online and (self.last is None or now - self.last >= self.COOLDOWN):
+                self.last = now
+                content = await self.dead_arrives(after)
+                for channel in after.guild.text_channels:
+                    if channel.permissions_for(after.guild.me).send_messages:
+                        await channel.send(content)
+            self.dead_is_online = new_status
 
 
 def setup(bot):
