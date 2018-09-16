@@ -65,6 +65,27 @@ class Rng(BaseCog):
     async def random_pokemon(self, ctx):
         """Get a random Pokemon name"""
         await ctx.send(data.random_pokemon_name())
+    
+    @random.command(name='quilava')
+    async def random_quilava(self, ctx):
+        """Random quilava image"""
+        img_pool = [
+            "http://25.media.tumblr.com/tumblr_m2y3fwJvIp1r29nmno1_1280.jpg",
+            "http://orig12.deviantart.net/736b/f/2013/230/3/9/quilava_by_haychel-d6is5we.jpg",
+            "http://pre03.deviantart.net/556f/th/pre/i/2013/208/9/c/quilava_playing_with_a_pokeball_by_tropiking-d6ffpu6.png",
+            "http://orig12.deviantart.net/8d43/f/2013/349/5/d/pokeddexy_07__quilava_by_saital-d6y4u4c.png",
+            "http://pre11.deviantart.net/b767/th/pre/i/2014/134/0/e/i_don_t_want_go_back_to_poke_ball____by_ffxazq-d7hyhp5.jpg",
+            "http://img14.deviantart.net/32f8/i/2014/098/f/b/quilava_background_by_rinnai_rai-d7dpu2n.png",
+            "http://orig15.deviantart.net/1aed/f/2014/082/2/1/exbo_by_nexeron-d7bbcnu.png",
+            "http://orig01.deviantart.net/fae2/f/2012/364/b/5/quilava_by_ieaka-d5pqu98.png",
+            "http://orig05.deviantart.net/efe3/f/2012/131/5/0/quilava_by_sirnorm-d4zc40n.png",
+            "http://img01.deviantart.net/eace/i/2015/113/f/6/fire_loves_ice_by_dreamynormy-d5ps06w.png",
+            "http://pre05.deviantart.net/5b79/th/pre/f/2014/243/6/e/devin_and_lightphire__pmdte_fanart__by_speedboosttorchic-d7xhpya.png",
+            "http://img03.deviantart.net/4a05/i/2013/238/0/8/quilava_s_in_love____by_yoko_uzumaki-d6jsn21.png",
+            "http://img03.deviantart.net/0922/i/2013/153/5/4/more_cuddling_x3_by_rikuaoshi-d67k2gn.jpg"
+        ]
+        url = random.choice(img_pool)
+        await ctx.send(f'Quilava ❤ {url}')
 
     async def __error(self, ctx, exc):
         orig = getattr(exc, 'original', exc)
