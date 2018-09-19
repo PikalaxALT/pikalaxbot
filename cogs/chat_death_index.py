@@ -23,11 +23,13 @@ class ChatDeathIndex(BaseCog):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
             await asyncio.sleep(60)
-            for key, value in self.cumcharcount.items():
-                self.cdi_samples[key].append(value)
-                if len(self.cdi_samples[key]) > self.MAX_SAMPLES:
-                    self.cdi_samples[key].popleft()
-                self.cumcharcount[key] = 0
+            for channel in self.bot.get_all_channels():
+                if isinstance(channel, discord.TextChannel):
+                    key = channel.id
+                    self.cdi_samples[key].append(self.cumcharcount[key])
+                    if len(self.cdi_samples[key]) > self.MAX_SAMPLES:
+                        self.cdi_samples[key].popleft()
+                    self.cumcharcount[key] = 0
 
     def account_for_message(self, message: discord.Message):
         pass
