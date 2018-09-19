@@ -36,7 +36,7 @@ class ChatDeathIndex(BaseCog):
 
     @staticmethod
     def to_cdi(avg):
-        return abs(int((avg - 64) ** 2 * 2.3))
+        return int((avg - 64) ** 2 * 2.3) * ((-1) ** (avg >= 64))
 
     async def on_message(self, message: discord.Message):
         if message.author.bot:
