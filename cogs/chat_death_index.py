@@ -14,10 +14,14 @@ class ChatDeathIndex(BaseCog):
         super().__init__(bot)
         self.cdi_samples = defaultdict(deque)
         self.cumcharcount = Counter()
+        self.task = self.bot.loop.create_task(self.save_message_count())
 
-    async def calc_message_average(self):
+    def __unload(self):
+        self.task.cancel()
+
+    async def save_message_count(self):
         await self.bot.wait_until_ready()
-        while True:
+        while not self.bot.is_closed():
             await asyncio.sleep(60)
             for key, value in self.cumcharcount.items():
                 self.cdi_samples[key].append(value)
