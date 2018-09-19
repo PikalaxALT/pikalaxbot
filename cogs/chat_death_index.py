@@ -42,6 +42,7 @@ class ChatDeathIndex(BaseCog):
 
     @commands.command(name='cdi')
     async def get_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
+        """Returns the Chat Death Index of the given channel (if not specified, uses the current channel)"""
         channel = channel or ctx.channel
         chat_avg = self.cdi_samples[channel.id]
         n = len(chat_avg)
