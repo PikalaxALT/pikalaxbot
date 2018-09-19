@@ -35,7 +35,7 @@ class PuppyWars(BaseCog):
     CHANCE_URANIUM = 0.005
     NAME_URANIUM = "Kikatanium"
     ONLINE_STATES = discord.Status.online, discord.Status.idle
-    COOLDOWN = datetime.timedelta(seconds=60)
+    COOLDOWN = datetime.timedelta(minutes=10)
 
     def __init__(self, bot):
         super().__init__(bot)
