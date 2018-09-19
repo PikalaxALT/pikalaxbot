@@ -36,7 +36,7 @@ class ChatDeathIndex(BaseCog):
 
     @staticmethod
     def to_cdi(avg):
-        return int((avg - 64) ** 2 * 2.3) * (-1) ** (avg < 64)
+        return abs(int((avg - 64) ** 2 * 2.3))
 
     async def on_message(self, message: discord.Message):
         if message.author.bot:
@@ -57,7 +57,7 @@ class ChatDeathIndex(BaseCog):
         else:
             accum = 2 * sum((i + 1) * x for i, x in enumerate(chat_avg)) / (n * (n + 1))
             cdi = self.to_cdi(accum)
-            await ctx.send(f'Current Chat Death Index: {cdi} ({accum:.3f})')
+            await ctx.send(f'Current Chat Death Index of {channel.mention}: {cdi} ({accum:.3f})')
 
 
 def setup(bot: PikalaxBOT):
