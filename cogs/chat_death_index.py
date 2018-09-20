@@ -37,7 +37,7 @@ class ChatDeathIndex(BaseCog):
 
         try:
             for channel in self.bot.get_all_channels():
-                if isinstance(channel, discord.TextChannel):
+                if isinstance(channel, discord.TextChannel) and channel.permissions_for(channel.guild.me).read_message_history:
                     samples = deque(0 for i in range(self.MAX_SAMPLES))
                     async for message in channel.history(after=start):  # type: discord.Message
                         if await self.msg_counts_against_chat_death(message):
@@ -51,7 +51,7 @@ class ChatDeathIndex(BaseCog):
         while not self.bot.is_closed():
             await asyncio.sleep(60)
             for channel in self.bot.get_all_channels():
-                if isinstance(channel, discord.TextChannel):
+                if isinstance(channel, discord.TextChannel) and channel.permissions_for(channel.guild.me).read_messages:
                     key = channel.id
                     self.cdi_samples[key].append(self.cumcharcount[key])
                     if len(self.cdi_samples[key]) > self.MAX_SAMPLES:
