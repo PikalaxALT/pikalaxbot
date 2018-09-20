@@ -41,12 +41,12 @@ class ChatDeathIndex(BaseCog):
                     samples = deque(0 for i in range(self.MAX_SAMPLES))
                     async for message in channel.history(after=start):  # type: discord.Message
                         if await self.msg_counts_against_chat_death(message):
-                            samples[(message.created_at - start).total_seconds() / self.MAX_SAMPLES] += self.get_message_cdi_effect(message)
+                            samples[int((message.created_at - start).total_seconds()) // self.MAX_SAMPLES] += self.get_message_cdi_effect(message)
                     self.cdi_samples[channel.id] = samples
         except Exception as e:
             tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__, limit=1))
             await self.bot.owner.send(f'Warning: Failed to prime CDI data.\n'
-                                      f'{tb}')
+                                      f'```{tb}```')
 
         while not self.bot.is_closed():
             await asyncio.sleep(60)
