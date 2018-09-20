@@ -1,9 +1,11 @@
 import asyncio
 from collections import defaultdict, Counter, deque
 import discord
+import datetime
 from discord.ext import commands
 from cogs import BaseCog
 from utils.botclass import PikalaxBOT
+import traceback
 
 
 class ChatDeathIndex(BaseCog):
@@ -19,8 +21,33 @@ class ChatDeathIndex(BaseCog):
     def __unload(self):
         self.task.cancel()
 
+    @staticmethod
+    def get_message_cdi_effect(message: discord.Message):
+        return len(message.clean_content) / 6
+
+    async def msg_counts_against_chat_death(self, message: discord.Message):
+        if message.author.bot:
+            return False
+        context = await self.bot.get_context(message)
+        return not context.valid
+
     async def save_message_count(self):
         await self.bot.wait_until_ready()
+        start = datetime.datetime.now() - datetime.timedelta(minutes=30)
+
+        try:
+            for channel in self.bot.get_all_channels():
+                if isinstance(channel, discord.TextChannel):
+                    samples = deque(0 for i in range(self.MAX_SAMPLES))
+                    async for message in channel.history(after=start):  # type: discord.Message
+                        if await self.msg_counts_against_chat_death(message):
+                            samples[(message.created_at - start).minutes] += self.get_message_cdi_effect(message)
+                    self.cdi_samples[channel.id] = samples
+        except Exception as e:
+            tb = traceback.format_exception(e.__class__, e, e.__traceback__, limit=1)
+            await self.bot.owner.send(f'Warning: Failed to prime CDI data.\n'
+                                      f'{tb}')
+
         while not self.bot.is_closed():
             await asyncio.sleep(60)
             for channel in self.bot.get_all_channels():
@@ -39,12 +66,8 @@ class ChatDeathIndex(BaseCog):
         return int((avg - 64) ** 2 * 2.3) * ((-1) ** (avg >= 64))
 
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
-            return
-        ctx: commands.Context = await self.bot.get_context(message)
-        if ctx.valid:
-            return
-        self.cumcharcount[message.channel.id] += len(message.clean_content) / 6
+        if await self.msg_counts_against_chat_death(message):
+            self.cumcharcount[message.channel.id] += self.get_message_cdi_effect(message)
 
     @commands.command(name='cdi')
     async def get_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
