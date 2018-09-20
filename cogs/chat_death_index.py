@@ -42,6 +42,8 @@ class ChatDeathIndex(BaseCog):
                     async for message in channel.history(after=start):  # type: discord.Message
                         if await self.msg_counts_against_chat_death(message):
                             idx = int((message.created_at - start).total_seconds()) // 60
+                            if idx > self.MAX_SAMPLES:
+                                await self.bot.owner.send(f'{channel}: {idx}\n{start} - {message.created_at}')
                             samples[idx] += self.get_message_cdi_effect(message)
                     self.cdi_samples[channel.id] = samples
         except Exception as e:
