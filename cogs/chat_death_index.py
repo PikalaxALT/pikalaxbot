@@ -1,11 +1,11 @@
 import asyncio
-from collections import defaultdict, Counter, deque
+from collections import defaultdict, Counter
 import discord
 import datetime
 from discord.ext import commands
 from cogs import BaseCog
 from utils.botclass import PikalaxBOT
-import traceback
+import typing
 
 
 class ChatDeathIndex(BaseCog):
@@ -14,7 +14,7 @@ class ChatDeathIndex(BaseCog):
 
     def __init__(self, bot: PikalaxBOT):
         super().__init__(bot)
-        self.cdi_samples = defaultdict(deque)
+        self.cdi_samples = defaultdict(list)
         self.cumcharcount = Counter()
         self.task = self.bot.loop.create_task(self.save_message_count())
 
@@ -22,10 +22,16 @@ class ChatDeathIndex(BaseCog):
         self.task.cancel()
 
     @staticmethod
-    def get_message_cdi_effect(message: discord.Message):
+    def get_message_cdi_effect(message: discord.Message) -> float:
         return len(message.clean_content) / 6
 
-    async def msg_counts_against_chat_death(self, message: discord.Message):
+    @staticmethod
+    def can_get_messages(channel: typing.Any) -> bool:
+        if not isinstance(channel, discord.TextChannel):
+            return False
+        return channel.permissions_for(channel.guild.me).read_message_history
+
+    async def msg_counts_against_chat_death(self, message: discord.Message) -> bool:
         if message.author.bot:
             return False
         context = await self.bot.get_context(message)
@@ -36,31 +42,23 @@ class ChatDeathIndex(BaseCog):
         now = datetime.datetime.now()
         start = now - datetime.timedelta(minutes=self.MAX_SAMPLES)
 
-        try:
-            for channel in self.bot.get_all_channels():
-                if isinstance(channel, discord.TextChannel) and channel.permissions_for(channel.guild.me).read_message_history:
-                    samples = deque(0 for i in range(self.MAX_SAMPLES))
-                    async for message in channel.history(before=now, after=start):  # type: discord.Message
-                        if await self.msg_counts_against_chat_death(message):
-                            idx = int((message.created_at - start).total_seconds()) // 60
-                            if idx > self.MAX_SAMPLES:
-                                await self.bot.owner.send(f'{channel}: {idx}\n{start} - {message.created_at}')
-                            samples[idx] += self.get_message_cdi_effect(message)
-                    self.cdi_samples[channel.id] = samples
-        except Exception as e:
-            tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__, limit=1))
-            await self.bot.owner.send(f'Warning: Failed to prime CDI data.\n'
-                                      f'```{tb}```')
+        for channel in self.bot.get_all_channels():
+            if self.can_get_messages(channel):
+                self.cdi_samples[channel.id] = [0 for _ in range(self.MAX_SAMPLES)]
+                async for message in channel.history(before=now, after=start):  # type: discord.Message
+                    if await self.msg_counts_against_chat_death(message):
+                        idx = int((message.created_at - start).total_seconds()) // 60
+                        if idx > self.MAX_SAMPLES:
+                            await self.bot.owner.send(f'{channel}: {idx}\n{start} - {message.created_at}')
+                            self.cdi_samples[channel.id][idx] += self.get_message_cdi_effect(message)
+            self.cumcharcount[channel.id] = 0
 
         while not self.bot.is_closed():
             await asyncio.sleep(60)
             for channel in self.bot.get_all_channels():
-                if isinstance(channel, discord.TextChannel) and channel.permissions_for(channel.guild.me).read_messages:
-                    key = channel.id
-                    self.cdi_samples[key].append(self.cumcharcount[key])
-                    if len(self.cdi_samples[key]) > self.MAX_SAMPLES:
-                        self.cdi_samples[key].popleft()
-                    self.cumcharcount[key] = 0
+                self.cdi_samples[channel.id].append(self.cumcharcount[channel.id])
+                self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-self.MAX_SAMPLES:]
+                self.cumcharcount[channel.id] = 0
 
     def account_for_message(self, message: discord.Message):
         pass
