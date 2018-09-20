@@ -33,13 +33,14 @@ class ChatDeathIndex(BaseCog):
 
     async def save_message_count(self):
         await self.bot.wait_until_ready()
-        start = datetime.datetime.now() - datetime.timedelta(minutes=30)
+        now = datetime.datetime.now()
+        start = now - datetime.timedelta(minutes=self.MAX_SAMPLES)
 
         try:
             for channel in self.bot.get_all_channels():
                 if isinstance(channel, discord.TextChannel) and channel.permissions_for(channel.guild.me).read_message_history:
                     samples = deque(0 for i in range(self.MAX_SAMPLES))
-                    async for message in channel.history(after=start):  # type: discord.Message
+                    async for message in channel.history(before=now, after=start):  # type: discord.Message
                         if await self.msg_counts_against_chat_death(message):
                             idx = int((message.created_at - start).total_seconds()) // 60
                             if idx > self.MAX_SAMPLES:
