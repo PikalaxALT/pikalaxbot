@@ -15,19 +15,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import aiohttp
+import typing
 
 from utils.botclass import PikalaxBOT, LoggingMixin
 
 
 class BaseCog(LoggingMixin):
-    config_attrs = tuple()
+    """
+    Base class for all cog files.  Inherits :class:LoggingMixin
 
-    def __init__(self, bot):
+    __init__ params:
+        bot: PikalaxBOT - The instance of the bot.
+
+    Attributes:
+        config_attrs: tuple - Names of attributes to fetch from the bot's
+        settings.  When subclassing BaseCog, define this at the class level.
+    """
+    config_attrs: typing.Tuple[str] = tuple()
+
+    def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot: PikalaxBOT = bot
         self.fetch()
 
     def fetch(self):
+        """
+        Loads local attributes from the bot's settings
+        """
         self.log_debug(f'Fetching {self.__class__.__name__}')
         for attr in self.config_attrs:
             self.log_debug(attr)
@@ -37,6 +51,9 @@ class BaseCog(LoggingMixin):
             setattr(self, attr, val)
 
     def commit(self):
+        """
+        Commits local attributes to the bot's settings file
+        """
         with self.bot.settings as settings:
             for attr in self.config_attrs:
                 self.log_debug(attr)
@@ -46,14 +63,21 @@ class BaseCog(LoggingMixin):
                 setattr(settings, attr, val)
 
     @property
-    def cs(self):
+    def cs(self) -> aiohttp.ClientSession:
+        """The client session attached to the cog"""
         return self.bot.user_cs
 
     @cs.setter
-    def cs(self, value):
+    def cs(self, value: aiohttp.ClientSession):
         self.bot.user_cs = value
 
-    async def hastebin(self, content):
+    async def hastebin(self, content: str) -> str:
+        """Upload the content to hastebin and return the url.
+
+        :param content: str: Raw content to upload
+        :return: str: URL to the uploaded content
+        :raises aiohttp.ClientException: on failure to upload
+        """
         self.bot.ensure_client_session()
         res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
         post = await res.json()

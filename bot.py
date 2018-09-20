@@ -14,12 +14,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+This is a semiprivate bot intended to run on a small number of servers.
+If you wish to use it for your own bot, please contact the owner via Discord
+at PikalaxALT#5823.
+"""
+
 import argparse
 
 from utils.botclass import PikalaxBOT
 
 
 def main():
+    """The main function that runs the bot.
+
+    Syntax:
+        python3.6 bot.py [--settings SETTINGSFILE] [--logfile LOGFILE]
+
+    --settings SETTINGSFILE: a JSON file denoting the bot's settings.  See README.md for details.  Defaults to settings.json
+    --logfile LOGFILE: the file to which the logging module will output bot events.  This file will be overwritten.
+        Defaults to bot.log
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('--settings', default='settings.json')
     parser.add_argument('--logfile', default='bot.log')
