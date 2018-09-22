@@ -28,7 +28,7 @@ class SeenUser(BaseCog):
         return seen_msg
 
     @commands.command()
-    async def seen(self, ctx: commands.Context, member: discord.Member):
+    async def seen(self, ctx: commands.Context, *, member: discord.Member):
         key = (ctx.guild.id, member.id)
         if key in self.member_cache:
             seen_msg = self.member_cache[key]
