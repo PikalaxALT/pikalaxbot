@@ -30,7 +30,7 @@ class SeenUser(BaseCog):
     @staticmethod
     def friendly_time(timestamp: datetime.datetime) -> str:
         now = datetime.datetime.now()
-        daystr = 'yesterday' if timestamp.day < now.day else 'today'
+        daystr = 'yesterday' if timestamp.date() < now.date() else 'today'
         timestr = timestamp.strftime('%H:%M:%S')
         return f'{daystr} at {timestr} UTC'
 
