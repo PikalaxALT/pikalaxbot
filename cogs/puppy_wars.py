@@ -22,6 +22,8 @@ import discord
 from discord.ext import commands
 import random
 from cogs import BaseCog
+import typing
+from utils.botclass import PikalaxBOT
 
 
 class PuppyWars(BaseCog):
@@ -37,13 +39,13 @@ class PuppyWars(BaseCog):
     ONLINE_STATES = discord.Status.online, discord.Status.idle
     COOLDOWN = datetime.timedelta(minutes=10)
 
-    def __init__(self, bot):
+    def __init__(self, bot: PikalaxBOT):
         super().__init__(bot)
-        self.did_showdown = False
-        self.dead_is_online = False
-        self.last = None
+        self.did_showdown: bool = False
+        self.dead_is_online: bool = False
+        self.last: datetime.datetime = None
         with open('data/puppy.json') as fp:
-            self.dndstyle = json.load(fp)
+            self.dndstyle: typing.List[dict] = json.load(fp)
 
     async def init_deadinsky(self):
         await self.bot.wait_until_ready()
@@ -52,19 +54,25 @@ class PuppyWars(BaseCog):
             deadinsky = tpp_guild.get_member(self.DEADINSKY)
             self.dead_is_online = deadinsky.status in self.ONLINE_STATES
 
-    def deadinsky(self, ctx: commands.Context):
+    def deadinsky(self, ctx: commands.Context) -> typing.Union[discord.Member, discord.User]:
         return ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
 
     @staticmethod
-    def get_result(score, setup='', win_score=0, lose_score=0, payoff={}):
-        checks = [
+    def get_result(
+            score: int,
+            setup: str = '',
+            win_score: int = 0,
+            lose_score: int = 0,
+            payoff: typing.Dict[str, str] = {}
+    ) -> (int, int, str):
+        checks: typing.List[typing.Callable[[int], bool]] = [
             lambda s: s >= 3,
             lambda s: 0 < s < 3,
             lambda s: s == 0,
             lambda s: -3 < s < 0,
             lambda s: s <= -3
         ]
-        differentials = [
+        differentials: typing.List[int] = [
             2 * win_score,
             win_score,
             lose_score,
@@ -77,11 +85,11 @@ class PuppyWars(BaseCog):
                 break
         else:
             raise ValueError('something went horribly wrong')
-        dead_score = differentials[i]
-        puppy_score = differentials[4 - i]
+        dead_score: int = differentials[i]
+        puppy_score: int = differentials[4 - i]
         return dead_score, puppy_score, payoff[str(2 - i)]
 
-    def do_showdown(self, forced: int = None):
+    def do_showdown(self, forced: int = None) -> (int, int, str):
         if forced is not None:
             showdown = self.dndstyle[forced]
         else:
@@ -112,7 +120,7 @@ class PuppyWars(BaseCog):
                   f'VS Puppies [{puppy_rolls}] = {successes[1]} Successes{puppy_crit}'
         return dead_score, puppy_score, f'{setup_text}\n{rolloff}\n{payoff}'
 
-    async def do_kick(self, ctx: commands.Context):
+    async def do_kick(self, ctx: commands.Context) -> str:
         self.did_showdown = False
         deadinsky = self.deadinsky(ctx)
         async with self.bot.sql as sql:
@@ -217,7 +225,7 @@ can outrun it. The pupnado is soon upon him....
         await ctx.send(await self.do_kick(ctx))
 
     @staticmethod
-    def pkick_replace(content, deadname):
+    def pkick_replace(content, deadname: str) -> str:
         foo = 'PLACEHOLDER'
         content = content.replace('puppy', foo).replace('puppie', foo).replace('pup', foo)
         content = content.replace('Puppy', foo).replace('Puppie', foo).replace('Pup', foo)
