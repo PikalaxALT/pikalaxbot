@@ -11,20 +11,28 @@ class SeenUser(BaseCog):
     def __init__(self, bot: PikalaxBOT):
         super().__init__(bot)
         self.member_cache = {}
+        self.history_cache = {}
 
     async def on_message(self, message: discord.Message):
         self.member_cache[(message.guild.id, message.author.id)] = message
+        self.history_cache[message.channel.id].append(message)
 
     async def get_last_seen_msg(self, member: discord.Member) -> discord.Message:
         last = datetime.datetime.now() - self.MAX_LOOKBACK
-        seen_msg = None
-        for channel in member.guild.text_channels:
-            if channel.permissions_for(member.guild.me).read_message_history:
-                async for message in channel.history(limit=None, after=last):
-                    if message.author == member:
-                        last = message.created_at
-                        seen_msg = message
-                        break
+        seen_msg: discord.Message = None
+        for channel in member.guild.text_channels:  # type: discord.TextChannel
+            if channel.id in self.history_cache:
+                history = self.history_cache[channel.id]
+            elif channel.permissions_for(member.guild.me).read_message_history:
+                history: list = await channel.history(limit=None, after=last)
+                if history:
+                    history.sort(key=lambda msg: msg.created_at)
+                self.history_cache[channel.id] = history
+            else:
+                continue
+            seen_msg = discord.utils.get(reversed(history), author=member) or seen_msg
+            if seen_msg is not None:
+                last = seen_msg.created_at
         return seen_msg
 
     @staticmethod
