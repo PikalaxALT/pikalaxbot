@@ -51,7 +51,7 @@ class SeenUser(BaseCog):
             await ctx.send(f'{member.display_name} has not said anything on this server recently.')
         else:
             await ctx.send(f'{member.display_name} was last seen chatting in {seen_msg.channel.mention} '
-                           f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S")}\n{seen_msg.jump_url}')
+                           f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}\n{seen_msg.jump_url}')
 
 
 def setup(bot: PikalaxBOT):
