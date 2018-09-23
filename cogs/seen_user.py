@@ -45,8 +45,7 @@ class SeenUser(BaseCog):
         if key in self.member_cache:
             seen_msg = self.member_cache[key]
         else:
-            async with ctx.typing():
-                seen_msg = await self.get_last_seen_msg(member)
+            seen_msg = await self.get_last_seen_msg(member)
             self.member_cache[key] = seen_msg
         if seen_msg is None:
             await ctx.send(f'{member.display_name} has not said anything on this server recently.')
