@@ -37,13 +37,6 @@ class SeenUser(BaseCog):
                 last = seen_msg.created_at
         return seen_msg
 
-    @staticmethod
-    def friendly_time(timestamp: datetime.datetime) -> str:
-        now = datetime.datetime.now()
-        daystr = 'yesterday' if timestamp.date() < now.date() else 'today'
-        timestr = timestamp.strftime('%H:%M:%S')
-        return f'{daystr} at {timestr} UTC'
-
     @commands.command()
     async def seen(self, ctx: commands.Context, *, member: discord.Member):
         """Returns the last message sent by the given member in the current server.
@@ -59,7 +52,7 @@ class SeenUser(BaseCog):
             await ctx.send(f'{member.display_name} has not said anything on this server recently.')
         else:
             await ctx.send(f'{member.display_name} was last seen chatting in {seen_msg.channel.mention} '
-                           f'{self.friendly_time(seen_msg.created_at)}\n{seen_msg.jump_url}')
+                           f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S")}\n{seen_msg.jump_url}')
 
 
 def setup(bot: PikalaxBOT):
