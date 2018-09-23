@@ -27,8 +27,7 @@ class SeenUser(BaseCog):
             elif channel.permissions_for(member.guild.me).read_message_history:
                 history: list = await channel.history(limit=None, after=last).flatten()
                 if history:
-                    partial = functools.partial(history.sort, key=lambda msg: msg.created_at)
-                    await self.bot.loop.run_in_executor(None, partial)
+                    history.sort(key=lambda msg: msg.created_at)
                 self.history_cache[channel.id] = history
             else:
                 continue
