@@ -203,7 +203,7 @@ can outrun it. The pupnado is soon upon him....
             if ctx.author == deadinsky:
                 await sql.update_dead_score(1)
                 return f'{ctx.author.mention} kicks a puppy.'
-            elif ctx.author.guild_permissions.manage_roles:
+            elif ctx.author.guild_permissions.manage_roles and random.random() < 0.05:
                 role = discord.utils.get(ctx.guild.roles, id=self.OFFICER_ROLE) or 'Officer'
                 if dead_is_here:
                     await sql.update_dead_score(1)
