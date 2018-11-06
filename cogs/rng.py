@@ -40,7 +40,8 @@ class Rng(BaseCog):
         """Choose between multiple options separated by spaces.
         Use quotes to wrap multi-word options."""
         if len(set(args)) < 2:
-            await ctx.send('I need at least 2 unique arguments!')
+            await ctx.send('I need at least 2 unique options!',
+                           delete_after=10)
         else:
             await ctx.send(random.choice(args))
 
