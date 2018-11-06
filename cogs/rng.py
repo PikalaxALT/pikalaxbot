@@ -39,8 +39,8 @@ class Rng(BaseCog):
     async def choose(self, ctx: commands.Context, *args):
         """Choose between multiple options separated by spaces.
         Use quotes to wrap multi-word options."""
-        if len(args) < 2:
-            raise ValueError('need at least two options to choose from')
+        if len(set(args)) < 2:
+            raise ValueError('need at least two unique options to choose from')
         await ctx.send(random.choice(args))
 
     @commands.command()
