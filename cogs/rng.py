@@ -43,6 +43,12 @@ class Rng(BaseCog):
             raise ValueError('need at least two unique options to choose from')
         await ctx.send(random.choice(args))
 
+    @choose.error
+    async def choose_error(self, ctx: commands.Context, exc: Exception):
+        exc = getattr(exc, 'original', exc)
+        await ctx.send(f'**{exc.__class__.__name__}**: {exc} {self.bot.command_error_emoji}',
+                       delete_after=10)
+
     @commands.command()
     async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
         """Roll one or more dice with a given number of sides."""
