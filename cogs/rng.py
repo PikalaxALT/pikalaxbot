@@ -40,14 +40,9 @@ class Rng(BaseCog):
         """Choose between multiple options separated by spaces.
         Use quotes to wrap multi-word options."""
         if len(set(args)) < 2:
-            raise ValueError('need at least two unique options to choose from')
-        await ctx.send(random.choice(args))
-
-    @choose.error
-    async def choose_error(self, ctx: commands.Context, exc: Exception):
-        exc = getattr(exc, 'original', exc)
-        await ctx.send(f'**{exc.__class__.__name__}**: {exc} {self.bot.command_error_emoji}',
-                       delete_after=10)
+            await ctx.send('I need at least 2 unique arguments!')
+        else:
+            await ctx.send(random.choice(args))
 
     @commands.command()
     async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
