@@ -31,7 +31,11 @@ class Groudonger(BaseCog):
         if user == groudonger and msg.author == guild.me:
             chain = cog.gen_msg(len_max=250, n_attempts=10)
             await channel.send(f'!mail {chain}')
-            await self.bot.wait_for('message', check=lambda m: m.author == groudonger and m.channel == channel)
+            await self.bot.wait_for(
+                'message',
+                check=lambda m: m.author == groudonger and m.channel == channel,
+                timeout=60
+            )
             await channel.send(f'{groudonger.mention} pls')
 
 
