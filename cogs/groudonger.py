@@ -27,7 +27,7 @@ class Groudonger(BaseCog):
 
         cog = self.bot.get_cog('Markov')
 
-        if user.bot and msg.author == guild.me:
+        if user.id == 303257160421212160 and msg.author == guild.me:
             chain = cog.gen_msg(len_max=250, n_attempts=10)
             await channel.send(f'!mail {chain}')
             await self.bot.wait_for(
