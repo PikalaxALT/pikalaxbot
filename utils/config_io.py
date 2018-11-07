@@ -38,7 +38,8 @@ _defaults = {
     },
     'banlist': [],
     'roles': {},
-    'watches': {}
+    'watches': {},
+    'error_emoji': 'pikalaOwO',
 }
 
 

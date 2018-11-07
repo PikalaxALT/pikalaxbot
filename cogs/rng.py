@@ -39,7 +39,11 @@ class Rng(BaseCog):
     async def choose(self, ctx: commands.Context, *args):
         """Choose between multiple options separated by spaces.
         Use quotes to wrap multi-word options."""
-        await ctx.send(random.choice(args))
+        if len(set(args)) < 2:
+            await ctx.send('I need at least 2 unique options!',
+                           delete_after=10)
+        else:
+            await ctx.send(random.choice(args))
 
     @commands.command()
     async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
