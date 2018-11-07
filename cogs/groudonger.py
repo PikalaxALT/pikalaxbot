@@ -34,6 +34,7 @@ class Groudonger(BaseCog):
                 'message',
                 check=lambda m: m.author == user and m.channel == channel,
                 timeout=60
+            )
             await channel.send(f'{user.mention} pls')
 
 
