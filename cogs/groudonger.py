@@ -25,14 +25,13 @@ class Groudonger(BaseCog):
         channel: discord.TextChannel = msg.channel
         guild: discord.Guild = msg.guild
 
-        groudonger: discord.Member = guild.get_member(303257160421212160)
         cog = self.bot.get_cog('Markov')
 
-        if user == groudonger and msg.author == guild.me:
+        if user.bot and msg.author == guild.me:
             chain = cog.gen_msg(len_max=250, n_attempts=10)
             await channel.send(f'!mail {chain}')
-            await self.bot.wait_for('message', check=lambda m: m.author == groudonger and m.channel == channel)
-            await channel.send(f'{groudonger.mention} pls')
+            await self.bot.wait_for('message', check=lambda m: m.author == user and m.channel == channel)
+            await channel.send(f'{user.mention} pls')
 
 
 def setup(bot: PikalaxBOT):
