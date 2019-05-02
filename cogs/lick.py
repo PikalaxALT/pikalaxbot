@@ -11,6 +11,9 @@ class Lick(BaseCog):
 
     @commands.command(name='lick')
     async def lick_c(self, ctx: commands.Context):
+        """
+        https://m.youtube.com/watch?v=krDxhnaKD7Q
+        """
         start = random.randint(0, 11)
         use_s = True
         for i, tongue in enumerate(self.lick[:-1]):
