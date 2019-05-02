@@ -9,8 +9,8 @@ class Lick(BaseCog):
     notes_f = 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'
     lick = 0, 2, 3, 5, 2, -2, 0
 
-    @commands.command()
-    async def lick(self, ctx: commands.Context):
+    @commands.command(name='lick')
+    async def lick_c(self, ctx: commands.Context):
         start = random.randint(0, 11)
         use_s = True
         for i, tongue in enumerate(self.lick[:-1]):
@@ -19,7 +19,7 @@ class Lick(BaseCog):
                 break
         await ctx.send(' '.join((self.notes_s if use_s else self.notes_f)[(start + offset) % 12] for offset in self.lick))
 
-    @lick.error
+    @lick_c.error
     async def lick_error(self, ctx: commands.Context, exc: Exception):
         await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
 
