@@ -28,6 +28,9 @@ class Lick(BaseCog):
     
     @commands.command(name='licc')
     async def licc_c(self, ctx: commands.Context):
+        """
+        liccs u
+        """
         emotes = [emote for emote in ctx.bot.emojis if 'licc' in emote.name.lower()]
         emote = random.choice(emotes)
         await ctx.send(f'{emote}')
