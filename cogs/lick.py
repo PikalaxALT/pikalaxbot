@@ -13,11 +13,15 @@ class Lick(BaseCog):
     async def lick(self, ctx: commands.Context):
         start = random.randint(0, 11)
         use_s = True
-        for i, tongue in enumerate(Lick.lick[:-1]):
-            if Lick.notes_s[(tongue + start) % 12][0] == Lick.notes_s[(Lick.lick[i + 1] + start) % 12][0]:
+        for i, tongue in enumerate(self.lick[:-1]):
+            if self.notes_s[(tongue + start) % 12][0] == self.notes_s[(self.lick[i + 1] + start) % 12][0]:
                 use_s = False
                 break
-        await ctx.send(' '.join((Lick.notes_s if use_s else Lick.notes_f)[(start + offset) % 12] for offset in Lick.lick))
+        await ctx.send(' '.join((self.notes_s if use_s else self.notes_f)[(start + offset) % 12] for offset in self.lick))
+
+    @lick.error
+    async def lick_error(self, ctx: commands.Context, exc: Exception):
+        await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
 
 
 def setup(bot):
