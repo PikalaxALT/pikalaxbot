@@ -25,6 +25,12 @@ class Lick(BaseCog):
     @lick_c.error
     async def lick_error(self, ctx: commands.Context, exc: Exception):
         await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
+    
+    @commands.command(name='licc')
+    async def licc_c(self, ctx: commands.Context):
+        emotes = [emote for emote in ctx.bot.emojis if 'licc' in emote.name.lower()]
+        emote = random.choice(emotes)
+        await ctx.send(f'{emote}')
 
 
 def setup(bot):
