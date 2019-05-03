@@ -167,7 +167,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         emoji = self.command_error_emoji
         if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
-            await report('Permission denied')
+            await report('You are not in the sudoers file. This incident will be reported')
         elif isinstance(exc, commands.MissingPermissions):
             await report(f'You are missing permissions: {", ".join(exc.missing_perms)}')
         elif isinstance(exc, commands.BotMissingPermissions):
