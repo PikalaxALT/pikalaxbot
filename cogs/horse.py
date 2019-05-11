@@ -57,7 +57,7 @@ class HorseCode(BaseCog):
     
     @horse.command()
     async def encode(self, ctx: commands.Context, *, input_str):
-        """Encode a string to Horse Code""
+        """Encode a string to Horse Code"""
         await ctx.send(horse_encode(input_str))
     
     @horse.command()
