@@ -92,7 +92,7 @@ class Meme(BaseCog):
 
     @commands.command()
     async def honk(self, ctx):
-        emoji = discord.utils.get(self.emojis, name='HONK')
+        emoji = discord.utils.get(self.bot.emojis, name='HONK')
         await ctx.message.add_reaction(emoji)
 
 
