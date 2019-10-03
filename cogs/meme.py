@@ -90,6 +90,11 @@ class Meme(BaseCog):
         await ctx.send('https://vignette.wikia.nocookie.net/twitchplayspokemoncrystal/images/5/5f/'
                        'Serious_%22OLDEN%22_Times.png/revision/latest?cb=20160820193335')
 
+    @commands.command()
+    async def honk(self, ctx):
+        emoji = discord.utils.get(self.emojis, name='HONK')
+        await ctx.message.add_reaction(emoji)
+
 
 def setup(bot):
     bot.add_cog(Meme(bot))
