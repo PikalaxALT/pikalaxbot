@@ -136,6 +136,7 @@ class Markov(BaseCog):
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message):
         self.learn_markov(msg)
+        return
         ctx: commands.Context = await self.bot.get_context(msg)
         if ctx.command == self.markov:
             return
