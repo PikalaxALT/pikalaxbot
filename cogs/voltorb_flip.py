@@ -209,8 +209,8 @@ class VoltorbFlipGame(GameBase):
             else:
                 self.add_player(ctx.author)
                 self.set_revealed(x, y)
-                await self._message.edit(content=self.__str__())
                 multiplier = self.coin_value(x, y)
+                await self._message.edit(content=self.__str__())
                 if multiplier > 1:
                     self._score *= multiplier
                     await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
