@@ -209,13 +209,13 @@ class VoltorbFlipGame(GameBase):
             else:
                 self.add_player(ctx.author)
                 self.set_revealed(x, y)
+                await self._message.edit(content=self.__str__())
                 multiplier = self.coin_value(x, y)
                 if multiplier > 1:
                     self._score *= multiplier
                     await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
-                    emoji = find_emoji(ctx.guild, 'PogChamp', case_sensitive=False)
+                    emoji = find_emoji(ctx.bot, 'PogChamp', case_sensitive=False)
                     await ctx.message.add_reaction(emoji)
-                await self._message.edit(content=self.__str__())
                 if self.found_all_coins():
                     await self.end(ctx)
         else:

@@ -27,7 +27,7 @@ class Bag(BaseCog):
             async with self.bot.sql as sql:
                 message = await sql.read_bag()
             if message is None:
-                emoji = find_emoji(ctx.guild, 'BibleThump', case_sensitive=False)
+                emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
                 await ctx.send(f'*cannot find the bag {emoji}*')
             else:
                 await ctx.send(f'*{message}*')
