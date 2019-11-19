@@ -31,7 +31,7 @@ CONE_OF_SHAME = discord.Object(473974608165470219)
 
 
 class OneHand(BaseCog):
-    async def __local_check(self, ctx: commands.Context):
+    async def cog_check(self, ctx: commands.Context):
         return ctx.guild.id != TPP_SERVER.id
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):

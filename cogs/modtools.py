@@ -39,7 +39,7 @@ class ModTools(BaseCog):
     debug = False
     config_attrs = 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
 
-    async def __local_check(self, ctx: commands.Context):
+    async def cog_check(self, ctx: commands.Context):
         return await self.bot.is_owner(ctx.author)
 
     @commands.group(case_insensitive=True)

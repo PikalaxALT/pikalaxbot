@@ -149,9 +149,9 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         cog = ctx.cog
         if cog:
-            attr = f'_{cog.__class__.__name__}__error'
+            attr = f'cog_command_error'
             if hasattr(cog, attr):
-                self.log_and_print(logging.DEBUG, f'{cog.__class__.__name__} has __error')
+                self.log_and_print(logging.DEBUG, f'{cog.__class__.__name__} has cog_command_error')
                 return False
 
         return True

@@ -93,7 +93,7 @@ class Rng(BaseCog):
         url = random.choice(img_pool)
         await ctx.send(f'Quilava ❤ {url}')
 
-    async def __error(self, ctx, exc):
+    async def cog_command_error(self, ctx, exc):
         orig = getattr(exc, 'original', exc)
         if isinstance(exc, commands.ConversionError):
             if isinstance(orig, AssertionError):

@@ -55,7 +55,7 @@ class MemberWatch(BaseCog):
         else:
             raise MemberWatchError(f'Not watching {user}')
 
-    async def __error(self, ctx: commands.Context, exc: Exception):
+    async def cog_command_error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, MemberWatchError):
             await ctx.send(exc)
         else:

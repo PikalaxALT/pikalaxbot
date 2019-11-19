@@ -135,7 +135,7 @@ class HangmanGame(GameBase):
 class Hangman(GameCogBase):
     gamecls = HangmanGame
 
-    def __local_check(self, ctx):
+    def cog_check(self, ctx):
         return self._local_check(ctx)
 
     @commands.group(case_insensitive=True)
@@ -187,7 +187,7 @@ class Hangman(GameCogBase):
         """Show the board in a new message"""
         await ctx.invoke(self.show)
 
-    async def __error(self, ctx, exc):
+    async def cog_command_error(self, ctx, exc):
         await self._error(ctx, exc)
 
 

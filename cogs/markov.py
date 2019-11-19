@@ -34,7 +34,7 @@ class Markov(BaseCog):
         self.chain = Chain(store_lowercase=True)
         self.bot.loop.create_task(self.init_chain())
 
-    def __local_check(self, ctx: commands.Context):
+    def cog_check(self, ctx: commands.Context):
         if not self.initialized:
             return False
         if ctx.author.bot:
@@ -136,7 +136,6 @@ class Markov(BaseCog):
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message):
         self.learn_markov(msg)
-        return
         ctx: commands.Context = await self.bot.get_context(msg)
         if ctx.command == self.markov:
             return
