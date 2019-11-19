@@ -17,10 +17,11 @@
 import aiohttp
 import typing
 
+from discord.ext import commands
 from utils.botclass import PikalaxBOT, LoggingMixin
 
 
-class BaseCog(LoggingMixin):
+class BaseCog(LoggingMixin, commands.Cog):
     """
     Base class for all cog files.  Inherits :class:LoggingMixin
 
