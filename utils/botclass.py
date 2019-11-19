@@ -23,6 +23,7 @@ import os
 import glob
 from utils.config_io import Settings
 from utils.sql import connect
+from utils.paginator import HelpPaginator
 
 
 class LoggingMixin:
@@ -71,8 +72,35 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         loop = asyncio.get_event_loop() if loop is None else loop
         self.settings = Settings(settings_file, loop=loop)
         help_name = self.settings.help_name
+
+        @commands.command(name=help_name)
+        async def _help(self, ctx: commands.Context, *, command=None):
+            """Shows help about a command or the bot"""
+
+            if command is None:
+                p = await HelpPaginator.from_bot(ctx)
+            else:
+                entity = self.bot.get_cog(command) or self.bot.get_command(command)
+
+                if entity is None:
+                    clean = command.replace('@', '@\u200b')
+                    return await ctx.send(f'Command or category "{clean}" not found.')
+                elif isinstance(entity, commands.Command):
+                    p = await HelpPaginator.from_command(ctx, entity)
+                else:
+                    p = await HelpPaginator.from_cog(ctx, entity)
+
+            await p.paginate()
+
+        @_help.error
+        async def help_error(self, ctx, exc):
+            self.log_tb(ctx, exc)
+            if hasattr(exc, 'orig'):
+                exc = exc.orig
+            await ctx.send(exc)
+
         disabled_cogs = self.settings.disabled_cogs
-        super().__init__(_command_prefix, case_insensitive=True, help_attrs={'name': help_name}, loop=loop)
+        super().__init__(_command_prefix, case_insensitive=True, help_command=_help, loop=loop)
 
         # Set up logger
         self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
