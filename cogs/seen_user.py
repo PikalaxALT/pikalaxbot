@@ -14,6 +14,7 @@ class SeenUser(BaseCog):
         self.member_cache = {}
         self.history_cache = {}
 
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         self.member_cache[(message.guild.id, message.author.id)] = message
         self.history_cache[message.channel.id].append(message)

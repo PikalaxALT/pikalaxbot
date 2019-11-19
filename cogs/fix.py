@@ -49,6 +49,7 @@ class Fix(BaseCog):
         botname = self.bot_names.get(alias, 'your bot')
         await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT {time.gmtime().tm_year:d}')
 
+    @commands.Cog.listener()
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
         if ctx.command is None and self.get_fix_alias(ctx) is not None:

@@ -62,10 +62,12 @@ class Core(BaseCog):
         self.banlist.discard(person.id)
         await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
+    @commands.Cog.listener()
     async def on_ready(self):
         activity = discord.Game(self.game)
         await self.bot.change_presence(activity=activity)
 
+    @commands.Cog.listener()
     async def on_guild_join(self, guild):
         for channel in guild.channels:
             if channel.permissions_for(guild.me).send_messages:

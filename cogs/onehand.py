@@ -131,6 +131,7 @@ class OneHand(BaseCog):
         else:
             self.log_tb(ctx, exc)
 
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.content.lower().startswith('f.e6 pikalax'):
             await self.give_cone(message)

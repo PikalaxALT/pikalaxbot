@@ -61,11 +61,13 @@ class MemberWatch(BaseCog):
         else:
             self.log_tb(ctx, exc)
 
+    @commands.Cog.listener()
     async def on_member_add(self, member: discord.Member):
         if member.id in self.watches[member.guild.id]:
             channel = member.guild.get_channel(self.watches[member.guild.id])
             await channel.send(f'{member} has joined the server. Resume normal activities.')
 
+    @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         if member.id in self.watches[member.guild.id]:
             channel = member.guild.get_channel(self.watches[member.guild.id])

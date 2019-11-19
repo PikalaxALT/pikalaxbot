@@ -15,11 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import discord
+from discord.ext import commands
 from cogs import BaseCog
 from utils.botclass import PikalaxBOT
 
 
 class Groudonger(BaseCog):
+    @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         msg: discord.Message = reaction.message
         channel: discord.TextChannel = msg.channel

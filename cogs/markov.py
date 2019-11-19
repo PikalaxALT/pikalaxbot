@@ -133,6 +133,7 @@ class Markov(BaseCog):
         else:
             await ctx.send(f'Channel {ch} is not being learned')
 
+    @commands.Cog.listener()
     async def on_message(self, msg: discord.Message):
         self.learn_markov(msg)
         ctx: commands.Context = await self.bot.get_context(msg)
@@ -141,11 +142,13 @@ class Markov(BaseCog):
         ctx.command = self.markov
         await self.bot.invoke(ctx)
 
+    @commands.Cog.listener()
     async def on_message_edit(self, old, new):
         # Remove old message
         self.forget_markov(old)
         self.learn_markov(new)
 
+    @commands.Cog.listener()
     async def on_message_delete(self, msg):
         self.forget_markov(msg)
 
