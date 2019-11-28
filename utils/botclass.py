@@ -65,20 +65,13 @@ def _command_prefix(bot, message):
     return bot.settings.prefix
 
 
-class MyHelpCommand(commands.HelpCommand):
-    async def on_help_command_error(self, ctx, error):
-        await ctx.bot.owner.send(f'**{error.__class__.__name__}**: {error} {ctx.bot.command_error_emoji}')
-
-
 class PikalaxBOT(LoggingMixin, commands.Bot):
     def __init__(self, settings_file, logfile, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
         self.settings = Settings(settings_file, loop=loop)
-        help_name = self.settings.help_name
-        _help = MyHelpCommand(command_attrs={'name': help_name})
         disabled_cogs = self.settings.disabled_cogs
-        super().__init__(_command_prefix, case_insensitive=True, help_command=_help, loop=loop)
+        super().__init__(_command_prefix, case_insensitive=True, loop=loop)
 
         # Set up logger
         self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
