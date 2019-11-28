@@ -71,7 +71,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         loop = asyncio.get_event_loop() if loop is None else loop
         self.settings = Settings(settings_file, loop=loop)
         help_name = self.settings.help_name
-        _help = commands.HelpCommand(command_attrs={'name': help_name})
+        _help = commands.DefaultHelpCommand(command_attrs={'name': help_name})
         disabled_cogs = self.settings.disabled_cogs
         super().__init__(_command_prefix, case_insensitive=True, help_command=_help, loop=loop)
 
