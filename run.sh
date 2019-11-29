@@ -1,7 +1,5 @@
 #!/bin/sh
 
-which python3
-
 BOTDIR=$(dirname "$(realpath -P "$0")"); cd "${BOTDIR}"
 pip install -U -r requirements.txt  # update discord and youtube-dl
 git pull  # update the bot
