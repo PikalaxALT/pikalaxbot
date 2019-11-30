@@ -28,7 +28,7 @@ TPP_SERVER = discord.Object(148079346685313034)
 
 class OneHand(BaseCog):
     banned_guilds = set()
-    global_blacklist = 'cub', 'shota', 'loli', 'young'
+    global_blacklist = {'cub', 'shota', 'loli', 'young'}
     my_blacklist = set()
     config_attrs = 'banned_guilds', 'my_blacklist'
 
@@ -41,26 +41,26 @@ class OneHand(BaseCog):
             params = params[:-1]
         except ValueError:
             num = 1
+        blacklist = self.global_blacklist.union(self.my_blacklist)
         params = set(params)
-        params.difference_update(self.global_blacklist)
-        params.difference_update(self.my_blacklist)
+        params.difference_update(blacklist)
         if not params:
             await ctx.send('Empty query (no non-blacklisted tags)')
             return
         tags = ' '.join(params)
-        params.update(f'-{tag}' for tag in self.global_blacklist)
-        params.update(f'-{tag}' for tag in self.my_blacklist)
-        params = tuple(params)
         if not any(param.startswith('order:') for param in params):
-            params += 'order:random',
+            params.add('order:random')
         r = await self.cs.get(
             f'https://{name}.net/post/index.json',
             headers={'User-Agent': self.bot.user.name},
-            params={'tags': ' '.join(params), 'limit': num}
+            params={'tags': ' '.join(params), 'limit': 100}
         )
         j = await r.json()
+        sent_count = 0
         if j:
             for imagespec in j:
+                if blacklist.intersection(imagespec['tags']):
+                    continue
                 score = imagespec['score']
                 width = imagespec['width']
                 height = imagespec['height']
@@ -80,7 +80,10 @@ class OneHand(BaseCog):
                 embed.set_image(url=imagespec['file_url'])
                 embed.set_footer(text=name, icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
-        else:
+                sent_count += 1
+                if sent_count == num:
+                    return
+        if sent_count == 0:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
     @commands.command()
