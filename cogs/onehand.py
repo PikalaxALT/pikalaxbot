@@ -26,9 +26,15 @@ from cogs import BaseCog
 TPP_SERVER = discord.Object(148079346685313034)
 
 
+class EmptyQuery(commands.CommandError):
+    """Empty query (no non-blacklisted tags)"""
+
+
 class OneHand(BaseCog):
     banned_guilds = set()
-    config_attrs = 'banned_guilds'
+    global_blacklist = 'cub', 'shota', 'loli', 'young'
+    my_blacklist = set()
+    config_attrs = 'banned_guilds', 'my_blacklist'
 
     async def cog_check(self, ctx: commands.Context):
         return ctx.guild is None or ctx.guild.id not in self.banned_guilds
@@ -39,6 +45,10 @@ class OneHand(BaseCog):
             params = params[:-1]
         except ValueError:
             num = 1
+        params = set(params)
+        params.difference_update(self.global_blacklist)
+        if not params:
+            raise EmptyQuery
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
@@ -118,6 +128,25 @@ class OneHand(BaseCog):
         else:
             self.banned_guilds.remove(guild.id)
             await ctx.message.add_reaction('✅')
+
+    @commands.group()
+    async def blacklist(self, ctx):
+        pass
+
+    @blacklist.command(name='add')
+    async def blacklist_add(self, ctx, *tags):
+        self.my_blacklist.update(tags)
+        await ctx.message.add_reaction('✅')
+
+    @blacklist.command(name='remove')
+    async def blacklist_remove(self, ctx, *tags):
+        self.my_blacklist.difference_update(tags)
+        await ctx.message.add_reaction('✅')
+
+    @blacklist.command(name='clear')
+    async def blacklist_clear(self, ctx):
+        self.my_blacklist = set()
+        await ctx.message.add_reaction('✅')
 
     @commands.command()
     @commands.bot_has_permissions(attach_files=True)
