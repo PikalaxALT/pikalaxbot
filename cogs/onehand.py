@@ -26,10 +26,6 @@ from cogs import BaseCog
 TPP_SERVER = discord.Object(148079346685313034)
 
 
-class EmptyQuery(commands.CommandError):
-    """Empty query (no non-blacklisted tags)"""
-
-
 class OneHand(BaseCog):
     banned_guilds = set()
     global_blacklist = 'cub', 'shota', 'loli', 'young'
@@ -47,8 +43,10 @@ class OneHand(BaseCog):
             num = 1
         params = set(params)
         params.difference_update(self.global_blacklist)
+        params.difference_update(self.my_blacklist)
         if not params:
-            raise EmptyQuery
+            await ctx.send('Empty query (no non-blacklisted tags)')
+            return
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
