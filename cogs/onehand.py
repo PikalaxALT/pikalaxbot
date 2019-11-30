@@ -58,7 +58,7 @@ class OneHand(BaseCog):
         j = await r.json()
         sent_any = False
         if j:
-            for i, imagespec in zip(range(num), filter(lambda x: not blacklist.intersection(x['tags']), j)):
+            for i, imagespec in zip(range(num), filter(lambda x: not blacklist.intersection(x['tags'].split()), j)):
                 score = imagespec['score']
                 width = imagespec['width']
                 height = imagespec['height']
