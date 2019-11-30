@@ -107,7 +107,7 @@ class OneHand(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def nolewd(self, ctx, guild: discord.Guild = None):
+    async def nolewd(self, ctx, *, guild: discord.Guild = None):
         if guild is None:
             guild = ctx.guild
         if guild.id in self.banned_guilds:
@@ -118,7 +118,7 @@ class OneHand(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def oklewd(self, ctx, guild: discord.Guild = None):
+    async def oklewd(self, ctx, *, guild: discord.Guild = None):
         if guild is None:
             guild = ctx.guild
         if guild.id not in self.banned_guilds:
