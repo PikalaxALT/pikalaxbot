@@ -172,7 +172,7 @@ class OneHand(BaseCog):
             await ctx.send(f'Could not reach inspirobot.me: {exc}',
                            delete_after=10)
 
-    async def __error(self, ctx: commands.Context, exc: Exception):
+    async def cog_command_error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, commands.BotMissingPermissions):
             await ctx.send(f'{exc}')
         elif isinstance(exc, commands.CheckFailure):
