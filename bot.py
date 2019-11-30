@@ -44,11 +44,13 @@ def main():
 
     @bot.before_invoke
     async def before_invoke(ctx):
-        ctx.cog.fetch()
+        if ctx.cog:
+            ctx.cog.fetch()
 
     @bot.after_invoke
     async def after_invoke(ctx):
-        ctx.cog.commit()
+        if ctx.cog:
+            ctx.cog.commit()
 
     bot.run()
 
