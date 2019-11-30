@@ -75,7 +75,7 @@ class OneHand(BaseCog):
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
                 embed.set_image(url=imagespec['file_url'])
-                embed.set_footer(text=f'{name} - {i}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
+                embed.set_footer(text=f'{name} - {i + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
         else:
             await ctx.send(f':warning: | No results for: `{tags}`')
