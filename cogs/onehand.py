@@ -48,6 +48,8 @@ class OneHand(BaseCog):
             await ctx.send('Empty query (no non-blacklisted tags)')
             return
         tags = ' '.join(params)
+        params.update(f'-{tag}' for tag in self.global_blacklist)
+        params.update(f'-{tag}' for tag in self.my_blacklist)
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
         r = await self.cs.get(
@@ -145,6 +147,14 @@ class OneHand(BaseCog):
     async def blacklist_clear(self, ctx):
         self.my_blacklist = set()
         await ctx.message.add_reaction('✅')
+
+    @blacklist.command(name='show')
+    async def blacklist_show(self, ctx):
+        glb = ', '.join(self.global_blacklist)
+        loc = ', '.join(self.my_blacklist)
+        await ctx.send(f'The following tags are blacklisted globally: `{glb}`\n'
+                       f'The following additional tags are also blacklisted:\n'
+                       f'`{loc}`')
 
     @commands.command()
     @commands.bot_has_permissions(attach_files=True)
