@@ -55,10 +55,9 @@ class OneHand(BaseCog):
             headers={'User-Agent': self.bot.user.name},
             params={'tags': ' '.join(params), 'limit': 100}
         )
-        j = await r.json()
-        sent_any = False
+        j = list(filter(lambda x: not blacklist.intersection(x['tags'].split()), await r.json()))[:num]
         if j:
-            for i, imagespec in zip(range(num), filter(lambda x: not blacklist.intersection(x['tags'].split()), j)):
+            for i, imagespec in enumerate(j):
                 score = imagespec['score']
                 width = imagespec['width']
                 height = imagespec['height']
@@ -71,15 +70,14 @@ class OneHand(BaseCog):
                 else:
                     description = f'**Score:** {score} | ' \
                                   f'**Resolution:** {width} x {height} | ' \
-                                  f'**Link:** [Click Here](https://{name}.net/post/show/{pic_id})'
+                                  f'[Link](https://{name}.net/post/show/{pic_id})'
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
                 embed.set_image(url=imagespec['file_url'])
-                embed.set_footer(text=name, icon_url='http://i.imgur.com/RrHrSOi.png')
+                embed.set_footer(text=f'{name} - {i}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
-                sent_any = True
-        if not sent_any:
+        else:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
     @commands.command()
@@ -94,6 +92,8 @@ class OneHand(BaseCog):
         if isinstance(exc, aiohttp.ClientError):
             await ctx.send(f'Could not reach e621: {exc}',
                            delete_after=10)
+        else:
+            await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
 
     @commands.command()
     @commands.bot_has_permissions(embed_links=True)
