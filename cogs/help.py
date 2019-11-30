@@ -78,7 +78,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
         pages.get_page = pages.get_bot_page
         pages.is_bot = True
         pages.total = total
-        await self.context.release()
         await pages.paginate()
 
     async def send_cog_help(self, cog):
@@ -87,7 +86,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
         pages.title = f'{cog.qualified_name} Commands'
         pages.description = cog.description
 
-        await self.context.release()
         await pages.paginate()
 
     def common_command_formatting(self, page_or_embed, command):
@@ -112,7 +110,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
         pages = HelpPaginator(self, self.context, entries)
         self.common_command_formatting(pages, group)
 
-        await self.context.release()
         await pages.paginate()
 
 
