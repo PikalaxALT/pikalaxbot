@@ -33,7 +33,7 @@ class OneHand(BaseCog):
     config_attrs = 'banned_guilds', 'my_blacklist'
 
     async def cog_check(self, ctx: commands.Context):
-        return ctx.guild is None or ctx.guild.id not in self.banned_guilds
+        return ctx.command == self.oklewd or ctx.guild is None or ctx.guild.id not in self.banned_guilds
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:
