@@ -17,22 +17,21 @@
 import aiohttp
 import io
 import os
-import typing
 
-import aiohttp
 import discord
 from discord.ext import commands
 
 from cogs import BaseCog
 
 TPP_SERVER = discord.Object(148079346685313034)
-OVER = discord.Object(468049971145342987)
-CONE_OF_SHAME = discord.Object(473974608165470219)
 
 
 class OneHand(BaseCog):
+    banned_guilds = set()
+    config_attrs = 'banned_guilds'
+
     async def cog_check(self, ctx: commands.Context):
-        return ctx.guild.id != TPP_SERVER.id
+        return ctx.guild is None or ctx.guild.id not in self.banned_guilds
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:
@@ -73,20 +72,12 @@ class OneHand(BaseCog):
         else:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
-    @staticmethod
-    async def give_cone(ctx: typing.Union[discord.Message, commands.Context]):
-        if ctx.channel.id == OVER.id and discord.utils.get(ctx.author.roles, id=CONE_OF_SHAME.id):
-            await ctx.author.add_roles(CONE_OF_SHAME, reason='Looked for porn of my husbando')
-            await ctx.bot.owner.send(f'Gave cone to {ctx.author.name}')
-
     @commands.command()
     @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
     async def e6(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
         await self.get_bad_dragon(ctx, 'e621', *params)
-        if any('pikalax' in param.lower() for param in params):
-            await self.give_cone(ctx)
 
     @e6.error
     async def e6_error(self, ctx: commands.Context, exc: Exception):
@@ -107,6 +98,28 @@ class OneHand(BaseCog):
                            delete_after=10)
 
     @commands.command()
+    @commands.is_owner()
+    async def nolewd(self, ctx, guild: discord.Guild = None):
+        if guild is None:
+            guild = ctx.guild
+        if guild.id in self.banned_guilds:
+            await ctx.send(f'Guild "{guild}" is already marked safe', delete_after=10)
+        else:
+            self.banned_guilds.add(guild.id)
+            await ctx.message.add_reaction('✅')
+
+    @commands.command()
+    @commands.is_owner()
+    async def oklewd(self, ctx, guild: discord.Guild = None):
+        if guild is None:
+            guild = ctx.guild
+        if guild.id not in self.banned_guilds:
+            await ctx.send(f'Guild "{guild}" is not marked safe', delete_after=10)
+        else:
+            self.banned_guilds.remove(guild.id)
+            await ctx.message.add_reaction('✅')
+
+    @commands.command()
     @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
@@ -124,17 +137,12 @@ class OneHand(BaseCog):
 
     async def __error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, commands.BotMissingPermissions):
-            await ctx.send(exc)
+            await ctx.send(f'{exc}')
         elif isinstance(exc, commands.CheckFailure):
             await ctx.send('This command is age-restricted and cannot be used in this channel.',
                            delete_after=10)
         else:
             self.log_tb(ctx, exc)
-
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.content.lower().startswith('f.e6 pikalax'):
-            await self.give_cone(message)
 
 
 def setup(bot):

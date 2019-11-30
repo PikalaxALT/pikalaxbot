@@ -46,7 +46,10 @@ class BaseCog(LoggingMixin, commands.Cog):
         self.log_debug(f'Fetching {self.__class__.__name__}')
         for attr in self.config_attrs:
             self.log_debug(attr)
-            val = getattr(self.bot.settings, attr)
+            try:
+                val = getattr(self.bot.settings, attr)
+            except AttributeError:
+                continue
             if isinstance(val, list):
                 val = set(val)
             setattr(self, attr, val)
