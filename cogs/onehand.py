@@ -48,8 +48,8 @@ class OneHand(BaseCog):
             await ctx.send('Empty query (no non-blacklisted tags)')
             return
         tags = ' '.join(params)
-        params.update(f'-{tag}' for tag in self.global_blacklist)
-        params.update(f'-{tag}' for tag in self.my_blacklist)
+        params.update([f'-{tag}' for tag in self.global_blacklist])
+        params.update([f'-{tag}' for tag in self.my_blacklist])
         if not any(param.startswith('order:') for param in params):
             params += 'order:random',
         r = await self.cs.get(
