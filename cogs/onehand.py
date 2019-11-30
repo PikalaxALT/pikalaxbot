@@ -26,6 +26,10 @@ from cogs import BaseCog
 TPP_SERVER = discord.Object(148079346685313034)
 
 
+class CommandBannedInGuild(commands.CheckFailure):
+    pass
+
+
 class OneHand(BaseCog):
     banned_guilds = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
@@ -33,7 +37,13 @@ class OneHand(BaseCog):
     config_attrs = 'banned_guilds', 'my_blacklist'
 
     async def cog_check(self, ctx: commands.Context):
-        return ctx.command == self.oklewd or ctx.guild is None or ctx.guild.id not in self.banned_guilds
+        if ctx.command == self.oklewd:
+            return True
+        if ctx.guild is None:
+            return True
+        if ctx.guild.id in self.banned_guilds:
+            raise CommandBannedInGuild
+        return True
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:
@@ -175,7 +185,7 @@ class OneHand(BaseCog):
     async def cog_command_error(self, ctx: commands.Context, exc: Exception):
         if isinstance(exc, commands.BotMissingPermissions):
             await ctx.send(f'{exc}')
-        elif isinstance(exc, commands.CheckFailure):
+        elif isinstance(exc, (commands.NSFWChannelRequired, CommandBannedInGuild)):
             await ctx.send('This command is age-restricted and cannot be used in this channel.',
                            delete_after=10)
         else:
