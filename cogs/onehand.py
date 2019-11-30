@@ -56,11 +56,9 @@ class OneHand(BaseCog):
             params={'tags': ' '.join(params), 'limit': 100}
         )
         j = await r.json()
-        sent_count = 0
+        sent_any = False
         if j:
-            for imagespec in j:
-                if blacklist.intersection(imagespec['tags']):
-                    continue
+            for i, imagespec in zip(range(num), filter(lambda x: not blacklist.intersection(x['tags']), j)):
                 score = imagespec['score']
                 width = imagespec['width']
                 height = imagespec['height']
@@ -80,10 +78,8 @@ class OneHand(BaseCog):
                 embed.set_image(url=imagespec['file_url'])
                 embed.set_footer(text=name, icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
-                sent_count += 1
-                if sent_count == num:
-                    return
-        if sent_count == 0:
+                sent_any = True
+        if not sent_any:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
     @commands.command()
