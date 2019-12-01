@@ -30,6 +30,12 @@ class CommandBannedInGuild(commands.CheckFailure):
     pass
 
 
+class CogCheckFailed(commands.CheckFailure):
+    def __init__(self, original: Exception):
+        super().__init__()
+        self.original = original
+
+
 class OneHand(BaseCog):
     banned_guilds = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
@@ -37,13 +43,16 @@ class OneHand(BaseCog):
     config_attrs = 'banned_guilds', 'my_blacklist'
 
     async def cog_check(self, ctx: commands.Context):
-        if ctx.command == self.oklewd:
+        try:
+            if ctx.command == self.oklewd:
+                return True
+            if ctx.guild is None:
+                return True
+            if ctx.guild.id in self.banned_guilds:
+                return CommandBannedInGuild
             return True
-        if ctx.guild is None:
-            return True
-        if ctx.guild.id in self.banned_guilds:
-            raise CommandBannedInGuild
-        return True
+        except Exception as e:
+            raise CogCheckFailed(e)
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:
@@ -189,6 +198,9 @@ class OneHand(BaseCog):
             await ctx.send('This command is age-restricted and cannot be used in this channel.',
                            delete_after=10)
         else:
+            if isinstance(exc, CogCheckFailed):
+                exc = exc.original
+                await ctx.send(f'Unhandled check error: **{exc.__class__.__name__}**: {exc}')
             self.log_tb(ctx, exc)
 
 
