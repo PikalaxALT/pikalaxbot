@@ -49,10 +49,11 @@ class OneHand(BaseCog):
             if ctx.guild is None:
                 return True
             if ctx.guild.id in self.banned_guilds:
-                return CommandBannedInGuild
+                raise CommandBannedInGuild
             return True
         except Exception as e:
-            raise CogCheckFailed(e)
+            await self.bot.owner.send(f'**{e.__class__.__name__}**: {e}')
+            return False
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):
         try:
