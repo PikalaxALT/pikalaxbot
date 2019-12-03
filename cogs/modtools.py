@@ -49,7 +49,7 @@ class ModTools(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        for name in self.disabled_commands:
+        for name in list(self.disabled_commands):
             cmd = self.bot.get_command(name)
             if cmd:
                 cmd.enabled = False
@@ -57,7 +57,7 @@ class ModTools(BaseCog):
                 self.disabled_commands.discard(name)
 
     def cog_unload(self):
-        for name in self.disabled_commands:
+        for name in list(self.disabled_commands):
             cmd = self.bot.get_command(name)
             if cmd:
                 cmd.enabled = True
