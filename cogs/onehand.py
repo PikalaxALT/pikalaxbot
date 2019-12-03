@@ -48,7 +48,7 @@ class OneHand(BaseCog):
         if ctx.guild is None:
             return True
         if ctx.guild.id in self.banned_guilds:
-            raise CommandBannedInGuild
+            raise CommandBannedInGuild('Lewd commands are banned in this guild.')
         return True
 
     async def get_bad_dragon(self, ctx: commands.Context, name, *params):

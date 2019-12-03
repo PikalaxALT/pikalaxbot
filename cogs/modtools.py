@@ -31,6 +31,14 @@ class lower(str):
         return arg.lower()
 
 
+class CommandConverter(commands.Converter):
+    async def convert(self, ctx: commands.Context, argument):
+        cmd = ctx.bot.get_command(argument)
+        if cmd is None:
+            raise commands.CommandNotFound(argument)
+        return cmd
+
+
 class ModTools(BaseCog):
     prefix = 'p!'
     game = 'p!help'
@@ -39,8 +47,27 @@ class ModTools(BaseCog):
     debug = False
     config_attrs = 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        for name in self.disabled_commands:
+            cmd = self.bot.get_command(name)
+            if cmd:
+                cmd.enabled = False
+            else:
+                self.disabled_commands.discard(name)
+
+    def cog_unload(self):
+        for name in self.disabled_commands:
+            cmd = self.bot.get_command(name)
+            if cmd:
+                cmd.enabled = True
+            else:
+                self.disabled_commands.discard(name)
+
     async def cog_check(self, ctx: commands.Context):
-        return await self.bot.is_owner(ctx.author)
+        if not await self.bot.is_owner(ctx.author):
+            raise commands.NotOwner('You do not own this bot')
+        return True
 
     @commands.group(case_insensitive=True)
     async def admin(self, ctx):
@@ -109,45 +136,35 @@ class ModTools(BaseCog):
         """Manage bot commands"""
 
     @admin_cmd.command(name='disable')
-    async def disable_command(self, ctx: commands.Context, *, cmd):
+    async def disable_command(self, ctx: commands.Context, *, cmd: CommandConverter):
         """Disable a command"""
 
-        if cmd in self.disabled_commands:
+        if cmd.name in self.disabled_commands:
             await ctx.send(f'{cmd} is already disabled')
         else:
-            self.disabled_commands.add(cmd)
+            self.disabled_commands.add(cmd.name)
+            cmd.enabled = False
             await ctx.message.add_reaction('☑')
 
     @admin_cmd.command(name='enable')
-    async def enable_command(self, ctx: commands.Context, *, cmd):
+    async def enable_command(self, ctx: commands.Context, *, cmd: CommandConverter):
         """Enable a command"""
 
-        if cmd in self.disabled_commands:
-            self.disabled_commands.discard(cmd)
+        if cmd.name in self.disabled_commands:
+            self.disabled_commands.discard(cmd.name)
+            cmd.enabled = True
             await ctx.message.add_reaction('☑')
         else:
             await ctx.send(f'{cmd} is already enabled')
 
+    @admin_cmd.error
+    async def admin_cmd_error(self, ctx: commands.Context, exc: Exception):
+        if isinstance(exc, commands.ConversionError):
+            await ctx.send(f'Command "{exc.original.args[0]}" not found')
+
     @admin.group()
     async def cog(self, ctx):
         """Manage bot cogs"""
-
-    @cog.command(name='enable')
-    async def enable_cog(self, ctx, *cogs: lower):
-        """Enable cogs"""
-
-        await self.git_pull(ctx)
-        for cog in cogs:
-            if cog not in self.disabled_cogs:
-                await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
-                continue
-            try:
-                self.bot.load_extension(f'cogs.{cog}')
-            except discord.ClientException:
-                await ctx.send(f'Failed to load cog "{cog}"')
-            else:
-                await ctx.send(f'Loaded cog "{cog}"')
-                self.disabled_cogs.discard(cog)
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
@@ -167,6 +184,23 @@ class ModTools(BaseCog):
             else:
                 await ctx.send(f'Unloaded cog "{cog}"')
                 self.disabled_cogs.add(cog)
+
+    @cog.command(name='enable')
+    async def enable_cog(self, ctx, *cogs: lower):
+        """Enable cogs"""
+
+        await self.git_pull(ctx)
+        for cog in cogs:
+            if cog not in self.disabled_cogs:
+                await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
+                continue
+            try:
+                self.bot.load_extension(f'cogs.{cog}')
+            except discord.ClientException:
+                await ctx.send(f'Failed to load cog "{cog}"')
+            else:
+                await ctx.send(f'Loaded cog "{cog}"')
+                self.disabled_cogs.discard(cog)
 
     async def git_pull(self, ctx):
         async with ctx.typing():

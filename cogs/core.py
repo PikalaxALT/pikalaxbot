@@ -20,26 +20,29 @@ from discord.ext import commands
 from cogs import BaseCog
 
 
+class NotReady(commands.CheckFailure):
+    pass
+
+
+class BotIsIgnoringUser(commands.CheckFailure):
+    pass
+
+
 class Core(BaseCog):
-    disabled_commands = set()
     banlist = set()
-    game = '!pikakill'
-    config_attrs = 'disabled_commands', 'banlist', 'game'
+    game = 'p!help'
+    config_attrs = 'banlist', 'game'
 
     async def bot_check(self, ctx: commands.Context):
         if not self.bot.is_ready():
-            return False
-        if ctx.author.bot:
-            return False
+            raise NotReady('The bot is not ready to process commands')
         if not ctx.channel.permissions_for(ctx.me).send_messages:
-            return False
-        self.fetch()
-        if isinstance(ctx.command, commands.Command):
-            if await self.bot.is_owner(ctx.author):
-                return True
-            if ctx.command.name in self.disabled_commands:
-                return False
-        return ctx.author.id not in self.banlist
+            raise commands.BotMissingPermissions(['send_messages'])
+        if isinstance(ctx.command, commands.Command) and await self.bot.is_owner(ctx.author):
+            return True
+        if ctx.author.id in self.banlist:
+            raise BotIsIgnoringUser(f'I am ignoring {ctx.author}')
+        return True
 
     @commands.command(aliases=['reboot'])
     @commands.is_owner()
