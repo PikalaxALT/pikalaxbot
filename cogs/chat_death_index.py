@@ -2,7 +2,7 @@ import asyncio
 from collections import defaultdict, Counter
 import discord
 import datetime
-from discord.ext import commands
+from discord.ext import commands, tasks
 from cogs import BaseCog
 from utils.botclass import PikalaxBOT
 import typing
@@ -16,10 +16,9 @@ class ChatDeathIndex(BaseCog):
         super().__init__(bot)
         self.cdi_samples = defaultdict(list)
         self.cumcharcount = Counter()
-        self.task = self.bot.loop.create_task(self.save_message_count())
 
     def __unload(self):
-        self.task.cancel()
+        self.save_message_count.cancel()
 
     @staticmethod
     def get_message_cdi_effect(message: discord.Message) -> float:
@@ -37,8 +36,15 @@ class ChatDeathIndex(BaseCog):
         context = await self.bot.get_context(message)
         return not context.valid
 
+    @tasks.loop(seconds=60, reconnect=True)
     async def save_message_count(self):
-        await self.bot.wait_until_ready()
+        for channel in self.bot.get_all_channels():
+            self.cdi_samples[channel.id].append(self.cumcharcount[channel.id])
+            self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-self.MAX_SAMPLES:]
+            self.cumcharcount[channel.id] = 0
+
+    @commands.Cog.listener()
+    async def on_ready(self):
         now = datetime.datetime.now()
         start = now - datetime.timedelta(minutes=self.MAX_SAMPLES)
 
@@ -50,13 +56,7 @@ class ChatDeathIndex(BaseCog):
                         idx = int((message.created_at - start).total_seconds()) // 60
                         self.cdi_samples[channel.id][idx] += self.get_message_cdi_effect(message)
             self.cumcharcount[channel.id] = 0
-
-        while not self.bot.is_closed():
-            await asyncio.sleep(60)
-            for channel in self.bot.get_all_channels():
-                self.cdi_samples[channel.id].append(self.cumcharcount[channel.id])
-                self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-self.MAX_SAMPLES:]
-                self.cumcharcount[channel.id] = 0
+        self.save_message_count.start()
 
     def account_for_message(self, message: discord.Message):
         pass
@@ -65,6 +65,7 @@ class ChatDeathIndex(BaseCog):
     def to_cdi(avg):
         return round((avg - 64) ** 2 * 2.3) * ((-1) ** (avg >= 64))
 
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if await self.msg_counts_against_chat_death(message):
             self.cumcharcount[message.channel.id] += self.get_message_cdi_effect(message)
