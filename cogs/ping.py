@@ -8,8 +8,8 @@ class Ping(BaseCog):
         new = await ctx.send('Pong!')
         delta = new.created_at - ctx.message.created_at
         await new.edit(content=f'Pong!\n'
-                               f'Round trip: {delta.total_seconds() * 1000} ms\n'
-                               f'Heartbeat latency: {self.bot.latency}')
+                               f'Round trip: {delta.total_seconds() * 1000:.0f} ms\n'
+                               f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms')
 
 
 def setup(bot):
