@@ -1,4 +1,3 @@
-import asyncio
 from collections import defaultdict, Counter
 import discord
 import datetime

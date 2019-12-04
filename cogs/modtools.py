@@ -166,6 +166,12 @@ class ModTools(BaseCog):
     async def cog(self, ctx):
         """Manage bot cogs"""
 
+    async def git_pull(self, ctx):
+        async with ctx.typing():
+            fut = await asyncio.create_subprocess_shell('git pull', loop=self.bot.loop)
+            await fut.wait()
+        return fut.returncode == 0
+
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
         """Disable cogs"""
@@ -179,8 +185,8 @@ class ModTools(BaseCog):
                 continue
             try:
                 self.bot.unload_extension(f'cogs.{cog}')
-            except discord.ClientException:
-                await ctx.send(f'Failed to unload cog "{cog}"')
+            except discord.ClientException as e:
+                await ctx.send(f'Failed to unload cog "{cog}" ({e})')
             else:
                 await ctx.send(f'Unloaded cog "{cog}"')
                 self.disabled_cogs.add(cog)
@@ -202,12 +208,6 @@ class ModTools(BaseCog):
                 await ctx.send(f'Loaded cog "{cog}"')
                 self.disabled_cogs.discard(cog)
 
-    async def git_pull(self, ctx):
-        async with ctx.typing():
-            fut = await asyncio.create_subprocess_shell('git pull', loop=self.bot.loop)
-            await fut.wait()
-        return fut.returncode == 0
-
     @cog.command(name='reload')
     async def reload_cog(self, ctx: commands.Context, *cogs: lower):
         """Reload cogs"""
@@ -216,7 +216,10 @@ class ModTools(BaseCog):
         for cog in cogs:
             extn = f'cogs.{cog}'
             if extn in self.bot.extensions:
-                self.bot.unload_extension(f'cogs.{cog}')
+                try:
+                    self.bot.unload_extension(f'cogs.{cog}')
+                except discord.ClientException as e:
+                    return await ctx.send(f'Failed to unload {cog} for reloading ({e}).')
                 try:
                     self.bot.load_extension(f'cogs.{cog}')
                 except discord.ClientException as e:
