@@ -185,7 +185,7 @@ class ModTools(BaseCog):
                 continue
             try:
                 self.bot.unload_extension(f'cogs.{cog}')
-            except discord.ClientException as e:
+            except Exception as e:
                 await ctx.send(f'Failed to unload cog "{cog}" ({e})')
             else:
                 await ctx.send(f'Unloaded cog "{cog}"')
@@ -218,7 +218,7 @@ class ModTools(BaseCog):
             if extn in self.bot.extensions:
                 try:
                     self.bot.unload_extension(f'cogs.{cog}')
-                except discord.ClientException as e:
+                except Exception as e:
                     return await ctx.send(f'Failed to unload {cog} for reloading ({e}).')
                 try:
                     self.bot.load_extension(f'cogs.{cog}')
