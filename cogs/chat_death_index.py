@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 from cogs import BaseCog
 from utils.botclass import PikalaxBOT
 import typing
+import traceback
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -23,16 +24,19 @@ class ChatDeathIndex(BaseCog):
         self.save_message_count.cancel()
 
     def plot(self, channel: discord.TextChannel):
-        filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
-        samples = self.cdi_samples[channel.id]
-        plt.figure()
-        plt.plot(range(1 - self.MAX_SAMPLES, 1), map(self.to_cdi, samples))
-        plt.xlabel('Time (min)')
-        plt.ylabel('CDI')
-        plt.title(f'#{channel}')
-        plt.savefig(filename)
-        plt.close()
-        return filename
+        try:
+            filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
+            samples = self.cdi_samples[channel.id]
+            plt.figure()
+            plt.plot(range(1 - self.MAX_SAMPLES, 1), map(self.to_cdi, samples))
+            plt.xlabel('Time (min)')
+            plt.ylabel('CDI')
+            plt.title(f'#{channel}')
+            plt.savefig(filename)
+            plt.close()
+            return filename
+        except Exception as e:
+            return e
 
     @staticmethod
     def get_message_cdi_effect(message: discord.Message) -> float:
@@ -101,8 +105,14 @@ class ChatDeathIndex(BaseCog):
     async def plot_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
         channel = channel or ctx.channel
         filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
+        if isinstance(filename, Exception):
+            raise filename
         file = discord.File(filename)
         await ctx.send(file=file)
+
+    @plot_cdi.error
+    async def plot_cdi_error(self, ctx, exc):
+        await ctx.send('```\n' + traceback.format_exception(exc.__class__, exc, None) + '\n```')
 
 
 def setup(bot: PikalaxBOT):
