@@ -94,7 +94,7 @@ class ChatDeathIndex(BaseCog):
         channel = channel or ctx.channel
         chat_avg = self.cdi_samples[channel.id]
         n = len(chat_avg)
-        if len(chat_avg) < self.MIN_SAMPLES:
+        if n < self.MIN_SAMPLES:
             await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
         else:
             accum = 2 * sum((i + 1) * x for i, x in enumerate(chat_avg)) / (n * (n + 1))
@@ -103,7 +103,12 @@ class ChatDeathIndex(BaseCog):
 
     @commands.command(name='plot-cdi')
     async def plot_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
+        """Plots the Chat Death Index history of the given channel (if not specified, uses the current channel)"""
         channel = channel or ctx.channel
+        chat_avg = self.cdi_samples[channel.id]
+        n = len(chat_avg)
+        if n < self.MAX_SAMPLES:
+            return await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
         await ctx.typing()
         filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
         if isinstance(filename, Exception):
