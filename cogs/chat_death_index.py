@@ -101,9 +101,10 @@ class ChatDeathIndex(BaseCog):
             cdi = self.to_cdi(accum)
             await ctx.send(f'Current Chat Death Index of {channel.mention}: {cdi} ({accum:.3f})')
 
-    @commands.command()
+    @commands.command(name='plot-cdi')
     async def plot_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
         channel = channel or ctx.channel
+        await ctx.typing()
         filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
         if isinstance(filename, Exception):
             raise filename
