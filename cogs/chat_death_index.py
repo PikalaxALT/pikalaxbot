@@ -5,6 +5,9 @@ from discord.ext import commands, tasks
 from cogs import BaseCog
 from utils.botclass import PikalaxBOT
 import typing
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 class ChatDeathIndex(BaseCog):
@@ -18,6 +21,18 @@ class ChatDeathIndex(BaseCog):
 
     def __unload(self):
         self.save_message_count.cancel()
+
+    def plot(self, channel: discord.TextChannel):
+        filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
+        samples = self.cdi_samples[channel.id]
+        plt.figure()
+        plt.plot(range(1 - self.MAX_SAMPLES, 1), map(self.to_cdi, samples))
+        plt.xlabel('Time (min)')
+        plt.ylabel('CDI')
+        plt.title(f'#{channel}')
+        plt.savefig(filename)
+        plt.close()
+        return filename
 
     @staticmethod
     def get_message_cdi_effect(message: discord.Message) -> float:
@@ -81,6 +96,13 @@ class ChatDeathIndex(BaseCog):
             accum = 2 * sum((i + 1) * x for i, x in enumerate(chat_avg)) / (n * (n + 1))
             cdi = self.to_cdi(accum)
             await ctx.send(f'Current Chat Death Index of {channel.mention}: {cdi} ({accum:.3f})')
+
+    @commands.command()
+    async def plot_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
+        channel = channel or ctx.channel
+        filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
+        file = discord.File(filename)
+        await ctx.send(file=file)
 
 
 def setup(bot: PikalaxBOT):

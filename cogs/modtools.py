@@ -229,6 +229,8 @@ class ModTools(BaseCog):
                     await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
                 else:
                     await ctx.send(f'Reloaded cog {cog}')
+            else:
+                await ctx.send(f'Cog {cog} not loaded, use {self.load_cog.qualified_name} instead')
 
     @cog.command(name='load')
     async def load_cog(self, ctx: commands.Context, *cogs: lower):
