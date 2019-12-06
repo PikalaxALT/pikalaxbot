@@ -19,6 +19,7 @@ class ChatDeathIndex(BaseCog):
         super().__init__(bot)
         self.cdi_samples = defaultdict(list)
         self.cumcharcount = Counter()
+        self.save_message_count.start()
 
     def __unload(self):
         self.save_message_count.cancel()
@@ -61,8 +62,9 @@ class ChatDeathIndex(BaseCog):
             self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-self.MAX_SAMPLES:]
             self.cumcharcount[channel.id] = 0
 
-    @commands.Cog.listener()
-    async def on_ready(self):
+    @save_message_count.before_loop
+    async def start_message_count(self):
+        await self.bot.wait_until_ready()
         now = datetime.datetime.now()
         start = now - datetime.timedelta(minutes=self.MAX_SAMPLES)
 
@@ -74,7 +76,6 @@ class ChatDeathIndex(BaseCog):
                         idx = int((message.created_at - start).total_seconds()) // 60
                         self.cdi_samples[channel.id][idx] += self.get_message_cdi_effect(message)
             self.cumcharcount[channel.id] = 0
-        self.save_message_count.start()
 
     def account_for_message(self, message: discord.Message):
         pass
