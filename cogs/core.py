@@ -16,6 +16,8 @@
 
 import discord
 from discord.ext import commands
+import datetime
+from dateutil.relativedelta import relativedelta
 
 from cogs import BaseCog
 
@@ -70,15 +72,52 @@ class Core(BaseCog):
         activity = discord.Game(self.game)
         await self.bot.change_presence(activity=activity)
 
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild):
-        for channel in guild.channels:
-            if channel.permissions_for(guild.me).send_messages:
-                await channel.send(f'Oh hey, didn\'t notice you there. I\'m PikalaxBOT, the personal bot '
-                                   f'of {self.bot.owner.mention}. You can get an overview of my commands '
-                                   f'by typing {self.bot.settings.prefix}{self.bot.settings.help_name}.\n'
-                                   f'If you say my name or mention me in chat, I\'ll respond. I\'m learning '
-                                   f'how to talk like the rest of you by listening to other channels.')
+    @staticmethod
+    def human_timedelta(dt: datetime.datetime):
+        prefix = ''
+        suffix = ''
+        now = datetime.datetime.utcnow()
+        now.replace(microsecond=0)
+        dt.replace(microsecond=0)
+        if now < dt:
+            delta = relativedelta(dt, now)
+            prefix = 'In '
+        else:
+            delta = relativedelta(now, dt)
+            suffix = ' ago'
+        output = []
+        units = ('year', 'month', 'day', 'hour', 'minute', 'second')
+        for unit in units:
+            elem = getattr(delta, unit + 's')
+            if not elem:
+                continue
+            if unit == 'day':
+                weeks = delta.weeks
+                if weeks:
+                    elem -= weeks * 7
+                    output.append('{} week{}'.format(weeks, 's' if weeks > 1 else ''))
+            output.append('{} {}{}'.format(elem, unit, 's' if elem > 1 else ''))
+        output = output[:3]
+        return prefix + ', '.join(output) + suffix
+
+    @commands.command()
+    async def about(self, ctx):
+        member: discord.Member = ctx.guild.me
+        roles = [r.name.replace('@', '@\u200b') for r in member.roles]
+        shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
+        e = discord.Embed()
+        e.set_author(name=str(member))
+        e.add_field(name='ID', value=member.id, inline=False)
+        e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
+        e.add_field(name='Joined', value=Core.human_timedelta(member.joined_at), inline=False)
+        e.add_field(name='Created', value=Core.human_timedelta(member.created_at), inline=False)
+        if roles:
+            e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
+        if member.colour.value:
+            e.colour = member.colour
+        if member.avatar:
+            e.set_thumbnail(url=member.avatar_url)
+        await ctx.send(embed=e)
 
 
 def setup(bot):
