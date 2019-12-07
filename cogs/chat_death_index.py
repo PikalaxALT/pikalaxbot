@@ -29,11 +29,11 @@ class ChatDeathIndex(BaseCog):
         try:
             filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
             self.log_info('Filename: %s', filename)
-            samples = self.cdi_samples[channel.id]
-            self.log_info('Samples ok')
+            samples = [self.to_cdi(samp) for samp in self.cdi_samples[channel.id]]
+            self.log_info('Samples len %d', len(samples))
             plt.figure()
             self.log_info('Opened figure')
-            plt.plot(range(1 - self.MAX_SAMPLES, 1), map(self.to_cdi, samples))
+            plt.plot(list(range(1 - self.MAX_SAMPLES, 1)), samples)
             self.log_info('Plotted range')
             plt.xlabel('Time (min)')
             self.log_info('xlabel')
