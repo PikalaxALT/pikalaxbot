@@ -25,16 +25,26 @@ class ChatDeathIndex(BaseCog):
         self.save_message_count.cancel()
 
     def plot(self, channel: discord.TextChannel):
+        self.log_info('Entering plot mode')
         try:
             filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
+            self.log_info('Filename: %s', filename)
             samples = self.cdi_samples[channel.id]
+            self.log_info('Samples ok')
             plt.figure()
+            self.log_info('Opened figure')
             plt.plot(range(1 - self.MAX_SAMPLES, 1), map(self.to_cdi, samples))
+            self.log_info('Plotted range')
             plt.xlabel('Time (min)')
+            self.log_info('xlabel')
             plt.ylabel('CDI')
+            self.log_info('ylabel')
             plt.title(f'#{channel}')
+            self.log_info('Title is %s', channel)
             plt.savefig(filename)
+            self.log_info('Saved')
             plt.close()
+            self.log_info('Closed')
             return filename
         except Exception as e:
             return e
