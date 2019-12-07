@@ -111,7 +111,7 @@ class ChatDeathIndex(BaseCog):
         if n < self.MAX_SAMPLES:
             return await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
         await ctx.typing()
-        filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
+        filename = await self.bot.loop.run_in_executor(None, self.plot, self, channel)
         if isinstance(filename, Exception):
             raise filename
         file = discord.File(filename)
