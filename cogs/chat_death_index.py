@@ -25,29 +25,16 @@ class ChatDeathIndex(BaseCog):
         self.save_message_count.cancel()
 
     def plot(self, channel: discord.TextChannel):
-        self.log_info('Entering plot mode')
-        try:
-            filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
-            self.log_info('Filename: %s', filename)
-            samples = [self.to_cdi(samp) for samp in self.cdi_samples[channel.id]]
-            self.log_info('Samples len %d', len(samples))
-            plt.figure()
-            self.log_info('Opened figure')
-            plt.plot(list(range(1 - self.MAX_SAMPLES, 1)), samples)
-            self.log_info('Plotted range')
-            plt.xlabel('Time (min)')
-            self.log_info('xlabel')
-            plt.ylabel('CDI')
-            self.log_info('ylabel')
-            plt.title(f'#{channel}')
-            self.log_info('Title is %s', channel)
-            plt.savefig(filename)
-            self.log_info('Saved')
-            plt.close()
-            self.log_info('Closed')
-            return filename
-        except Exception as e:
-            return e
+        filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
+        samples = [self.to_cdi(samp) for samp in self.cdi_samples[channel.id]]
+        plt.figure()
+        plt.plot(list(range(1 - self.MAX_SAMPLES, 1)), samples)
+        plt.xlabel('Time (min)')
+        plt.ylabel('CDI')
+        plt.title(f'#{channel}')
+        plt.savefig(filename)
+        plt.close()
+        return filename
 
     @staticmethod
     def get_message_cdi_effect(message: discord.Message) -> float:
@@ -122,8 +109,6 @@ class ChatDeathIndex(BaseCog):
             return await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
         async with ctx.typing():
             filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
-            if isinstance(filename, Exception):
-                raise filename
             file = discord.File(filename)
         await ctx.send(file=file)
 
