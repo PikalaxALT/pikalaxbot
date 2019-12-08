@@ -86,6 +86,8 @@ class ChatDeathIndex(BaseCog):
     @staticmethod
     def accumulate(samples):
         n = len(samples)
+        if n == 0:
+            return 0
         return 2 * sum((i + 1) * x for i, x in enumerate(samples)) / (n * (n + 1))
 
     @staticmethod
