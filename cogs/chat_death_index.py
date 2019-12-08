@@ -76,7 +76,7 @@ class ChatDeathIndex(BaseCog):
                         idx = int((message.created_at - start).total_seconds()) // 60
                         self.cdi_samples[channel.id][idx] += ChatDeathIndex.get_message_cdi_effect(message)
             for i in range(ChatDeathIndex.MAX_SAMPLES):
-                self.calculations[channel.id][i] = ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel.id][:i + 1])
+                self.calculations[channel.id].append(ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel.id][:i + 1]))
             self.cumcharcount[channel.id] = 0
 
     @staticmethod
