@@ -125,8 +125,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     async def logout(self):
         await self.user_cs.close()
         await self.close()
-        async with self.sql as sql:
-            await sql.backup_db()
+        # async with self.sql as sql:
+        #     await sql.backup_db()
 
     @property
     def owner(self):
