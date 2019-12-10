@@ -59,10 +59,12 @@ class LoggingMixin:
         )
 
 
-def _command_prefix(bot, message):
+async def _command_prefix(bot, message):
     if message.guild is None:
         return ''
-    return bot.settings.prefix
+    if message.guild.id not in bot.guild_prefixes:
+        bot.guild_prefixes[message.guild.id] = await bot.sql.get_prefix(message.guild)
+    return bot.guild_prefixes[message.guild.id]
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
@@ -72,6 +74,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.settings = Settings(settings_file, loop=loop)
         disabled_cogs = self.settings.disabled_cogs
         super().__init__(_command_prefix, case_insensitive=True, loop=loop)
+        self.guild_prefixes = {}
 
         # Set up logger
         self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)

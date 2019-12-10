@@ -49,19 +49,21 @@ class Sql(aiosqlite.Connection):
         if not exists:
             for line in default_bag:
                 await self.execute("insert into meme(bag) values (?)", (line,))
-                await self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
-                await self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
-                await self.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
-                try:
-                    await self.execute("insert into puppy(sentinel) values (66)")
-                except sqlite3.IntegrityError:
-                    pass
+        await self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
+        await self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
+        await self.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
+        try:
+            await self.execute("insert into puppy(sentinel) values (66)")
+        except sqlite3.IntegrityError:
+            pass
+        await self.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null default \"p!\")")
 
     async def db_clear(self):
         await self.execute("drop table if exists meme")
         await self.execute("drop table if exists game")
         await self.execute("drop table if exists voltorb")
         await self.execute("drop table if exists puppy")
+        await self.execute("drop table if exists prefixes")
 
     async def get_score(self, author):
         try:
@@ -171,6 +173,14 @@ class Sql(aiosqlite.Connection):
         dbbak = files[(idx - 1) % len(files)]
         await self._loop.run_in_executor(shutil.copy, dbbak, self.database)
         return dbbak
+
+    async def get_prefix(self, guild):
+        c = await self.execute("select prefix from prefixes where guild = ?", guild.id)
+        prefix, = await c.fetchone()
+        return prefix
+
+    async def set_prefix(self, guild, prefix):
+        await self.execute("replace into prefixes (guild, prefix) values (?, ?)", (guild.id, prefix))
 
 
 def connect(database, *, loop=None, **kwargs):

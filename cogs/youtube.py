@@ -197,6 +197,7 @@ class YouTube(BaseCog):
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
+        msg = f'{ctx.author.display_name} says: {msg}'
         player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
         ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
 

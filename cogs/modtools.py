@@ -267,11 +267,18 @@ class ModTools(BaseCog):
             await ctx.message.add_reaction('☑')
 
     @admin.command(name='prefix')
-    async def change_prefix(self, ctx, prefix):
+    async def change_prefix(self, ctx, prefix='p!'):
         """Update the bot's command prefix"""
 
-        self.prefix = prefix
+        async with self.bot.sql as sql:
+            await sql.set_prefix(ctx.guild, prefix)
+        self.bot.guild_prefixes[ctx.guild.id] = prefix
         await ctx.message.add_reaction('☑')
+
+    async def cog_command_error(self, ctx, error):
+        await ctx.message.add_reaction('❌')
+        await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
+        self.log_tb(ctx, error)
 
 
 def setup(bot):
