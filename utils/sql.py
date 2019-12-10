@@ -175,7 +175,7 @@ class Sql(aiosqlite.Connection):
         return dbbak
 
     async def get_prefix(self, guild):
-        c = await self.execute("select prefix from prefixes where guild = ?", guild.id)
+        c = await self.execute("select prefix from prefixes where guild = ?", (guild.id,))
         prefix, = await c.fetchone()
         return prefix
 
