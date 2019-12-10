@@ -52,10 +52,7 @@ class Sql(aiosqlite.Connection):
         await self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
         await self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
         await self.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
-        try:
-            await self.execute("insert into puppy(sentinel) values (66)")
-        except sqlite3.IntegrityError:
-            pass
+        await self.execute("replace into puppy(sentinel) values (66)")
         await self.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null default \"p!\")")
 
     async def db_clear(self):

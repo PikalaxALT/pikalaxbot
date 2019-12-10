@@ -1,5 +1,6 @@
 import datetime
 import discord
+from collections import defaultdict
 import functools
 from discord.ext import commands
 from cogs import BaseCog
@@ -12,7 +13,7 @@ class SeenUser(BaseCog):
     def __init__(self, bot: PikalaxBOT):
         super().__init__(bot)
         self.member_cache = {}
-        self.history_cache = {}
+        self.history_cache = defaultdict(list)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
