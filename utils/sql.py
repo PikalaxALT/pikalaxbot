@@ -173,7 +173,7 @@ class Sql(aiosqlite.Connection):
 
     async def get_prefix(self, guild):
         c = await self.execute("select prefix from prefixes where guild = ?", (guild.id,))
-        if c is None:
+        if c.rowcount == 0:
             await self.set_prefix(guild)
             prefix = 'p!'
         else:
