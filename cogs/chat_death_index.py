@@ -7,6 +7,7 @@ from utils.botclass import PikalaxBOT
 import typing
 import traceback
 import matplotlib
+import io
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -25,17 +26,15 @@ class ChatDeathIndex(BaseCog):
     def __unload(self):
         self.save_message_count.cancel()
 
-    def plot(self, channel: discord.TextChannel):
-        filename = f'{channel}.{datetime.datetime.utcnow().timestamp()}.png'
+    def plot(self, channel: discord.TextChannel, buffer):
         samples = self.calculations[channel.id]
         plt.figure()
         plt.plot(list(range(1 - len(samples), 1)), samples)
         plt.xlabel('Time (min)')
         plt.ylabel('CDI')
         plt.title(f'#{channel}')
-        plt.savefig(filename)
+        plt.savefig(buffer)
         plt.close()
-        return filename
 
     @staticmethod
     def get_message_cdi_effect(message: discord.Message) -> float:
@@ -122,8 +121,10 @@ class ChatDeathIndex(BaseCog):
         if n < ChatDeathIndex.MIN_SAMPLES:
             return await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
         async with ctx.typing():
-            filename = await self.bot.loop.run_in_executor(None, self.plot, channel)
-            file = discord.File(filename)
+            mem_buffer = io.BytesIO()
+            await self.bot.loop.run_in_executor(None, self.plot, channel, mem_buffer)
+            mem_buffer.seek(0)
+            file = discord.File(mem_buffer, filename='cdi.png')
         await ctx.send(file=file)
 
     @plot_cdi.error
