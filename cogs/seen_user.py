@@ -17,8 +17,9 @@ class SeenUser(BaseCog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        self.member_cache[(message.guild.id, message.author.id)] = message
-        self.history_cache[message.channel.id].append(message)
+        if message.guild is not None:
+            self.member_cache[(message.guild.id, message.author.id)] = message
+            self.history_cache[message.channel.id].append(message)
 
     async def get_last_seen_msg(self, member: discord.Member) -> discord.Message:
         last = datetime.datetime.now() - self.MAX_LOOKBACK
