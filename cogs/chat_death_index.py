@@ -61,23 +61,26 @@ class ChatDeathIndex(BaseCog):
             self.calculations[channel.id] = self.calculations[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
             self.cumcharcount[channel.id] = 0
 
+    async def init_channel(self, channel: discord.TextChannel, now):
+        start = now - datetime.timedelta(minutes=2 * ChatDeathIndex.MAX_SAMPLES - 1)
+        if ChatDeathIndex.can_get_messages(channel):
+            self.cdi_samples[channel.id] = [0 for _ in range(2 * ChatDeathIndex.MAX_SAMPLES - 1)]
+            async for message in channel.history(before=now, after=start):  # type: discord.Message
+                if await self.msg_counts_against_chat_death(message):
+                    idx = int((message.created_at - start).total_seconds()) // 60
+                    self.cdi_samples[channel.id][idx] += ChatDeathIndex.get_message_cdi_effect(message)
+        for i in range(ChatDeathIndex.MAX_SAMPLES):
+            self.calculations[channel.id].append(ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel.id][i:i + ChatDeathIndex.MAX_SAMPLES]))
+        self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
+        self.cumcharcount[channel.id] = 0
+
     @save_message_count.before_loop
     async def start_message_count(self):
         await self.bot.wait_until_ready()
         now = datetime.datetime.now()
-        start = now - datetime.timedelta(minutes=2 * ChatDeathIndex.MAX_SAMPLES - 1)
 
         for channel in self.bot.get_all_channels():
-            if ChatDeathIndex.can_get_messages(channel):
-                self.cdi_samples[channel.id] = [0 for _ in range(2 * ChatDeathIndex.MAX_SAMPLES - 1)]
-                async for message in channel.history(before=now, after=start):  # type: discord.Message
-                    if await self.msg_counts_against_chat_death(message):
-                        idx = int((message.created_at - start).total_seconds()) // 60
-                        self.cdi_samples[channel.id][idx] += ChatDeathIndex.get_message_cdi_effect(message)
-            for i in range(ChatDeathIndex.MAX_SAMPLES):
-                self.calculations[channel.id].append(ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel.id][i:i + ChatDeathIndex.MAX_SAMPLES]))
-            self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
-            self.cumcharcount[channel.id] = 0
+            await self.init_channel(channel, now)
 
     @staticmethod
     def to_cdi(avg):
@@ -130,6 +133,12 @@ class ChatDeathIndex(BaseCog):
     @plot_cdi.error
     async def plot_cdi_error(self, ctx, exc):
         await ctx.send('```\n' + traceback.format_exception(exc.__class__, exc, None) + '\n```')
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
+        now = datetime.datetime.now()
+        for channel in guild.text_channels:
+            await self.init_channel(channel, now)
 
 
 def setup(bot: PikalaxBOT):
