@@ -138,15 +138,14 @@ class YouTube(BaseCog):
         self.executor = ThreadPoolExecutor()
         self.__ytdl_extractor = youtube_dl.YoutubeDL(self.__ytdl_format_options)
         self.timeout_tasks = {}
-        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler(loop=self.bot.loop))
+        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler())
 
     def get_ytdl_player(self, video, *, stream=False):
         filename = video['url'] if stream else self.__ytdl_extractor.prepare_filename(video)
         return YTDLSource.from_info(filename, video, **self.__ffmpeg_options)
 
-    async def prepare_ytdl_playlist(self, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: self.__ytdl_extractor.extract_info(url, download=not stream))
+    async def prepare_ytdl_playlist(self, url, *, stream=False):
+        data = await self.bot.loop.run_in_executor(None, lambda: self.__ytdl_extractor.extract_info(url, download=not stream))
 
         if 'entries' in data:
             playlist = data['entries']
@@ -165,7 +164,7 @@ class YouTube(BaseCog):
         def done(unused):
             self.timeout_tasks.pop(ctx.guild.id, None)
 
-        task = self.bot.loop.create_task(self.idle_timeout(ctx))
+        task = asyncio.create_task(YouTube.idle_timeout(ctx))
         task.add_done_callback(done)
         self.timeout_tasks[ctx.guild.id] = task
 
@@ -173,7 +172,7 @@ class YouTube(BaseCog):
         if exc:
             print(f'Player error: {exc}')
         if self.yt_players[ctx.guild.id]:
-            self.bot.loop.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
+            asyncio.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
         else:
             self.start_timeout(ctx)
 
@@ -274,7 +273,7 @@ class YouTube(BaseCog):
     @commands.command(hidden=True)
     async def ytplay(self, ctx: commands.Context, *, url):
         """Stream a YouTube video"""
-        new_players = await self.prepare_ytdl_playlist(url, loop=self.bot.loop, stream=True)
+        new_players = await self.prepare_ytdl_playlist(url, stream=True)
         self.yt_players[ctx.guild.id].extend(new_players)
         await ctx.message.add_reaction('☑')
         if not ctx.voice_client.is_playing():
