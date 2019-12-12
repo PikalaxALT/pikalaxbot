@@ -1,5 +1,5 @@
 [![PyPI](https://img.shields.io/badge/discord.py-1.3.0a-green.svg)](https://github.com/Rapptz/discord.py/tree/master/) \
-[![PyPI](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-364/) \
+[![PyPI](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-375/) \
 [![PyPI](https://img.shields.io/badge/support-discord-lightgrey.svg)](https://discord.gg/hhVjAN8)
 
 # PikalaxBOT
