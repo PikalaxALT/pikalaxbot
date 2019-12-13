@@ -119,7 +119,7 @@ class ChatDeathIndex(BaseCog):
     @commands.command(name='plot-cdi')
     async def plot_cdi(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Plots the Chat Death Index history of the given channel (if not specified, uses the current channel)"""
-        channels = channels or (ctx.channel,)
+        channels = set(channels) or (ctx.channel,)
         async with ctx.typing():
             mem_buffer = io.BytesIO()
             await self.bot.loop.run_in_executor(None, self.plot, channels, mem_buffer)
