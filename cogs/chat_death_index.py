@@ -30,7 +30,7 @@ class ChatDeathIndex(BaseCog):
         plt.figure()
         for channel in channels:
             samples = self.calculations[channel.id]
-            plt.plot(list(range(len(samples)))[::-1], samples, label=f'#{channel}')
+            plt.plot(list(range(1 - len(samples), 1)), samples, label=f'#{channel}')
         plt.xlabel('Minutes ago')
         plt.ylabel('CDI')
         plt.legend(loc=0)
