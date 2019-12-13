@@ -26,13 +26,14 @@ class ChatDeathIndex(BaseCog):
     def __unload(self):
         self.save_message_count.cancel()
 
-    def plot(self, channel: discord.TextChannel, buffer):
-        samples = self.calculations[channel.id]
+    def plot(self, channels: typing.Tuple[discord.TextChannel], buffer):
         plt.figure()
-        plt.plot(list(range(1 - len(samples), 1)), samples)
-        plt.xlabel('Time (min)')
+        for channel in channels:
+            samples = self.calculations[channel.id]
+            plt.plot(list(range(len(samples)))[::-1], samples, label=f'#{channel}')
+        plt.xlabel('Minutes ago')
         plt.ylabel('CDI')
-        plt.title(f'#{channel}')
+        plt.legend(loc=0)
         plt.savefig(buffer)
         plt.close()
 
@@ -116,16 +117,12 @@ class ChatDeathIndex(BaseCog):
             await ctx.send(f'Current Chat Death Index of {channel.mention}: {cdi} ({accum:.3f})')
 
     @commands.command(name='plot-cdi')
-    async def plot_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
+    async def plot_cdi(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Plots the Chat Death Index history of the given channel (if not specified, uses the current channel)"""
-        channel = channel or ctx.channel
-        chat_avg = self.calculations[channel.id]
-        n = len(chat_avg)
-        if n < ChatDeathIndex.MIN_SAMPLES:
-            return await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
+        channels = channels or (ctx.channel,)
         async with ctx.typing():
             mem_buffer = io.BytesIO()
-            await self.bot.loop.run_in_executor(None, self.plot, channel, mem_buffer)
+            await self.bot.loop.run_in_executor(None, self.plot, channels, mem_buffer)
             mem_buffer.seek(0)
             file = discord.File(mem_buffer, filename='cdi.png')
         await ctx.send(file=file)
