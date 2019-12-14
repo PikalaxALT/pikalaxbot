@@ -154,7 +154,7 @@ async def yt_cancel_playlist(handler: YouTubePlaylistHandler, ctx: commands.Cont
         await handler.destroy_task()
         ctx.voice_client.stop()
 
-    self.loop.create_task(kill_now())
+    handler.loop.create_task(kill_now())
 
 
 @player_reaction('⏯')
