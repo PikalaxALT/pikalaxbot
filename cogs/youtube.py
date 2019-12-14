@@ -138,7 +138,7 @@ class YouTube(BaseCog):
         self.executor = ThreadPoolExecutor()
         self.__ytdl_extractor = youtube_dl.YoutubeDL(self.__ytdl_format_options)
         self.timeout_tasks = {}
-        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler())
+        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler(loop=self.bot.loop))
 
     def get_ytdl_player(self, video, *, stream=False):
         filename = video['url'] if stream else self.__ytdl_extractor.prepare_filename(video)
