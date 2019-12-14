@@ -104,7 +104,7 @@ class YouTube(BaseCog):
         'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
     }
     __ffmpeg_options = {
-        'before_options': '-loglevel debug -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'before_options': '-loglevel error',
         'options': '-vn'
     }
     espeak_kw = {}
