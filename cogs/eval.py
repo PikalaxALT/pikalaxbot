@@ -156,7 +156,7 @@ class Eval(BaseCog):
             await self.send_eval_result(
                 ctx,
                 exc,
-                f'Process exited successfull',
+                f'Process exited successfully',
                 'An exception has occurred' if process.returncode is not None else 'Request timed out',
                 stdout=stdout.decode(),
                 stderr=stderr.decode(),
