@@ -16,8 +16,7 @@
 
 import discord
 from discord.ext import commands
-import datetime
-from dateutil.relativedelta import relativedelta
+from utils import friendly_date
 
 from cogs import BaseCog
 
@@ -72,34 +71,6 @@ class Core(BaseCog):
         activity = discord.Game(self.game)
         await self.bot.change_presence(activity=activity)
 
-    @staticmethod
-    def human_timedelta(dt: datetime.datetime):
-        prefix = ''
-        suffix = ''
-        now = datetime.datetime.utcnow()
-        now.replace(microsecond=0)
-        dt.replace(microsecond=0)
-        if now < dt:
-            delta = relativedelta(dt, now)
-            prefix = 'In '
-        else:
-            delta = relativedelta(now, dt)
-            suffix = ' ago'
-        output = []
-        units = ('year', 'month', 'day', 'hour', 'minute', 'second')
-        for unit in units:
-            elem = getattr(delta, unit + 's')
-            if not elem:
-                continue
-            if unit == 'day':
-                weeks = delta.weeks
-                if weeks:
-                    elem -= weeks * 7
-                    output.append('{} week{}'.format(weeks, 's' if weeks > 1 else ''))
-            output.append('{} {}{}'.format(elem, unit, 's' if elem > 1 else ''))
-        output = output[:3]
-        return prefix + ', '.join(output) + suffix
-
     @commands.command()
     async def about(self, ctx):
         member: discord.Member = ctx.guild.me
@@ -109,8 +80,8 @@ class Core(BaseCog):
         e.set_author(name=str(member))
         e.add_field(name='ID', value=member.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
-        e.add_field(name='Joined', value=Core.human_timedelta(member.joined_at), inline=False)
-        e.add_field(name='Created', value=Core.human_timedelta(member.created_at), inline=False)
+        e.add_field(name='Joined', value=friendly_date.human_timedelta(member.joined_at), inline=False)
+        e.add_field(name='Created', value=friendly_date.human_timedelta(member.created_at), inline=False)
         if roles:
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
         if member.colour.value:
