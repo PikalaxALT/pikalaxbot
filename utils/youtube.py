@@ -36,7 +36,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class YouTubePlaylistHandler:
-    def __init__(self):
+    def __init__(self, *, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
         self.message: typing.Optional[discord.Message] = None
         self.task: typing.Optional[asyncio.Task] = None
         self.playlist = deque()
@@ -82,7 +83,7 @@ class YouTubePlaylistHandler:
                         ctx.cog.log_tb(ctx, exc)
                 else:
                     break
-        asyncio.create_task(self.destroy_task())
+        self.loop.create_task(self.destroy_task())
 
     def player_after(self, ctx, exc):
         def done():
@@ -92,9 +93,9 @@ class YouTubePlaylistHandler:
             print(f'Player error: {exc}')
             return
         if self:
-            asyncio.create_task(self.play_next(ctx))
+            self.loop.create_task(self.play_next(ctx))
         else:
-            asyncio.create_task(self.destroy_task())
+            self.loop.create_task(self.destroy_task())
             self.playedlist = []
 
     async def play_next(self, ctx):
@@ -124,7 +125,7 @@ class YouTubePlaylistHandler:
         for emoji in player_rxns:
             await self.message.add_reaction(emoji)
         if not self.task:
-            self.task = asyncio.create_task(self.controls_task(ctx))
+            self.task = self.loop.create_task(self.controls_task(ctx))
             self.task.add_done_callback(controls_task_after)
 
     async def destroy_task(self):
@@ -153,7 +154,7 @@ async def yt_cancel_playlist(handler: YouTubePlaylistHandler, ctx: commands.Cont
         await handler.destroy_task()
         ctx.voice_client.stop()
 
-    asyncio.create_task(kill_now())
+    self.loop.create_task(kill_now())
 
 
 @player_reaction('⏯')
