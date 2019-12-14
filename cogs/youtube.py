@@ -197,7 +197,10 @@ class YouTube(BaseCog):
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         msg = f'{ctx.author.display_name} says: {msg}'
-        player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
+        try:
+            player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
+        except subprocess.CalledProcessError:
+            return await ctx.send('Error saying shit')
         ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
 
     @commands.command(name='say')
