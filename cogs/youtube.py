@@ -164,7 +164,7 @@ class YouTube(BaseCog):
         def done(unused):
             self.timeout_tasks.pop(ctx.guild.id, None)
 
-        task = asyncio.create_task(YouTube.idle_timeout(ctx))
+        task = self.bot.loop.create_task(YouTube.idle_timeout(ctx))
         task.add_done_callback(done)
         self.timeout_tasks[ctx.guild.id] = task
 
@@ -172,7 +172,7 @@ class YouTube(BaseCog):
         if exc:
             print(f'Player error: {exc}')
         if self.yt_players[ctx.guild.id]:
-            asyncio.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
+            self.bot.loop.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
         else:
             self.start_timeout(ctx)
 
