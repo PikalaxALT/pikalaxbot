@@ -127,6 +127,12 @@ class ChatDeathIndex(BaseCog):
             file = discord.File(mem_buffer, filename='cdi.png')
         await ctx.send(file=file)
 
+    @commands.command(name='plot-all-cdi')
+    async def plot_all_cdi(self, ctx: commands.Context):
+        nsfw = ctx.channel.is_nsfw()
+        chs = [ch for ch in ctx.guild.text_channels if ch.is_nsfw() <= nsfw and ChatDeathIndex.can_get_messages(ch)]
+        await ctx.invoke(self.plot_cdi, *chs)
+
     @plot_cdi.error
     async def plot_cdi_error(self, ctx, exc):
         await ctx.send('```\n' + traceback.format_exception(exc.__class__, exc, None) + '\n```')
