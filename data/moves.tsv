@@ -727,3 +727,71 @@ num	name	type	category	contest	pp	power	accuracy	gen
 726	Let's Snuggle Forever	Fairy	Physical	???	1	190	—	VII*
 727	Splintered Stormshards	Rock	Physical	???	1	190	—	VII*
 728	Clangorous Soulblaze	Dragon	Special	???	1	185	—	VII*
+729	Zippy Zap	Electric	Physical	???	15*	50*	100%	VII*
+730	Splishy Splash	Water	Special	???	15	90	100%	VII*
+731	Floaty Fall	Flying	Physical	???	15	90	95%	VII*
+732	Pika Papow	Electric	Special	???	20	—	—	VII*
+733	Bouncy Bubble	Water	Special	???	15*	90*	100%	VII*
+734	Buzzy Buzz	Electric	Special	???	15*	90*	100%	VII*
+735	Sizzly Slide	Fire	Physical	???	15*	90*	100%	VII*
+736	Glitzy Glow	Psychic	Special	???	15	90*	100%*	VII*
+737	Baddy Bad	Dark	Special	???	15	90*	100%*	VII*
+738	Sappy Seed	Grass	Physical	???	15*	90*	100%*	VII*
+739	Freezy Frost	Ice	Special	???	15*	90*	100%*	VII*
+740	Sparkly Swirl	Fairy	Special	???	15*	90*	100%*	VII*
+741	Veevee Volley	Normal	Physical	???	20	—	—	VII*
+742	Double Iron Bash	Steel	Physical	???	5	60	100%	VII*
+743	Max Guard	Normal	Status	???	10	—	—	VIII
+744	Dynamax Cannon	Dragon	Special	???	5	100	100%	VIII
+745	Snipe Shot	Water	Special	???	15	80	100%	VIII
+746	Jaw Lock	Dark	Physical	???	10	80	100%	VIII
+747	Stuff Cheeks	Normal	Status	???	10	—	—	VIII
+748	No Retreat	Fighting	Status	???	5	—	—	VIII
+749	Tar Shot	Rock	Status	???	15	—	100%	VIII
+750	Magic Powder	Psychic	Status	???	20	—	100%	VIII
+751	Dragon Darts	Dragon	Physical	???	10	50	100%	VIII
+752	Teatime	Normal	Status	???	10	—	—	VIII
+753	Octolock	Fighting	Status	???	15	—	100%	VIII
+754	Bolt Beak	Electric	Physical	???	10	85	100%	VIII
+755	Fishious Rend	Water	Physical	???	10	85	100%	VIII
+756	Court Change	Normal	Status	???	10	—	100%	VIII
+757	Max Flare	Fire	Physical	???	10	100	—	VIII
+758	Max Flutterby	Bug	Physical	???	10	10	—	VIII
+759	Max Lightning	Electric	Physical	???	10	10	—	VIII
+760	Max Strike	Normal	Physical	???	10	10	—	VIII
+761	Max Knuckle	Fighting	Physical	???	10	10	—	VIII
+762	Max Phantasm	Ghost	Physical	???	10	10	—	VIII
+763	Max Hailstorm	Ice	Physical	???	10	10	—	VIII
+764	Max Ooze	Poison	Physical	???	10	10	—	VIII
+765	Max Geyser	Water	Physical	???	10	10	—	VIII
+766	Max Airstream	Flying	Physical	???	10	10	—	VIII
+767	Max Starfall	Fairy	Physical	???	10	10	—	VIII
+768	Max Wyrmwind	Dragon	Physical	???	10	10	—	VIII
+769	Max Mindstorm	Psychic	Physical	???	10	10	—	VIII
+770	Max Rockfall	Rock	Physical	???	10	10	—	VIII
+771	Max Quake	Ground	Physical	???	10	10	—	VIII
+772	Max Darkness	Dark	Physical	???	10	10	—	VIII
+773	Max Overgrowth	Grass	Physical	???	10	10	—	VIII
+774	Max Steelspike	Steel	Physical	???	10	10	—	VIII
+775	Clangorous Soul	Dragon	Status	???	5	—	100%	VIII
+776	Body Press	Fighting	Physical	???	10	80	100%	VIII
+777	Decorate	Fairy	Status	???	15	—	—	VIII
+778	Drum Beating	Grass	Physical	???	10	80	100%	VIII
+779	Snap Trap	Grass	Physical	???	15	35	100%	VIII
+780	Pyro Ball	Fire	Physical	???	5	120	90%	VIII
+781	Behemoth Blade	Steel	Physical	???	5	100	100%	VIII
+782	Behemoth Bash	Steel	Physical	???	5	100	100%	VIII
+783	Aura Wheel	Electric	Physical	???	10	110	100%	VIII
+784	Breaking Swipe	Dragon	Physical	???	15	60	100%	VIII
+785	Branch Poke	Grass	Physical	???	40	40	100%	VIII
+786	Overdrive	Electric	Special	???	10	80	100%	VIII
+787	Apple Acid	Grass	Special	???	10	80	100%	VIII
+788	Grav Apple	Grass	Physical	???	10	80	100%	VIII
+789	Spirit Break	Fairy	Physical	???	15	75	100%	VIII
+790	Strange Steam	Fairy	Special	???	10	90	95%	VIII
+791	Life Dew	Water	Status	???	10	—	—	VIII
+792	Obstruct	Dark	Status	???	10	—	100%	VIII
+793	False Surrender	Dark	Physical	???	10	80	—	VIII
+794	Meteor Assault	Fighting	Physical	???	5	150	100%	VIII
+795	Eternabeam	Dragon	Special	???	5	160	90%	VIII
+796	Steel Beam	Steel	Special	???	5	140	95%	VIII
