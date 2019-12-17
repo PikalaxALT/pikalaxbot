@@ -70,21 +70,9 @@ class Poll(BaseCog):
             else:
                 raise ValueError('Our checks passed when neither should have!')
 
-        if votes_d:
-            votes_l = list(votes_d.values())
-            votes = [votes_l.count(emoji) for emoji in emojis]
-            winner_count = max(votes)
-            tie_emoji = []
-            tie_opts = []
-            for count, emoji, opt in zip(votes, emojis, options):
-                if count == winner_count:
-                    tie_emoji.append(emoji)
-                    tie_opts.append(opt)
-        else:
-            winner_count = 0
-            tie_emoji = emojis
-            tie_opts = options
-        return msg, winner_count, tie_emoji, tie_opts
+        votes_l = list(votes_d.values())
+        votes = [votes_l.count(emoji) for emoji in emojis]
+        return msg, votes
 
     @commands.command(name='poll')
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
@@ -103,25 +91,12 @@ class Poll(BaseCog):
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first. ' \
                   f'The poll author may not cast a vote.'
-        count = 0
-        win_idx = 0
-        selection_method = ''
-        in_sd = False
-        msg = None
-        while len(emojis) > 1:
-            last_len = len(emojis)
-            msg, count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, msg=msg, content=content, timeout=timeout)
-            content = f'SUDDEN DEATH between {len(emojis)} options'
-            if count == 0 and not in_sd:
-                await msg.delete()
-                await ctx.send('Poll cancelled due to lack of participation.')
-                return
-            if len(emojis) == last_len:
-                win_idx = random.randint(0, last_len - 1)
-                selection_method = ' (by random choice)'
-                break
-        await msg.delete()
-        await ctx.send(f'Winner{selection_method}: {emojis[win_idx]}: {options[win_idx]} with {count} votes')
+        msg, votes = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
+        description = '\n'.join(f'{emoji}: {option} ({vote}' for emoji, option, vote in zip(emojis, options, votes))
+        embed = msg.embeds[0]
+        embed.title = f'**Poll closed:** {prompt}'
+        embed.description = description
+        await msg.edit(embed=embed)
 
     async def cog_command_error(self, ctx, exc):
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
