@@ -31,20 +31,22 @@ class TooManyOptions(ValueError):
     pass
 
 
+def has_running_poll(ctx):
+    return (ctx.channel.id, ctx.author.id) in ctx.cog.polls
+
+
+def no_running_poll(ctx):
+    return (ctx.channel.id, ctx.author.id) not in ctx.cog.polls
+
+
 class Poll(BaseCog):
     TIMEOUT = 60
 
-    async def do_poll(self, ctx, prompt, emojis, options, msg: discord.Message = None, content: str = None, timeout: int = TIMEOUT):
-        description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
-        embed = discord.Embed(title=prompt, description=description)
-        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
-        if msg is None:
-            msg = await ctx.send(content, embed=embed)
-        else:
-            await msg.edit(content=content, embed=embed)
-        for emoji in emojis:
-            await msg.add_reaction(emoji)
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.polls = {}
 
+    async def do_poll(self, ctx, prompt, emojis, options, msg: discord.Message = None, content: str = None, timeout: int = TIMEOUT):
         # This setup is to ensure that each user gets max one vote
         votes_d = {}
 
@@ -81,17 +83,18 @@ class Poll(BaseCog):
         votes = [votes_l.count(emoji) for emoji in emojis]
         return msg, votes
 
-    @commands.command(name='poll')
+    @commands.group(name='poll')
+    @commands.check(no_running_poll)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
         Optionally, pass an int before the prompt to indicate the number of seconds the poll lasts."""
         timeout = timeout or Poll.TIMEOUT
-        options = set(options)
+        options = list(set(options))
         nopts = len(options)
         if nopts > 10:
             raise TooManyOptions('Too many options!')
-        if nopts < 1:
+        if nopts < 2:
             raise NotEnoughOptions('Not enough unique options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
@@ -100,17 +103,34 @@ class Poll(BaseCog):
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first. ' \
                   f'The poll author may not cast a vote.'
-        msg, votes = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
-        description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
-        embed = msg.embeds[0]
-        embed.description = description
-        argmax = max(range(nopts), key=lambda i: votes[i])
-        await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
+        description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
+        embed = discord.Embed(title=prompt, description=description)
+        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+        msg = await ctx.send(content, embed=embed)
+        for emoji in emojis:
+            await msg.add_reaction(emoji)
+        task = asyncio.create_task(self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout))
+        self.polls[(ctx.channel.id, ctx.author.id)] = task
+        try:
+            msg, votes = await task.result()
+        except asyncio.CancelledError:
+            await msg.edit(content='The poll was cancelled.')
+        else:
+            description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
+            embed = msg.embeds[0]
+            embed.description = description
+            argmax = max(range(nopts), key=lambda i: votes[i])
+            await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
+
+    @poll_cmd.command()
+    @commands.check(has_running_poll)
+    async def cancel(self, ctx: commands.Context):
+        self.polls.pop((ctx.channel.id, ctx.author.id)).cancel()
 
     async def cog_command_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
         await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
-        if not isinstance(exc, (TooManyOptions, NotEnoughOptions)):
+        if not isinstance(exc, (TooManyOptions, NotEnoughOptions, commands.CheckFailure)):
             tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
             embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
             embed.add_field(name='Author', value=ctx.author.mention)
