@@ -20,12 +20,13 @@ from discord.ext import commands
 from cogs import BaseCog
 import time
 import traceback
+import typing
 
 
 class Poll(BaseCog):
     TIMEOUT = 60
 
-    async def do_poll(self, ctx, prompt, emojis, options, content=None):
+    async def do_poll(self, ctx, prompt, emojis, options, content=None, timeout=TIMEOUT):
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
@@ -42,7 +43,7 @@ class Poll(BaseCog):
         def check2(rxn, athr):
             return rxn.message.id == msg.id and rxn.emoji == votes_d.get(athr.id)
 
-        end = time.time() + self.TIMEOUT
+        end = time.time() + (timeout or Poll.TIMEOUT)
         while True:
             tasks = [
                 self.bot.wait_for('reaction_add', check=check1),
@@ -81,9 +82,10 @@ class Poll(BaseCog):
         return winner_count, tie_emoji, tie_opts
 
     @commands.command(name='poll')
-    async def poll_cmd(self, ctx: commands.Context, prompt, *options):
+    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
-        tiebreakers as needed.  Use quotes to enclose multi-word prompt and options."""
+        tiebreakers as needed.  Use quotes to enclose multi-word prompt and options. Optionally,
+        pass an int before the prompt to indicate the number of seconds the poll lasts."""
         if len(options) > 10:
             raise ValueError('Too many options!')
         if len(options) < 1:
@@ -95,7 +97,7 @@ class Poll(BaseCog):
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first.'
         while len(emojis) > 1:
-            count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content)
+            count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
             content = f'SUDDEN DEATH between {len(emojis)} options'
             if count == 0:
                 return await ctx.send('Poll cancelled due to lack of participation.')
