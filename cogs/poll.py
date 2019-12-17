@@ -53,7 +53,7 @@ class Poll(BaseCog):
             [task.cancel() for task in left]
             try:
                 reaction, author = done.pop().result()
-            except IndexError:  # asyncio.wait does not raise TimeoutError, so this is how we detect timeout.
+            except (IndexError, KeyError):  # asyncio.wait does not raise TimeoutError, so this is how we detect timeout.
                 break
             vote = votes_d.get(author.id)
             if vote is None:  # This was a reaction_add event
