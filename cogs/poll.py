@@ -29,6 +29,8 @@ class Poll(BaseCog):
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
         msg: discord.Message = await ctx.send(content, embed=embed)
+        for emoji in emojis:
+            await msg.add_reaction(emoji)
 
         # This setup is to ensure that each user gets max one vote
         votes_d = {}
@@ -60,15 +62,19 @@ class Poll(BaseCog):
             else:
                 raise ValueError('Our checks passed when neither should have!')
 
+        await msg.delete()
+        if not votes_d:
+            return 0, emojis, options
+
         votes_l = list(votes_d.values())
         votes = [votes_l.count(emoji) for emoji in emojis]
         winner_count = max(votes)
         tie_emoji = []
         tie_opts = []
-        for i in range(len(options)):
-            if votes[i] == winner_count:
-                tie_emoji.append(emojis[i])
-                tie_opts.append(options[i])
+        for count, emoji, opt in zip(votes, emojis, options):
+            if count == winner_count:
+                tie_emoji.append(emoji)
+                tie_opts.append(opt)
         return winner_count, tie_emoji, tie_opts
 
     @commands.command(name='poll')
@@ -88,6 +94,8 @@ class Poll(BaseCog):
         while len(emojis) > 1:
             count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content)
             content = f'SUDDEN DEATH between {len(emojis)} options'
+            if count == 0:
+                await ctx.send('Poll cancelled due to lack of participation.')
         await ctx.send(f'Winner: {emojis[0]}: {options[0]}')
 
     async def cog_command_error(self, ctx, exc):
