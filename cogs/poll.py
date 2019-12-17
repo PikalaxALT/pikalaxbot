@@ -31,6 +31,10 @@ class TooManyOptions(ValueError):
     pass
 
 
+class ReactionIntegrityError(ValueError):
+    pass
+
+
 def has_running_poll(ctx):
     return (ctx.channel.id, ctx.author.id) in ctx.cog.polls
 
@@ -46,7 +50,7 @@ class Poll(BaseCog):
         super().__init__(bot)
         self.polls = {}
 
-    async def do_poll(self, ctx, prompt, emojis, options, msg: discord.Message = None, content: str = None, timeout: int = TIMEOUT):
+    async def do_poll(self, ctx: commands.Context, emojis: typing.List[str], msg: discord.Message):
         # This setup is to ensure that each user gets max one vote
         votes_d = {}
 
@@ -56,32 +60,28 @@ class Poll(BaseCog):
         def check2(rxn, athr):
             return rxn.message.id == msg.id and rxn.emoji == votes_d.get(athr.id)
 
-        end = time.time() + (timeout or Poll.TIMEOUT)
-        while True:
-            tasks = [
-                self.bot.wait_for('reaction_add', check=check1),
-                self.bot.wait_for('reaction_remove', check=check2)
-            ]
-            now = time.time()
-            done, left = await asyncio.wait(tasks, timeout=end - now, return_when=asyncio.FIRST_COMPLETED)
-            [task.cancel() for task in left]
-            try:
+        try:
+            while True:
+                tasks = [
+                    self.bot.wait_for('reaction_add', check=check1),
+                    self.bot.wait_for('reaction_remove', check=check2)
+                ]
+                done, left = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                [task.cancel() for task in left]
                 reaction, author = done.pop().result()
-            except (IndexError, KeyError):  # asyncio.wait does not raise TimeoutError so this is how we detect timeout
-                break
-            if author in (self.bot.user, ctx.author):
-                continue
-            vote = votes_d.get(author.id)
-            if vote is None:  # This was a reaction_add event
-                votes_d[author.id] = reaction.emoji
-            elif vote == reaction.emoji:  # This was a reaction_remove event
-                del votes_d[author.id]
-            else:
-                raise ValueError('Our checks passed when neither should have!')
-
-        votes_l = list(votes_d.values())
-        votes = [votes_l.count(emoji) for emoji in emojis]
-        return msg, votes
+                if author in (self.bot.user, ctx.author):
+                    continue
+                vote = votes_d.get(author.id)
+                if vote is None:  # This was a reaction_add event
+                    votes_d[author.id] = reaction.emoji
+                elif vote == reaction.emoji:  # This was a reaction_remove event
+                    del votes_d[author.id]
+                else:
+                    raise ReactionIntegrityError('Our checks passed when neither should have!')
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            votes_l = list(votes_d.values())
+            votes = [votes_l.count(emoji) for emoji in emojis]
+            return votes
 
     @commands.group(name='poll')
     @commands.check(no_running_poll)
@@ -109,18 +109,23 @@ class Poll(BaseCog):
         msg = await ctx.send(content, embed=embed)
         for emoji in emojis:
             await msg.add_reaction(emoji)
-        task = asyncio.create_task(self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout))
+        task = asyncio.create_task(self.do_poll(ctx, emojis, msg))
         self.polls[(ctx.channel.id, ctx.author.id)] = task
         try:
-            msg, votes = await task.result()
+            await asyncio.wait_for(task, timeout)
         except asyncio.CancelledError:
             await msg.edit(content='The poll was cancelled.')
         else:
+            votes = await task.result()
             description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
             embed = msg.embeds[0]
             embed.description = description
             argmax = max(range(nopts), key=lambda i: votes[i])
             await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
+        finally:
+            task = self.polls.pop((ctx.channel.id, ctx.author.id), None)
+            if task is not None:
+                task.cancel()
 
     @poll_cmd.command()
     @commands.check(has_running_poll)
@@ -130,7 +135,7 @@ class Poll(BaseCog):
     async def cog_command_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
         await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
-        if not isinstance(exc, (TooManyOptions, NotEnoughOptions, commands.CheckFailure)):
+        if not isinstance(exc, (TooManyOptions, NotEnoughOptions, ReactionIntegrityError, commands.CheckFailure)):
             tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
             embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
             embed.add_field(name='Author', value=ctx.author.mention)
