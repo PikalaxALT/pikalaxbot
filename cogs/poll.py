@@ -20,8 +20,15 @@ from discord.ext import commands
 from cogs import BaseCog
 import time
 import traceback
-import random
 import typing
+
+
+class NotEnoughOptions(ValueError):
+    pass
+
+
+class TooManyOptions(ValueError):
+    pass
 
 
 class Poll(BaseCog):
@@ -83,9 +90,9 @@ class Poll(BaseCog):
         options = set(options)
         nopts = len(options)
         if nopts > 10:
-            raise ValueError('Too many options!')
+            raise TooManyOptions('Too many options!')
         if nopts < 1:
-            raise ValueError('Not enough unique options!')
+            raise NotEnoughOptions('Not enough unique options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
         content = f'Vote using emoji reactions.  ' \
@@ -103,12 +110,13 @@ class Poll(BaseCog):
     async def cog_command_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
         await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
-        tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
-        embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
-        embed.add_field(name='Author', value=ctx.author.mention)
-        embed.add_field(name='Channel', value=ctx.channel.mention)
-        embed.add_field(name='Message', value=ctx.message.jump_url)
-        await self.bot.owner.send(embed=embed)
+        if not isinstance(exc, (TooManyOptions, NotEnoughOptions)):
+            tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
+            embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
+            embed.add_field(name='Author', value=ctx.author.mention)
+            embed.add_field(name='Channel', value=ctx.channel.mention)
+            embed.add_field(name='Message', value=ctx.message.jump_url)
+            await self.bot.owner.send(embed=embed)
 
 
 def setup(bot):
