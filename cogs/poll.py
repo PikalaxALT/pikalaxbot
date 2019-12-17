@@ -86,6 +86,7 @@ class Poll(BaseCog):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options. Optionally,
         pass an int before the prompt to indicate the number of seconds the poll lasts."""
+        timeout = timeout or Poll.TIMEOUT
         if len(options) > 10:
             raise ValueError('Too many options!')
         if len(options) < 1:
@@ -93,7 +94,7 @@ class Poll(BaseCog):
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 10 else '\U0001f51f' for i in range(nopt)]
         content = f'Vote using emoji reactions.  ' \
-                  f'You have {self.TIMEOUT:d} seconds from when the last option appears.  ' \
+                  f'You have {timeout:d} seconds from when the last option appears.  ' \
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first.'
         while len(emojis) > 1:
