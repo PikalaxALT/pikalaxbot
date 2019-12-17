@@ -100,9 +100,14 @@ class Poll(BaseCog):
         await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
 
     async def cog_command_error(self, ctx, exc):
+        exc = getattr(exc, 'original', exc)
+        await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
         embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
-        await ctx.send(embed=embed)
+        embed.add_field(name='Author', value=ctx.author.mention)
+        embed.add_field(name='Channel', value=ctx.channel.mention)
+        embed.add_field(name='Message', value=ctx.message.jump_url)
+        await self.bot.owner.send(embed=embed)
 
 
 def setup(bot):
