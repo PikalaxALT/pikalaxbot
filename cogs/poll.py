@@ -120,7 +120,7 @@ class Poll(BaseCog):
         except asyncio.CancelledError:
             await msg.edit(content='The poll was cancelled.')
         except asyncio.TimeoutError:
-            votes = await task.result()
+            votes = task.result()
             description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
             embed = msg.embeds[0]
             embed.description = description
