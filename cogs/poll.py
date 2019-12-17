@@ -80,11 +80,12 @@ class Poll(BaseCog):
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
         Optionally, pass an int before the prompt to indicate the number of seconds the poll lasts."""
         timeout = timeout or Poll.TIMEOUT
+        options = set(options)
         nopts = len(options)
         if nopts > 10:
             raise ValueError('Too many options!')
         if nopts < 1:
-            raise ValueError('Not enough options!')
+            raise ValueError('Not enough unique options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
         content = f'Vote using emoji reactions.  ' \
