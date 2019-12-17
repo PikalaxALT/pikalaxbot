@@ -53,8 +53,10 @@ class Poll(BaseCog):
             [task.cancel() for task in left]
             try:
                 reaction, author = done.pop().result()
-            except (IndexError, KeyError):  # asyncio.wait does not raise TimeoutError, so this is how we detect timeout.
+            except (IndexError, KeyError):  # asyncio.wait does not raise TimeoutError so this is how we detect timeout
                 break
+            if author == self.bot.owner:
+                continue
             vote = votes_d.get(author.id)
             if vote is None:  # This was a reaction_add event
                 votes_d[author.id] = reaction.emoji
@@ -96,7 +98,7 @@ class Poll(BaseCog):
             count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content)
             content = f'SUDDEN DEATH between {len(emojis)} options'
             if count == 0:
-                await ctx.send('Poll cancelled due to lack of participation.')
+                return await ctx.send('Poll cancelled due to lack of participation.')
         await ctx.send(f'Winner: {emojis[0]}: {options[0]}')
 
     async def cog_command_error(self, ctx, exc):
