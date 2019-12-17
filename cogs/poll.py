@@ -19,10 +19,11 @@ import discord
 from discord.ext import commands
 from cogs import BaseCog
 import time
+import traceback
 
 
 class Poll(BaseCog):
-    TIMEOUT = 60
+    TIMEOUT = 5
 
     async def do_poll(self, ctx, prompt, emojis, options, content=None):
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
@@ -99,8 +100,9 @@ class Poll(BaseCog):
         await ctx.send(f'Winner: {emojis[0]}: {options[0]}')
 
     async def cog_command_error(self, ctx, exc):
-        await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
-        self.log_tb(ctx, exc)
+        tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
+        embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
