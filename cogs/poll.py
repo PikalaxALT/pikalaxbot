@@ -80,7 +80,7 @@ class Poll(BaseCog):
                     del votes_d[author.id]
                 else:
                     raise ReactionIntegrityError('Our checks passed when neither should have!')
-        except (asyncio.TimeoutError, asyncio.CancelledError) as e:
+        except asyncio.CancelledError:
             votes_l = list(votes_d.values())
             votes = [votes_l.count(emoji) for emoji in emojis]
             return votes
@@ -116,11 +116,10 @@ class Poll(BaseCog):
             await msg.add_reaction(emoji)
         task = asyncio.create_task(self.do_poll(ctx, emojis, msg))
         task._start_time = start
+        task._sent_message = msg
         self.polls[my_hash] = task
         try:
             await asyncio.wait_for(task, timeout)
-        except asyncio.CancelledError:
-            await msg.edit(content='The poll was cancelled.')
         except asyncio.TimeoutError:
             votes = task.result()
             description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
@@ -145,6 +144,7 @@ class Poll(BaseCog):
         if test_hash != my_hash:
             raise NotPollOwner('You may not cancel this poll')
         task.cancel()
+        await task._sent_message.edit(content='The poll was cancelled.')
 
     async def cog_command_error(self, ctx, exc):
         handled_excs = \
