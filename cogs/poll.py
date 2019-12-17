@@ -80,9 +80,10 @@ class Poll(BaseCog):
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
         Optionally, pass an int before the prompt to indicate the number of seconds the poll lasts."""
         timeout = timeout or Poll.TIMEOUT
-        if len(options) > 10:
+        nopts = len(options)
+        if nopts > 10:
             raise ValueError('Too many options!')
-        if len(options) < 1:
+        if nopts < 1:
             raise ValueError('Not enough options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 10 else '\U0001f51f' for i in range(nopt)]
@@ -94,9 +95,9 @@ class Poll(BaseCog):
         msg, votes = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
         description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
         embed = msg.embeds[0]
-        embed.title = f'**Poll closed:** {prompt}'
         embed.description = description
-        await msg.edit(embed=embed)
+        argmax = max(range(nopts), key=lambda i: votes[i])
+        await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
 
     async def cog_command_error(self, ctx, exc):
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
