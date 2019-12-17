@@ -101,13 +101,13 @@ class Poll(BaseCog):
         emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
         start = time.time()
         my_hash = hash((start, ctx.channel, ctx.author)) & 0xFFFFFFFF
-        enc = base64.b32encode(my_hash.to_bytes(4, 'little')).decode()
+        enc = base64.b32encode(my_hash.to_bytes(4, 'little')).decode().rstrip('=')
         content = f'Vote using emoji reactions.  ' \
                   f'You have {timeout:d} seconds from when the last option appears.  ' \
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first. ' \
                   f'The poll author may not cast a vote.' \
-                  f'The poll author may cancel the poll using `!poll cancel {enc}`'
+                  f'The poll author may cancel the poll using `{ctx.prefix}{self.cancel.qualified_name} {enc}`'
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
@@ -136,6 +136,8 @@ class Poll(BaseCog):
     async def cancel(self, ctx: commands.Context, code):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
+        if len(code) & 7:
+            code += '=' * (8 - (len(code) & 7))
         my_hash = int.from_bytes(base64.b32decode(code.encode()), 'little')
         task = self.polls.get(my_hash)
         if task is None:
