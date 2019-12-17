@@ -20,17 +20,21 @@ from discord.ext import commands
 from cogs import BaseCog
 import time
 import traceback
+import random
 import typing
 
 
 class Poll(BaseCog):
     TIMEOUT = 60
 
-    async def do_poll(self, ctx, prompt, emojis, options, content=None, timeout=TIMEOUT):
+    async def do_poll(self, ctx, prompt, emojis, options, msg: discord.Message = None, content: str = None, timeout: int = TIMEOUT):
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
-        msg: discord.Message = await ctx.send(content, embed=embed)
+        if msg is None:
+            msg = await ctx.send(content, embed=embed)
+        else:
+            await msg.edit(content=content, embed=embed)
         for emoji in emojis:
             await msg.add_reaction(emoji)
 
@@ -66,7 +70,6 @@ class Poll(BaseCog):
             else:
                 raise ValueError('Our checks passed when neither should have!')
 
-        await msg.delete()
         if not votes_d:
             return 0, emojis, options
 
@@ -79,7 +82,7 @@ class Poll(BaseCog):
             if count == winner_count:
                 tie_emoji.append(emoji)
                 tie_opts.append(opt)
-        return winner_count, tie_emoji, tie_opts
+        return msg, winner_count, tie_emoji, tie_opts
 
     @commands.command(name='poll')
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
@@ -98,12 +101,25 @@ class Poll(BaseCog):
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first. ' \
                   f'The poll author may not cast a vote.'
+        count = 0
+        win_idx = 0
+        selection_method = ''
+        in_sd = False
+        msg = None
         while len(emojis) > 1:
-            count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
+            last_len = len(emojis)
+            msg, count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, msg=msg, content=content, timeout=timeout)
             content = f'SUDDEN DEATH between {len(emojis)} options'
-            if count == 0:
-                return await ctx.send('Poll cancelled due to lack of participation.')
-        await ctx.send(f'Winner: {emojis[0]}: {options[0]}')
+            if count == 0 and not in_sd:
+                await msg.delete()
+                await ctx.send('Poll cancelled due to lack of participation.')
+                return
+            if len(emojis) == last_len:
+                win_idx = random.randint(0, last_len - 1)
+                selection_method = ' (by random choice)'
+                break
+        await msg.delete()
+        await ctx.send(f'Winner{selection_method}: {emojis[win_idx]}: {options[win_idx]} with {count} votes')
 
     async def cog_command_error(self, ctx, exc):
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
