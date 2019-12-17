@@ -86,7 +86,7 @@ class Poll(BaseCog):
         if nopts < 1:
             raise ValueError('Not enough options!')
         nopt = len(options)
-        emojis = [f'{i + 1}\u20e3' if i < 10 else '\U0001f51f' for i in range(nopt)]
+        emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
         content = f'Vote using emoji reactions.  ' \
                   f'You have {timeout:d} seconds from when the last option appears.  ' \
                   f'Max one vote per user.  ' \
