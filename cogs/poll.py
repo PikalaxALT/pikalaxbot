@@ -16,6 +16,7 @@
 
 import asyncio
 import discord
+import binascii
 from discord.ext import commands
 from cogs import BaseCog
 import time
@@ -33,6 +34,14 @@ class TooManyOptions(ValueError):
 
 
 class ReactionIntegrityError(ValueError):
+    pass
+
+
+class NotPollOwner(ValueError):
+    pass
+
+
+class NoPollFound(KeyError):
     pass
 
 
@@ -76,7 +85,7 @@ class Poll(BaseCog):
             votes = [votes_l.count(emoji) for emoji in emojis]
             return votes
 
-    @commands.group(name='poll')
+    @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
@@ -90,7 +99,8 @@ class Poll(BaseCog):
             raise NotEnoughOptions('Not enough unique options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
-        my_hash = hash((time.time(), ctx.channel, ctx.author)) & 0xFFFFFFFF
+        start = time.time()
+        my_hash = hash((start, ctx.channel, ctx.author)) & 0xFFFFFFFF
         enc = base64.b32encode(my_hash.to_bytes(4, 'little')).decode()
         content = f'Vote using emoji reactions.  ' \
                   f'You have {timeout:d} seconds from when the last option appears.  ' \
@@ -105,6 +115,7 @@ class Poll(BaseCog):
         for emoji in emojis:
             await msg.add_reaction(emoji)
         task = asyncio.create_task(self.do_poll(ctx, emojis, msg))
+        task._start_time = start
         self.polls[my_hash] = task
         try:
             await asyncio.wait_for(task, timeout)
@@ -124,13 +135,31 @@ class Poll(BaseCog):
 
     @poll_cmd.command()
     async def cancel(self, ctx: commands.Context, code):
+        """Cancel a running poll using a code. You must be the one who started the poll
+        in the first place."""
         my_hash = int.from_bytes(base64.b32decode(code.encode()), 'little')
-        self.polls.pop(my_hash).cancel()
+        task = self.polls.get(my_hash)
+        if task is None:
+            raise NoPollFound('The supplied code does not correspond to a running poll')
+        test_hash = hash((task._start_time, ctx.channel, ctx.author)) & 0xFFFFFFFF
+        if test_hash != my_hash:
+            raise NotPollOwner('You may not cancel this poll')
+        task.cancel()
 
     async def cog_command_error(self, ctx, exc):
+        handled_excs = \
+            TooManyOptions, \
+            NotEnoughOptions, \
+            ReactionIntegrityError, \
+            commands.CheckFailure, \
+            asyncio.CancelledError, \
+            asyncio.TimeoutError, \
+            NotPollOwner, \
+            NoPollFound, \
+            binascii.Error
         exc = getattr(exc, 'original', exc)
         await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
-        if not isinstance(exc, (TooManyOptions, NotEnoughOptions, ReactionIntegrityError, commands.CheckFailure, asyncio.CancelledError, asyncio.TimeoutError)):
+        if not isinstance(exc, handled_excs):
             tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
             embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
             embed.add_field(name='Author', value=ctx.author.mention)
