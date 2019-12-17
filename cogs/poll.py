@@ -78,10 +78,14 @@ class Poll(BaseCog):
                     del votes_d[author.id]
                 else:
                     raise ReactionIntegrityError('Our checks passed when neither should have!')
-        except (asyncio.TimeoutError, asyncio.CancelledError):
+        except (asyncio.TimeoutError, asyncio.CancelledError) as e:
+            await ctx.bot.owner.send(e)
             votes_l = list(votes_d.values())
             votes = [votes_l.count(emoji) for emoji in emojis]
             return votes
+        except Exception as e:
+            await ctx.bot.owner.send(e)
+            raise
 
     @commands.group(name='poll')
     @commands.check(no_running_poll)
@@ -115,7 +119,7 @@ class Poll(BaseCog):
             await asyncio.wait_for(task, timeout)
         except asyncio.CancelledError:
             await msg.edit(content='The poll was cancelled.')
-        else:
+        except asyncio.TimeoutError:
             votes = await task.result()
             description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
             embed = msg.embeds[0]
@@ -135,7 +139,7 @@ class Poll(BaseCog):
     async def cog_command_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
         await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
-        if not isinstance(exc, (TooManyOptions, NotEnoughOptions, ReactionIntegrityError, commands.CheckFailure)):
+        if not isinstance(exc, (TooManyOptions, NotEnoughOptions, ReactionIntegrityError, commands.CheckFailure, asyncio.CancelledError, asyncio.TimeoutError)):
             tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
             embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
             embed.add_field(name='Author', value=ctx.author.mention)
