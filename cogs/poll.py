@@ -70,18 +70,20 @@ class Poll(BaseCog):
             else:
                 raise ValueError('Our checks passed when neither should have!')
 
-        if not votes_d:
-            return 0, emojis, options
-
-        votes_l = list(votes_d.values())
-        votes = [votes_l.count(emoji) for emoji in emojis]
-        winner_count = max(votes)
-        tie_emoji = []
-        tie_opts = []
-        for count, emoji, opt in zip(votes, emojis, options):
-            if count == winner_count:
-                tie_emoji.append(emoji)
-                tie_opts.append(opt)
+        if votes_d:
+            votes_l = list(votes_d.values())
+            votes = [votes_l.count(emoji) for emoji in emojis]
+            winner_count = max(votes)
+            tie_emoji = []
+            tie_opts = []
+            for count, emoji, opt in zip(votes, emojis, options):
+                if count == winner_count:
+                    tie_emoji.append(emoji)
+                    tie_opts.append(opt)
+        else:
+            winner_count = 0
+            tie_emoji = emojis
+            tie_opts = options
         return msg, winner_count, tie_emoji, tie_opts
 
     @commands.command(name='poll')
