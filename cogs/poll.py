@@ -84,8 +84,8 @@ class Poll(BaseCog):
     @commands.command(name='poll')
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
-        tiebreakers as needed.  Use quotes to enclose multi-word prompt and options. Optionally,
-        pass an int before the prompt to indicate the number of seconds the poll lasts."""
+        tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
+        Optionally, pass an int before the prompt to indicate the number of seconds the poll lasts."""
         timeout = timeout or Poll.TIMEOUT
         if len(options) > 10:
             raise ValueError('Too many options!')
