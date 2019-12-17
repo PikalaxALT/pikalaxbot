@@ -23,7 +23,7 @@ import traceback
 
 
 class Poll(BaseCog):
-    TIMEOUT = 5
+    TIMEOUT = 60
 
     async def do_poll(self, ctx, prompt, emojis, options, content=None):
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
