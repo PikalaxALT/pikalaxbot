@@ -56,7 +56,7 @@ class Poll(BaseCog):
                 reaction, author = done.pop().result()
             except (IndexError, KeyError):  # asyncio.wait does not raise TimeoutError so this is how we detect timeout
                 break
-            if author == self.bot.owner:
+            if author in (self.bot.user, ctx.author):
                 continue
             vote = votes_d.get(author.id)
             if vote is None:  # This was a reaction_add event
@@ -96,7 +96,8 @@ class Poll(BaseCog):
         content = f'Vote using emoji reactions.  ' \
                   f'You have {timeout:d} seconds from when the last option appears.  ' \
                   f'Max one vote per user.  ' \
-                  f'To change your vote, clear your original selection first.'
+                  f'To change your vote, clear your original selection first. ' \
+                  f'The poll author may not cast a vote.'
         while len(emojis) > 1:
             count, emojis, options = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
             content = f'SUDDEN DEATH between {len(emojis)} options'
