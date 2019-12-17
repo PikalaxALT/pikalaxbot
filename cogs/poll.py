@@ -79,12 +79,12 @@ class Poll(BaseCog):
                 else:
                     raise ReactionIntegrityError('Our checks passed when neither should have!')
         except (asyncio.TimeoutError, asyncio.CancelledError) as e:
-            await ctx.bot.owner.send(str(e))
+            await ctx.bot.owner.send(e.__class__.__name__)
             votes_l = list(votes_d.values())
             votes = [votes_l.count(emoji) for emoji in emojis]
             return votes
         except Exception as e:
-            await ctx.bot.owner.send(str(e))
+            await ctx.bot.owner.send(e.__class__.__name__)
             raise
 
     @commands.group(name='poll')
