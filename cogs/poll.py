@@ -92,7 +92,7 @@ class Poll(BaseCog):
                   f'To change your vote, clear your original selection first. ' \
                   f'The poll author may not cast a vote.'
         msg, votes = await self.do_poll(ctx, prompt, emojis, options, content=content, timeout=timeout)
-        description = '\n'.join(f'{emoji}: {option} ({vote}' for emoji, option, vote in zip(emojis, options, votes))
+        description = '\n'.join(f'{emoji}: {option} ({vote})' for emoji, option, vote in zip(emojis, options, votes))
         embed = msg.embeds[0]
         embed.title = f'**Poll closed:** {prompt}'
         embed.description = description
