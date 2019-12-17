@@ -21,6 +21,7 @@ from cogs import BaseCog
 import time
 import traceback
 import typing
+import base64
 
 
 class NotEnoughOptions(ValueError):
@@ -33,14 +34,6 @@ class TooManyOptions(ValueError):
 
 class ReactionIntegrityError(ValueError):
     pass
-
-
-def has_running_poll(ctx):
-    return (ctx.channel.id, ctx.author.id) in ctx.cog.polls
-
-
-def no_running_poll(ctx):
-    return (ctx.channel.id, ctx.author.id) not in ctx.cog.polls
 
 
 class Poll(BaseCog):
@@ -79,16 +72,11 @@ class Poll(BaseCog):
                 else:
                     raise ReactionIntegrityError('Our checks passed when neither should have!')
         except (asyncio.TimeoutError, asyncio.CancelledError) as e:
-            await ctx.bot.owner.send(e.__class__.__name__)
             votes_l = list(votes_d.values())
             votes = [votes_l.count(emoji) for emoji in emojis]
             return votes
-        except Exception as e:
-            await ctx.bot.owner.send(e.__class__.__name__)
-            raise
 
     @commands.group(name='poll')
-    @commands.check(no_running_poll)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
@@ -102,11 +90,14 @@ class Poll(BaseCog):
             raise NotEnoughOptions('Not enough unique options!')
         nopt = len(options)
         emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(nopt)]
+        my_hash = hash((time.time(), ctx.channel, ctx.author)) & 0xFFFFFFFF
+        enc = base64.b32encode(my_hash.to_bytes(4, 'little')).decode()
         content = f'Vote using emoji reactions.  ' \
                   f'You have {timeout:d} seconds from when the last option appears.  ' \
                   f'Max one vote per user.  ' \
                   f'To change your vote, clear your original selection first. ' \
-                  f'The poll author may not cast a vote.'
+                  f'The poll author may not cast a vote.' \
+                  f'The poll author may cancel the poll using `!poll cancel {enc}`'
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
@@ -114,7 +105,7 @@ class Poll(BaseCog):
         for emoji in emojis:
             await msg.add_reaction(emoji)
         task = asyncio.create_task(self.do_poll(ctx, emojis, msg))
-        self.polls[(ctx.channel.id, ctx.author.id)] = task
+        self.polls[my_hash] = task
         try:
             await asyncio.wait_for(task, timeout)
         except asyncio.CancelledError:
@@ -127,14 +118,14 @@ class Poll(BaseCog):
             argmax = max(range(nopts), key=lambda i: votes[i])
             await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
         finally:
-            task = self.polls.pop((ctx.channel.id, ctx.author.id), None)
+            task = self.polls.pop(my_hash, None)
             if task is not None:
                 task.cancel()
 
     @poll_cmd.command()
-    @commands.check(has_running_poll)
-    async def cancel(self, ctx: commands.Context):
-        self.polls.pop((ctx.channel.id, ctx.author.id)).cancel()
+    async def cancel(self, ctx: commands.Context, code):
+        my_hash = int.from_bytes(base64.b32decode(code.encode()), 'little')
+        self.polls.pop(my_hash).cancel()
 
     async def cog_command_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
