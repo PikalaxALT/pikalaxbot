@@ -66,8 +66,9 @@ class Meme(BaseCog):
         """
         timeout = aiohttp.ClientTimeout(total=15.0)
         params = {'Subject1': subj1, 'Subject2': subj2}
-        r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout)
-        res = await r.text()
+        async with ctx.typing():
+            r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout)
+            res = await r.text()
         await ctx.send(res)
 
     @commands.command()
