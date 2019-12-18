@@ -86,12 +86,16 @@ class Poll(BaseCog):
             return votes
 
     @commands.group(name='poll', invoke_without_command=True)
-    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *options):
+    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *opts):
         """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
         tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
         Optionally, pass an int before the prompt to indicate the number of seconds the poll lasts."""
         timeout = timeout or Poll.TIMEOUT
-        options = list(set(options))
+        # Do it this way because `set` does weird things with ordering
+        options = []
+        for opt in opts:
+            if opt not in options:
+                options.append(opt)
         nopts = len(options)
         if nopts > 10:
             raise TooManyOptions('Too many options!')
