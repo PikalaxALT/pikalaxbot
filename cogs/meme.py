@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import random
+import aiohttp
 
 import discord
 from discord.ext import commands
@@ -56,12 +57,16 @@ class Meme(BaseCog):
         'pew! '
     )
 
+    async def cog_command_error(self, ctx, error):
+        await ctx.send(f'**{error.__class__.__name__}:** {error}')
+
     @commands.command()
     async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
+        timeout = aiohttp.ClientTimeout(total=15.0)
         params = {'Subject1': subj1, 'Subject2': subj2}
-        r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params)
+        r = await self.cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout)
         res = await r.text()
         await ctx.send(res)
 
