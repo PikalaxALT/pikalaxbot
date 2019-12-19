@@ -156,6 +156,9 @@ class GameBase:
 class GameCogBase(BaseCog):
     gamecls = None
 
+    async def init_db(self, sql):
+        await sql.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
+
     def _local_check(self, ctx):
         if ctx.guild is None:
             raise commands.NoPrivateMessage('This command cannot be used in private messages.')

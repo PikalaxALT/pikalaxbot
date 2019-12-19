@@ -21,15 +21,15 @@ import glob
 import shutil
 import time
 
-default_bag = (
-    'happily jumped into the bag!',
-    'reluctantly clambored into the bag.',
-    'turned away!',
-    'let out a cry in protest!'
-)
-
 
 class Sql(aiosqlite.Connection):
+    default_bag = (
+        'happily jumped into the bag!',
+        'reluctantly clambored into the bag.',
+        'turned away!',
+        'let out a cry in protest!'
+    )
+
     def __init__(self, database, *, loop=None, **kwargs):
         def connector():
             return sqlite3.connect(database, **kwargs)
@@ -42,18 +42,10 @@ class Sql(aiosqlite.Connection):
         await self.commit()
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    async def db_init(self):
-        c = await self.execute("select count(*) from sqlite_master where type='table' and name='meme'")
-        exists, = await c.fetchone()
-        await self.execute("create table if not exists meme (bag text primary key)")
-        if not exists:
-            for line in default_bag:
-                await self.execute("insert into meme(bag) values (?)", (line,))
-        await self.execute("create table if not exists game (id integer primary key, name text, score integer default 0)")
-        await self.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
-        await self.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
-        await self.execute("replace into puppy(sentinel) values (66)")
-        await self.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null default \"p!\")")
+    async def db_init(self, bot):
+        for cog in bot.cogs.values():
+            if hasattr(cog, 'init_db'):
+                await cog.init_db(self)
 
     async def db_clear(self):
         await self.execute("drop table if exists meme")
@@ -123,14 +115,14 @@ class Sql(aiosqlite.Connection):
         await self.execute("delete from game")
 
     async def remove_bag(self, msg):
-        if msg in default_bag:
+        if msg in self.default_bag:
             return False
         await self.execute("delete from meme where bag = ?", (msg,))
         return True
 
     async def reset_bag(self):
         await self.execute("delete from meme")
-        for msg in default_bag:
+        for msg in self.default_bag:
             await self.execute("insert into meme values (?)", (msg,))
 
     async def puppy_add_uranium(self):

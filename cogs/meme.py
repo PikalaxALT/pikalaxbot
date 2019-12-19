@@ -57,6 +57,14 @@ class Meme(BaseCog):
         'pew! '
     )
 
+    async def init_db(self, sql):
+        c = await sql.execute("select count(*) from sqlite_master where type='table' and name='meme'")
+        exists, = await c.fetchone()
+        await sql.execute("create table if not exists meme (bag text primary key)")
+        if not exists:
+            for line in sql.default_bag:
+                await sql.execute("insert into meme(bag) values (?)", (line,))
+
     async def cog_command_error(self, ctx, error):
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 

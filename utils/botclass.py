@@ -101,7 +101,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         async def init_sql():
             async with self.sql as sql:
-                await sql.db_init()
+                await sql.db_init(self)
 
         self.loop.create_task(init_sql())
 

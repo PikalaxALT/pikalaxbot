@@ -43,9 +43,13 @@ class PuppyWars(BaseCog):
         super().__init__(bot)
         self.did_showdown: bool = False
         self.dead_is_online: bool = False
-        self.last: datetime.datetime = None
+        self.last: typing.Optional[datetime.datetime] = None
         with open('data/puppy.json') as fp:
             self.dndstyle: typing.List[dict] = json.load(fp)
+
+    async def init_db(self, sql):
+        await sql.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
+        await sql.execute("replace into puppy(sentinel) values (66)")
 
     async def init_deadinsky(self):
         await self.bot.wait_until_ready()

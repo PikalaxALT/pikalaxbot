@@ -268,6 +268,10 @@ converter = BoardCoords()
 class VoltorbFlip(GameCogBase):
     gamecls = VoltorbFlipGame
 
+    async def init_db(self, sql):
+        await super().init_db(sql)
+        await sql.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
+
     def cog_check(self, ctx):
         return self._local_check(ctx)
 
