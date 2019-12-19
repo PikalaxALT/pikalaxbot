@@ -84,6 +84,7 @@ class Core(BaseCog):
         e.add_field(name='Created', value=friendly_date.human_timedelta(member.created_at), inline=False)
         if roles:
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
+        e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
         if member.colour.value:
             e.colour = member.colour
         if member.avatar:
