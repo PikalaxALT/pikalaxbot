@@ -53,7 +53,7 @@ class Pages:
     permissions: discord.Permissions
         Our permissions for the channel.
     """
-    def __init__(self, ctx, *, entries, per_page=12, show_entry_count=True):
+    def __init__(self, ctx: commands.Context, *, entries, per_page=12, show_entry_count=True):
         self.bot = ctx.bot
         self.entries = entries
         self.message = ctx.message
@@ -95,6 +95,10 @@ class Pages:
 
             if not self.permissions.read_message_history:
                 raise CannotPaginate('Bot does not have Read Message History permission.')
+
+    @property
+    def has_manage_messages(self):
+        return self.channel.permissions_for(self.channel.guild.me).manage_messages
 
     def get_page(self, page):
         base = (page - 1) * self.per_page
@@ -252,22 +256,19 @@ class Pages:
 
         while self.paginating:
             try:
-                payload = await self.bot.wait_for('raw_reaction_add', check=self.react_check, timeout=120.0)
-            except asyncio.TimeoutError:
+                tasks = [self.bot.wait_for(f'raw_reaction_{event}', check=self.react_check) for event in ('add', 'remove')]
+                done, left = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED, timeout=120.0)
+                [task.cancel() for task in left]
+                payload: discord.RawReactionActionEvent = done.pop().result()
+            except (asyncio.TimeoutError, IndexError):
                 self.paginating = False
-                try:
+                if self.has_manage_messages:
                     await self.message.clear_reactions()
-                except:
-                    pass
-                finally:
-                    break
+            else:
+                if payload.event_type == 'REACTION_ADD' and self.has_manage_messages:
+                    await self.message.remove_reaction(payload.emoji, discord.Object(id=payload.user_id))
 
-            try:
-                await self.message.remove_reaction(payload.emoji, discord.Object(id=payload.user_id))
-            except:
-                pass # can't remove it so don't bother doing so
-
-            await self.match()
+                await self.match()
 
 
 class FieldPages(Pages):
