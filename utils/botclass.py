@@ -21,6 +21,7 @@ from discord.ext import commands
 import logging
 import os
 import glob
+import traceback
 from utils.config_io import Settings
 from utils.sql import connect
 
@@ -133,53 +134,20 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         return self.get_user(self.owner_id)
 
     @property
+    def exc_channel(self):
+        try:
+            return self.get_channel(self.settings.exc_channel)
+        except AttributeError:
+            return None
+
+    @property
     def command_error_emoji(self):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
-    def cmd_error_check(self, ctx, exc):
-        if isinstance(exc, commands.CommandNotFound):
-            return False
-
-        # Inherit checks from super
-        if self.extra_events.get('on_command_error', None):
-            self.log_and_print(logging.DEBUG, 'on_command_error in extra_events')
-            return False
-
-        if hasattr(ctx.command, 'on_error'):
-            self.log_and_print(logging.DEBUG, f'{ctx.command} has on_error')
-            return False
-
-        cog = ctx.cog
-        if cog:
-            attr = f'cog_command_error'
-            if hasattr(cog, attr):
-                self.log_and_print(logging.DEBUG, f'{cog.__class__.__name__} has cog_command_error')
-                return False
-
-        return True
-
     async def on_command_error(self, ctx: commands.Context, exc):
-        async def report(msg):
-            debug = self.settings.debug
-            await ctx.send(f'{ctx.author.mention}: {msg} {emoji}', delete_after=None if debug else 10)
-            if debug:
-                self.log_tb(ctx, exc)
-
-        if not self.cmd_error_check(ctx, exc):
-            return
-
-        emoji = self.command_error_emoji
-        if isinstance(exc, commands.NotOwner) and ctx.command.name != 'pikahelp':
-            await report('You are not in the sudoers file. This incident will be reported')
-        elif isinstance(exc, commands.MissingPermissions):
-            await report(f'You are missing permissions: {", ".join(exc.missing_perms)}')
-        elif isinstance(exc, commands.BotMissingPermissions):
-            await report(f'I am missing permissions: {", ".join(exc.missing_perms)}')
-        elif exc is NotImplemented:
-            await report('The command or one of its dependencies is not fully implemented')
-        elif isinstance(exc, commands.UserInputError):
-            await report(f'**{type(exc).__name__}**: {exc}')
-        elif isinstance(exc, commands.CheckFailure):
-            return
-        else:
+        filter_excs = commands.CommandNotFound,
+        if not isinstance(exc, filter_excs):
             self.log_tb(ctx, exc)
+            if self.exc_channel is not None:
+                lines = ''.join(traceback.format_tb(exc.__traceback__, limit=4))
+                await self.exc_channel.send(f'```{lines}```')

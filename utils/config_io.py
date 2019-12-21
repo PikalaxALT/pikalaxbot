@@ -40,6 +40,7 @@ _defaults = {
     'roles': {},
     'watches': {},
     'error_emoji': 'pikalaOwO',
+    'exc_channel': 657960851193724960,
 }
 
 
