@@ -54,11 +54,11 @@ class BaseCog(LoggingMixin, commands.Cog):
                 val = set(val)
             setattr(self, attr, val)
 
-    def commit(self):
+    async def commit(self):
         """
         Commits local attributes to the bot's settings file
         """
-        with self.bot.settings as settings:
+        async with self.bot.settings as settings:
             for attr in self.config_attrs:
                 self.log_debug(attr)
                 val = getattr(self, attr)

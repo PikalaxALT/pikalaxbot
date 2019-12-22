@@ -16,6 +16,8 @@
 
 import asyncio
 import json
+import aiofiles
+import functools
 
 
 _defaults = {
@@ -49,6 +51,8 @@ class Settings(dict):
         super().__init__(**_defaults)
         self._fname = fname
         self._loop = loop or asyncio.get_event_loop()
+        self._changed = False
+        self._lock = asyncio.Lock()
         with open(fname) as fp:
             self.update(json.load(fp))
 
@@ -59,14 +63,17 @@ class Settings(dict):
         self.commit()
 
     async def __aenter__(self):
+        await self._lock.acquire()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._loop.run_in_executor(None, self.commit)
-
-    def commit(self):
-        with open(self._fname, 'w') as fp:
-            json.dump(self, fp, indent=4, separators=(', ', ': '))
+        if self._changed:
+            partial = functools.partial(json.dumps, self, indent=4, separators=(', ', ': '))
+            s = await self._loop.run_in_executor(None, partial)
+            async with aiofiles.open(self._filename, 'w') as fp:
+                await fp.write(s)
+            self._changed = False
+        await self._lock.release()
 
     def __getattr__(self, item):
         return self.get(item)
@@ -74,5 +81,6 @@ class Settings(dict):
     def __setattr__(self, key, value):
         if key.startswith('_'):
             super().__setattr__(key, value)
-        else:
+        elif key not in self or self[key] != value:
             self[key] = value
+            self._changed = True

@@ -50,7 +50,7 @@ def main():
     @bot.after_invoke
     async def after_invoke(ctx):
         if ctx.cog:
-            ctx.cog.commit()
+            await ctx.cog.commit()
 
     bot.run()
 

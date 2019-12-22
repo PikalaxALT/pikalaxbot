@@ -10,7 +10,7 @@ class AsyncIRCBot(SingleServerIRCBot, LoggingMixin):
         self.loop = loop or asyncio.get_event_loop()
 
     async def start(self):
-        await self.loop.run_in_executor(None, super().start)
+        asyncio.create_task(self.loop.run_in_executor(None, super().start))
 
     def on_privmsg(self, connection: Connection, event: Event):
         self.log_debug(f'{event}')
