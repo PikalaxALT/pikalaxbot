@@ -145,7 +145,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     async def on_command_error(self, ctx: commands.Context, exc):
-        filter_excs = commands.CommandNotFound,
+        filter_excs = commands.CommandNotFound, commands.CheckFailure
         if not isinstance(exc, filter_excs):
             self.log_tb(ctx, exc)
             if self.exc_channel is not None:
