@@ -21,6 +21,11 @@ at PikalaxALT#5823.
 """
 
 import argparse
+import discord
+from discord.ext import commands
+import traceback
+import aiohttp
+from io import StringIO
 
 from utils.botclass import PikalaxBOT
 
@@ -41,6 +46,23 @@ def main():
     args = parser.parse_args()
 
     bot = PikalaxBOT(args.settings, args.logfile)
+
+    @bot.event
+    async def on_command_error(ctx: commands.Context, exc: Exception):
+        filter_excs = commands.CommandNotFound, commands.CheckFailure
+        if not isinstance(exc, filter_excs):
+            bot.log_tb(ctx, exc)
+            if bot.exc_channel is not None:
+                lines = ''.join(traceback.format_tb(exc.__traceback__))
+                if len(lines) < 1900:
+                    await bot.exc_channel.send(f'```{lines}```')
+                else:
+                    try:
+                        url = await ctx.cog.hastebin(lines)
+                    except aiohttp.ClientResponseError:
+                        await ctx.send('An error has occurred', file=discord.File(StringIO(lines)))
+                    else:
+                        await ctx.send(f'An error has occurred: {url}')
 
     @bot.before_invoke
     async def before_invoke(ctx):

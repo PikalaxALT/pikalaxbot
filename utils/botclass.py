@@ -118,16 +118,16 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.logger.info('Starting bot')
         token = self.settings.token or input('Bot OAUTH2 token: ')
         super().run(token)
-    
+
     def ensure_client_session(self):
         if self.user_cs is None or self.user_cs.closed:
             self.user_cs = aiohttp.ClientSession(raise_for_status=True, loop=self.loop)
 
     async def logout(self):
         await self.user_cs.close()
+        async with self.sql as sql:
+            await sql.backup_db()
         await self.close()
-        # async with self.sql as sql:
-        #     await sql.backup_db()
 
     @property
     def owner(self):
@@ -143,11 +143,3 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     @property
     def command_error_emoji(self):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
-
-    async def on_command_error(self, ctx: commands.Context, exc):
-        filter_excs = commands.CommandNotFound, commands.CheckFailure
-        if not isinstance(exc, filter_excs):
-            self.log_tb(ctx, exc)
-            if self.exc_channel is not None:
-                lines = ''.join(traceback.format_tb(exc.__traceback__, limit=4))
-                await self.exc_channel.send(f'```{lines}```')
