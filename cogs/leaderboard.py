@@ -33,12 +33,11 @@ class Leaderboard(BaseCog):
         if person is None:
             person = ctx.author
         async with self.bot.sql as sql:
-            score = await sql.get_score(person)
-            if score is not None:
-                rank = await sql.get_leaderboard_rank(person)
+            try:
+                score, rank = await sql.get_leaderboard_rank(person)
                 await ctx.send(f'{person.name} has {score:d} point(s) across all games '
                                f'and is #{rank:d} on the leaderboard.')
-            else:
+            except TypeError:
                 await ctx.send(f'{person.name} is not yet on the leaderboard.')
 
     @leaderboard.command()
@@ -75,28 +74,28 @@ class Leaderboard(BaseCog):
             async with self.bot.sql as sql:
                 await sql.increment_score(person, score)
             await ctx.send(f'Gave {score:d} points to {person.name}')
-
-    @commands.group()
-    @commands.is_owner()
-    async def database(self, ctx):
-        """Commands for managing the database file"""
-
-    @database.command(name='backup')
-    async def backup_database(self, ctx):
-        """Back up the database"""
-        async with self.bot.sql as sql:
-            fname = await sql.backup_db()
-        await ctx.send(f'Backed up to {fname}')
-
-    @database.command(name='restore')
-    async def restore_database(self, ctx, *, idx: int = -1):
-        """Restore the database"""
-        async with self.bot.sql as sql:
-            dbbak = await sql.restore_db(idx)
-        if dbbak is None:
-            await ctx.send('Unable to restore backup')
-        else:
-            await ctx.send(f'Restored backup from {dbbak}')
+    #
+    # @commands.group()
+    # @commands.is_owner()
+    # async def database(self, ctx):
+    #     """Commands for managing the database file"""
+    #
+    # @database.command(name='backup')
+    # async def backup_database(self, ctx):
+    #     """Back up the database"""
+    #     async with self.bot.sql as sql:
+    #         fname = await sql.backup_db()
+    #     await ctx.send(f'Backed up to {fname}')
+    #
+    # @database.command(name='restore')
+    # async def restore_database(self, ctx, *, idx: int = -1):
+    #     """Restore the database"""
+    #     async with self.bot.sql as sql:
+    #         dbbak = await sql.restore_db(idx)
+    #     if dbbak is None:
+    #         await ctx.send('Unable to restore backup')
+    #     else:
+    #         await ctx.send(f'Restored backup from {dbbak}')
 
 
 def setup(bot):

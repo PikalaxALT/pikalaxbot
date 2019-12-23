@@ -53,8 +53,15 @@ class Settings(dict):
         self._loop = loop or asyncio.get_event_loop()
         self._changed = False
         self._lock = asyncio.Lock()
-        with open(fname) as fp:
-            self.update(json.load(fp))
+        try:
+            with open(fname) as fp:
+                self.update(json.load(fp))
+        except FileNotFoundError:
+            print('Creating new configuration')
+            with open(fname, 'w') as fp:
+                json.dump(self, fp, indent=4, separators=(', ', ': '))
+        if self.token is None:
+            raise ValueError(f'Please set your bot\'s token in {fname}')
 
     async def __aenter__(self):
         await self._lock.acquire()

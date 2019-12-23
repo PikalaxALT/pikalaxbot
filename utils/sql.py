@@ -54,19 +54,8 @@ class Sql(aiosqlite.Connection):
         await self.execute("drop table if exists puppy")
         await self.execute("drop table if exists prefixes")
 
-    async def get_score(self, author):
-        try:
-            c = await self.execute("select score from game where id = ?", (author.id,))
-            score, = await c.fetchone()
-        except ValueError:
-            score = None
-        return score
-
     async def increment_score(self, player, by=1):
-        try:
-            await self.execute("insert into game values (?, ?, ?)", (player.id, player.name, by))
-        except sqlite3.IntegrityError:
-            await self.execute("update game set score = score + ? where id = ?", (by, player.id))
+        await self.execute("replace into game values (?, ?, ?)", (player.id, player.name, by))
 
     async def get_all_scores(self):
         c = await self.execute("select * from game order by score desc limit 10")
@@ -98,18 +87,12 @@ class Sql(aiosqlite.Connection):
         return level
 
     async def set_voltorb_level(self, channel, new_level):
-        try:
-            await self.execute("insert into voltorb values (?, ?)", (channel.id, new_level))
-        except sqlite3.IntegrityError:
-            await self.execute("update voltorb set level = ? where id = ?", (new_level, channel.id))
+        await self.execute("replace into voltorb values (?, ?)", (channel.id, new_level))
 
     async def get_leaderboard_rank(self, player):
-        c = await self.execute("select id from game order by score desc")
-        for i, row in enumerate(await c.fetchall()):
-            id_, = row
-            if id_ == player.id:
-                return i + 1
-        return -1
+        c = await self.execute("select score, rank () over (order by score desc) ranking from game where id = ?", (player.id,))
+        record = await c.fetchone()
+        return record
 
     async def reset_leaderboard(self):
         await self.execute("delete from game")
@@ -163,13 +146,13 @@ class Sql(aiosqlite.Connection):
         await self._loop.run_in_executor(shutil.copy, dbbak, self.database)
         return dbbak
 
-    async def get_prefix(self, guild):
-        c = await self.execute("select prefix from prefixes where guild = ?", (guild.id,))
+    async def get_prefix(self, bot, message):
+        c = await self.execute("select prefix from prefixes where guild = ?", (message.guild.id,))
         try:
             prefix, = await c.fetchone()
         except TypeError:
-            await self.set_prefix(guild)
-            prefix = 'p!'
+            await self.set_prefix(message.guild, prefix=bot.settings.prefix)
+            prefix = bot.settings.prefix
         return prefix
 
     async def set_prefix(self, guild, prefix='p!'):

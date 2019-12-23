@@ -65,7 +65,7 @@ async def _command_prefix(bot, message):
         return ''
     if message.guild.id not in bot.guild_prefixes:
         async with bot.sql as sql:
-            bot.guild_prefixes[message.guild.id] = await sql.get_prefix(message.guild)
+            bot.guild_prefixes[message.guild.id] = await sql.get_prefix(bot, message)
     return bot.guild_prefixes[message.guild.id]
 
 
