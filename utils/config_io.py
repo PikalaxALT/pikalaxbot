@@ -16,7 +16,7 @@
 
 import asyncio
 import json
-import aiofiles
+import aiofile
 import functools
 
 
@@ -70,7 +70,7 @@ class Settings(dict):
         if self._changed:
             partial = functools.partial(json.dumps, self, indent=4, separators=(', ', ': '))
             s = await self._loop.run_in_executor(None, partial)
-            async with aiofiles.open(self._filename, 'w') as fp:
+            async with aiofile.AIOFile(self._filename, 'w') as fp:
                 await fp.write(s)
             self._changed = False
         await self._lock.release()
