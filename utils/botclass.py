@@ -110,6 +110,9 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.user_cs = None
         self.ensure_client_session()
 
+        # Reboot handler
+        self.reboot_after = True
+
     @property
     def sql(self):
         return connect('data/db.sql', loop=self.loop)

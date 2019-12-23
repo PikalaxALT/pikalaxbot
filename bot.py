@@ -26,6 +26,7 @@ from discord.ext import commands
 import traceback
 import aiohttp
 import sys
+import os
 from io import StringIO
 
 from utils.botclass import PikalaxBOT
@@ -87,7 +88,11 @@ def main():
         if ctx.cog:
             await ctx.cog.commit()
 
-    bot.run()
+    try:
+        bot.run()
+    finally:
+        if not bot.reboot_after:
+            os.system('systemctl stop pikalaxbot')
 
 
 if __name__ == '__main__':
