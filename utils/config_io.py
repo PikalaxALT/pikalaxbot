@@ -56,24 +56,20 @@ class Settings(dict):
         with open(fname) as fp:
             self.update(json.load(fp))
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.commit()
-
     async def __aenter__(self):
         await self._lock.acquire()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._changed:
-            partial = functools.partial(json.dumps, self, indent=4, separators=(', ', ': '))
-            s = await self._loop.run_in_executor(None, partial)
-            async with aiofile.AIOFile(self._filename, 'w') as fp:
-                await fp.write(s)
-            self._changed = False
-        await self._lock.release()
+        try:
+            if self._changed:
+                partial = functools.partial(json.dumps, self, indent=4, separators=(', ', ': '))
+                s = await self._loop.run_in_executor(None, partial)
+                async with aiofile.AIOFile(self._filename, 'w') as fp:
+                    await fp.write(s)
+                self._changed = False
+        finally:
+            self._lock.release()
 
     def __getattr__(self, item):
         return self.get(item)
