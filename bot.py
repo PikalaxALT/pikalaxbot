@@ -70,13 +70,28 @@ def main():
         print(content, file=sys.stderr)
         await send_tb(content)
 
+    async def handle_command_error(ctx: commands.Context, exc: PikalaxBOT.handle_excs):
+        if isinstance(exc, commands.MissingRequiredArgument):
+            msg = f'`{exc.param}` is a required argument that is missing.'
+        elif isinstance(exc, commands.TooManyArguments):
+            msg = f'Too many arguments for `{ctx.command}`'
+        elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
+            msg = f'Got a bad argument for `{ctx.command}`'
+        else:
+            msg = f'An unhandled error {exc} has occurred'
+        await ctx.send(f'{msg} {bot.command_error_emoji}')
+
     @bot.event
     async def on_command_error(ctx: commands.Context, exc: Exception):
-        filter_excs = commands.CommandNotFound, commands.CheckFailure
-        if not isinstance(exc, filter_excs):
-            bot.log_tb(ctx, exc)
-            lines = ''.join(traceback.format_tb(exc.__traceback__))
-            await send_tb(lines)
+        if isinstance(exc, PikalaxBOT.filter_excs):
+            return
+
+        if isinstance(exc, PikalaxBOT.handle_excs):
+            return await handle_command_error(ctx, exc)
+
+        bot.log_tb(ctx, exc)
+        lines = ''.join(traceback.format_tb(exc.__traceback__))
+        await send_tb(lines)
 
     @bot.before_invoke
     async def before_invoke(ctx):

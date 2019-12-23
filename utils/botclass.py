@@ -70,6 +70,9 @@ async def _command_prefix(bot, message):
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
+    filter_excs = commands.CommandNotFound, commands.CheckFailure
+    handle_excs = commands.UserInputError,
+
     def __init__(self, settings_file, logfile, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
