@@ -25,6 +25,7 @@ import discord
 from discord.ext import commands
 import traceback
 import aiohttp
+import sys
 from io import StringIO
 
 from utils.botclass import PikalaxBOT
@@ -47,22 +48,34 @@ def main():
 
     bot = PikalaxBOT(args.settings, args.logfile)
 
+    async def send_tb(tb):
+        channel = bot.exc_channel
+        if channel is None:
+            return
+        if len(tb) < 1990:
+            await channel.send(f'```{tb}```')
+        else:
+            try:
+                url = await bot.hastebin(tb)
+            except aiohttp.ClientResponseError:
+                await channel.send('An error has occurred', file=discord.File(StringIO(tb)))
+            else:
+                await channel.send(f'An error has occurred: {url}')
+
+    @bot.event
+    async def on_error(event, *args, **kwargs):
+        s = traceback.format_exc()
+        content = f'Ignoring exception in {event}\n{s}'
+        print(content, file=sys.stderr)
+        await send_tb(content)
+
     @bot.event
     async def on_command_error(ctx: commands.Context, exc: Exception):
         filter_excs = commands.CommandNotFound, commands.CheckFailure
         if not isinstance(exc, filter_excs):
             bot.log_tb(ctx, exc)
-            if bot.exc_channel is not None:
-                lines = ''.join(traceback.format_tb(exc.__traceback__))
-                if len(lines) < 1900:
-                    await bot.exc_channel.send(f'```{lines}```')
-                else:
-                    try:
-                        url = await ctx.cog.hastebin(lines)
-                    except aiohttp.ClientResponseError:
-                        await ctx.send('An error has occurred', file=discord.File(StringIO(lines)))
-                    else:
-                        await ctx.send(f'An error has occurred: {url}')
+            lines = ''.join(traceback.format_tb(exc.__traceback__))
+            await send_tb(lines)
 
     @bot.before_invoke
     async def before_invoke(ctx):

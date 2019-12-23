@@ -16,6 +16,7 @@
 
 import aiohttp
 import typing
+import asyncio
 
 from discord.ext import commands
 from utils.botclass import PikalaxBOT, LoggingMixin
@@ -75,15 +76,11 @@ class BaseCog(LoggingMixin, commands.Cog):
     def cs(self, value: aiohttp.ClientSession):
         self.bot.user_cs = value
 
-    async def hastebin(self, content: str) -> str:
+    def hastebin(self, content: str) -> asyncio.coroutine:
         """Upload the content to hastebin and return the url.
 
         :param content: str: Raw content to upload
         :return: str: URL to the uploaded content
         :raises aiohttp.ClientException: on failure to upload
         """
-        self.bot.ensure_client_session()
-        res = await self.cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
-        post = await res.json()
-        uri = post['key']
-        return f'https://hastebin.com/{uri}'
+        return self.bot.hastebin(content)

@@ -143,3 +143,16 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     @property
     def command_error_emoji(self):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
+
+    async def hastebin(self, content: str) -> str:
+        """Upload the content to hastebin and return the url.
+
+        :param content: str: Raw content to upload
+        :return: str: URL to the uploaded content
+        :raises aiohttp.ClientException: on failure to upload
+        """
+        self.ensure_client_session()
+        res = await self.user_cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
+        post = await res.json()
+        uri = post['key']
+        return f'https://hastebin.com/{uri}'
