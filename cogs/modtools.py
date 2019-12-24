@@ -31,6 +31,18 @@ class lower(str):
         return arg.lower()
 
 
+async def filter_history(channel, **kwargs):
+    check = kwargs.pop('check', lambda m: True)
+    limit = kwargs.pop('limit', None)
+    count = 0
+    async for message in channel.history(limit=None, **kwargs):
+        if check(message):
+            yield message
+            count += 1
+            if count == limit:
+                break
+
+
 class CommandConverter(commands.Converter):
     async def convert(self, ctx: commands.Context, argument):
         cmd = ctx.bot.get_command(argument)
@@ -280,8 +292,7 @@ class ModTools(BaseCog):
 
     @admin.command()
     async def purge(self, ctx: commands.Context, limit=10):
-        history = ctx.channel.history(limit=None, check=lambda m: m.author == self.bot.user)
-        to_delete = [await next(history) for i in range(limit)]
+        to_delete = [m async for m in filter_history(ctx.channel, limit=limit, check=lambda m: m.author == self.bot.user)]
         await ctx.channel.delete_messages(to_delete)
 
     async def cog_command_error(self, ctx, error):

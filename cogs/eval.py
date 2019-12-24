@@ -131,7 +131,7 @@ class Eval(BaseCog):
             try:
                 with redirect_stdout(stdout):
                     fut = func()
-                    wait = asyncio.wait_for(fut, 60, loop=self.bot.loop)
+                    wait = asyncio.create_task(asyncio.wait_for(fut, 60, loop=self.bot.loop))
                     self._running_evals[ctx.channel.id] = wait
                     ret = await wait
             except Exception as e:
@@ -169,7 +169,7 @@ class Eval(BaseCog):
         async with ctx.typing():
             try:
                 fut = process.communicate()
-                wait = asyncio.wait_for(fut, 60, loop=self.bot.loop)
+                wait = asyncio.create_task(asyncio.wait_for(fut, 60, loop=self.bot.loop))
                 self._running_shells[ctx.channel.id] = wait
                 stdout, stderr = await wait
             except Exception as e:
