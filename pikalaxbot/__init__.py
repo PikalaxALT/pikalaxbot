@@ -62,7 +62,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         for cogfile in glob.glob(f'{dname}/cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
                 extn = f'pikalaxbot.cogs.{os.path.splitext(os.path.basename(cogfile))[0]}'
-                if extn.split('.')[1] not in disabled_cogs:
+                if extn.split('.')[-1] not in disabled_cogs:
                     try:
                         self.load_extension(extn)
                     except commands.ExtensionNotFound:
