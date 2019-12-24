@@ -15,24 +15,27 @@ Python >= 3.7 is required. FFMPEG and libsodium are required for voice.
 4) Run bot.py using `python3.7 bot.py`.
 ```json
 {
-    "credentials": {
-        "owner": "<your_id>",
-        "token": "<bot_oauth>"
+    "token": "My Bot Token",
+    "prefix": "p!",
+    "markov_channels": [],
+    "debug": false,
+    "disabled_commands": [],
+    "voice_chans": {},
+    "disabled_cogs": [],
+    "help_name": "help",
+    "game": "p!help",
+    "espeak_kw": {
+        "a": 100,
+        "s": 150,
+        "v": "en-us+f3",
+        "p": 75,
+        "g": 1,
+        "k": 2
     },
-    "user": {
-        "debug": <true or false>,
-        "voice_chans": [list of voice channel IDs],
-        "markov_channels": [list of text channel IDs],
-        "help_name": "<name for help command>",
-        "game": "<activity to display as playing>",
-        "espeak_kw": {
-            "a": amplitude,
-            "s": speed,
-            "v": "<voice code>",
-            "p": pitch,
-            "k": capital pitch modulation,
-            "g": gap between words
-        }
-    }
+    "banlist": [],
+    "roles": {},
+    "watches": {},
+    "error_emoji": "pikalaOwO",
+    "exc_channel": 657960851193724960
 }
 ```

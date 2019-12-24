@@ -122,7 +122,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     def run(self):
         self.logger.info('Starting bot')
-        token = self.settings.token or input('Bot OAUTH2 token: ')
+        token = self.settings.token
         super().run(token)
 
     def ensure_client_session(self):

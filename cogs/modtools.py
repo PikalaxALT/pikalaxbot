@@ -199,7 +199,7 @@ class ModTools(BaseCog):
                 await ctx.send(f'BaseCog "{cog}" already disabled')
                 continue
             try:
-                self.bot.unload_extension(f'cogs.{cog}')
+                await self.bot.loop.run_in_executor(self.bot.unload_extension, f'cogs.{cog}')
             except Exception as e:
                 await ctx.send(f'Failed to unload cog "{cog}" ({e})')
             else:
@@ -216,9 +216,9 @@ class ModTools(BaseCog):
                 await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
                 continue
             try:
-                self.bot.load_extension(f'cogs.{cog}')
-            except discord.ClientException:
-                await ctx.send(f'Failed to load cog "{cog}"')
+                await self.bot.loop.run_in_executor(self.bot.load_extension, f'cogs.{cog}')
+            except discord.ClientException as e:
+                await ctx.send(f'Failed to load cog "{cog}" ({e})')
             else:
                 await ctx.send(f'Loaded cog "{cog}"')
                 self.disabled_cogs.discard(cog)
@@ -232,16 +232,14 @@ class ModTools(BaseCog):
             extn = f'cogs.{cog}'
             if extn in self.bot.extensions:
                 try:
-                    self.bot.unload_extension(f'cogs.{cog}')
-                except Exception as e:
-                    return await ctx.send(f'Failed to unload {cog} for reloading ({e}).')
-                try:
-                    self.bot.load_extension(f'cogs.{cog}')
+                    await self.bot.loop.run_in_executor(self.bot.reload_extension, extn)
                 except discord.ClientException as e:
                     if cog == self.__class__.__name__.lower():
-                        return await ctx.send(f'Could not reload {cog}. {cog.title()} will be unavailable.')
-                    self.disabled_cogs.add(cog)
-                    await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
+                        name_title = cog.title().replace('_', '')
+                        await ctx.send(f'Could not reload {cog}. {name_title} will be unavailable. ({e})')
+                    else:
+                        self.disabled_cogs.add(cog)
+                        await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
                 else:
                     await ctx.send(f'Reloaded cog {cog}')
             else:
@@ -256,12 +254,13 @@ class ModTools(BaseCog):
             if cog in self.disabled_cogs:
                 await ctx.send(f'BaseCog "{cog}" is disabled!')
                 continue
-            try:
-                self.bot.load_extension(f'cogs.{cog}')
-            except discord.ClientException as e:
-                await ctx.send(f'Could not load {cog}: {e}')
-            else:
-                await ctx.send(f'Loaded cog {cog}')
+            async with ctx.typing():
+                try:
+                    await self.bot.loop.run_in_executor(self.bot.load_extension, f'cogs.{cog}')
+                except discord.ClientException as e:
+                    await ctx.send(f'Could not load {cog}: {e}')
+                else:
+                    await ctx.send(f'Loaded cog {cog}')
 
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):
