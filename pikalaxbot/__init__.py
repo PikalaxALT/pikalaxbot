@@ -61,18 +61,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         dname = os.path.dirname(__file__) or '.'
         for cogfile in glob.glob(f'{dname}/cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
-                extn = f'pikalaxbot.cogs.{os.path.splitext(os.path.basename(cogfile))[0]}'
-                if extn.split('.')[-1] not in disabled_cogs:
+                cogname = os.path.splitext(os.path.basename(cogfile))[0]
+                if cogname not in disabled_cogs:
+                    extn = f'pikalaxbot.cogs.{cogname}'
                     try:
                         self.load_extension(extn)
                     except commands.ExtensionNotFound:
-                        self.logger.error(f'Unable to find cog "{extn}"')
+                        self.logger.error(f'Unable to find cog "{cogname}"')
                     except discord.ClientException:
-                        self.logger.warning(f'Failed to load cog "{extn}"')
+                        self.logger.warning(f'Failed to load cog "{cogname}"')
                     else:
-                        self.logger.info(f'Loaded cog "{extn}"')
+                        self.logger.info(f'Loaded cog "{cogname}"')
                 else:
-                    self.logger.info(f'Skipping disabled cog "{extn}"')
+                    self.logger.info(f'Skipping disabled cog "{cogname}"')
 
         async def init_sql():
             async with self.sql as sql:
