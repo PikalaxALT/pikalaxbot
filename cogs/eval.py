@@ -148,8 +148,8 @@ class Eval(BaseCog):
                 traceback=self.format_tb(exc)
             )
 
-    @eval_cmd.command(name='kill')
-    async def eval_kill(self, ctx):
+    @eval_cmd.command(name='cancel')
+    async def eval_cancel(self, ctx):
         fut = self._running_evals.get(ctx.channel.id)
         if fut is None:
             await ctx.send(f'No running eval {self.bot.command_error_emoji}', delete_after=10)
@@ -193,8 +193,8 @@ class Eval(BaseCog):
                 traceback=self.format_tb(exc)
             )
 
-    @shell_cmd.command(name='kill')
-    async def shell_kill(self, ctx):
+    @shell_cmd.command(name='cancel')
+    async def shell_cancel(self, ctx):
         fut = self._running_shells.get(ctx.channel.id)
         if fut is None:
             await ctx.send(f'No running shell {self.bot.command_error_emoji}', delete_after=10)
