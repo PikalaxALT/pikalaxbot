@@ -90,7 +90,8 @@ def main():
             return await handle_command_error(ctx, exc)
 
         bot.log_tb(ctx, exc)
-        lines = ''.join(traceback.format_tb(exc.__traceback__))
+        exc = getattr(exc, 'original', exc)
+        lines = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__))
         await send_tb(lines)
 
     @bot.before_invoke
