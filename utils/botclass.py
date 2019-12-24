@@ -158,7 +158,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         :raises aiohttp.ClientException: on failure to upload
         """
         self.ensure_client_session()
-        res = await self.user_cs.post('https://hastebin.com/documents', data=content.encode('utf-8'))
-        post = await res.json()
+        async with self.user_cs.post('https://hastebin.com/documents', data=content.encode('utf-8')) as res:
+            post = await res.json()
         uri = post['key']
         return f'https://hastebin.com/{uri}'
