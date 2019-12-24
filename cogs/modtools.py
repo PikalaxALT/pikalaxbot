@@ -144,7 +144,7 @@ class ModTools(BaseCog):
         """Sends the bot's OAUTH token."""
 
         await self.bot.owner.send(self.bot.http.token)
-        await ctx.message.add_reaction('☑')
+        await ctx.message.add_reaction('✅')
 
     @admin.group(name='command', )
     async def admin_cmd(self, ctx: commands.Context):
@@ -159,7 +159,7 @@ class ModTools(BaseCog):
         else:
             self.disabled_commands.add(cmd.name)
             cmd.enabled = False
-            await ctx.message.add_reaction('☑')
+            await ctx.message.add_reaction('✅')
 
     @admin_cmd.command(name='enable')
     async def enable_command(self, ctx: commands.Context, *, cmd: CommandConverter):
@@ -168,7 +168,7 @@ class ModTools(BaseCog):
         if cmd.name in self.disabled_commands:
             self.disabled_commands.discard(cmd.name)
             cmd.enabled = True
-            await ctx.message.add_reaction('☑')
+            await ctx.message.add_reaction('✅')
         else:
             await ctx.send(f'{cmd} is already enabled')
 
@@ -279,7 +279,7 @@ class ModTools(BaseCog):
             await ctx.send('No log file handler is registered')
         else:
             await ctx.author.send(file=discord.File(handler.baseFilename))
-            await ctx.message.add_reaction('☑')
+            await ctx.message.add_reaction('✅')
 
     @admin.command(name='prefix')
     async def change_prefix(self, ctx, prefix='p!'):
@@ -288,7 +288,7 @@ class ModTools(BaseCog):
         async with self.bot.sql as sql:
             await sql.set_prefix(ctx.guild, prefix)
         self.bot.guild_prefixes[ctx.guild.id] = prefix
-        await ctx.message.add_reaction('☑')
+        await ctx.message.add_reaction('✅')
 
     @admin.command()
     @commands.bot_has_permissions(manage_messages=True)
@@ -296,7 +296,7 @@ class ModTools(BaseCog):
         async with ctx.channel.typing():
             to_delete = [m async for m in filter_history(ctx.channel, limit=limit, check=lambda m: m.author == self.bot.user)]
             await ctx.channel.delete_messages(to_delete)
-            await ctx.message.add_reaction('☑')
+            await ctx.message.add_reaction('✅')
 
     async def cog_command_error(self, ctx, error):
         await ctx.message.add_reaction('❌')
