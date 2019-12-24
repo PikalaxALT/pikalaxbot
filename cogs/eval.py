@@ -38,6 +38,16 @@ from cogs import BaseCog
 class Eval(BaseCog):
     _last_result = None
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        self._running_evals = {}
+        self._running_shells = {}
+
+    async def cog_check(self, ctx):
+        if ctx.author != self.bot.owner:
+            raise commands.NotOwner
+        return True
+
     @staticmethod
     def cleanup_code(content):
         """Automatically removes code blocks from the code."""
@@ -89,8 +99,7 @@ class Eval(BaseCog):
             if file is not None:
                 await ctx.send(file=file)
 
-    @commands.command(name='eval')
-    @commands.is_owner()
+    @commands.group(name='eval', invoke_without_command=True)
     async def eval_cmd(self, ctx, *, body):
         """Evaluates a code"""
 
@@ -122,9 +131,13 @@ class Eval(BaseCog):
             try:
                 with redirect_stdout(stdout):
                     fut = func()
-                    ret = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+                    wait = asyncio.wait_for(fut, 60, loop=self.bot.loop)
+                    self._running_evals[ctx.channel.id] = wait
+                    ret = await wait
             except Exception as e:
                 exc = e
+            finally:
+                self._running_evals.pop(ctx.channel.id, None)
             await self.send_eval_result(
                 ctx,
                 exc,
@@ -135,8 +148,15 @@ class Eval(BaseCog):
                 traceback=self.format_tb(exc)
             )
 
-    @commands.command(name='shell')
-    @commands.is_owner()
+    @eval_cmd.command(name='kill')
+    async def eval_kill(self, ctx):
+        fut = self._running_evals[ctx.channel.id]
+        if fut is None:
+            await ctx.send(f'No running eval {self.bot.command_error_emoji}', delete_after=10)
+        else:
+            fut.cancel()
+
+    @commands.group(name='shell', invoke_without_command=True)
     async def shell_cmd(self, ctx, *, body):
         """Evaluates a shell script"""
 
@@ -149,9 +169,13 @@ class Eval(BaseCog):
         async with ctx.typing():
             try:
                 fut = process.communicate()
-                stdout, stderr = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+                wait = await asyncio.wait_for(fut, 60, loop=self.bot.loop)
+                self._running_shells[ctx.channel.id] = wait
+                stdout, stderr = await wait
             except Exception as e:
                 exc = e
+            finally:
+                self._running_shells.pop(ctx.channel.id, None)
 
             await self.send_eval_result(
                 ctx,
@@ -162,6 +186,14 @@ class Eval(BaseCog):
                 stderr=stderr.decode(),
                 traceback=self.format_tb(exc)
             )
+
+    @shell_cmd.command(name='kill')
+    async def shell_kill(self, ctx):
+        fut = self._running_shells[ctx.channel.id]
+        if fut is None:
+            await ctx.send(f'No running shell {self.bot.command_error_emoji}', delete_after=10)
+        else:
+            fut.cancel()
 
 
 def setup(bot):
