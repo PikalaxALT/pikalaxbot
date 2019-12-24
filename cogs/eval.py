@@ -142,7 +142,7 @@ class Eval(BaseCog):
                 ctx,
                 exc,
                 'Eval completed successfully',
-                'An exception has occurred',
+                'Process cancelled' if isinstance(exc, asyncio.CancelledError) else 'An exception has occurred',
                 ret=ret,
                 stdout=stdout.getvalue(),
                 traceback=self.format_tb(exc)
@@ -177,11 +177,17 @@ class Eval(BaseCog):
             finally:
                 self._running_shells.pop(ctx.channel.id, None)
 
+            if process.returncode is not None:
+                exc_title = 'An exception has occurred'
+            elif isinstance(exc, asyncio.CancelledError):
+                exc_title = 'Process cancelled'
+            else:
+                exc_title = 'Request timed out'
             await self.send_eval_result(
                 ctx,
                 exc,
                 f'Process exited successfully',
-                'An exception has occurred' if process.returncode is not None else 'Request timed out',
+                exc_title,
                 stdout=stdout.decode(),
                 stderr=stderr.decode(),
                 traceback=self.format_tb(exc)
