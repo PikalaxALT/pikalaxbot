@@ -291,9 +291,12 @@ class ModTools(BaseCog):
         await ctx.message.add_reaction('☑')
 
     @admin.command()
+    @commands.bot_has_permissions(manage_messages=True)
     async def purge(self, ctx: commands.Context, limit=10):
-        to_delete = [m async for m in filter_history(ctx.channel, limit=limit, check=lambda m: m.author == self.bot.user)]
-        await ctx.channel.delete_messages(to_delete)
+        async with ctx.channel.typing():
+            to_delete = [m async for m in filter_history(ctx.channel, limit=limit, check=lambda m: m.author == self.bot.user)]
+            await ctx.channel.delete_messages(to_delete)
+            await ctx.message.add_reaction('☑')
 
     async def cog_command_error(self, ctx, error):
         await ctx.message.add_reaction('❌')
