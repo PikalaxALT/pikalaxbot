@@ -278,6 +278,12 @@ class ModTools(BaseCog):
         self.bot.guild_prefixes[ctx.guild.id] = prefix
         await ctx.message.add_reaction('☑')
 
+    @admin.command()
+    async def purge(self, ctx: commands.Context, limit=10):
+        history = ctx.channel.history(limit=None, check=lambda m: m.author == self.bot.user)
+        to_delete = [await next(history) for i in range(limit)]
+        await ctx.channel.delete_messages(to_delete)
+
     async def cog_command_error(self, ctx, error):
         await ctx.message.add_reaction('❌')
         await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
