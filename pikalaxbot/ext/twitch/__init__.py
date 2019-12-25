@@ -3,14 +3,36 @@ import twitchio
 from twitchio.ext import commands
 
 
+__all__ = (
+    'TwitchBot',
+    'create_twitch_bot'
+)
+
+
 class TwitchBot(commands.Bot):
     def __init__(self, *args, **kwargs):
+        self._discord_bot = kwargs.pop('discord_bot', None)
         super().__init__(*args, **kwargs)
-        self._discord_bot = None
+
+    def dpy_dispatch(self, event, *args, **kwargs):
+        """Dispatch an event to the d.py bot. The reactor will be
+        a coroutine function f'on_{event}' taking (*args, **kwargs)."""
+        self._discord_bot.dispatch(event, *args, **kwargs)
 
 
-def launch_twitch_bot(token, client, nick, channels):
-    bot = TwitchBot(irc_token=token, client_id=client, nick=nick, prefix='p!', initial_channels=channels)
+def create_twitch_bot(dpy_bot):
+    settings = dpy_bot.settings
+    try:
+        bot = TwitchBot(
+            discord_bot=dpy_bot,
+            irc_token=settings.twitch_token,
+            client_id=settings.twitch_client,
+            nick=settings.twitch_nick,
+            prefix=settings.prefix,
+            initial_channels=settings.irc_channels
+        )
+    except AttributeError:
+        return None
 
     @bot.event
     async def event_ready():
@@ -19,6 +41,11 @@ def launch_twitch_bot(token, client, nick, channels):
     @bot.command()
     async def test(ctx: twitchio.Context):
         await ctx.send('This is a test. This is only a test.')
+
+    @bot.event
+    async def event_dpy_say(ctx, channel, message):
+        channel = bot.get_channel(channel)
+        await channel.send(f'{ctx.author.name} ({ctx.guild}!{ctx.channel}) says: {message}')
 
     asyncio.create_task(bot.start())
     return bot

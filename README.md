@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/badge/support-discord-lightgrey.svg)](https://discord.gg/dpy)
 
 # PikalaxBOT
+Combination Discord Bot and Twitch WIP Bot.
 
 ## Requirements
 Python >= 3.7 is required. FFMPEG and libsodium are required for voice.
@@ -15,7 +16,10 @@ Python >= 3.7 is required. FFMPEG and libsodium are required for voice.
 4) Run bot.py using `python3.7 bot.py`.
 ```json
 {
-    "token": "My Bot Token",
+    "token": "My Discord Bot Token",
+    "twitch_token": "My Twitch Bot Token",
+    "twitch_client": "My Twitch Bot Client ID",
+    "twitch_nick": "My Twitch Bot Nickname",
     "prefix": "p!",
     "markov_channels": [],
     "debug": false,

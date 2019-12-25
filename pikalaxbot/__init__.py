@@ -25,6 +25,8 @@ from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
+from .ext.twitch import *
+
 
 __all__ = ('PikalaxBOT',)
 
@@ -87,6 +89,13 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         # Reboot handler
         self.reboot_after = True
+
+        # Twitch bot
+        self._twitch_bot = create_twitch_bot(self)
+
+    async def tmi_dispatch(self, event, *args, **kwargs):
+        if self._twitch_bot is not None:
+            await self._twitch_bot._dispatch(event, *args, **kwargs)
 
     @property
     def sql(self):

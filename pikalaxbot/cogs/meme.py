@@ -110,6 +110,10 @@ class Meme(BaseCog):
         emoji = discord.utils.get(self.bot.emojis, name='HONK')
         await ctx.message.add_reaction(emoji)
 
+    @commands.command()
+    async def twitch_say(self, ctx, channel, *, message):
+        await self.bot.tmi_dispatch('dpy_say', ctx, channel, message)
+
 
 def setup(bot):
     bot.add_cog(Meme(bot))
