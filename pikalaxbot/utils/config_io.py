@@ -18,6 +18,7 @@ import asyncio
 import json
 import aiofile
 import functools
+import os
 
 __all__ = ('Settings',)
 
@@ -65,9 +66,15 @@ class Settings(dict):
                 json.dump(self, fp, indent=4, separators=(', ', ': '))
         if self.token is None:
             raise ValueError(f'Please set your bot\'s token in {fname}')
+        self._mtime = os.path.getmtime(fname)
 
     async def __aenter__(self):
         await self._lock.acquire()
+        if os.path.getmtime(self._fname) > self._mtime:
+            async with aiofile.AIOFile(self._filename) as fp:
+                data = await self._loop.run_in_executor(None, json.load, fp)
+            await self._loop.run_in_executor(None, self.update, data)
+            self._mtime = os.path.getmtime(self._fname)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -78,6 +85,7 @@ class Settings(dict):
                 async with aiofile.AIOFile(self._filename, 'w') as fp:
                     await fp.write(s)
                 self._changed = False
+                self._mtime = os.path.getmtime(self._fname)
         finally:
             self._lock.release()
 

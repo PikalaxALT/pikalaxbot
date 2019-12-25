@@ -43,10 +43,12 @@ class BaseCog(LoggingMixin, commands.Cog):
         self.bot = bot
         self.fetch()
 
-    def fetch(self):
+    async def fetch(self):
         """
         Loads local attributes from the bot's settings
         """
+        async with self.bot.settings:
+            pass
         self.log_debug(f'Fetching {self.__class__.__name__}')
         for attr in self.config_attrs:
             self.log_debug(attr)
