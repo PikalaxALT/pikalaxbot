@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import asyncio
 
 import discord
 from discord.ext import commands
@@ -32,7 +33,7 @@ class Markov(BaseCog):
         self.initialized = False
         self.storedMsgsSet = set()
         self.chain = Chain(store_lowercase=True)
-        self.bot.loop.create_task(self.init_chain())
+        asyncio.create_task(self.init_chain())
 
     def cog_check(self, ctx: commands.Context):
         if not self.initialized:
