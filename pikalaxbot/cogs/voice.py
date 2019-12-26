@@ -23,7 +23,6 @@ import subprocess
 import os
 import time
 import re
-from concurrent.futures import ThreadPoolExecutor
 
 
 class VoiceCommandError(commands.CheckFailure):
@@ -41,7 +40,6 @@ def voice_client_not_playing(ctx):
     # Change: Don't care anymore if the voice client exists or is playing.
     vc = ctx.voice_client
     return vc is None or not vc.is_playing()
-
 
 
 class EspeakParamsConverter(commands.Converter):
@@ -108,7 +106,6 @@ class Voice(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.connections = {}
         self.load_opus()
 
         with open(os.devnull, 'w') as DEVNULL:
@@ -122,8 +119,6 @@ class Voice(BaseCog):
                 break
             else:
                 raise discord.ClientException('ffmpeg or avconv not installed')
-
-        self.executor = ThreadPoolExecutor()
         self.timeout_tasks = {}
 
     @staticmethod
