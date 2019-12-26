@@ -17,6 +17,7 @@
 import aiohttp
 import typing
 import asyncio
+import collections
 
 from discord.ext import commands
 from pikalaxbot.utils.logging_mixin import LoggingMixin
@@ -41,12 +42,13 @@ class BaseCog(LoggingMixin, commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.fetch()
 
-    def fetch(self):
+    async def fetch(self):
         """
         Loads local attributes from the bot's settings
         """
+        async with self.bot.settings:
+            pass
         self.log_debug(f'Fetching {self.__class__.__name__}')
         for attr in self.config_attrs:
             self.log_debug(attr)
@@ -56,6 +58,11 @@ class BaseCog(LoggingMixin, commands.Cog):
                 continue
             if isinstance(val, list):
                 val = set(val)
+            old_attr = getattr(self, attr)
+            if isinstance(old_attr, collections.defaultdict):
+                old_attr.clear()
+                old_attr.update(val)
+                val = old_attr
             setattr(self, attr, val)
 
     async def commit(self):

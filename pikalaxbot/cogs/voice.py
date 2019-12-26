@@ -16,7 +16,6 @@
 
 import asyncio
 import discord
-import youtube_dl
 import ctypes.util
 from discord.ext import commands
 from . import BaseCog
@@ -24,9 +23,10 @@ import subprocess
 import os
 import time
 import re
-from concurrent.futures import ThreadPoolExecutor
-from .utils.youtube import YTDLSource, YouTubePlaylistHandler, VoiceCommandError
-from collections import defaultdict
+
+
+class VoiceCommandError(commands.CheckFailure):
+    """This is raised when an error occurs in a voice command."""
 
 
 class cleaner_content(commands.clean_content):
@@ -88,20 +88,7 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
             os.remove(self.fname)
 
 
-class YouTube(BaseCog):
-    __ytdl_format_options = {
-        'format': 'bestaudio/best',
-        'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-        'restrictfilenames': True,
-        'noplaylist': True,
-        'nocheckcertificate': True,
-        'ignoreerrors': False,
-        'logtostderr': False,
-        'quiet': True,
-        'no_warnings': True,
-        'default_search': 'auto',
-        'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
-    }
+class Voice(BaseCog):
     __ffmpeg_options = {
         'before_options': '-loglevel error',
         'options': '-vn'
@@ -119,7 +106,6 @@ class YouTube(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.connections = {}
         self.load_opus()
 
         with open(os.devnull, 'w') as DEVNULL:
@@ -133,26 +119,7 @@ class YouTube(BaseCog):
                 break
             else:
                 raise discord.ClientException('ffmpeg or avconv not installed')
-
-        self.executor = ThreadPoolExecutor()
-        self.__ytdl_extractor = youtube_dl.YoutubeDL(self.__ytdl_format_options)
         self.timeout_tasks = {}
-        self.yt_players = defaultdict(lambda: YouTubePlaylistHandler(loop=self.bot.loop))
-
-    def get_ytdl_player(self, video, *, stream=False):
-        filename = video['url'] if stream else self.__ytdl_extractor.prepare_filename(video)
-        return YTDLSource.from_info(filename, video, **self.__ffmpeg_options)
-
-    async def prepare_ytdl_playlist(self, url, *, stream=False):
-        data = await self.bot.loop.run_in_executor(None, lambda: self.__ytdl_extractor.extract_info(url, download=not stream))
-
-        if 'entries' in data:
-            playlist = data['entries']
-        else:
-            playlist = [data]
-
-        new_players = [self.get_ytdl_player(video, stream=stream) for video in playlist]
-        return new_players
 
     @staticmethod
     async def idle_timeout(ctx):
@@ -163,17 +130,15 @@ class YouTube(BaseCog):
         def done(unused):
             self.timeout_tasks.pop(ctx.guild.id, None)
 
-        task = self.bot.loop.create_task(YouTube.idle_timeout(ctx))
+        task = self.bot.loop.create_task(Voice.idle_timeout(ctx))
         task.add_done_callback(done)
         self.timeout_tasks[ctx.guild.id] = task
 
     def player_after(self, ctx, exc):
         if exc:
+            ctx.bot.dispatch('command_error', ctx, exc)
             print(f'Player error: {exc}')
-        if self.yt_players[ctx.guild.id]:
-            self.bot.loop.create_task(self.yt_players[ctx.guild.id].play_next(ctx))
-        else:
-            self.start_timeout(ctx)
+        self.start_timeout(ctx)
 
     def load_opus(self):
         if not discord.opus.is_loaded():
@@ -213,8 +178,6 @@ class YouTube(BaseCog):
     async def stop(self, ctx: commands.Context):
         """Stop all playing audio"""
         vclient: discord.VoiceClient = ctx.voice_client
-        player = self.yt_players[ctx.guild.id]
-        await player.destroy_task()
         if vclient.is_playing():
             vclient.stop()
 
@@ -269,29 +232,9 @@ class YouTube(BaseCog):
             else:
                 self.bot.log_tb(ctx, exc)
 
-    async def yt_respond_to_rxn(self, reaction: discord.Reaction, user: discord.User):
-        pass
-
-    @commands.command(hidden=True)
-    async def ytplay(self, ctx: commands.Context, *, url):
-        """Stream a YouTube video"""
-        new_players = await self.prepare_ytdl_playlist(url, stream=True)
-        self.yt_players[ctx.guild.id].extend(new_players)
-        await ctx.message.add_reaction('☑')
-        if not ctx.voice_client.is_playing():
-            await self.yt_players[ctx.guild.id].play_next(ctx)
-
-    @ytplay.error
-    async def ytplay_error(self, ctx, exc):
-        await ctx.send(f'**{exc.__class__.__name__}:** {exc}')
-
-    @ytplay.before_invoke
-    @say.before_invoke
-    @pikasay.before_invoke
-    async def voice_cmd_ensure_connected(self, ctx: commands.Context):
-        task = self.timeout_tasks.get(ctx.guild.id)
-        if task is not None:
-            task.cancel()
+    @say.check
+    @pikasay.check
+    async def voice_cmd_ensure_connected(self, ctx):
         vc: discord.VoiceClient = ctx.voice_client
         if vc is None or not vc.is_connected():
             vchan = ctx.author.voice.channel
@@ -301,7 +244,15 @@ class YouTube(BaseCog):
                 raise VoiceCommandError('I do not have permission to connect to the voice channel '
                                         'configured for this guild')
             await vchan.connect()
+        return True
+
+    @say.before_invoke
+    @pikasay.before_invoke
+    async def voice_cmd_cancel_timeout(self, ctx: commands.Context):
+        task = self.timeout_tasks.get(ctx.guild.id)
+        if task is not None:
+            task.cancel()
 
 
 def setup(bot):
-    bot.add_cog(YouTube(bot))
+    bot.add_cog(Voice(bot))

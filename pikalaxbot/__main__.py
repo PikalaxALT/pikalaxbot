@@ -103,7 +103,7 @@ def main():
     @bot.before_invoke
     async def before_invoke(ctx):
         if ctx.cog:
-            ctx.cog.fetch()
+            await ctx.cog.fetch()
 
     @bot.after_invoke
     async def after_invoke(ctx):
