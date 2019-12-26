@@ -69,25 +69,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                     try:
                         self.load_extension(extn)
                     except commands.ExtensionNotFound:
-                        self.logger.error(f'Unable to find cog "{cogname}"')
+                        self.logger.error(f'Unable to find extn "{cogname}"')
                     except discord.ClientException:
-                        self.logger.warning(f'Failed to load cog "{cogname}"')
+                        self.logger.warning(f'Failed to load extn "{cogname}"')
                     else:
-                        self.logger.info(f'Loaded cog "{cogname}"')
+                        self.logger.info(f'Loaded extn "{cogname}"')
                 else:
-                    self.logger.info(f'Skipping disabled cog "{cogname}"')
+                    self.logger.info(f'Skipping disabled extn "{cogname}"')
 
         async def init_sql():
             async with self.sql as sql:
                 await sql.db_init(self)
-            for cog in self.cogs.values():
-                await cog.fetch()
 
         self.loop.create_task(init_sql())
-
-        # Create client session
-        self.user_cs = None
-        self.ensure_client_session()
 
         # Reboot handler
         self.reboot_after = True
@@ -107,15 +101,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.logger.info('Starting bot')
         token = self.settings.token
         super().run(token)
-
-    def ensure_client_session(self):
-        if self.user_cs is None or self.user_cs.closed:
-            self.user_cs = aiohttp.ClientSession(raise_for_status=True, loop=self.loop)
-
-    async def logout(self):
-        print('Logging out...')
-        await self.user_cs.close()
-        await self.close()
 
     @property
     def owner(self):
@@ -139,8 +124,9 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         :return: str: URL to the uploaded content
         :raises aiohttp.ClientException: on failure to upload
         """
-        self.ensure_client_session()
-        async with self.user_cs.post('https://hastebin.com/documents', data=content.encode('utf-8')) as res:
-            post = await res.json()
+        timeout = aiohttp.ClientTimeout(total=15.0)
+        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+            async with cs.post('https://hastebin.com/documents', data=content.encode('utf-8'), timeout=timeout) as res:
+                post = await res.json()
         uri = post['key']
         return f'https://hastebin.com/{uri}'

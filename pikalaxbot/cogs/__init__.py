@@ -43,29 +43,28 @@ class BaseCog(LoggingMixin, commands.Cog):
         super().__init__()
         self.bot = bot
 
-    async def fetch(self):
+    async def cog_before_invoke(self, ctx):
         """
         Loads local attributes from the bot's settings
         """
-        async with self.bot.settings:
-            pass
         self.log_debug(f'Fetching {self.__class__.__name__}')
-        for attr in self.config_attrs:
-            self.log_debug(attr)
-            try:
-                val = getattr(self.bot.settings, attr)
-            except AttributeError:
-                continue
-            if isinstance(val, list):
-                val = set(val)
-            old_attr = getattr(self, attr)
-            if isinstance(old_attr, collections.defaultdict):
-                old_attr.clear()
-                old_attr.update(val)
-                val = old_attr
-            setattr(self, attr, val)
+        async with self.bot.settings:
+            for attr in self.config_attrs:
+                self.log_debug(attr)
+                try:
+                    val = getattr(self.bot.settings, attr)
+                except AttributeError:
+                    continue
+                if isinstance(val, list):
+                    val = set(val)
+                old_attr = getattr(self, attr)
+                if isinstance(old_attr, collections.defaultdict):
+                    old_attr.clear()
+                    old_attr.update(val)
+                    val = old_attr
+                setattr(self, attr, val)
 
-    async def commit(self):
+    async def cog_after_invoke(self, ctx):
         """
         Commits local attributes to the bot's settings file
         """
@@ -76,21 +75,3 @@ class BaseCog(LoggingMixin, commands.Cog):
                 if isinstance(val, set):
                     val = list(val)
                 setattr(settings, attr, val)
-
-    @property
-    def cs(self) -> aiohttp.ClientSession:
-        """The client session attached to the cog"""
-        return self.bot.user_cs
-
-    @cs.setter
-    def cs(self, value: aiohttp.ClientSession):
-        self.bot.user_cs = value
-
-    def hastebin(self, content: str) -> asyncio.coroutine:
-        """Upload the content to hastebin and return the url.
-
-        :param content: str: Raw content to upload
-        :return: str: URL to the uploaded content
-        :raises aiohttp.ClientException: on failure to upload
-        """
-        return self.bot.hastebin(content)

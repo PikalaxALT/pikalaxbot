@@ -80,7 +80,7 @@ class Eval(BaseCog):
             content = self.mask_token(content)
             if len(content) >= 1000:
                 try:
-                    value = await self.hastebin(content)
+                    value = await self.bot.hastebin(content)
                 except aiohttp.ClientResponseError:
                     return discord.File(io.StringIO(content), f'{name}.txt')
             else:

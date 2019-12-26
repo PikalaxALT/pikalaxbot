@@ -64,12 +64,13 @@ class OneHand(BaseCog):
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params.add('order:random')
-        r = await self.cs.get(
-            f'https://{name}.net/post/index.json',
-            headers={'User-Agent': self.bot.user.name},
-            params={'tags': ' '.join(params), 'limit': 100}
-        )
-        j = list(filter(lambda x: not blacklist.intersection(x['tags'].split()), await r.json()))[:num]
+        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+            async with cs.get(
+                f'https://{name}.net/post/index.json',
+                headers={'User-Agent': self.bot.user.name},
+                params={'tags': ' '.join(params), 'limit': 100}
+            ) as r:
+                j = list(filter(lambda x: not blacklist.intersection(x['tags'].split()), await r.json()))[:num]
         if j:
             for i, imagespec in enumerate(j):
                 score = imagespec['score']
@@ -174,10 +175,11 @@ class OneHand(BaseCog):
     @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
-        r = await self.cs.get('http://inspirobot.me/api', params={'generate': 'true'})
-        url = await r.text()
-        r = await self.cs.get(url)
-        stream = io.BytesIO(await r.read())
+        async with aiohttp.ClientSession(raise_for_status=True) as cs:
+            async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
+                url = await r.text()
+            async with cs.get(url) as r:
+                stream = io.BytesIO(await r.read())
         await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
 
     @inspire.error

@@ -100,16 +100,6 @@ def main():
         lines = f'Ignoring exception in command {ctx.command}:\n{lines}'
         await send_tb(lines)
 
-    @bot.before_invoke
-    async def before_invoke(ctx):
-        if ctx.cog:
-            await ctx.cog.fetch()
-
-    @bot.after_invoke
-    async def after_invoke(ctx):
-        if ctx.cog:
-            await ctx.cog.commit()
-
     try:
         bot.run()
     finally:
