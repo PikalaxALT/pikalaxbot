@@ -88,6 +88,7 @@ class Markov(BaseCog):
         return False
 
     async def init_chain(self):
+        await self.fetch()
         await self.bot.wait_until_ready()
         for ch in list(self.markov_channels):
             self.bot.logger.debug('%d', ch)
