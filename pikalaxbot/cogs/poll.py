@@ -106,11 +106,11 @@ class Poll(BaseCog):
         start = time.time()
         my_hash = hash((start, ctx.channel, ctx.author)) & 0xFFFFFFFF
         enc = base64.b32encode(my_hash.to_bytes(4, 'little')).decode().rstrip('=')
-        content = f'Vote using emoji reactions.  ' \
-                  f'You have {timeout:d} seconds from when the last option appears.  ' \
-                  f'Max one vote per user.  ' \
+        content = f'Vote using emoji reactions. ' \
+                  f'You have {timeout:d} seconds from when the last option appears. ' \
+                  f'Max one vote per user. ' \
                   f'To change your vote, clear your original selection first. ' \
-                  f'The poll author may not cast a vote.' \
+                  f'The poll author may not cast a vote. ' \
                   f'The poll author may cancel the poll using `{ctx.prefix}{self.cancel.qualified_name} {enc}`'
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(emojis, options))
         embed = discord.Embed(title=prompt, description=description)
