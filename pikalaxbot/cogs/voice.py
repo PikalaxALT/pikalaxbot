@@ -42,6 +42,19 @@ def voice_client_not_playing(ctx):
     return vc is None or not vc.is_playing()
 
 
+async def voice_cmd_ensure_connected(ctx):
+    vc: discord.VoiceClient = ctx.voice_client
+    if vc is None or not vc.is_connected():
+        vchan = ctx.author.voice.channel
+        if vchan is None:
+            raise VoiceCommandError('Invoker is not connected to voice')
+        if not vchan.permissions_for(ctx.guild.me).connect:
+            raise VoiceCommandError('I do not have permission to connect to the voice channel '
+                                    'configured for this guild')
+        await vchan.connect()
+    return True
+
+
 class EspeakParamsConverter(commands.Converter):
     def __init__(self, **valid_keys):
         """Converts key=value pairs to a 2ple
@@ -155,8 +168,9 @@ class Voice(BaseCog):
         if ctx.invoked_subcommand is None:
             raise commands.CommandInvokeError('Invalid subcommand')
 
-    @pikavoice.command()
+    @commands.check(voice_cmd_ensure_connected)
     @commands.check(voice_client_not_playing)
+    @pikavoice.command()
     async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
@@ -167,8 +181,9 @@ class Voice(BaseCog):
             return await ctx.send('Error saying shit')
         ctx.voice_client.play(player, after=lambda exc: self.player_after(ctx, exc))
 
-    @commands.command(name='say')
+    @commands.check(voice_cmd_ensure_connected)
     @commands.check(voice_client_not_playing)
+    @commands.command(name='say')
     async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
                                                          escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
@@ -231,20 +246,6 @@ class Voice(BaseCog):
                                        delete_after=10)
             else:
                 self.bot.log_tb(ctx, exc)
-
-    @say.check
-    @pikasay.check
-    async def voice_cmd_ensure_connected(self, ctx):
-        vc: discord.VoiceClient = ctx.voice_client
-        if vc is None or not vc.is_connected():
-            vchan = ctx.author.voice.channel
-            if vchan is None:
-                raise VoiceCommandError('Invoker is not connected to voice')
-            if not vchan.permissions_for(ctx.guild.me).connect:
-                raise VoiceCommandError('I do not have permission to connect to the voice channel '
-                                        'configured for this guild')
-            await vchan.connect()
-        return True
 
     @say.before_invoke
     @pikasay.before_invoke
