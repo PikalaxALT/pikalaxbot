@@ -68,6 +68,9 @@ class BaseCog(LoggingMixin, commands.Cog):
         await self.fetch()
 
     async def commit(self):
+        """
+        Commits local attributes to the bot's settings file
+        """
         async with self.bot.settings as settings:
             for attr in self.config_attrs:
                 self.log_debug(attr)
@@ -77,7 +80,4 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(settings, attr, val)
 
     async def cog_after_invoke(self, ctx):
-        """
-        Commits local attributes to the bot's settings file
-        """
         await self.commit()
