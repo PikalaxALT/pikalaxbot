@@ -141,8 +141,7 @@ class Markov(BaseCog):
         if ctx.command == self.markov:
             return
         ctx.command = self.markov
-        if await self.markov.can_run(ctx):
-            await ctx.invoke(self.markov)
+        await self.bot.invoke(ctx)
 
     @commands.Cog.listener()
     async def on_message_edit(self, old, new):
