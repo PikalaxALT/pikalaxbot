@@ -41,7 +41,6 @@ class BaseCog(LoggingMixin, commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        self.fetch()
 
     async def fetch(self):
         """
