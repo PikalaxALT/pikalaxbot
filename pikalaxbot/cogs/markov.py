@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import typing
 
 import discord
 from discord.ext import commands
@@ -88,8 +89,8 @@ class Markov(BaseCog):
         return False
 
     async def init_chain(self):
-        await self.fetch()
         await self.bot.wait_until_ready()
+        await self.fetch()
         for ch in list(self.markov_channels):
             self.bot.logger.debug('%d', ch)
             channel = self.bot.get_channel(ch)
@@ -100,15 +101,14 @@ class Markov(BaseCog):
                 await self.learn_markov_from_history(channel)
         self.initialized = True
 
-    @commands.group(hidden=True)
-    async def markov(self, ctx):
+    @commands.group(hidden=True, invoke_without_command=True)
+    async def markov(self, ctx, recipient: typing.Optional[discord.Member]):
         """Generate a random word Markov chain."""
-        if ctx.invoked_subcommand is None:
-            chain = self.gen_msg(len_max=250, n_attempts=10)
-            if chain:
-                await ctx.send(f'{ctx.author.mention}: {chain}')
-            else:
-                await ctx.send(f'{ctx.author.mention}: An error has occurred.')
+        recipient = recipient or ctx.author
+        chain = self.gen_msg(len_max=250, n_attempts=10)
+        if not chain:
+            chain = 'An error has occurred.'
+        await ctx.send(f'{recipient.mention}: {chain}')
 
     @markov.command(name='add')
     @commands.is_owner()
