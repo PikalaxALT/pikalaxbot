@@ -298,7 +298,7 @@ class ModTools(BaseCog):
             await ctx.message.add_reaction('✅')
 
     @cog.command(name='list')
-    async def cog_list(self, ctx):
+    async def list_cogs(self, ctx):
         await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
 
     async def cog_command_error(self, ctx, error):
