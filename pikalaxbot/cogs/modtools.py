@@ -199,7 +199,7 @@ class ModTools(BaseCog):
                 await ctx.send(f'BaseCog "{cog}" already disabled')
                 continue
             try:
-                await self.bot.loop.run_in_executor(self.bot.unload_extension, f'pikalaxbot.cogs.{cog}')
+                await self.bot.loop.run_in_executor(None, self.bot.unload_extension, f'pikalaxbot.cogs.{cog}')
             except Exception as e:
                 await ctx.send(f'Failed to unload cog "{cog}" ({e})')
             else:
@@ -232,7 +232,7 @@ class ModTools(BaseCog):
             extn = f'pikalaxbot.cogs.{cog}'
             if extn in self.bot.extensions:
                 try:
-                    await self.bot.loop.run_in_executor(self.bot.reload_extension, extn)
+                    await self.bot.loop.run_in_executor(None, self.bot.reload_extension, extn)
                 except discord.ClientException as e:
                     if cog == self.__class__.__name__.lower():
                         name_title = cog.title().replace('_', '')
@@ -256,7 +256,7 @@ class ModTools(BaseCog):
                 continue
             async with ctx.typing():
                 try:
-                    await self.bot.loop.run_in_executor(self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
+                    await self.bot.loop.run_in_executor(None, self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
                 except discord.ClientException as e:
                     await ctx.send(f'Could not load {cog}: {e}')
                 else:
