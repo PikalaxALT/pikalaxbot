@@ -83,7 +83,7 @@ def main():
             msg = f'Got a bad argument for `{ctx.command}`'
         else:
             msg = f'An unhandled error {exc} has occurred'
-        await ctx.send(f'{msg} {bot.command_error_emoji}')
+        await ctx.send(f'{msg} {bot.command_error_emoji}', delete_after=10)
 
     @bot.event
     async def on_command_error(ctx: commands.Context, exc: Exception):

@@ -36,15 +36,13 @@ class Markov(BaseCog):
         self.bot.loop.create_task(self.init_chain())
 
     def cog_check(self, ctx: commands.Context):
+        # Check that the cog is initialized
         if not self.initialized:
             return False
-        if ctx.author.bot:
-            return False
+        # If a command was invoked directly, the check passes.
+        if ctx.valid:
+            return True
         if len(self.markov_channels) == 0:
-            return False
-        if ctx.prefix is not None:
-            return ctx.invoked_with == self.markov.name or ctx.command.parent == self.markov
-        if ctx.command != self.markov:
             return False
         if ctx.me.mentioned_in(ctx.message):
             return True
@@ -101,6 +99,7 @@ class Markov(BaseCog):
                 await self.learn_markov_from_history(channel)
         self.initialized = True
 
+    @commands.check(lambda ctx: len(ctx.cog.markov_channels) != 0)
     @commands.group(hidden=True, invoke_without_command=True)
     async def markov(self, ctx, recipient: typing.Optional[discord.Member]):
         """Generate a random word Markov chain."""
@@ -136,10 +135,10 @@ class Markov(BaseCog):
 
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message):
-        self.learn_markov(msg)
         ctx: commands.Context = await self.bot.get_context(msg)
-        if ctx.command == self.markov:
+        if ctx.valid or msg.author.bot:
             return
+        self.learn_markov(msg)
         ctx.command = self.markov
         await self.bot.invoke(ctx)
 
