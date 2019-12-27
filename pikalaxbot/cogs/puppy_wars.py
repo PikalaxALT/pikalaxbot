@@ -23,12 +23,12 @@ from discord.ext import commands
 import random
 from . import BaseCog
 import typing
+import collections
+import string
 
 
 class PuppyWars(BaseCog):
-    TPP_GUILD = 148079346685313034
     DEADINSKY = 120002774653075457
-    OFFICER_ROLE = 484054660655742996
     CHANCE_SHOWDOWN = 0.10
     CHANCE_PUPNADO = 0.03
     CHANCE_DOZEN = 0.02
@@ -36,12 +36,11 @@ class PuppyWars(BaseCog):
     CHANCE_URANIUM = 0.005
     NAME_URANIUM = "Kikatanium"
     ONLINE_STATES = discord.Status.online, discord.Status.idle
-    COOLDOWN = datetime.timedelta(minutes=10)
+    COOLDOWN = collections.defaultdict(lambda: commands.Cooldown(1, 600, commands.BucketType.guild))
 
     def __init__(self, bot):
         super().__init__(bot)
         self.did_showdown: bool = False
-        self.dead_is_online: bool = False
         self.last: typing.Optional[datetime.datetime] = None
         with open('pikalaxbot/data/puppy.json') as fp:
             self.dndstyle: typing.List[dict] = json.load(fp)
@@ -50,20 +49,12 @@ class PuppyWars(BaseCog):
         await sql.execute("create table if not exists puppy (sentinel integer primary key, uranium integer default 0, score_puppy integer default 0, score_dead integer default 0)")
         await sql.execute("replace into puppy(sentinel) values (66)")
 
-    async def init_deadinsky(self):
-        await self.bot.wait_until_ready()
-        tpp_guild = self.bot.get_guild(self.TPP_GUILD)
-        if tpp_guild is not None:
-            deadinsky = tpp_guild.get_member(self.DEADINSKY)
-            self.dead_is_online = deadinsky.status in self.ONLINE_STATES
-
     def deadinsky(self, ctx: commands.Context) -> typing.Union[discord.Member, discord.User]:
-        return ctx.guild.get_member(self.DEADINSKY) or self.bot.get_user(self.DEADINSKY)
+        return ctx.guild.get_member(PuppyWars.DEADINSKY) or self.bot.get_user(PuppyWars.DEADINSKY)
 
     @staticmethod
     def get_result(
             score: int,
-            setup: str = '',
             win_score: int = 0,
             lose_score: int = 0,
             payoff: typing.Dict[str, str] = {}
@@ -112,7 +103,7 @@ class PuppyWars(BaseCog):
                     pool[i] += 1
                 dice[i].append(str(rval))
         differential = successes[0] - successes[1]
-        dead_score, puppy_score, payoff = self.get_result(differential, **showdown)
+        dead_score, puppy_score, payoff = PuppyWars.get_result(differential, **showdown)
         setup_text = showdown['setup']
         dead_rolls = ' '.join(dice[0])
         puppy_rolls = ' '.join(dice[1])
@@ -207,7 +198,7 @@ can outrun it. The pupnado is soon upon him....
                 await sql.update_dead_score(1)
                 return f'{ctx.author.mention} kicks a puppy.'
             elif ctx.author.guild_permissions.manage_roles and random.random() < 0.05:
-                role = discord.utils.get(ctx.guild.roles, id=self.OFFICER_ROLE) or 'Officer'
+                role = discord.utils.find(lambda role: role.permissions.kick_members, reversed(ctx.guild.roles))
                 if dead_is_here:
                     await sql.update_dead_score(1)
                     return f'{ctx.author.mention} watches as {deadinsky.display_name} accidentally ' \
@@ -230,6 +221,8 @@ can outrun it. The pupnado is soon upon him....
     @staticmethod
     def pkick_replace(content, deadname: str) -> str:
         foo = 'PLACEHOLDER'
+        while foo in content:
+            foo = ''.join(random.choices(string.ascii_uppercase, k=11))
         content = content.replace('puppy', foo).replace('puppie', foo).replace('pup', foo)
         content = content.replace('Puppy', foo).replace('Puppie', foo).replace('Pup', foo)
         content = content.replace(deadname, 'puppy').replace(foo, deadname)
@@ -300,16 +293,14 @@ can outrun it. The pupnado is soon upon him....
     # Listen for when Deadinsky comes online
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if after.id == self.DEADINSKY:
-            new_status = after.status in self.ONLINE_STATES
-            now = datetime.datetime.utcnow()
-            if new_status > self.dead_is_online and (self.last is None or now - self.last >= self.COOLDOWN):
-                self.last = now
-                content = await self.dead_arrives(after)
-                for channel in after.guild.text_channels:
-                    if channel.permissions_for(after.guild.me).send_messages:
+        if after.id == PuppyWars.DEADINSKY:
+            if after.status in self.ONLINE_STATES and before.status not in self.ONLINE_STATES:
+                time_remaining = self.COOLDOWN[after.guild.id].update_rate_limit()
+                if not time_remaining:
+                    content = await self.dead_arrives(after)
+                    channel = discord.utils.find(lambda ch: ch.permissions_for(after.guild.me).send_messages, after.guild.text_channels)
+                    if channel is not None:
                         await channel.send(content)
-            self.dead_is_online = new_status
 
 
 def setup(bot):

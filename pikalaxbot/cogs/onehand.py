@@ -22,16 +22,7 @@ import discord
 from discord.ext import commands
 
 from . import BaseCog
-
-
-class CommandBannedInGuild(commands.CheckFailure):
-    pass
-
-
-class CogCheckFailed(commands.CheckFailure):
-    def __init__(self, original: Exception):
-        super().__init__()
-        self.original = original
+from .utils.errors import CommandBannedInGuild
 
 
 class OneHand(BaseCog):

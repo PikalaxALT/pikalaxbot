@@ -17,6 +17,7 @@
 import discord
 from discord.ext import commands
 from . import BaseCog
+from .utils.converters import AliasedRoleConverter
 
 
 class Hierarchy(commands.CheckFailure):
@@ -30,14 +31,6 @@ def bot_role_is_higher(ctx):
         raise Hierarchy('Your top role is above mine in the hierarchy')
     print('\N{WHITE HEAVY CHECK MARK}')
     return True
-
-
-class AliasedRoleConverter(commands.Converter):
-    async def convert(self, ctx, argument):
-        role_id = ctx.cog.roles.get(str(ctx.guild.id), {}).get(argument.lower())
-        if role_id is None:
-            raise commands.BadArgument(f'No alias "{argument}" has been registered to a role')
-        return discord.utils.get(ctx.guild.roles, id=role_id)
 
 
 class SelfAssignableRole(BaseCog):

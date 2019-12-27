@@ -20,6 +20,14 @@ import math
 import time
 from .. import BaseCog
 from discord.ext import commands
+from .errors import BadGameArgument
+
+
+__all__ = (
+    'find_emoji',
+    'GameBase',
+    'GameCogBase'
+)
 
 
 def find_emoji(guild, name, case_sensitive=True):
@@ -27,34 +35,6 @@ def find_emoji(guild, name, case_sensitive=True):
         return s if case_sensitive else s.lower()
 
     return discord.utils.find(lambda e: lower(name) == lower(e.name), guild.emojis)
-
-
-class BadGameArgument(commands.BadArgument):
-    pass
-
-
-class BoardCoords(commands.Converter):
-    def __init__(self, minx=1, maxx=5, miny=1, maxy=5):
-        super().__init__()
-        self.minx = minx
-        self.maxx = maxx
-        self.miny = miny
-        self.maxy = maxy
-
-    async def convert(self, ctx, argument):
-        if isinstance(argument, tuple):
-            return argument
-        try:
-            argument = argument.lower()
-            if argument.startswith(tuple('abcde')):
-                y = ord(argument[0]) - 0x60
-                x = int(argument[1])
-            else:
-                y, x = map(int, argument.split())
-            assert self.minx <= x <= self.maxx and self.miny <= y <= self.maxy
-            return x - 1, y - 1
-        except (ValueError, AssertionError) as e:
-            raise BadGameArgument from e
 
 
 class GameBase:

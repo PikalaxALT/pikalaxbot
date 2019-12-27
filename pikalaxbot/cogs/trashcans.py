@@ -18,7 +18,8 @@ import random
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase, BoardCoords
+from .utils.game import GameBase, GameCogBase
+from .utils.converters import BoardCoords
 
 
 class TrashcansGame(GameBase):

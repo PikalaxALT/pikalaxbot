@@ -16,6 +16,7 @@
 
 import discord
 from discord.ext import commands
+import asyncio
 from . import BaseCog
 
 
@@ -31,11 +32,14 @@ class Groudonger(BaseCog):
         if user.id == 303257160421212160 and msg.author == guild.me:
             chain = cog.gen_msg(len_max=250, n_attempts=10)
             await channel.send(f'!mail {chain}')
-            await self.bot.wait_for(
-                'message',
-                check=lambda m: m.author == user and m.channel == channel,
-                timeout=60
-            )
+            try:
+                await self.bot.wait_for(
+                    'message',
+                    check=lambda m: m.author == user and m.channel == channel,
+                    timeout=60
+                )
+            except asyncio.TimeoutError:
+                return
             await channel.send(f'{user.mention} pls')
 
 

@@ -23,6 +23,7 @@ import subprocess
 import os
 import time
 import re
+from .utils.converters import EspeakParamsConverter
 
 
 class VoiceCommandError(commands.CheckFailure):
@@ -53,25 +54,6 @@ async def voice_cmd_ensure_connected(ctx):
                                     'configured for this guild')
         await vchan.connect()
     return True
-
-
-class EspeakParamsConverter(commands.Converter):
-    def __init__(self, **valid_keys):
-        """Converts key=value pairs to a 2ple
-        valid_keys: name=type pairs
-        """
-        super().__init__()
-        self.valid_keys = valid_keys
-
-    async def convert(self, ctx, argument):
-        if isinstance(argument, str):
-            # Convert from a string
-            key, value = argument.split('=')
-            value = self.valid_keys[key](value)
-        else:
-            # Make sure this is an iterable of length 2
-            key, value = argument
-        return key, value
 
 
 class EspeakAudioSource(discord.FFmpegPCMAudio):

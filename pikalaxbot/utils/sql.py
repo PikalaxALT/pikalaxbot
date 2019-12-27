@@ -24,10 +24,10 @@ import time
 
 class Sql(aiosqlite.Connection):
     default_bag = (
-        'happily jumped into the bag!',
-        'reluctantly clambored into the bag.',
-        'turned away!',
-        'let out a cry in protest!'
+        ('happily jumped into the bag!',),
+        ('reluctantly clambored into the bag.',),
+        ('turned away!',),
+        ('let out a cry in protest!',)
     )
 
     def __init__(self, database, *, loop=None, **kwargs):
@@ -98,15 +98,14 @@ class Sql(aiosqlite.Connection):
         await self.execute("delete from game")
 
     async def remove_bag(self, msg):
-        if msg in self.default_bag:
+        if (msg,) in self.default_bag:
             return False
         await self.execute("delete from meme where bag = ?", (msg,))
         return True
 
     async def reset_bag(self):
         await self.execute("delete from meme")
-        for msg in self.default_bag:
-            await self.execute("insert into meme values (?)", (msg,))
+        await self.executemany("insert into meme values(?)", self.default_bag)
 
     async def puppy_add_uranium(self):
         await self.execute("update puppy set uranium = uranium + 1")

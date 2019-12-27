@@ -18,7 +18,8 @@ import random
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase, find_emoji, BoardCoords
+from .utils.game import GameBase, GameCogBase, find_emoji
+from .utils.converters import BoardCoords
 
 
 class VoltorbFlipGame(GameBase):

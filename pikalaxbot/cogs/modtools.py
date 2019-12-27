@@ -22,6 +22,7 @@ import sqlite3
 import logging
 from discord.ext import commands
 from . import BaseCog
+from .utils.converters import CommandConverter
 
 
 class lower(str):
@@ -43,14 +44,6 @@ async def filter_history(channel, **kwargs):
                 break
 
 
-class CommandConverter(commands.Converter):
-    async def convert(self, ctx: commands.Context, argument):
-        cmd = ctx.bot.get_command(argument)
-        if cmd is None:
-            raise commands.CommandNotFound(argument)
-        return cmd
-
-
 class ModTools(BaseCog):
     prefix = 'p!'
     game = 'p!help'
@@ -69,7 +62,7 @@ class ModTools(BaseCog):
                 self.disabled_commands.discard(name)
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null default \"p!\")")
+        await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null default ?)", (self.bot.settings.prefix,))
 
     def cog_unload(self):
         for name in list(self.disabled_commands):

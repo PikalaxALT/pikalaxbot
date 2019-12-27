@@ -3,26 +3,7 @@ from discord.ext import commands
 from . import BaseCog
 import collections
 import typing
-
-
-class NotInitialized(Exception):
-    pass
-
-
-class AlreadyInitialized(Exception):
-    pass
-
-
-class InitializationInvalid(Exception):
-    pass
-
-
-class ReactionAlreadyRegistered(Exception):
-    pass
-
-
-class RoleOrEmojiNotFound(Exception):
-    pass
+from .utils.errors import *
 
 
 class ReactionRoles(BaseCog):

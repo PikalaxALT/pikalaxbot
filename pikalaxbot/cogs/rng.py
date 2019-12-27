@@ -15,25 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import random
-import re
 
 from discord.ext import commands
 
 from . import BaseCog
 from .utils.data import data
-
-
-class DiceRollConverter(commands.Converter):
-    _pattern = re.compile(r'(?P<count>\d+)?(d(?P<sides>\d+))?')
-
-    async def convert(self, ctx, argument):
-        match = self._pattern.match(argument)
-        if match is None:
-            raise ValueError
-        count = int(match['count'] or 1)
-        sides = int(match['sides'] or 6)
-        assert 1 <= count <= 200 and 2 <= sides <= 100
-        return count, sides
+from .utils.converters import DiceRollConverter
 
 
 class Rng(BaseCog):

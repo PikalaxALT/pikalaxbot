@@ -19,14 +19,7 @@ from discord.ext import commands
 from pikalaxbot.utils import friendly_date
 
 from . import BaseCog
-
-
-class NotReady(commands.CheckFailure):
-    pass
-
-
-class BotIsIgnoringUser(commands.CheckFailure):
-    pass
+from .utils.errors import *
 
 
 class Core(BaseCog):

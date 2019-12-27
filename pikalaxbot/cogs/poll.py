@@ -24,25 +24,7 @@ import traceback
 import typing
 import base64
 
-
-class NotEnoughOptions(ValueError):
-    pass
-
-
-class TooManyOptions(ValueError):
-    pass
-
-
-class ReactionIntegrityError(ValueError):
-    pass
-
-
-class NotPollOwner(ValueError):
-    pass
-
-
-class NoPollFound(KeyError):
-    pass
+from .utils.errors import *
 
 
 class Poll(BaseCog):
