@@ -138,8 +138,11 @@ class Markov(BaseCog):
         if ctx.valid or msg.author.bot:
             return
         self.learn_markov(msg)
-        if await self.markov.can_run(ctx):
-            await ctx.invoke(self.markov, None)
+        try:
+            if await self.markov.can_run(ctx):
+                await ctx.invoke(self.markov, None)
+        except commands.CheckFailure:
+            pass
 
     @commands.Cog.listener()
     async def on_message_edit(self, old, new):
