@@ -44,13 +44,14 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     filter_excs = commands.CommandNotFound, commands.CheckFailure
     handle_excs = commands.UserInputError,
 
-    def __init__(self, settings_file, logfile, *, loop=None):
+    def __init__(self, settings_file, logfile, sqlfile, *, loop=None):
         # Load settings
         loop = asyncio.get_event_loop() if loop is None else loop
         self.settings = Settings(settings_file, loop=loop)
         disabled_cogs = self.settings.disabled_cogs
         super().__init__(_command_prefix, case_insensitive=True, loop=loop)
         self.guild_prefixes = {}
+        self._sql = sqlfile
 
         # Set up logger
         self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
@@ -95,7 +96,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     @property
     def sql(self):
-        return connect('pikalaxbot/data/db.sql', loop=self.loop)
+        return connect(self._sql, loop=self.loop)
 
     def run(self):
         self.logger.info('Starting bot')

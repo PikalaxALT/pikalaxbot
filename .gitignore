@@ -224,6 +224,6 @@ fabric.properties
 ### NotepadPP template
 # Notepad++ backups #
 *.bak
-/data/db.sql
+*.sql
 .idea/
 settings.json

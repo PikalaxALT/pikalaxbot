@@ -36,18 +36,20 @@ def main():
     """The main function that runs the bot.
 
     Syntax:
-        python3.6 bot.py [--settings SETTINGSFILE] [--logfile LOGFILE]
+        python3.6 bot.py [--settings SETTINGSFILE] [--logfile LOGFILE] [--sqlfile SQLFILE]
 
     --settings SETTINGSFILE: a JSON file denoting the bot's settings.  See README.md for details.  Defaults to settings.json
     --logfile LOGFILE: the file to which the logging module will output bot events.  This file will be overwritten.
         Defaults to bot.log
+    --sqlfile SQLFILE: the database location. Defaults to data/db.sql
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--settings', default='settings.json')
     parser.add_argument('--logfile', default='bot.log')
+    parser.add_argument('--sqlfile', default='pikalaxbot/data/db.sql')
     args = parser.parse_args()
 
-    bot = PikalaxBOT(args.settings, args.logfile)
+    bot = PikalaxBOT(args.settings, args.logfile, args.sqlfile)
 
     @bot.event
     async def on_ready():
