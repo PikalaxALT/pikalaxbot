@@ -42,8 +42,7 @@ class Markov(BaseCog):
         # If a command was invoked directly, the check passes.
         if ctx.valid:
             return True
-        if len(self.markov_channels) == 0:
-            return False
+        # Invoked from on_message without command.
         if ctx.me.mentioned_in(ctx.message):
             return True
         name_grp = '|'.join({ctx.me.name, ctx.guild.me.display_name})
@@ -139,8 +138,8 @@ class Markov(BaseCog):
         if ctx.valid or msg.author.bot:
             return
         self.learn_markov(msg)
-        ctx.command = self.markov
-        await self.bot.invoke(ctx)
+        if await self.markov.can_run(ctx):
+            await ctx.invoke(self.markov, None)
 
     @commands.Cog.listener()
     async def on_message_edit(self, old, new):
