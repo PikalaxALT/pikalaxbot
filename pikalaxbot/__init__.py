@@ -105,7 +105,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     async def close(self):
         self.logger.info('Logout request received')
-        await self.close()
+        await self.logout()
 
     @property
     def owner(self):
