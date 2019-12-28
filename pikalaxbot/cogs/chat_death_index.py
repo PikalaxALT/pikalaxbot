@@ -134,7 +134,7 @@ class ChatDeathIndex(BaseCog):
 
     @plot_cdi.error
     async def plot_cdi_error(self, ctx, exc):
-        await ctx.send('```\n' + traceback.format_exception(exc.__class__, exc, None) + '\n```')
+        await ctx.send('```\n' + ''.join(traceback.format_exception(exc.__class__, exc, None)) + '\n```')
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
