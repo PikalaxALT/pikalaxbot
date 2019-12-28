@@ -132,10 +132,6 @@ class ChatDeathIndex(BaseCog):
         chs = [ch for ch in ctx.guild.text_channels if ch.is_nsfw() <= nsfw and ChatDeathIndex.can_get_messages(ch)]
         await ctx.invoke(self.plot_cdi, *chs)
 
-    @plot_cdi.error
-    async def plot_cdi_error(self, ctx, exc):
-        await ctx.send('```\n' + ''.join(traceback.format_exception(exc.__class__, exc, None)) + '\n```')
-
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
         now = datetime.datetime.now()
