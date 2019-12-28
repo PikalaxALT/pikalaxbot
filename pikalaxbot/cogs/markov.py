@@ -134,8 +134,10 @@ class Markov(BaseCog):
 
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message):
+        if msg.author.bot:
+            return
         ctx: commands.Context = await self.bot.get_context(msg)
-        if ctx.valid or msg.author.bot:
+        if ctx.prefix:
             return
         self.learn_markov(msg)
         try:
