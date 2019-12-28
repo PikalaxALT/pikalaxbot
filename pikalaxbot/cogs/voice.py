@@ -46,9 +46,9 @@ def voice_client_not_playing(ctx):
 async def voice_cmd_ensure_connected(ctx):
     vc: discord.VoiceClient = ctx.voice_client
     if vc is None or not vc.is_connected():
-        vchan = ctx.author.voice.channel
-        if vchan is None:
+        if ctx.author.voice is None:
             raise VoiceCommandError('Invoker is not connected to voice')
+        vchan = ctx.author.voice.channel
         if not vchan.permissions_for(ctx.guild.me).connect:
             raise VoiceCommandError('I do not have permission to connect to the voice channel '
                                     'configured for this guild')
