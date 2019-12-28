@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import aiohttp
 import asyncio
 import discord
 from discord.ext import commands
@@ -121,17 +120,3 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     @property
     def command_error_emoji(self):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
-
-    async def hastebin(self, content: str) -> str:
-        """Upload the content to hastebin and return the url.
-
-        :param content: str: Raw content to upload
-        :return: str: URL to the uploaded content
-        :raises aiohttp.ClientException: on failure to upload
-        """
-        timeout = aiohttp.ClientTimeout(total=15.0)
-        async with aiohttp.ClientSession(raise_for_status=True) as cs:
-            async with cs.post('https://hastebin.com/documents', data=content.encode('utf-8'), timeout=timeout) as res:
-                post = await res.json()
-        uri = post['key']
-        return f'https://hastebin.com/{uri}'

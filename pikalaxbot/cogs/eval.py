@@ -14,14 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# To expose to eval
-import asyncio
 from discord.ext import commands
 import io
 import textwrap
 import traceback
 from asyncio.subprocess import PIPE
 from contextlib import redirect_stdout
+from pikalaxbot.utils.hastebin import hastebin
 
 import aiohttp
 
@@ -80,7 +79,7 @@ class Eval(BaseCog):
             content = self.mask_token(content)
             if len(content) >= 1000:
                 try:
-                    value = await self.bot.hastebin(content)
+                    value = await hastebin(content)
                 except aiohttp.ClientResponseError:
                     return discord.File(io.StringIO(content), f'{name}.txt')
             else:

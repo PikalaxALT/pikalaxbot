@@ -30,6 +30,7 @@ import os
 from io import StringIO
 
 from . import PikalaxBOT
+from .utils.hastebin import hastebin
 
 
 def main():
@@ -63,7 +64,7 @@ def main():
             await channel.send(f'```{tb}```')
         else:
             try:
-                url = await bot.hastebin(tb)
+                url = await hastebin(tb)
             except aiohttp.ClientResponseError:
                 await channel.send('An error has occurred', file=discord.File(StringIO(tb)))
             else:
