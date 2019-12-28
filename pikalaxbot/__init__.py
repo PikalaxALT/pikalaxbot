@@ -25,6 +25,7 @@ from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
 from .ext.twitch import *
+from .version import version as __version__
 
 
 __all__ = ('PikalaxBOT',)
