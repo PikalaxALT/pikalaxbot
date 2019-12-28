@@ -30,6 +30,7 @@ import os
 from io import StringIO
 
 from . import PikalaxBOT
+from .version import version
 from .utils.hastebin import hastebin
 
 
@@ -37,8 +38,9 @@ def main():
     """The main function that runs the bot.
 
     Syntax:
-        python3.6 bot.py [--settings SETTINGSFILE] [--logfile LOGFILE] [--sqlfile SQLFILE]
+        python3.6 bot.py [--version] [--settings SETTINGSFILE] [--logfile LOGFILE] [--sqlfile SQLFILE]
 
+    --version: Prints the version string and exits.
     --settings SETTINGSFILE: a JSON file denoting the bot's settings.  See README.md for details.  Defaults to settings.json
     --logfile LOGFILE: the file to which the logging module will output bot events.  This file will be overwritten.
         Defaults to bot.log
@@ -48,7 +50,11 @@ def main():
     parser.add_argument('--settings', default='settings.json')
     parser.add_argument('--logfile', default='bot.log')
     parser.add_argument('--sqlfile', default='pikalaxbot/data/db.sql')
+    parser.add_argument('--version', action='store_true')
     args = parser.parse_args()
+    if args.version:
+        print(f'{os.path.basename(os.path.dirname(__file__))} v{version}')
+        return
 
     bot = PikalaxBOT(args.settings, args.logfile, args.sqlfile)
 
