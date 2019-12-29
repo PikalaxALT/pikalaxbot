@@ -114,6 +114,7 @@ class Poll(BaseCog):
             argmax = max(range(nopts), key=lambda i: votes[i])
             await msg.edit(content=f'Poll closed, the winner is "{options[argmax]}"', embed=embed)
         finally:
+            await ctx.send(f'The poll has closed. Results here: {msg.jump_url}')
             task = self.polls.pop(my_hash, None)
             if task is not None:
                 task.cancel()
