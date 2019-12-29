@@ -89,7 +89,7 @@ class Core(BaseCog):
         await ctx.send(embed=e)
 
     @commands.command()
-    async def source(self, ctx, * command: typing.Optional[CommandConverter]):
+    async def source(self, ctx, *, command: typing.Optional[CommandConverter]):
         url = 'https://github.com/PikalaxALT/pikalaxbot'
         if command is not None:
             src = command.callback.__code__.co_filename
