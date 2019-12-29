@@ -64,11 +64,6 @@ class Core(BaseCog):
         self.banlist.discard(person.id)
         await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        activity = discord.Game(self.game)
-        await self.bot.change_presence(activity=activity)
-
     @commands.command()
     async def about(self, ctx):
         member: discord.Member = ctx.guild.me
