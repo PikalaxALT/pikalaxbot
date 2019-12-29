@@ -355,7 +355,6 @@ class HelpPaginator(Pages):
         self.total = len(entries)
         self.help_command = help_command
         self.prefix = help_command.clean_prefix
-        self.is_bot = False
 
     def get_bot_page(self, page):
         cog, description, cmds = self.entries[page - 1]
@@ -367,10 +366,6 @@ class HelpPaginator(Pages):
         self.embed.clear_fields()
         self.embed.description = self.description
         self.embed.title = self.title
-
-        if self.is_bot:
-            value = 'For more help, join the official bot support server: https://discord.gg/DWEaqMy'
-            self.embed.add_field(name='Support', value=value, inline=False)
 
         self.embed.set_footer(text=f'Use "{self.prefix}help command" for more info on a command.')
 

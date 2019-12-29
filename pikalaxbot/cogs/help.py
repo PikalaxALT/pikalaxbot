@@ -76,7 +76,6 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
         # swap the get_page implementation to work with our nested pages.
         pages.get_page = pages.get_bot_page
-        pages.is_bot = True
         pages.total = total
         await pages.paginate()
 
