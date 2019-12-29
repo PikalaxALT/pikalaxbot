@@ -43,6 +43,10 @@ class BaseCog(LoggingMixin, commands.Cog):
         super().__init__()
         self.bot = bot
 
+    async def init_db(self, sql):
+        """Override this"""
+        pass
+
     async def fetch(self):
         """
         Loads local attributes from the bot's settings
