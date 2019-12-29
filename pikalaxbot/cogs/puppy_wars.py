@@ -21,6 +21,7 @@ import datetime
 import discord
 from discord.ext import commands
 import random
+import os
 from . import BaseCog
 import typing
 import collections
@@ -42,7 +43,9 @@ class PuppyWars(BaseCog):
         super().__init__(bot)
         self.did_showdown: bool = False
         self.last: typing.Optional[datetime.datetime] = None
-        with open('pikalaxbot/data/puppy.json') as fp:
+
+        dname = os.path.abspath(f'{os.path.dirname(__file__)}/../data')
+        with open(os.path.join(dname, 'puppy.json')) as fp:
             self.dndstyle: typing.List[dict] = json.load(fp)
 
     async def init_db(self, sql):

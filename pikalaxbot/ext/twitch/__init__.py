@@ -29,7 +29,8 @@ def create_twitch_bot(dpy_bot):
             client_id=settings.twitch_client,
             nick=settings.twitch_nick,
             prefix=settings.prefix,
-            initial_channels=settings.irc_channels
+            initial_channels=settings.irc_channels,
+            loop=dpy_bot.loop
         )
     except AttributeError:
         return None
@@ -47,5 +48,5 @@ def create_twitch_bot(dpy_bot):
         channel = bot.get_channel(channel)
         await channel.send(f'{ctx.author.name} ({ctx.guild}!{ctx.channel}) says: {message}')
 
-    asyncio.create_task(bot.start())
+    bot.loop.create_task(bot.start())
     return bot

@@ -17,9 +17,12 @@
 import discord
 from discord.ext import commands
 from pikalaxbot.utils import friendly_date
+import typing
+import inspect
 
 from . import BaseCog
 from .utils.errors import *
+from .utils.converters import CommandConverter
 
 
 class Core(BaseCog):
@@ -84,6 +87,19 @@ class Core(BaseCog):
         if member.avatar:
             e.set_thumbnail(url=member.avatar_url)
         await ctx.send(embed=e)
+
+    @commands.command()
+    async def source(self, ctx, * command: typing.Optional[CommandConverter]):
+        url = 'https://github.com/PikalaxALT/pikalaxbot'
+        if command is not None:
+            src = command.callback.__code__.co_filename
+            module = command.callback.__module__.replace('.', os.path.sep)
+            print(src, module)
+            sourcefile = src[src.index(module):].replace('\\', '/')
+            lines, start = inspect.getsourcelines(command.callback)
+            end = start + len(lines) - 1
+            url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
+        await ctx.send(f'<{url}>')
 
 
 def setup(bot):

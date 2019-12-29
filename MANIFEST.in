@@ -1,0 +1,3 @@
+include pikalaxbot/data/moves.tsv
+include pikalaxbot/data/pokemon.tsv
+include pikalaxbot/data/puppy.json

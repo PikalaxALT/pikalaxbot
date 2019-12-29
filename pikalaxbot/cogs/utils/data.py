@@ -16,6 +16,7 @@
 
 import csv
 import random
+import os
 
 
 __all__ = ('data',)
@@ -34,8 +35,8 @@ def roman(s):
     return sum(map(lambda t: table.get(t, 0), s.upper()))
 
 
-def safe_int(s):
-    return 0 if s in ('—', '') else int(s)
+def safe_int(s: str) -> int:
+    return 0 if not s.isnumeric() else int(s)
 
 
 class Data:
@@ -59,13 +60,15 @@ class Data:
     def __init__(self):
         self.pokemon = []
         self.moves = []
-        with open('pikalaxbot/data/pokemon.tsv') as fp:
+
+        dname = os.path.abspath(f'{os.path.dirname(__file__)}/../../data')
+        with open(os.path.join(dname, 'pokemon.tsv')) as fp:
             reader = csv.DictReader(fp, dialect='excel-tab')
             for row in reader:
                 for key in reader.fieldnames:
                     row[key] = self.pokemon_categories.get(key, str)(row[key])
                 self.pokemon.append(row)
-        with open('pikalaxbot/data/moves.tsv') as fp:
+        with open(os.path.join(dname, 'moves.tsv')) as fp:
             reader = csv.DictReader(fp, dialect='excel-tab')
             for row in reader:
                 for key in reader.fieldnames:

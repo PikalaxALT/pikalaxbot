@@ -23,7 +23,7 @@ setuptools.setup(
     long_description=long_desc,
     long_description_content_type='text/markdown',
     url='https://github.com/PikalaxALT/pikalaxbot',
-    packages=setuptools.find_packages(),
+    packages=['pikalaxbot', 'pikalaxbot.ext.twitch'],
     install_requires=requirements,
     classifiers=[
         'Development Status :: 4 - Beta',

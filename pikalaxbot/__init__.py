@@ -71,7 +71,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                         self.load_extension(extn)
                     except commands.ExtensionNotFound:
                         self.logger.error(f'Unable to find extn "{cogname}"')
-                    except discord.ClientException:
+                    except commands.ExtensionFailed:
                         self.logger.warning(f'Failed to load extn "{cogname}"')
                     else:
                         self.logger.info(f'Loaded extn "{cogname}"')
