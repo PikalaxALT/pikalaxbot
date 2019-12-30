@@ -38,7 +38,7 @@ def create_twitch_bot(dpy_bot):
             'twitch_client',
             'twitch_nick',
             'prefix',
-            'irc_channel'
+            'irc_channels'
         )
         missing_attrs = ', '.join(attr for attr in required_attrs if not hasattr(settings, attr))
 
