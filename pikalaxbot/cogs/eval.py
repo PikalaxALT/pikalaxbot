@@ -92,11 +92,9 @@ class Eval(BaseCog):
         color = discord.Color.red() if errored else discord.Color.green()
         embed = discord.Embed(title=title, color=color)
         files = [await self.format_embed_value(embed, name, content) for name, content in values.items()]
+        files = [file for file in files if file is not None] or None
         await self.try_add_reaction(ctx.message, '❌' if errored else '✅')
-        await ctx.send(embed=embed)
-        for file in files:
-            if file is not None:
-                await ctx.send(file=file)
+        await ctx.send(embed=embed, files=files)
 
     @commands.group(name='eval', invoke_without_command=True)
     async def eval_cmd(self, ctx, *, body):
