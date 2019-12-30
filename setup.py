@@ -6,9 +6,8 @@ with open('README.md', 'r') as readme:
 with open('requirements.txt', 'r') as reqf:
     requirements = reqf.read().splitlines()
 
-version = ''
-with open('pikalaxbot/version.py', 'r') as verf:
-    exec(verf.read())
+with open('version.txt', 'r') as verf:
+    version = verf.read().strip()
 if not version:
     raise RuntimeError('version is not set')
 
