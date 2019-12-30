@@ -20,6 +20,7 @@ from pikalaxbot.utils import friendly_date
 import typing
 import inspect
 import os
+import datetime
 
 from . import BaseCog
 from .utils.errors import *
@@ -78,6 +79,7 @@ class Core(BaseCog):
         if roles:
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
         e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
+        e.add_field(name='Uptime', value=f'{datetime.datetime.utcnow() - self.bot._alive_since}')
         if member.colour.value:
             e.colour = member.colour
         if member.avatar:
@@ -98,6 +100,15 @@ class Core(BaseCog):
                 end = start + len(lines) - 1
                 url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
         await ctx.send(f'<{url}>')
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.bot._alive_since = self.bot._alive_since or datetime.datetime.utcnow()
+
+    @commands.command()
+    async def uptime(self, ctx):
+        date = friendly_date.human_timedelta(datetime.datetime.utcnow() - self.bot._alive_since)
+        await ctx.send(f'Bot last rebooted {date}')
 
 
 def setup(bot):
