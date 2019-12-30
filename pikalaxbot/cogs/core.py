@@ -90,11 +90,14 @@ class Core(BaseCog):
         if command is not None:
             src = command.callback.__code__.co_filename
             module = command.callback.__module__.replace('.', os.path.sep)
-            print(src, module)
-            sourcefile = src[src.index(module):].replace('\\', '/')
             lines, start = inspect.getsourcelines(command.callback)
-            end = start + len(lines) - 1
-            url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
+            if module in src:
+                sourcefile = src[src.index(module):].replace('\\', '/')
+                end = start + len(lines) - 1
+                url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
+            else:
+                src = ''.join(lines)
+                return await ctx.send(f'``py\n{src}```')
         await ctx.send(f'<{url}>')
 
 
