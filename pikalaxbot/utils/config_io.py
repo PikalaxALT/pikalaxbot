@@ -74,7 +74,8 @@ class Settings(dict):
         await self._lock.acquire()
         if os.path.getmtime(self._fname) > self._mtime:
             async with aiofile.AIOFile(self._filename) as fp:
-                data = await self._loop.run_in_executor(None, json.load, fp)
+                t = await fp.read()
+            data = await self._loop.run_in_executor(None, json.loads, t)
             await self._loop.run_in_executor(None, self.update, data)
             self._mtime = os.path.getmtime(self._fname)
         return self
