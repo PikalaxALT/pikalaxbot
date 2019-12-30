@@ -40,7 +40,7 @@ def create_twitch_bot(dpy_bot):
             'prefix',
             'irc_channels'
         )
-        missing_attrs = ', '.join(attr for attr in required_attrs if not hasattr(settings, attr))
+        missing_attrs = ', '.join(attr for attr in required_attrs if attr not in settings)
 
         async def report_twitch_error():
             await dpy_bot.wait_until_ready()
