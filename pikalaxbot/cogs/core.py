@@ -86,18 +86,17 @@ class Core(BaseCog):
 
     @commands.command()
     async def source(self, ctx, *, command: typing.Optional[CommandConverter]):
+        """Links the source of the command. If command source cannot be retrieved,
+        links the root of the bot's source tree."""
         url = 'https://github.com/PikalaxALT/pikalaxbot'
         if command is not None:
             src = command.callback.__code__.co_filename
             module = command.callback.__module__.replace('.', os.path.sep)
-            lines, start = inspect.getsourcelines(command.callback)
             if module in src:
+                lines, start = inspect.getsourcelines(command.callback)
                 sourcefile = src[src.index(module):].replace('\\', '/')
                 end = start + len(lines) - 1
                 url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
-            else:
-                src = ''.join(lines)
-                return await ctx.send(f'``py\n{src}```')
         await ctx.send(f'<{url}>')
 
 

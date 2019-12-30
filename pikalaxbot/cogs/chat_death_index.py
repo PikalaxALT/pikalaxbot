@@ -4,7 +4,6 @@ import datetime
 from discord.ext import commands, tasks
 from . import BaseCog
 import typing
-import traceback
 import matplotlib
 import io
 matplotlib.use('Agg')
