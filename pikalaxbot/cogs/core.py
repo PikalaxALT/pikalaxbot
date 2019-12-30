@@ -107,7 +107,7 @@ class Core(BaseCog):
 
     @commands.command()
     async def uptime(self, ctx):
-        date = friendly_date.human_timedelta(datetime.datetime.utcnow() - self.bot._alive_since)
+        date = friendly_date.human_timedelta(self.bot._alive_since)
         await ctx.send(f'Bot last rebooted {date}')
 
 
