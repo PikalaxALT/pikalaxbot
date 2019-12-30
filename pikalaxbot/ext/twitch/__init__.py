@@ -33,6 +33,20 @@ def create_twitch_bot(dpy_bot):
             loop=dpy_bot.loop
         )
     except AttributeError:
+        required_attrs = (
+            'twitch_token',
+            'twitch_client',
+            'twitch_nick',
+            'prefix',
+            'irc_channel'
+        )
+        missing_attrs = ', '.join(attr for attr in required_attrs if not hasattr(settings, attr))
+
+        async def report_twitch_error():
+            await dpy_bot.wait_until_ready()
+            await dpy_bot.exc_channel.send(f'Missing settings requred for Twitch bot: {missing_attrs}')
+
+        dpy_bot.loop.create_task(report_twitch_error())
         return None
 
     @bot.event
