@@ -137,15 +137,17 @@ class Eval(BaseCog):
                 exc = e
             finally:
                 self._running_evals.pop(ctx.channel.id, None)
-            await self.send_eval_result(
-                ctx,
-                exc,
-                'Eval completed successfully',
-                'Process cancelled' if isinstance(exc, asyncio.CancelledError) else 'An exception has occurred',
-                ret=ret,
-                stdout=stdout.getvalue(),
-                traceback=self.format_tb(exc)
-            )
+        await self.send_eval_result(
+            ctx,
+            exc,
+            'Eval completed successfully',
+            'Process cancelled' if isinstance(exc, asyncio.CancelledError) else 'An exception has occurred',
+            ret=ret,
+            stdout=stdout.getvalue(),
+            traceback=self.format_tb(exc)
+        )
+        if ret is not None:
+            self._last_result = ret
 
     @eval_cmd.command(name='cancel')
     async def eval_cancel(self, ctx):
