@@ -25,10 +25,12 @@ from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
 from .ext.twitch import *
-from .version import version as __version__
 
 
 __all__ = ('PikalaxBOT',)
+__dir__ = os.path.dirname(__file__) or '.'
+with open(os.path.join(__dir__, 'version.txt')) as fp:
+    __version__ = fp.read().strip()
 
 
 async def _command_prefix(bot, message):
@@ -61,8 +63,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.logger.addHandler(handler)
 
         # Load cogs
-        dname = os.path.dirname(__file__) or '.'
-        for cogfile in glob.glob(f'{dname}/cogs/*.py'):
+        for cogfile in glob.glob(f'{__dir__}/cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
                 cogname = os.path.splitext(os.path.basename(cogfile))[0]
                 if cogname not in disabled_cogs:
