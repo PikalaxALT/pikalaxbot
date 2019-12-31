@@ -29,8 +29,6 @@ from .ext.twitch import *
 
 __all__ = ('PikalaxBOT',)
 __dir__ = os.path.dirname(__file__) or '.'
-with open(os.path.join(__dir__, 'version.txt')) as fp:
-    __version__ = fp.read().strip()
 
 
 async def _command_prefix(bot, message):

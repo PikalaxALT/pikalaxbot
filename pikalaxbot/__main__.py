@@ -30,8 +30,11 @@ import os
 from io import StringIO
 
 from . import PikalaxBOT
-from .version import version
 from .utils.hastebin import hastebin
+
+__dir__ = os.path.dirname(__file__) or '.'
+with open(os.path.join(__dir__, 'version.txt')) as fp:
+    __version__ = fp.read().strip()
 
 
 def main():
