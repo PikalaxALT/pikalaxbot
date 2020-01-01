@@ -100,7 +100,7 @@ class Markov(BaseCog):
 
     @commands.check(lambda ctx: len(ctx.cog.markov_channels) != 0)
     @commands.group(hidden=True, invoke_without_command=True)
-    async def markov(self, ctx, recipient: typing.Optional[discord.Member]):
+    async def markov(self, ctx, *, recipient: typing.Optional[discord.Member]):
         """Generate a random word Markov chain."""
         recipient = recipient or ctx.author
         chain = self.gen_msg(len_max=250, n_attempts=10)
