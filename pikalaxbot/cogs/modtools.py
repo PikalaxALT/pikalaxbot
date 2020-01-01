@@ -299,6 +299,14 @@ class ModTools(BaseCog):
         await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
         self.log_tb(ctx, error)
 
+    @commands.command(name='cl')
+    async def fast_cog_load(self, ctx, *cogs: lower):
+        await ctx.invoke(self.load_cog, *cogs)
+
+    @commands.command(name='cr')
+    async def fast_cog_reload(self, ctx, *cogs: lower):
+        await ctx.invoke(self.reload_cog, *cogs)
+
 
 def setup(bot):
     bot.add_cog(ModTools(bot))
