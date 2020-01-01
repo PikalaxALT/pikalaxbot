@@ -25,7 +25,7 @@ class SeenUser(BaseCog):
         self.member_cache = {}
         self.history_cache = defaultdict(list)
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_message(self, message: discord.Message):
         if message.guild is not None:
             proxy_ = proxy(message)

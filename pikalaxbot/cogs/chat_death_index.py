@@ -96,7 +96,7 @@ class ChatDeathIndex(BaseCog):
     def samples_to_cdi(samples):
         return ChatDeathIndex.to_cdi(ChatDeathIndex.accumulate(samples))
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_message(self, message: discord.Message):
         if await self.msg_counts_against_chat_death(message):
             self.cumcharcount[message.channel.id] += ChatDeathIndex.get_message_cdi_effect(message)
@@ -131,7 +131,7 @@ class ChatDeathIndex(BaseCog):
         chs = [ch for ch in ctx.guild.text_channels if ch.is_nsfw() <= nsfw and ChatDeathIndex.can_get_messages(ch)]
         await ctx.invoke(self.plot_cdi, *chs)
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_guild_join(self, guild: discord.Guild):
         now = datetime.datetime.now()
         for channel in guild.text_channels:

@@ -21,7 +21,7 @@ from . import BaseCog
 
 
 class Groudonger(BaseCog):
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_reaction_add(self, reaction, user):
         msg: discord.Message = reaction.message
         channel: discord.TextChannel = msg.channel

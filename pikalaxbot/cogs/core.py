@@ -101,7 +101,7 @@ class Core(BaseCog):
                 url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
         await ctx.send(f'<{url}>')
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_ready(self):
         self.bot._alive_since = self.bot._alive_since or datetime.datetime.utcnow()
 

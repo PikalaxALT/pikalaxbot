@@ -294,7 +294,7 @@ can outrun it. The pupnado is soon upon him....
                    f'and turn to face him.'
 
     # Listen for when Deadinsky comes online
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if after.id == PuppyWars.DEADINSKY:
             if after.status in self.ONLINE_STATES and before.status not in self.ONLINE_STATES:

@@ -38,7 +38,7 @@ class ReactionRoles(BaseCog):
             return False
         return True
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if not self.validate_reaction(payload):
             return
@@ -47,7 +47,7 @@ class ReactionRoles(BaseCog):
         author: discord.Member = guild.get_member(payload.user_id)
         await author.add_roles(role)
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if not self.validate_reaction(payload):
             return
