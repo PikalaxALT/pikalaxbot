@@ -86,7 +86,7 @@ class OneHand(BaseCog):
         else:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
-    @commands.command()
+    @commands.command(aliases=['e621'])
     @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
     async def e6(self, ctx: commands.Context, *params):
@@ -101,7 +101,7 @@ class OneHand(BaseCog):
         else:
             await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
 
-    @commands.command()
+    @commands.command(aliases=['e926'])
     @commands.bot_has_permissions(embed_links=True)
     async def e9(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e926 with the given tags.  The number of images to return must come last."""
