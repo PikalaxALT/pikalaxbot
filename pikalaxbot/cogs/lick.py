@@ -2,6 +2,7 @@ import random
 import discord
 from discord.ext import commands
 from . import BaseCog
+import re
 
 
 class Lick(BaseCog):
@@ -31,7 +32,7 @@ class Lick(BaseCog):
         """
         liccs u
         """
-        emotes = [emote for emote in ctx.bot.emojis if 'licc' in emote.name.lower()]
+        emotes = [emote for emote in ctx.bot.emojis if re.search(r'lic[ck]', emote.name, re.I) is not None]
         emote = random.choice(emotes)
         if recipient:
             await ctx.send(f'{ctx.author.display_name} gave {recipient.mention} a huge licc {emote}')
