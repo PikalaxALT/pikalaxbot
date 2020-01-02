@@ -27,13 +27,16 @@ class Lick(BaseCog):
         await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
     
     @commands.command(name='licc')
-    async def licc_c(self, ctx: commands.Context):
+    async def licc_c(self, ctx: commands.Context, *, recipient: discord.Member = None):
         """
         liccs u
         """
         emotes = [emote for emote in ctx.bot.emojis if 'licc' in emote.name.lower()]
         emote = random.choice(emotes)
-        await ctx.send(f'{emote}')
+        if recipient:
+            await ctx.send(f'{ctx.author.display_name} gave {recipient.mention} a huge licc {emote}')
+        else:
+            await ctx.send(f'{emote}')
 
 
 def setup(bot):
