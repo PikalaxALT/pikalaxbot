@@ -3,3 +3,4 @@ aiosqlite>=0.10.0
 twitchio>=1.0.0
 aiofile>=1.5.2
 python-dateutil>=2.8.1
+matplotlib>=3.0.0

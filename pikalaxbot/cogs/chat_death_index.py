@@ -4,9 +4,8 @@ import datetime
 from discord.ext import commands, tasks
 from . import BaseCog
 import typing
-import matplotlib
 import io
-matplotlib.use('Agg')
+import time
 import matplotlib.pyplot as plt
 
 
@@ -120,10 +119,12 @@ class ChatDeathIndex(BaseCog):
         channels = set(channels) or (ctx.channel,)
         async with ctx.typing():
             mem_buffer = io.BytesIO()
+            start = time.perf_counter()
             await self.bot.loop.run_in_executor(None, self.plot, channels, mem_buffer)
+            end = time.perf_counter()
             mem_buffer.seek(0)
             file = discord.File(mem_buffer, filename='cdi.png')
-        await ctx.send(file=file)
+        await ctx.send(f'Task completed in {end - start:.3f}s', file=file)
 
     @commands.command(name='plot-all-cdi')
     async def plot_all_cdi(self, ctx: commands.Context):
