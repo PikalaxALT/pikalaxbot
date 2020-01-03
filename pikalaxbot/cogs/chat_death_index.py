@@ -20,7 +20,7 @@ class ChatDeathIndex(BaseCog):
         self.cumcharcount = Counter()
         self.save_message_count.start()
 
-    def __unload(self):
+    def cog_unload(self):
         self.save_message_count.cancel()
 
     def plot(self, channels: typing.Tuple[discord.TextChannel], buffer):
