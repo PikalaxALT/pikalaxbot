@@ -117,6 +117,7 @@ class Help(BaseCog):
         super().__init__(bot)
         self._original_help_command = bot.help_command
         bot.help_command = PaginatedHelpCommand(command_attrs={'name': bot.settings.help_name})
+        bot.help_command.cog = self
 
     def cog_unload(self):
         self.bot.help_command = self._original_help_command
