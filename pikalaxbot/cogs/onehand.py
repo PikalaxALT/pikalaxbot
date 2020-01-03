@@ -89,6 +89,7 @@ class OneHand(BaseCog):
     @commands.command(aliases=['e621'])
     @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
+    @commands.cooldown(1, 5, commands.BucketType.channel)
     async def e6(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
         await self.get_bad_dragon(ctx, 'e621', *params)
@@ -103,6 +104,7 @@ class OneHand(BaseCog):
 
     @commands.command(aliases=['e926'])
     @commands.bot_has_permissions(embed_links=True)
+    @commands.cooldown(1, 5, commands.BucketType.channel)
     async def e9(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e926 with the given tags.  The number of images to return must come last."""
         await self.get_bad_dragon(ctx, 'e926', *params)
