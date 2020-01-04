@@ -266,16 +266,20 @@ class Poll(BaseCog):
         channel = self.bot.get_channel(mgr.channel_id)
         if channel is None:
             return
-        tally = Counter(mgr.votes.values())
-        winner = max(tally, key=lambda k: tally[k])
         if mgr.message is None:
             return
+        tally = Counter(mgr.votes.values())
         if now < mgr.stop_time:
             content = 'The poll was cancelled.'
             content2 = content
         else:
-            content = f'Poll closed, the winner is {mgr.emojis[winner]}'
-            content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} votes.\n\nFull results: {mgr.message.jump_url}'
+            try:
+                winner = max(tally, key=lambda k: tally[k])
+                content = f'Poll closed, the winner is {mgr.emojis[winner]}'
+                content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} votes.\n\nFull results: {mgr.message.jump_url}'
+            except ValueError:
+                content = f'Poll closed, there is no winner'
+                content2 = f'Poll `{mgr.hash}` has ended. No votes were recorded.\n\nFull results: {mgr.message.jump_url}'
         embed: discord.Embed = mgr.message.embeds[0]
         desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
         embed.description = '\n'.join(desc)
