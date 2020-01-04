@@ -276,7 +276,7 @@ class Poll(BaseCog):
             try:
                 winner = max(tally, key=lambda k: tally[k])
                 content = f'Poll closed, the winner is {mgr.emojis[winner]}'
-                content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} votes.\n\nFull results: {mgr.message.jump_url}'
+                content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} vote(s).\n\nFull results: {mgr.message.jump_url}'
             except ValueError:
                 content = f'Poll closed, there is no winner'
                 content2 = f'Poll `{mgr.hash}` has ended. No votes were recorded.\n\nFull results: {mgr.message.jump_url}'
