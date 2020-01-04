@@ -150,7 +150,7 @@ class PollManager:
             return
         self.bot.add_listener(self.on_raw_reaction_add)
         self.bot.add_listener(self.on_raw_reaction_remove)
-        self.task = asyncio.create_task(asyncio.sleep((self.stop_time - now).total_seconds()))
+        self.task = self.bot.loop.create_task(asyncio.sleep((self.stop_time - now).total_seconds()))
 
         def done_callback():
             self.bot.remove_listener(self.on_raw_reaction_add)
