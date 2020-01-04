@@ -121,6 +121,7 @@ class Modtools(BaseCog):
 
         async with self.bot.sql as sql:
             result = await sql.executescript(script)
+        result = await result.fetchall()
         if result:
             embed = discord.Embed(description=f'```\n{result}\n```')
         else:
