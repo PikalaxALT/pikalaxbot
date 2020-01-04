@@ -210,8 +210,12 @@ class ModTools(BaseCog):
                 continue
             try:
                 await self.bot.loop.run_in_executor(self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
-            except discord.ClientException as e:
+                async with self.bot.sql as sql:
+                    await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
+            except commands.ExtensionError as e:
                 await ctx.send(f'Failed to load cog "{cog}" ({e})')
+            except AttributeError:
+                await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
             else:
                 await ctx.send(f'Loaded cog "{cog}"')
                 self.disabled_cogs.discard(cog)
@@ -226,13 +230,17 @@ class ModTools(BaseCog):
             if extn in self.bot.extensions:
                 try:
                     await self.bot.loop.run_in_executor(None, self.bot.reload_extension, extn)
-                except discord.ClientException as e:
+                    async with self.bot.sql as sql:
+                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
+                except commands.ExtensionError as e:
                     if cog == self.__class__.__name__.lower():
                         name_title = cog.title().replace('_', '')
                         await ctx.send(f'Could not reload {cog}. {name_title} will be unavailable. ({e})')
                     else:
                         self.disabled_cogs.add(cog)
                         await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
+                except AttributeError:
+                    await ctx.send(f'Cog "{cog}" was reloaded, but the database failed to initialize.')
                 else:
                     await ctx.send(f'Reloaded cog {cog}')
             else:
@@ -250,8 +258,12 @@ class ModTools(BaseCog):
             async with ctx.typing():
                 try:
                     await self.bot.loop.run_in_executor(None, self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
-                except discord.ClientException as e:
+                    async with self.bot.sql as sql:
+                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
+                except commands.ExtensionError as e:
                     await ctx.send(f'Could not load {cog}: {e}')
+                except AttributeError:
+                    await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
                 else:
                     await ctx.send(f'Loaded cog {cog}')
 
