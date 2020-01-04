@@ -102,14 +102,14 @@ class PollManager:
         if isinstance(other, PollManager):
             return hash(self) == hash(other)
         if isinstance(other, str):
-            return self.hash == hash(other)
+            return self.hash == other
         raise NotImplementedError
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.start_time, self.channel_id, self.message_id))
+        return hash((self.start_time, self.channel_id, self.owner_id))
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.message_id != self.message_id:
