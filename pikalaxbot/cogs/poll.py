@@ -55,7 +55,7 @@ class PollManager:
         this.owner_id = context.author.id
         this.options = options
         this.start_time = datetime.datetime.utcnow()
-        this.hash = base64.b32encode(hash(this).to_bytes(4, 'little')).decode().rstrip('=')
+        this.hash = base64.b32encode((hash(this) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
         this.votes = {}
         this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
         content = f'Vote using emoji reactions. ' \
