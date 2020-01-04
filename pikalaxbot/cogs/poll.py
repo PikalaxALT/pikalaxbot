@@ -92,7 +92,7 @@ class PollManager:
             this.message = None
             this.options = []
         this.owner_id = owner_id
-        this.votes = dict(await sql.execute('select (voter, option) from poll_options where code = ?', (my_hash,)))
+        this.votes = dict(await sql.execute_fetchall('select (voter, option) from poll_options where code = ?', (my_hash,)))
         this.hash = my_hash
         this.start_time = datetime.datetime.fromtimestamp(start_time)
         this.stop_time = datetime.datetime.fromtimestamp(stop_time)
@@ -184,7 +184,7 @@ class Poll(BaseCog):
     async def cache_polls(self):
         await self.bot.wait_until_ready()
         async with self.bot.sql as sql:
-            for row in await sql.execute('select * from polls'):
+            for row in await sql.execute_fetchall('select * from polls'):
                 mgr = await PollManager.from_sql(self.bot, sql, *row)
                 self.polls.append(mgr)
 
