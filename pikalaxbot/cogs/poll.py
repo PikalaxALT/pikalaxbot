@@ -150,15 +150,16 @@ class PollManager:
             return
         self.bot.add_listener(self.on_raw_reaction_add)
         self.bot.add_listener(self.on_raw_reaction_remove)
-        self.task = self.bot.loop.create_task(asyncio.sleep((self.stop_time - now).total_seconds()))
 
-        def done_callback():
-            self.bot.remove_listener(self.on_raw_reaction_add)
-            self.bot.remove_listener(self.on_raw_reaction_remove)
-            self.bot.dispatch('poll_end', self)
+        async def run():
+            try:
+                await asyncio.sleep((self.stop_time - datetime.datetime.utcnow()).total_seconds())
+                self.bot.remove_listener(self.on_raw_reaction_add)
+                self.bot.remove_listener(self.on_raw_reaction_remove)
+            finally:
+                self.bot.dispatch('poll_end', self)
 
-        self.done_callback = done_callback
-        self.task.add_done_callback(done_callback)
+        self.task = asyncio.create_task(run())
 
     def cancel(self):
         self.task.cancel()
@@ -174,7 +175,6 @@ class Poll(BaseCog):
 
     def cog_unload(self):
         for mgr in self.polls:
-            mgr.task.remove_done_callback(mgr.done_callback)
             mgr.cancel()
 
     async def init_db(self, sql):
