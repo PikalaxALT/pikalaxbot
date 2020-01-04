@@ -105,6 +105,9 @@ class PollManager:
             return self.hash == other
         raise NotImplementedError
 
+    def __repr__(self):
+        return f'<{self.__class__.__name__} object with code {self.hash} and {len(self.options)} options>'
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
@@ -205,10 +208,7 @@ class Poll(BaseCog):
     async def cancel(self, ctx: commands.Context, code):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
-        if len(code) & 7:
-            code += '=' * (8 - (len(code) & 7))
-        my_hash = int.from_bytes(base64.b32decode(code.encode()), 'little')
-        mgr = discord.utils.get(self.polls, hash=my_hash)
+        mgr = discord.utils.get(self.polls, hash=code)
         if mgr is None:
             raise NoPollFound('The supplied code does not correspond to a running poll')
         if mgr.owner_id != ctx.author.id:
@@ -218,10 +218,7 @@ class Poll(BaseCog):
     @poll_cmd.command()
     async def show(self, ctx: commands.Context, code):
         """Gets poll info using a code."""
-        if len(code) & 7:
-            code += '=' * (8 - (len(code) & 7))
-        my_hash = int.from_bytes(base64.b32decode(code.encode()), 'little')
-        mgr = discord.utils.get(self.polls, hash=my_hash)
+        mgr = discord.utils.get(self.polls, hash=code)
         if mgr is None:
             raise NoPollFound('The supplied code does not correspond to a running poll')
         if mgr.message is not None:
@@ -272,13 +269,15 @@ class Poll(BaseCog):
             return
         if now < mgr.stop_time:
             content = 'The poll was cancelled.'
+            content2 = content
         else:
             content = f'Poll closed, the winner is {mgr.emojis[winner]}'
+            content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} votes.\n\nFull results: {mgr.message.jump_url}'
         embed: discord.Embed = mgr.message.embeds[0]
         desc = [f'{line} ({tally[i]}' for i, line in enumerate(mgr.options)]
         embed.description = '\n'.join(desc)
         await mgr.message.edit(content=content, embed=embed)
-        await channel.send(f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} votes.\n\nFull results: {mgr.message.jump_url}')
+        await channel.send(content2)
 
 
 def setup(bot):
