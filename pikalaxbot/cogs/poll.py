@@ -247,27 +247,6 @@ class Poll(BaseCog):
         else:
             await ctx.send('No running polls')
 
-    async def cog_command_error(self, ctx, exc):
-        handled_excs = \
-            TooManyOptions, \
-            NotEnoughOptions, \
-            ReactionIntegrityError, \
-            commands.CheckFailure, \
-            asyncio.CancelledError, \
-            asyncio.TimeoutError, \
-            NotPollOwner, \
-            NoPollFound, \
-            binascii.Error
-        exc = getattr(exc, 'original', exc)
-        await ctx.send(f'{exc.__class__.__name__}: {exc} {self.bot.command_error_emoji}', delete_after=10)
-        if not isinstance(exc, handled_excs):
-            tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, 4))
-            embed = discord.Embed(color=discord.Color.red(), title='Poll exception', description=f'```\n{tb}\n```')
-            embed.add_field(name='Author', value=ctx.author.mention)
-            embed.add_field(name='Channel', value=ctx.channel.mention)
-            embed.add_field(name='Message', value=ctx.message.jump_url)
-            await self.bot.owner.send(embed=embed)
-
     @BaseCog.listener()
     async def on_poll_end(self, mgr: PollManager):
         now = datetime.datetime.utcnow()
