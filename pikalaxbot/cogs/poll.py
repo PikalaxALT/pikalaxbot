@@ -72,9 +72,9 @@ class PollManager:
             await this.message.add_reaction(emoji)
         this.message_id = this.message.id
         this.stop_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout)
+        this.start()
         async with this.bot.sql as sql:
             await sql.execute('insert into polls (hash, channel, owner, context, message, started, closes) values (?, ?, ?, ?, ?, ?, ?)', (this.hash, this.channel_id, this.owner_id, this.context_id, this.message_id, this.start_time.timestamp(), this.stop_time.timestamp()))
-        this.start()
         return this
 
     @classmethod
@@ -163,8 +163,13 @@ class Poll(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.polls: typing.Set[PollManager] = set()
+        self.polls: typing.List[PollManager] = []
         bot.loop.create_task(self.cache_polls())
+
+    def cog_unload(self):
+        for mgr in self.polls:
+            mgr.task.remove_done_callback(mgr.done_callback)
+            mgr.cancel()
 
     async def init_db(self, sql):
         await sql.execute('create table if not exists polls (hash text primary key, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
@@ -174,7 +179,8 @@ class Poll(BaseCog):
         await self.bot.wait_until_ready()
         async with self.bot.sql as sql:
             for row in await sql.execute('select * from polls'):
-                self.polls.add(await PollManager.from_sql(self.bot, sql, *row))
+                mgr = await PollManager.from_sql(self.bot, sql, *row)
+                self.polls.append(mgr)
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *opts):
@@ -193,7 +199,7 @@ class Poll(BaseCog):
         if nopts < 2:
             raise NotEnoughOptions('Not enough unique options!')
         mgr = await PollManager.from_command(ctx, timeout, prompt, *options)
-        self.polls.add(mgr)
+        self.polls.append(mgr)
 
     @poll_cmd.command()
     async def cancel(self, ctx: commands.Context, code):
@@ -255,7 +261,8 @@ class Poll(BaseCog):
         async with self.bot.sql as sql:
             await sql.execute('delete from polls where hash = ?', (mgr.hash,))
             await sql.execute('delete from poll_options where hash = ?', (mgr.hash,))
-        self.polls.discard(mgr)
+        if mgr in self.polls:
+            self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)
         if channel is None:
             return
