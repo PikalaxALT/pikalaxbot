@@ -120,7 +120,7 @@ class PollManager:
             return
         if payload.emoji.name not in self.emojis:
             return
-        if payload.user_id == self.owner_id:
+        if payload.user_id in (self.owner_id, self.bot.user.id):
             return
         if payload.user_id in self.votes:
             return
@@ -134,7 +134,7 @@ class PollManager:
             return
         if payload.emoji.name not in self.emojis:
             return
-        if payload.user_id == self.owner_id:
+        if payload.user_id in (self.owner_id, self.bot.user.id):
             return
         selection = self.emojis.index(payload.emoji.name)
         if self.votes.get(payload.user_id) != selection:
@@ -277,7 +277,7 @@ class Poll(BaseCog):
             content = f'Poll closed, the winner is {mgr.emojis[winner]}'
             content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} votes.\n\nFull results: {mgr.message.jump_url}'
         embed: discord.Embed = mgr.message.embeds[0]
-        desc = [f'{line} ({tally[i]}' for i, line in enumerate(mgr.options)]
+        desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
         embed.description = '\n'.join(desc)
         await mgr.message.edit(content=content, embed=embed)
         await channel.send(content2)
