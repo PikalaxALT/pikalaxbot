@@ -40,7 +40,7 @@ class Markov(BaseCog):
         if not self.initialized:
             return False
         # If a command was invoked directly, the check passes.
-        if ctx.valid:
+        if ctx.message.guild is not None and ctx.valid:
             return True
         # Invoked from on_message without command.
         if ctx.me.mentioned_in(ctx.message):
