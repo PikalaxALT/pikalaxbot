@@ -158,7 +158,7 @@ class PollManager:
             self.bot.dispatch('poll_end', self)
 
         self.done_callback = done_callback
-        self.task.add_done_callback(self.done_callback)
+        self.task.add_done_callback(done_callback)
 
     def cancel(self):
         self.task.cancel()
