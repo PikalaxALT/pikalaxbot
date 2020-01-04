@@ -120,8 +120,8 @@ class Modtools(BaseCog):
         """Run arbitrary sql command"""
 
         async with self.bot.sql as sql:
-            result = await sql.executescript(script)
-        result = await result.fetchall()
+            async with sql.executescript(script) as cursor:
+                result = await cursor.fetchall()
         if result:
             embed = discord.Embed(description=f'```\n{result}\n```')
         else:
