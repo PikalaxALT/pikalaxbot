@@ -54,6 +54,8 @@ class PollManager:
         this.context_id = context.message.id
         this.owner_id = context.author.id
         this.options = options
+        this.start_time = datetime.datetime.utcnow()
+        this.hash = base64.b32encode(hash(this).to_bytes(4, 'little')).decode().rstrip('=')
         this.votes = {}
         this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
         content = f'Vote using emoji reactions. ' \
@@ -68,10 +70,8 @@ class PollManager:
         this.message = await context.send(content, embed=embed)
         for emoji in this.emojis:
             await this.message.add_reaction(emoji)
-        this.start_time = datetime.datetime.utcnow()
-        this.stop_time = this.start_time + datetime.timedelta(seconds=timeout)
-        this.hash = base64.b32encode(hash(this).to_bytes(4, 'little')).decode().rstrip('=')
         this.message_id = this.message.id
+        this.stop_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout)
         async with this.bot.sql as sql:
             await sql.execute('insert into polls (hash, channel, owner, context, message, started, closes) values (?, ?, ?, ?, ?, ?, ?)', (this.hash, this.channel_id, this.owner_id, this.context_id, this.message_id, this.start_time.timestamp(), this.stop_time.timestamp()))
         this.start()
