@@ -74,7 +74,7 @@ class PollManager:
         this.stop_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout)
         this.start()
         async with this.bot.sql as sql:
-            await sql.execute('insert into polls (hash, channel, owner, context, message, started, closes) values (?, ?, ?, ?, ?, ?, ?)', (this.hash, this.channel_id, this.owner_id, this.context_id, this.message_id, this.start_time.timestamp(), this.stop_time.timestamp()))
+            await sql.execute('insert into polls (code, channel, owner, context, message, started, closes) values (?, ?, ?, ?, ?, ?, ?)', (this.hash, this.channel_id, this.owner_id, this.context_id, this.message_id, this.start_time.timestamp(), this.stop_time.timestamp()))
         return this
 
     @classmethod
@@ -91,7 +91,7 @@ class PollManager:
             this.message = None
             this.options = []
         this.owner_id = owner_id
-        this.votes = dict(await sql.execute('select (voter, option) from poll_options'))
+        this.votes = dict(await sql.execute('select (voter, option) from poll_options where code = ?', (my_hash,)))
         this.hash = my_hash
         this.start_time = datetime.datetime.fromtimestamp(start_time)
         this.stop_time = datetime.datetime.fromtimestamp(stop_time)
@@ -109,7 +109,7 @@ class PollManager:
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.start_time, self.channel_id, self.owner_id))
+        return hash((self.start_time.timestamp(), self.channel_id, self.owner_id))
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.message_id != self.message_id:
@@ -123,7 +123,7 @@ class PollManager:
         selection = self.emojis.index(payload.emoji.name)
         self.votes[payload.user_id] = selection
         async with self.bot.sql as sql:
-            await sql.execute('insert into poll_options (hash, voter, option) values (?, ?, ?)', (self.hash, payload.user_id, selection))
+            await sql.execute('insert into poll_options (code, voter, option) values (?, ?, ?)', (self.hash, payload.user_id, selection))
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if payload.message_id != self.message_id:
@@ -137,7 +137,7 @@ class PollManager:
             return
         self.votes.pop(payload.user_id)
         async with self.bot.sql as sql:
-            await sql.execute('delete from poll_options where hash = ? and voter = ?', (self.hash, payload.user_id))
+            await sql.execute('delete from poll_options where code = ? and voter = ?', (self.hash, payload.user_id))
 
     def start(self):
         now = datetime.datetime.utcnow()
@@ -172,8 +172,8 @@ class Poll(BaseCog):
             mgr.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists polls (hash text primary key, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
-        await sql.execute('create table if not exists poll_options (hash text primary key, voter integer, option integer)')
+        await sql.execute('create table if not exists polls (code text, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
+        await sql.execute('create table if not exists poll_options (code text, voter integer, option integer)')
 
     async def cache_polls(self):
         await self.bot.wait_until_ready()
@@ -259,8 +259,8 @@ class Poll(BaseCog):
     async def on_poll_end(self, mgr: PollManager):
         now = datetime.datetime.utcnow()
         async with self.bot.sql as sql:
-            await sql.execute('delete from polls where hash = ?', (mgr.hash,))
-            await sql.execute('delete from poll_options where hash = ?', (mgr.hash,))
+            await sql.execute('delete from polls where code = ?', (mgr.hash,))
+            await sql.execute('delete from poll_options where code = ?', (mgr.hash,))
         if mgr in self.polls:
             self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)
