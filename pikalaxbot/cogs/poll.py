@@ -87,9 +87,11 @@ class PollManager:
         try:
             this.message = await bot.get_channel(channel_id).fetch_message(message_id)
             this.options = [option.split(' ', 1)[1] for option in this.message.embeds[0].description.splitlines()]
+            this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
         except discord.HTTPException:
             this.message = None
             this.options = []
+            this.emojis = []
         this.owner_id = owner_id
         this.votes = dict(await sql.execute_fetchall('select voter, option from poll_options where code = ?', (my_hash,)))
         this.hash = my_hash
