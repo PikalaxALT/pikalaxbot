@@ -62,7 +62,7 @@ class Modtools(BaseCog):
                 self.disabled_commands.discard(name)
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null default ?)", (self.bot.settings.prefix,))
+        await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null)")
 
     def cog_unload(self):
         for name in list(self.disabled_commands):
@@ -216,7 +216,7 @@ class Modtools(BaseCog):
             try:
                 async with self.bot.sql as sql:
                     await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
-            except AttributeError:
+            except (AttributeError, sqlite3.Error):
                 await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
                 continue
             await ctx.send(f'Loaded cog "{cog}"')
@@ -243,7 +243,7 @@ class Modtools(BaseCog):
                 try:
                     async with self.bot.sql as sql:
                         await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
-                except AttributeError:
+                except (AttributeError, sqlite3.Error):
                     await ctx.send(f'Cog "{cog}" was reloaded, but the database failed to initialize.')
                     continue
                 await ctx.send(f'Reloaded cog {cog}')
@@ -268,7 +268,7 @@ class Modtools(BaseCog):
                 try:
                     async with self.bot.sql as sql:
                         await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
-                except AttributeError:
+                except (AttributeError, sqlite3.Error):
                     await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
                     continue
                 await ctx.send(f'Loaded cog {cog}')
