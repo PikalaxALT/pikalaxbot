@@ -43,7 +43,8 @@ class PollManager:
         'start_time',
         'stop_time',
         'emojis',
-        'task'
+        'task',
+        'done_callback'
     )
 
     @classmethod
@@ -150,15 +151,17 @@ class PollManager:
         self.bot.add_listener(self.on_raw_reaction_add)
         self.bot.add_listener(self.on_raw_reaction_remove)
         self.task = asyncio.create_task(asyncio.sleep((self.stop_time - now).total_seconds()))
+
+        def done_callback():
+            self.bot.remove_listener(self.on_raw_reaction_add)
+            self.bot.remove_listener(self.on_raw_reaction_remove)
+            self.bot.dispatch('poll_end', self)
+
+        self.done_callback = done_callback
         self.task.add_done_callback(self.done_callback)
 
     def cancel(self):
         self.task.cancel()
-
-    def done_callback(self):
-        self.bot.remove_listener(self.on_raw_reaction_add)
-        self.bot.remove_listener(self.on_raw_reaction_remove)
-        self.bot.dispatch('poll_end', self)
 
 
 class Poll(BaseCog):
