@@ -120,8 +120,12 @@ class Modtools(BaseCog):
         """Run arbitrary sql command"""
 
         async with self.bot.sql as sql:
-            await sql.executescript(script)
-        await ctx.send('Script successfully executed')
+            result = await sql.executescript(script)
+        if result:
+            embed = discord.Embed(description=f'```\n{result}\n```')
+        else:
+            embed = None
+        await ctx.send('Script successfully executed', embed=embed)
 
     @call_sql.error
     async def sql_error(self, ctx, exc):
