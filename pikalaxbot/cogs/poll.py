@@ -168,6 +168,12 @@ class PollManager:
         self.unloading = unloading
         self.task.cancel()
 
+    async def convert(self, ctx, argument):
+        mgr = discord.utils.get(ctx.cog.polls, hash=argument)
+        if mgr is None:
+            raise NoPollFound('The supplied code does not correspond to a running poll')
+        return mgr
+
 
 class Poll(BaseCog):
     TIMEOUT = 60
@@ -212,22 +218,16 @@ class Poll(BaseCog):
         self.polls.append(mgr)
 
     @poll_cmd.command()
-    async def cancel(self, ctx: commands.Context, code):
+    async def cancel(self, ctx: commands.Context, mgr: PollManager):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
-        mgr = discord.utils.get(self.polls, hash=code)
-        if mgr is None:
-            raise NoPollFound('The supplied code does not correspond to a running poll')
         if mgr.owner_id != ctx.author.id:
             raise NotPollOwner('You may not cancel this poll')
         mgr.cancel()
 
     @poll_cmd.command()
-    async def show(self, ctx: commands.Context, code):
+    async def show(self, ctx: commands.Context, mgr: PollManager):
         """Gets poll info using a code."""
-        mgr = discord.utils.get(self.polls, hash=code)
-        if mgr is None:
-            raise NoPollFound('The supplied code does not correspond to a running poll')
         if mgr.message is not None:
             await ctx.send(mgr.message.jump_url)
         else:
@@ -237,6 +237,15 @@ class Poll(BaseCog):
                 raise NoPollFound('Channel not found')
             await ctx.send(f'https://discord.gg/channels/{channel.guild.id}/{mgr.channel_id}/{mgr.message_id}\n'
                            f'⚠ This jump URL may be invalid ⚠')
+
+    @poll_cmd.command()
+    async def list(self, ctx: commands.Context):
+        """Lists all polls"""
+        s = '\n'.join(str(poll) for poll in self.polls)
+        if s:
+            await ctx.send(f'Running polls: [\n{s}\n]')
+        else:
+            await ctx.send('No running polls')
 
     async def cog_command_error(self, ctx, exc):
         handled_excs = \
@@ -281,7 +290,7 @@ class Poll(BaseCog):
                 winner = max(tally, key=lambda k: tally[k])
                 content = f'Poll closed, the winner is {mgr.emojis[winner]}'
                 content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} vote(s).\n\nFull results: {mgr.message.jump_url}'
-            except ValueError:
+            except (ValueError, IndexError):
                 content = f'Poll closed, there is no winner'
                 content2 = f'Poll `{mgr.hash}` has ended. No votes were recorded.\n\nFull results: {mgr.message.jump_url}'
         embed: discord.Embed = mgr.message.embeds[0]
