@@ -16,7 +16,9 @@
 
 import asyncio
 import discord
-import binascii
+import aiohttp
+import sys
+import io
 from discord.ext import commands
 from . import BaseCog
 import datetime
@@ -26,6 +28,7 @@ import base64
 from collections import Counter
 
 from .utils.errors import *
+from pikalaxbot.utils.hastebin import hastebin
 
 
 class PollManager:
@@ -87,7 +90,7 @@ class PollManager:
         try:
             this.message = await bot.get_channel(channel_id).fetch_message(message_id)
             this.options = [option.split(' ', 1)[1] for option in this.message.embeds[0].description.splitlines()]
-            this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
+            this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(this.options))]
         except discord.HTTPException:
             this.message = None
             this.options = []
@@ -198,8 +201,24 @@ class Poll(BaseCog):
                 for row in await sql.execute_fetchall('select * from polls'):
                     mgr = await PollManager.from_sql(self.bot, sql, *row)
                     self.polls.append(mgr)
-        except:
-            self.bot.dispatch('error', 'cog_task', self)
+        except Exception:
+            s = traceback.format_exc()
+            tb = f'Ignoring exception in Poll.cache_polls\n{s}'
+            print(tb, file=sys.stderr)
+            channel = self.bot.exc_channel
+            if channel is None:
+                return
+            if len(tb) < 1990:
+                await channel.send(f'```{tb}```')
+            else:
+                try:
+                    url = await hastebin(tb)
+                except aiohttp.ClientResponseError:
+                    await channel.send('An error has occurred', file=discord.File(io.StringIO(tb)))
+                else:
+                    await channel.send(f'An error has occurred: {url}')
+
+
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *opts):
