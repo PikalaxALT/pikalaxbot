@@ -44,7 +44,7 @@ class PollManager:
         'stop_time',
         'emojis',
         'task',
-        'reloading'
+        'unloading'
     )
 
     @classmethod
@@ -144,7 +144,7 @@ class PollManager:
             await sql.execute('delete from poll_options where code = ? and voter = ?', (self.hash, payload.user_id))
 
     def start(self):
-        self.reloading = False
+        self.unloading = False
         now = datetime.datetime.utcnow()
         if now > self.stop_time:
             self.bot.dispatch('poll_end', self)
