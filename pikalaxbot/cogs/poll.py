@@ -193,10 +193,13 @@ class Poll(BaseCog):
 
     async def cache_polls(self):
         await self.bot.wait_until_ready()
-        async with self.bot.sql as sql:
-            for row in await sql.execute_fetchall('select * from polls'):
-                mgr = await PollManager.from_sql(self.bot, sql, *row)
-                self.polls.append(mgr)
+        try:
+            async with self.bot.sql as sql:
+                for row in await sql.execute_fetchall('select * from polls'):
+                    mgr = await PollManager.from_sql(self.bot, sql, *row)
+                    self.polls.append(mgr)
+        except:
+            self.bot.dispatch('error', 'cog_task', self)
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *opts):
