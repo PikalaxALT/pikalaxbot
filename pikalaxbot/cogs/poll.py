@@ -44,7 +44,7 @@ class PollManager:
         'stop_time',
         'emojis',
         'task',
-        'done_callback'
+        'reloading'
     )
 
     @classmethod
@@ -144,6 +144,7 @@ class PollManager:
             await sql.execute('delete from poll_options where code = ? and voter = ?', (self.hash, payload.user_id))
 
     def start(self):
+        self.reloading = False
         now = datetime.datetime.utcnow()
         if now > self.stop_time:
             self.bot.dispatch('poll_end', self)
@@ -157,11 +158,13 @@ class PollManager:
                 self.bot.remove_listener(self.on_raw_reaction_add)
                 self.bot.remove_listener(self.on_raw_reaction_remove)
             finally:
-                self.bot.dispatch('poll_end', self)
+                if not self.unloading:
+                    self.bot.dispatch('poll_end', self)
 
         self.task = asyncio.create_task(run())
 
-    def cancel(self):
+    def cancel(self, unloading=False):
+        self.unloading = unloading
         self.task.cancel()
 
 
@@ -175,7 +178,7 @@ class Poll(BaseCog):
 
     def cog_unload(self):
         for mgr in self.polls:
-            mgr.cancel()
+            mgr.cancel(True)
 
     async def init_db(self, sql):
         await sql.execute('create table if not exists polls (code text, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
