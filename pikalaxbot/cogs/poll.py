@@ -20,7 +20,6 @@ import binascii
 from discord.ext import commands
 from . import BaseCog
 import datetime
-import typing
 import traceback
 import typing
 import base64
@@ -92,7 +91,7 @@ class PollManager:
             this.message = None
             this.options = []
         this.owner_id = owner_id
-        this.votes = dict(await sql.execute_fetchall('select (voter, option) from poll_options where code = ?', (my_hash,)))
+        this.votes = dict(await sql.execute_fetchall('select voter, option from poll_options where code = ?', (my_hash,)))
         this.hash = my_hash
         this.start_time = datetime.datetime.fromtimestamp(start_time)
         this.stop_time = datetime.datetime.fromtimestamp(stop_time)
