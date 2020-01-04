@@ -44,7 +44,7 @@ async def filter_history(channel, **kwargs):
                 break
 
 
-class ModTools(BaseCog):
+class Modtools(BaseCog):
     prefix = 'p!'
     game = 'p!help'
     disabled_commands = set()
@@ -327,4 +327,4 @@ class ModTools(BaseCog):
 
 
 def setup(bot):
-    bot.add_cog(ModTools(bot))
+    bot.add_cog(Modtools(bot))
