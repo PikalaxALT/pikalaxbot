@@ -210,15 +210,17 @@ class ModTools(BaseCog):
                 continue
             try:
                 await self.bot.loop.run_in_executor(self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
-                async with self.bot.sql as sql:
-                    await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
             except commands.ExtensionError as e:
                 await ctx.send(f'Failed to load cog "{cog}" ({e})')
+                continue
+            try:
+                async with self.bot.sql as sql:
+                    await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
             except AttributeError:
                 await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
-            else:
-                await ctx.send(f'Loaded cog "{cog}"')
-                self.disabled_cogs.discard(cog)
+                continue
+            await ctx.send(f'Loaded cog "{cog}"')
+            self.disabled_cogs.discard(cog)
 
     @cog.command(name='reload')
     async def reload_cog(self, ctx: commands.Context, *cogs: lower):
@@ -230,8 +232,6 @@ class ModTools(BaseCog):
             if extn in self.bot.extensions:
                 try:
                     await self.bot.loop.run_in_executor(None, self.bot.reload_extension, extn)
-                    async with self.bot.sql as sql:
-                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
                 except commands.ExtensionError as e:
                     if cog == self.__class__.__name__.lower():
                         name_title = cog.title().replace('_', '')
@@ -239,10 +239,14 @@ class ModTools(BaseCog):
                     else:
                         self.disabled_cogs.add(cog)
                         await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
+                    continue
+                try:
+                    async with self.bot.sql as sql:
+                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
                 except AttributeError:
                     await ctx.send(f'Cog "{cog}" was reloaded, but the database failed to initialize.')
-                else:
-                    await ctx.send(f'Reloaded cog {cog}')
+                    continue
+                await ctx.send(f'Reloaded cog {cog}')
             else:
                 await ctx.send(f'Cog {cog} not loaded, use {self.load_cog.qualified_name} instead')
 
@@ -258,14 +262,16 @@ class ModTools(BaseCog):
             async with ctx.typing():
                 try:
                     await self.bot.loop.run_in_executor(None, self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
-                    async with self.bot.sql as sql:
-                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
                 except commands.ExtensionError as e:
                     await ctx.send(f'Could not load {cog}: {e}')
+                    continue
+                try:
+                    async with self.bot.sql as sql:
+                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
                 except AttributeError:
                     await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
-                else:
-                    await ctx.send(f'Loaded cog {cog}')
+                    continue
+                await ctx.send(f'Loaded cog {cog}')
 
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):
