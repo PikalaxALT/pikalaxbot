@@ -23,13 +23,10 @@ from contextlib import redirect_stdout
 from pikalaxbot.utils.hastebin import hastebin
 
 import aiohttp
+from import_expression import exec
 
-# To expose to eval
 import asyncio
 import discord
-import re
-import datetime
-from collections import Counter
 
 from . import BaseCog
 
