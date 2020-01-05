@@ -14,6 +14,9 @@ class Ping(BaseCog):
         self.build_ping_history.start()
         self.start_time = None
 
+    def cog_unload(self):
+        self.build_ping_history.cancel()
+
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
         self.ping_history.append(self.bot.latency * 1000)
