@@ -44,9 +44,10 @@ class Ping(BaseCog):
         plt.fill_between(range(history), [0 for _ in values], values)
         xtickvalues = list(range(0, history, history // 10 + (history % 10 != 0)))
         xticklabels = [(self.start_time + datetime.timedelta(seconds=i * 30)).strftime('%Y-%m-%dT%H:%M:%S') for i in xtickvalues]
-        plt.xticks(xtickvalues, xticklabels, rotation='vertical')
+        plt.xticks(xtickvalues, xticklabels, rotation=45)
         plt.xlabel('Time (UTC)')
         plt.ylabel('Heartbeat latency (ms)')
+        plt.tight_layout()
         plt.savefig(buffer)
         plt.close()
 
