@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import discord
 import traceback
 import sqlite3
@@ -61,7 +60,6 @@ class Modtools(BaseCog):
                 cmd.enabled = False
             else:
                 self.disabled_commands.discard(name)
-        self.executor = ThreadPoolExecutor(max_workers=4)
 
     async def init_db(self, sql):
         await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null)")
@@ -191,7 +189,7 @@ class Modtools(BaseCog):
         extension = f'pikalaxbot.cogs.{cog}'
         real_cog = cog.title().replace('_', '')
         try:
-            await self.bot.loop.run_in_executor(self.executor, method, extension)
+            method(extension)
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
