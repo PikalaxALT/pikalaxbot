@@ -200,7 +200,7 @@ class Modtools(BaseCog):
             except sqlite3.Error:
                 await ctx.send(f'{mode.title()}ed cog "{real_cog}", but database initialization failed')
                 raise
-        await ctx.send(f'{mode.title()}ed cog "{real_cog}')
+        await ctx.send(f'{mode.title()}ed cog "{real_cog}"')
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
