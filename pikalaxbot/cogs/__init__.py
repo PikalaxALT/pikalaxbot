@@ -14,12 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import aiohttp
 import typing
-import asyncio
 import collections
 
 from discord.ext import commands
+from pikalaxbot import PikalaxBOT
 from pikalaxbot.utils.logging_mixin import LoggingMixin
 
 
@@ -39,9 +38,9 @@ class BaseCog(LoggingMixin, commands.Cog):
     """
     config_attrs: typing.Tuple[str] = tuple()
 
-    def __init__(self, bot):
+    def __init__(self, bot: PikalaxBOT):
         super().__init__()
-        self.bot = bot
+        self.bot: PikalaxBOT = bot
 
     async def init_db(self, sql):
         """Override this"""
