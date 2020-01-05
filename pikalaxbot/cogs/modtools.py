@@ -315,7 +315,7 @@ class Modtools(BaseCog):
 
     @cog.command(name='list')
     async def list_cogs(self, ctx):
-        await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
+        await ctx.send('```\n' + '\n'.join(list(self.bot.cogs)) + '\n```')
 
     async def cog_command_error(self, ctx, error):
         await ctx.message.add_reaction('❌')
