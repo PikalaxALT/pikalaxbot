@@ -16,7 +16,7 @@ class Ping(BaseCog):
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
-        self.ping_history.append(self.bot.latency)
+        self.ping_history.append(self.bot.latency * 1000)
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
@@ -42,6 +42,8 @@ class Ping(BaseCog):
         xtickvalues = list(range(0, history, history // 10 + (history % 10 != 0)))
         xticklabels = [(self.start_time + datetime.timedelta(seconds=i * 30)).strftime() for i in xtickvalues]
         plt.xticks(xtickvalues, xticklabels)
+        plt.xlabel('Time (UTC)')
+        plt.ylabel('Heartbeat latency (ms)')
         plt.savefig(buffer)
         plt.close()
 
