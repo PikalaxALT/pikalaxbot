@@ -31,6 +31,7 @@ from io import StringIO
 
 from . import PikalaxBOT
 from .utils.hastebin import hastebin
+from .cogs.utils.errors import CogOperationError
 
 __dir__ = os.path.dirname(__file__) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
@@ -56,6 +57,8 @@ def main():
     parser.add_argument('--version', action='store_true')
     args = parser.parse_args()
     if args.version:
+        with open('../version.txt') as fp:
+            version = fp.read().rstrip()
         print(f'{os.path.basename(os.path.dirname(__file__))} v{version}')
         return
 
@@ -93,6 +96,15 @@ def main():
             msg = f'Too many arguments for `{ctx.command}`'
         elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
             msg = f'Got a bad argument for `{ctx.command}`'
+        elif isinstance(exc, CogOperationError):
+            for cog, original in exc.cog_errors.items():
+                bot.log_tb(ctx, exc)
+                orig = getattr(original, 'original', original)
+                lines = ''.join(traceback.format_exception(orig.__class__, orig, orig.__traceback__))
+                print(lines)
+                lines = f'Ignoring exception in {exc.mode}ing {cog}:\n{lines}'
+                await send_tb(lines)
+            return
         else:
             msg = f'An unhandled error {exc} has occurred'
         await ctx.send(f'{msg} {bot.command_error_emoji}', delete_after=10)

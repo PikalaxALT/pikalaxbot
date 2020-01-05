@@ -15,7 +15,8 @@ __all__ = (
     'RoleOrEmojiNotFound',
     'InitializationInvalid',
     'NotReady',
-    'BotIsIgnoringUser'
+    'BotIsIgnoringUser',
+    'CogOperationError'
 )
 
 
@@ -73,3 +74,10 @@ class NotReady(commands.CheckFailure):
 
 class BotIsIgnoringUser(commands.CheckFailure):
     pass
+
+
+class CogOperationError(commands.CommandError):
+    def __init__(self, mode, **kwargs):
+        super().__init__()
+        self.mode = mode
+        self.cog_errors = kwargs

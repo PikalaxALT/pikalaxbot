@@ -15,14 +15,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import discord
-import tempfile
 import traceback
 import sqlite3
 import logging
 from discord.ext import commands
 from . import BaseCog
 from .utils.converters import CommandConverter
+from .utils.errors import CogOperationError
 
 
 class lower(str):
@@ -60,6 +61,7 @@ class Modtools(BaseCog):
                 cmd.enabled = False
             else:
                 self.disabled_commands.discard(name)
+        self.executor = ThreadPoolExecutor(max_workers=4)
 
     async def init_db(self, sql):
         await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null)")
@@ -106,9 +108,8 @@ class Modtools(BaseCog):
     @ui.command(name='avatar')
     @commands.check(lambda ctx: len(ctx.message.attachments) == 1)
     async def change_avatar(self, ctx: commands.Context):
-        with tempfile.TemporaryFile() as t:
-            await ctx.message.attachments[0].save(t)
-            await self.bot.user.edit(avatar=t.read())
+        """Change avatar"""
+        await self.bot.user.edit(avatar=await ctx.message.attachments[0].read())
         await ctx.send('OwO')
 
     @admin.group()
@@ -184,11 +185,30 @@ class Modtools(BaseCog):
             fut = await asyncio.create_subprocess_shell('git pull', loop=self.bot.loop)
             await fut.wait()
         return fut.returncode == 0
+    
+    async def cog_operation(self, ctx, mode, cog):
+        method = getattr(self.bot, f'{mode}_extension')
+        extension = f'pikalaxbot.cogs.{cog}'
+        real_cog = cog.title().replace('_', '')
+        try:
+            await self.bot.loop.run_in_executor(self.executor, method, extension)
+        except commands.ExtensionError:
+            await ctx.send(f'Failed to {mode} cog "{real_cog}"')
+            raise
+        if mode != 'unload':
+            try:
+                async with self.bot.sql as sql:
+                    await self.bot.get_cog(real_cog).init_db(sql)
+            except sqlite3.Error:
+                await ctx.send(f'{mode.title()}ed cog "{real_cog}", but database initialization failed')
+                raise
+        await ctx.send(f'{mode.title()}ed cog "{real_cog}')
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
         """Disable cogs"""
 
+        failures = {}
         for cog in cogs:
             if cog == self.__class__.__name__.lower():
                 await ctx.send(f'Cannot unload the {cog} cog!!')
@@ -197,86 +217,66 @@ class Modtools(BaseCog):
                 await ctx.send(f'BaseCog "{cog}" already disabled')
                 continue
             try:
-                await self.bot.loop.run_in_executor(None, self.bot.unload_extension, f'pikalaxbot.cogs.{cog}')
+                await self.cog_operation(ctx, 'unload', cog)
             except Exception as e:
-                await ctx.send(f'Failed to unload cog "{cog}" ({e})')
-            else:
-                await ctx.send(f'Unloaded cog "{cog}"')
-                self.disabled_cogs.add(cog)
+                failures[cog] = e
+            self.disabled_cogs.add(cog)
+        if failures:
+            raise CogOperationError('unload', **failures)
 
     @cog.command(name='enable')
     async def enable_cog(self, ctx, *cogs: lower):
         """Enable cogs"""
 
         await self.git_pull(ctx)
+        failures = {}
         for cog in cogs:
             if cog not in self.disabled_cogs:
                 await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
                 continue
             try:
-                await self.bot.loop.run_in_executor(None, self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
-            except commands.ExtensionError as e:
-                await ctx.send(f'Failed to load cog "{cog}" ({e})')
-                continue
-            try:
-                async with self.bot.sql as sql:
-                    await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
-            except (AttributeError, sqlite3.Error):
-                await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
-                continue
-            await ctx.send(f'Loaded cog "{cog}"')
-            self.disabled_cogs.discard(cog)
+                await self.cog_operation(ctx, 'load', cog)
+            except Exception as e:
+                failures[cog] = e
+            else:
+                self.disabled_cogs.discard(cog)
+        if failures:
+            raise CogOperationError('load', **failures)
 
     @cog.command(name='reload')
     async def reload_cog(self, ctx: commands.Context, *cogs: lower):
         """Reload cogs"""
 
         await self.git_pull(ctx)
+        failures = {}
         for cog in cogs:
             extn = f'pikalaxbot.cogs.{cog}'
             if extn in self.bot.extensions:
                 try:
-                    await self.bot.loop.run_in_executor(None, self.bot.reload_extension, extn)
-                except commands.ExtensionError as e:
-                    if cog == self.__class__.__name__.lower():
-                        name_title = cog.title().replace('_', '')
-                        await ctx.send(f'Could not reload {cog}. {name_title} will be unavailable. ({e})')
-                    else:
-                        self.disabled_cogs.add(cog)
-                        await ctx.send(f'Could not reload {cog}, so it shall be disabled ({e})')
-                    continue
-                try:
-                    async with self.bot.sql as sql:
-                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
-                except (AttributeError, sqlite3.Error):
-                    await ctx.send(f'Cog "{cog}" was reloaded, but the database failed to initialize.')
-                    continue
-                await ctx.send(f'Reloaded cog {cog}')
+                    await self.cog_operation(ctx, 'reload', cog)
+                except Exception as e:
+                    failures[cog] = e
             else:
                 await ctx.send(f'Cog {cog} not loaded, use {self.load_cog.qualified_name} instead')
+        if failures:
+            raise CogOperationError('reload', **failures)
 
     @cog.command(name='load')
     async def load_cog(self, ctx: commands.Context, *cogs: lower):
         """Load cogs that aren't already loaded"""
 
         await self.git_pull(ctx)
+        failures = {}
         for cog in cogs:
             if cog in self.disabled_cogs:
                 await ctx.send(f'BaseCog "{cog}" is disabled!')
                 continue
-            async with ctx.typing():
-                try:
-                    await self.bot.loop.run_in_executor(None, self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
-                except commands.ExtensionError as e:
-                    await ctx.send(f'Could not load {cog}: {e}')
-                    continue
-                try:
-                    async with self.bot.sql as sql:
-                        await self.bot.get_cog(cog.title().replace('_', '')).init_db(sql)
-                except (AttributeError, sqlite3.Error):
-                    await ctx.send(f'Cog "{cog}" was loaded, but the database failed to initialize.')
-                    continue
-                await ctx.send(f'Loaded cog {cog}')
+            try:
+                await self.cog_operation(ctx, 'load', cog)
+            except Exception as e:
+                failures[cog] = e
+        if failures:
+            raise CogOperationError('load', **failures)
 
     @admin.command(name='debug')
     async def toggle_debug(self, ctx):

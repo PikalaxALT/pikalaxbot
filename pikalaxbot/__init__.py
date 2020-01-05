@@ -25,6 +25,7 @@ from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
 from .ext.twitch import *
+from .cogs.utils.errors import *
 
 
 __all__ = ('PikalaxBOT',)
@@ -42,7 +43,7 @@ async def _command_prefix(bot, message):
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
     filter_excs = commands.CommandNotFound, commands.CheckFailure
-    handle_excs = commands.UserInputError,
+    handle_excs = commands.UserInputError, CogOperationError
 
     def __init__(self, settings_file, logfile, sqlfile, *, loop=None):
         # Load settings
