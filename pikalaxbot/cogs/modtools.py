@@ -214,7 +214,7 @@ class Modtools(BaseCog):
                 await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
                 continue
             try:
-                await self.bot.loop.run_in_executor(self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
+                await self.bot.loop.run_in_executor(None, self.bot.load_extension, f'pikalaxbot.cogs.{cog}')
             except commands.ExtensionError as e:
                 await ctx.send(f'Failed to load cog "{cog}" ({e})')
                 continue
