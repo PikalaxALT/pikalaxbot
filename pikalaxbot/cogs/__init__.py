@@ -18,7 +18,6 @@ import typing
 import collections
 
 from discord.ext import commands
-from pikalaxbot import PikalaxBOT
 from pikalaxbot.utils.logging_mixin import LoggingMixin
 
 
@@ -38,9 +37,9 @@ class BaseCog(LoggingMixin, commands.Cog):
     """
     config_attrs: typing.Tuple[str] = tuple()
 
-    def __init__(self, bot: PikalaxBOT):
+    def __init__(self, bot):
         super().__init__()
-        self.bot: PikalaxBOT = bot
+        self.bot = bot
 
     async def init_db(self, sql):
         """Override this"""
