@@ -12,7 +12,7 @@ class Ping(BaseCog):
         self.ping_history = []
         self.build_ping_history.start()
 
-    @tasks.loop(seconds=1)
+    @tasks.loop(seconds=30)
     async def build_ping_history(self):
         self.ping_history.append(self.bot.latency)
 
@@ -43,7 +43,7 @@ class Ping(BaseCog):
     async def plot_ping(self, ctx, history=60):
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history)
+        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history * 2)
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
