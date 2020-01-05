@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 from . import BaseCog
 import io
 import time
+import datetime
 import matplotlib.pyplot as plt
 
 
@@ -11,6 +12,7 @@ class Ping(BaseCog):
         super().__init__(bot)
         self.ping_history = []
         self.build_ping_history.start()
+        self.start_time = None
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
@@ -19,6 +21,7 @@ class Ping(BaseCog):
     @build_ping_history.before_loop
     async def before_ping_history(self):
         await self.bot.wait_until_ready()
+        self.start_time = datetime.datetime.utcnow()
 
     @commands.group(invoke_without_command=True)
     async def ping(self, ctx: commands.Context):
@@ -36,9 +39,13 @@ class Ping(BaseCog):
         plt.figure()
         plt.plot(range(history), values)
         plt.fill_between(range(history), [0 for _ in values], values)
+        xtickvalues = list(range(0, history, history // 10 + (history % 10 != 0)))
+        xticklabels = [(self.start_time + datetime.timedelta(seconds=i * 30)).strftime() for i in xtickvalues]
+        plt.xticks(xtickvalues, xticklabels)
         plt.savefig(buffer)
         plt.close()
 
+    @commands.check(lambda ctx: ctx.cog.start_time)
     @ping.command(name='history', aliases=['graph'])
     async def plot_ping(self, ctx, history=60):
         buffer = io.BytesIO()
