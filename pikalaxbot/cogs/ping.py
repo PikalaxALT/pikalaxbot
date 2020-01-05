@@ -46,7 +46,7 @@ class Ping(BaseCog):
         plt.close()
 
     @commands.check(lambda ctx: ctx.cog.start_time)
-    @ping.command(name='history', aliases=['graph'])
+    @ping.command(name='history', aliases=['graph', 'plot'])
     async def plot_ping(self, ctx, history=60):
         buffer = io.BytesIO()
         start = time.perf_counter()
