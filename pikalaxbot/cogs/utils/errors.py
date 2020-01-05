@@ -78,6 +78,6 @@ class BotIsIgnoringUser(commands.CheckFailure):
 
 class CogOperationError(commands.CommandError):
     def __init__(self, mode, **kwargs):
-        super().__init__()
+        super().__init__(message=f'{mode}ing {len(kwargs)} extension(s) failed')
         self.mode = mode
         self.cog_errors = kwargs
