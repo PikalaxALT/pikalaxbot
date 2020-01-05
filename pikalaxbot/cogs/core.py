@@ -110,6 +110,10 @@ class Core(BaseCog):
         date = friendly_date.human_timedelta(self.bot._alive_since)
         await ctx.send(f'Bot last rebooted {date}')
 
+    @commands.command(name='list-cogs')
+    async def list_cogs(self, ctx):
+        await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
+
 
 def setup(bot):
     bot.add_cog(Core(bot))

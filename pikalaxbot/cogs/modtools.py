@@ -313,10 +313,6 @@ class Modtools(BaseCog):
             await ctx.channel.delete_messages(to_delete)
             await ctx.message.add_reaction('✅')
 
-    @cog.command(name='list')
-    async def list_cogs(self, ctx):
-        await ctx.send('```\n' + '\n'.join(list(self.bot.cogs)) + '\n```')
-
     async def cog_command_error(self, ctx, error):
         await ctx.message.add_reaction('❌')
         await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
