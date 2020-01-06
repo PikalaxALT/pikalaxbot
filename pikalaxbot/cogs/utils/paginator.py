@@ -77,11 +77,7 @@ class Pages:
             ('\N{INFORMATION SOURCE}', self.show_help),
         ]
 
-        if ctx.guild is not None:
-            self.permissions = self.channel.permissions_for(ctx.guild.me)
-        else:
-            self.permissions = self.channel.permissions_for(ctx.bot.user)
-
+        self.permissions = self.channel.permissions_for(ctx.me)
         if not self.permissions.embed_links:
             raise CannotPaginate('Bot does not have embed links permission.')
 

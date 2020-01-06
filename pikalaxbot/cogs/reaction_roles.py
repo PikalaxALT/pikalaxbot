@@ -63,7 +63,7 @@ class ReactionRoles(BaseCog):
         if ctx.guild.id in self.reaction_schema:
             raise AlreadyInitialized
         channel = channel or ctx.channel
-        if channel.permissions_for(ctx.guild.me).send_messages:
+        if channel.permissions_for(ctx.me).send_messages:
             message = await channel.send('React to the following emoji to get the associated roles:')
             self.reaction_schema[ctx.guild.id] = (channel.id, message.id)
             with self.bot.sql as sql:

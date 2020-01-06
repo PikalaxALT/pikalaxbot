@@ -49,7 +49,7 @@ async def voice_cmd_ensure_connected(ctx):
         if ctx.author.voice is None:
             raise VoiceCommandError('Invoker is not connected to voice')
         vchan = ctx.author.voice.channel
-        if not vchan.permissions_for(ctx.guild.me).connect:
+        if not vchan.permissions_for(ctx.me).connect:
             raise VoiceCommandError('I do not have permission to connect to the voice channel '
                                     'configured for this guild')
         await vchan.connect()

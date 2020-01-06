@@ -45,7 +45,7 @@ class Markov(BaseCog):
         # Invoked from on_message without command.
         if ctx.me.mentioned_in(ctx.message):
             return True
-        name_grp = '|'.join({ctx.me.name, ctx.guild.me.display_name})
+        name_grp = '|'.join({ctx.me.name, ctx.me.display_name})
         if not name_grp:
             raise commands.CheckFailure('Something fucked up!!')
         pat = re.compile(rf'\b({name_grp})\b', re.I)

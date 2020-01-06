@@ -67,23 +67,22 @@ class Core(BaseCog):
 
     @commands.command()
     async def about(self, ctx):
-        member: discord.Member = ctx.guild.me
-        roles = [r.name.replace('@', '@\u200b') for r in member.roles]
+        roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e = discord.Embed()
-        e.set_author(name=str(member))
-        e.add_field(name='ID', value=member.id, inline=False)
+        e.set_author(name=str(ctx.me))
+        e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
-        e.add_field(name='Joined', value=friendly_date.human_timedelta(member.joined_at), inline=False)
-        e.add_field(name='Created', value=friendly_date.human_timedelta(member.created_at), inline=False)
+        e.add_field(name='Joined', value=friendly_date.human_timedelta(ctx.me.joined_at), inline=False)
+        e.add_field(name='Created', value=friendly_date.human_timedelta(ctx.me.created_at), inline=False)
         if roles:
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
         e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
         e.add_field(name='Uptime', value=f'{datetime.datetime.utcnow() - self.bot._alive_since}')
-        if member.colour.value:
-            e.colour = member.colour
-        if member.avatar:
-            e.set_thumbnail(url=member.avatar_url)
+        if ctx.me.colour.value:
+            e.colour = ctx.me.colour
+        if ctx.me.avatar:
+            e.set_thumbnail(url=ctx.me.avatar_url)
         await ctx.send(embed=e)
 
     @commands.command()
