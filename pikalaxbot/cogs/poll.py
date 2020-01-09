@@ -159,9 +159,9 @@ class PollManager:
         async def run():
             try:
                 await asyncio.sleep((self.stop_time - datetime.datetime.utcnow()).total_seconds())
+            finally:
                 self.bot.remove_listener(self.on_raw_reaction_add)
                 self.bot.remove_listener(self.on_raw_reaction_remove)
-            finally:
                 if not self.unloading:
                     self.bot.dispatch('poll_end', self)
 
