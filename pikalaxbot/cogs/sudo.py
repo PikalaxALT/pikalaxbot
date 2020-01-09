@@ -6,10 +6,10 @@ import contextlib
 
 @contextlib.contextmanager
 def transform_context(ctx, user, content):
-    old_content = ctx.prefix + ctx.message.content
+    old_content = ctx.message.content
     old_author = ctx.author
     ctx.message.author = user
-    ctx.message.content = content
+    ctx.message.content = ctx.prefix + content
     yield ctx.message
     ctx.message.content = old_content
     ctx.message.author = old_author
