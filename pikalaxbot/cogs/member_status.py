@@ -51,6 +51,7 @@ class MemberStatus(BaseCog):
         plt.xticks(xtickvalues, xticklabels, rotation=45, ha='right', ma='right')
         plt.xlabel('Time (UTC)')
         plt.ylabel('Number of users')
+        plt.legend(loc=0)
         plt.tight_layout()
         plt.savefig(buffer)
         plt.close()
