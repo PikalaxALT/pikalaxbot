@@ -60,7 +60,7 @@ class MemberStatus(BaseCog):
     async def plot_status(self, ctx, history=60):
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, history * 2)
+        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, history * 2)
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
