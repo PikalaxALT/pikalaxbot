@@ -37,7 +37,7 @@ class Ping(BaseCog):
     def do_plot_ping(self, buffer, history):
         values = self.ping_history
         if history > 0:
-            values = values[-history:]
+            values = values[-2 * history:]
         history = len(values)
         plt.figure()
         plt.plot(range(history), values)
