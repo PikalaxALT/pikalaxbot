@@ -56,9 +56,11 @@ class MemberStatus(BaseCog):
         plt.savefig(buffer)
         plt.close()
 
+    @commands.guild_only()
     @commands.check(lambda ctx: ctx.cog.start_time)
-    @commands.command(name='userstatus', aliases=['graph', 'plot'])
+    @commands.command(name='userstatus')
     async def plot_status(self, ctx, history=60):
+        """Plot history of user status counts in the current guild."""
         buffer = io.BytesIO()
         start = time.perf_counter()
         await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, history * 2)
