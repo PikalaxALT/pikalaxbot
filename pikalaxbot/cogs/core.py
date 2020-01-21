@@ -17,6 +17,7 @@
 import discord
 from discord.ext import commands
 from pikalaxbot.utils import friendly_date
+import resource
 import typing
 import inspect
 import os
@@ -112,6 +113,22 @@ class Core(BaseCog):
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
     async def list_cogs(self, ctx):
         await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
+
+    @commands.command()
+    async def memory(self, ctx):
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        units = [
+            (1 << 30, 'GiB'),
+            (1 << 20, 'MiB'),
+            (1 << 10, 'KiB')
+        ]
+        for size, unit in units:
+            if rss >= size:
+                rss /= size
+                break
+        else:
+            unit = 'B'
+        await ctx.send(f'Total resources used: {rss:.3f} {unit}')
 
 
 def setup(bot):
