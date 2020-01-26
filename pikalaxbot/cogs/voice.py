@@ -171,7 +171,7 @@ class Voice(BaseCog):
     async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
                                                          escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
-        await ctx.invoke(self.say, msg=msg)
+        await self.say(ctx, msg=msg)
 
     @pikavoice.command()
     async def stop(self, ctx: commands.Context):
@@ -183,7 +183,7 @@ class Voice(BaseCog):
     @commands.command()
     async def shutup(self, ctx):
         """Stop all playing audio"""
-        await ctx.invoke(self.stop)
+        await self.stop(ctx)
 
     @pikavoice.command()
     async def params(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
@@ -210,7 +210,7 @@ class Voice(BaseCog):
         Syntax:
         !pikaparams a=amplitude
         g=gap k=emphasis p=pitch s=speed v=voice"""
-        await ctx.invoke(self.params, *kwargs)
+        await self.params(ctx, *kwargs)
 
     @params.error
     @pikaparams.error

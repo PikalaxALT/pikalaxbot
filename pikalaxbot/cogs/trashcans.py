@@ -162,7 +162,7 @@ class Trashcans(GameCogBase):
     @commands.command(name='trashstart', aliases=['tst'])
     async def trashcans_start(self, ctx):
         """Start a game in the current channel"""
-        await ctx.invoke(self.start)
+        await self.start(ctx)
 
     @trashcans.command()
     async def guess(self, ctx, *, args: converter):
@@ -172,7 +172,7 @@ class Trashcans(GameCogBase):
     @commands.command(name='trashguess', aliases=['tgu', 'tg'])
     async def trashcans_guess(self, ctx, *, args: converter):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.guess, args=args)
+        await self.guess(ctx, args=args)
 
     @trashcans.command()
     @commands.is_owner()
@@ -184,7 +184,7 @@ class Trashcans(GameCogBase):
     @commands.is_owner()
     async def trashcans_end(self, ctx):
         """End the game as a loss (owner only)"""
-        await ctx.invoke(self.end)
+        await self.end(ctx)
 
     @trashcans.command()
     async def show(self, ctx):
@@ -194,7 +194,7 @@ class Trashcans(GameCogBase):
     @commands.command(name='trashshow', aliases=['tsh'])
     async def trashcans_show(self, ctx):
         """Show the board in a new message"""
-        await ctx.invoke(self.show)
+        await self.show(ctx)
 
     async def cog_command_error(self, ctx, exc):
         await self._error(ctx, exc)

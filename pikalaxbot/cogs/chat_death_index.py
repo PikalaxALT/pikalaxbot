@@ -130,7 +130,7 @@ class ChatDeathIndex(BaseCog):
     async def plot_all_cdi(self, ctx: commands.Context):
         nsfw = ctx.channel.is_nsfw()
         chs = [ch for ch in ctx.guild.text_channels if ch.is_nsfw() <= nsfw and ChatDeathIndex.can_get_messages(ch)]
-        await ctx.invoke(self.plot_cdi, *chs)
+        await self.plot_cdi(ctx, *chs)
 
     @BaseCog.listener()
     async def on_guild_join(self, guild: discord.Guild):

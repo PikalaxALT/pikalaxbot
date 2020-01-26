@@ -142,7 +142,7 @@ class Markov(BaseCog):
         self.learn_markov(msg)
         try:
             if await self.markov.can_run(ctx):
-                await ctx.invoke(self.markov, recipient=None)
+                await self.markov(ctx)
         except commands.CheckFailure:
             pass
 

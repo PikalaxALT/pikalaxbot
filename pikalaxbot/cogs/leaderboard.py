@@ -25,7 +25,7 @@ class Leaderboard(BaseCog):
     async def leaderboard(self, ctx: commands.Context):
         """Commands to check the leaderboard"""
         if ctx.invoked_subcommand is None:
-            await ctx.invoke(self.check)
+            await self.check(ctx)
 
     @leaderboard.command()
     async def check(self, ctx, person: discord.Member = None):

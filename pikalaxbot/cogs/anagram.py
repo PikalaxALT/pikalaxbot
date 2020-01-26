@@ -22,7 +22,6 @@ from .utils.data import data
 from .utils.game import GameBase, GameCogBase
 
 
-# noinspection PyAttributeOutsideInit
 class AnagramGame(GameBase):
     def __init__(self, bot, attempts=3):
         self._attempts = attempts
@@ -131,7 +130,7 @@ class Anagram(GameCogBase):
     @commands.command(name='anastart', aliases=['ast'])
     async def anagram_start(self, ctx):
         """Start a game in the current channel"""
-        await ctx.invoke(self.start)
+        await self.start(ctx)
 
     @anagram.command()
     async def solve(self, ctx: commands.Context, *guess: str):
@@ -141,7 +140,7 @@ class Anagram(GameCogBase):
     @commands.command(name='anasolve', aliases=['aso'])
     async def anagram_solve(self, ctx, *guess: str):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.solve, *guess)
+        await self.solve(ctx, *guess)
 
     @anagram.command()
     @commands.is_owner()
@@ -153,7 +152,7 @@ class Anagram(GameCogBase):
     @commands.is_owner()
     async def anagram_end(self, ctx):
         """End the game as a loss (owner only)"""
-        await ctx.invoke(self.end)
+        await self.end(ctx)
 
     @anagram.command()
     async def show(self, ctx):
@@ -163,7 +162,7 @@ class Anagram(GameCogBase):
     @commands.command(name='anashow', aliases=['ash'])
     async def anagram_show(self, ctx):
         """Show the board in a new message"""
-        await ctx.invoke(self.show)
+        await self.show(ctx)
 
     async def cog_command_error(self, ctx, exc):
         await self._error(ctx, exc)

@@ -38,8 +38,7 @@ class Fix(BaseCog):
     def get_fix_alias(ctx):
         if ctx.invoked_with is not None:
             match = re.match(r'fix(\w*)', ctx.invoked_with)
-            if match is not None:
-                return match.group(1)
+            return match and match.group(1)
 
     @commands.command()
     async def fix(self, ctx: commands.Context):
@@ -52,9 +51,9 @@ class Fix(BaseCog):
     @BaseCog.listener()
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
-        if ctx.command is None and self.get_fix_alias(ctx) is not None:
-            ctx.command = self.fix
-            return await self.bot.invoke(ctx)
+        if ctx.prefix and not ctx.valid and Fix.get_fix_alias(ctx) \
+                and await self.fix.can_run(ctx):
+            await self.fix()
 
 
 def setup(bot):

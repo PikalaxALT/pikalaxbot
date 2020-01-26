@@ -153,7 +153,7 @@ class Hangman(GameCogBase):
     @commands.command(name='hangstart', aliases=['hst'])
     async def hangman_start(self, ctx):
         """Start a game in the current channel"""
-        await ctx.invoke(self.start)
+        await self.start(ctx)
 
     @hangman.command()
     async def guess(self, ctx, *guess):
@@ -163,7 +163,7 @@ class Hangman(GameCogBase):
     @commands.command(name='hangguess', aliases=['hgu', 'hg'])
     async def hangman_guess(self, ctx, *guess):
         """Make a guess, if you dare"""
-        await ctx.invoke(self.guess, *guess)
+        await self.guess(ctx, *guess)
 
     @hangman.command()
     @commands.is_owner()
@@ -175,7 +175,7 @@ class Hangman(GameCogBase):
     @commands.is_owner()
     async def hangman_end(self, ctx):
         """End the game as a loss (owner only)"""
-        await ctx.invoke(self.end)
+        await self.end(ctx)
 
     @hangman.command()
     async def show(self, ctx):
@@ -185,7 +185,7 @@ class Hangman(GameCogBase):
     @commands.command(name='hangshow', aliases=['hsh'])
     async def hangman_show(self, ctx):
         """Show the board in a new message"""
-        await ctx.invoke(self.show)
+        await self.show(ctx)
 
     async def cog_command_error(self, ctx, exc):
         await self._error(ctx, exc)

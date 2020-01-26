@@ -318,11 +318,11 @@ class Modtools(BaseCog):
 
     @commands.command(name='cl')
     async def fast_cog_load(self, ctx, *cogs: lower):
-        await ctx.invoke(self.load_cog, *cogs)
+        await self.load_cog(ctx, *cogs)
 
     @commands.command(name='cr')
     async def fast_cog_reload(self, ctx, *cogs: lower):
-        await ctx.invoke(self.reload_cog, *cogs)
+        await self.reload_cog(ctx, *cogs)
 
 
 def setup(bot):

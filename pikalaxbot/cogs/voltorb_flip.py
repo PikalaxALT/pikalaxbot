@@ -291,7 +291,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltstart', aliases=['vst'])
     async def voltorb_start(self, ctx):
         """Start a game of Voltorb Flip"""
-        await ctx.invoke(self.start)
+        await self.start(ctx)
 
     @voltorb.command()
     async def guess(self, ctx, *, args: converter):
@@ -301,7 +301,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltguess', aliases=['vgu', 'vg'])
     async def voltorb_guess(self, ctx, *, args: converter):
         """Reveal a square and either claim its coins or blow it up"""
-        await ctx.invoke(self.guess, args=args)
+        await self.guess(ctx, args=args)
 
     @voltorb.command()
     async def flag(self, ctx, *, args: converter):
@@ -311,7 +311,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltflag', aliases=['vfl', 'vf'])
     async def voltorb_flag(self, ctx, *, args: converter):
         """Flag a square"""
-        await ctx.invoke(self.flag, args=args)
+        await self.flag(ctx, args=args)
 
     @voltorb.command()
     async def unflag(self, ctx, *, args: converter):
@@ -321,7 +321,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
     async def voltorb_unflag(self, ctx, *, args: converter):
         """Unflag a square"""
-        await ctx.invoke(self.unflag, args=args)
+        await self.unflag(ctx, args=args)
 
     @voltorb.command()
     @commands.is_owner()
@@ -333,7 +333,7 @@ class VoltorbFlip(GameCogBase):
     @commands.is_owner()
     async def voltorb_end(self, ctx):
         """End the game as a loss (owner only)"""
-        await ctx.invoke(self.end)
+        await self.end(ctx)
 
     @voltorb.command()
     async def show(self, ctx):
@@ -343,7 +343,7 @@ class VoltorbFlip(GameCogBase):
     @commands.command(name='voltshow', aliases=['vsh'])
     async def voltorb_show(self, ctx):
         """Show the board in a new message"""
-        await ctx.invoke(self.show)
+        await self.show(ctx)
 
     async def cog_command_error(self, ctx, exc):
         await self._error(ctx, exc)
