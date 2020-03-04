@@ -87,7 +87,16 @@ def main():
         s = traceback.format_exc()
         content = f'Ignoring exception in {event}\n{s}'
         print(content, file=sys.stderr)
-        await send_tb(content)
+        embed = None
+        if event == 'on_message':
+            message, = args
+            embed = discord.Embed()
+            embed.colour = discord.Colour.red()
+            embed.add_field(name='Author', value=message.author.mention, inline=False)
+            embed.add_field(name='Channel', value=message.channel.mention, inline=False)
+            embed.add_field(name='Invoked with', value='`' + message.content + '`', inline=False)
+            embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
+        await send_tb(content, embed=embed)
 
     async def handle_command_error(ctx: commands.Context, exc: PikalaxBOT.handle_excs):
         if isinstance(exc, commands.MissingRequiredArgument):
