@@ -57,7 +57,7 @@ class OneHand(BaseCog):
             params.add('order:random')
         async with aiohttp.ClientSession(raise_for_status=True) as cs:
             async with cs.get(
-                f'https://{name}.net/post/index.json',
+                f'https://{name}.net/posts.json',
                 headers={'User-Agent': self.bot.user.name},
                 params={'tags': ' '.join(params), 'limit': 100}
             ) as r:
