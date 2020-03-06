@@ -25,7 +25,7 @@ from . import BaseCog
 from .utils.errors import CommandBannedInGuild
 
 
-class OneHand(BaseCog):
+class Onehand(BaseCog):
     banned_guilds = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
     my_blacklist = set()
