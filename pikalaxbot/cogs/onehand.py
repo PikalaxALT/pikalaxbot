@@ -57,20 +57,25 @@ class Onehand(BaseCog):
             params.add('order:random')
         async with aiohttp.ClientSession(raise_for_status=True) as cs:
             async with cs.get(
-                f'https://{name}.net/posts.json',
-                headers={'User-Agent': self.bot.user.name},
-                params={'tags': ' '.join(params), 'limit': 100}
+                    f'https://{name}.net/posts.json',
+                    headers={'User-Agent': self.bot.user.name},
+                    params={'tags': ' '.join(params), 'limit': 100}
             ) as r:
+                resp = (await r.json())['posts']
                 j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
-        if j:
-            upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
-            downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
-            for i, imagespec in enumerate(j):
+        upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
+        downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
+        num_sent = 0
+        for imagespec in resp:
+            if not any(blacklist & set(value) for value in imagespec['tags'].values()):
+                filespec = discord.utils.find(lambda x: x['url'], (imagespec['file'], imagespec['sample'], imagespec['preview']))
+                if not filespec:
+                    continue
                 score = imagespec['score']['total']
                 upvotes = imagespec['score']['up']
                 downvotes = imagespec['score']['down']
-                width = imagespec['file']['width']
-                height = imagespec['file']['height']
+                width = filespec['width']
+                height = filespec['height']
                 pic_id = imagespec['id']
                 file_ext = imagespec['file']['ext']
                 if file_ext in ('webm', 'swf'):
@@ -84,14 +89,11 @@ class Onehand(BaseCog):
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
-                image_url = imagespec['file']['url']
-                embed.set_image(url=image_url)
+                embed.set_image(url=filespec['url'])
                 embed.set_footer(text=f'{name} - {i + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
-                try:
-                    await ctx.send(embed=embed)
-                except discord.HTTPException:
-                    await ctx.send(f'Unable to embed image: {image_url}')
-        else:
+                await ctx.send(embed=embed)
+                num_sent += 1
+        if not num_sent:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
     @commands.command(aliases=['e621'])
