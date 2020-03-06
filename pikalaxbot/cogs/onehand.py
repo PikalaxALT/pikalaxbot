@@ -29,7 +29,8 @@ class Onehand(BaseCog):
     banned_guilds = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
     my_blacklist = set()
-    config_attrs = 'banned_guilds', 'my_blacklist'
+    e6_api_key = ''
+    config_attrs = 'banned_guilds', 'my_blacklist', 'e6_api_key'
 
     async def cog_check(self, ctx: commands.Context):
         if ctx.command == self.oklewd:
@@ -59,7 +60,7 @@ class Onehand(BaseCog):
             async with cs.get(
                     f'https://{name}.net/posts.json',
                     headers={'User-Agent': self.bot.user.name},
-                    params={'tags': ' '.join(params), 'limit': 100}
+                    params={'tags': ' '.join(params), 'limit': 100, 'login': 'pikalaxalt', 'api_key': self.e6_api_key}
             ) as r:
                 resp = (await r.json())['posts']
                 j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
@@ -70,6 +71,7 @@ class Onehand(BaseCog):
             if not any(blacklist & set(value) for value in imagespec['tags'].values()):
                 filespec = discord.utils.find(lambda x: x['url'], (imagespec['file'], imagespec['sample'], imagespec['preview']))
                 if not filespec:
+                    print(imagespec['id'])
                     continue
                 score = imagespec['score']['total']
                 upvotes = imagespec['score']['up']
