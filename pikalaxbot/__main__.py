@@ -68,26 +68,35 @@ def main():
     async def on_ready():
         print(f'Logged in as {bot.user}')
 
-    async def send_tb(tb):
+    async def send_tb(tb, embed=None):
         channel = bot.exc_channel
         if channel is None:
             return
         if len(tb) < 1990:
-            await channel.send(f'```{tb}```')
+            await channel.send(f'```{tb}```', embed=embed)
         else:
             try:
                 url = await hastebin(tb)
             except aiohttp.ClientResponseError:
-                await channel.send('An error has occurred', file=discord.File(StringIO(tb)))
+                await channel.send('An error has occurred', file=discord.File(StringIO(tb)), embed=embed)
             else:
-                await channel.send(f'An error has occurred: {url}')
+                await channel.send(f'An error has occurred: {url}', embed=embed)
 
     @bot.event
     async def on_error(event, *args, **kwargs):
         s = traceback.format_exc()
         content = f'Ignoring exception in {event}\n{s}'
         print(content, file=sys.stderr)
-        await send_tb(content)
+        embed = None
+        if event == 'on_message':
+            message, = args
+            embed = discord.Embed()
+            embed.colour = discord.Colour.red()
+            embed.add_field(name='Author', value=message.author.mention, inline=False)
+            embed.add_field(name='Channel', value=message.channel.mention, inline=False)
+            embed.add_field(name='Invoked with', value='`' + message.content + '`', inline=False)
+            embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
+        await send_tb(content, embed=embed)
 
     async def handle_command_error(ctx: commands.Context, exc: PikalaxBOT.handle_excs):
         if isinstance(exc, commands.MissingRequiredArgument):
@@ -122,7 +131,12 @@ def main():
         lines = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__))
         print(lines)
         lines = f'Ignoring exception in command {ctx.command}:\n{lines}'
-        await send_tb(lines)
+        embed = discord.Embed(title='Command error details')
+        embed.add_field(name='Author', value=ctx.author.mention, inline=False)
+        embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
+        embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
+        embed.add_field(name='Invoking message', value=ctx.message.jump_url, inline=False)
+        await send_tb(lines, embed=embed)
 
     try:
         bot.run()
