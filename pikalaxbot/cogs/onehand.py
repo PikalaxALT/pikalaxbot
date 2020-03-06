@@ -90,7 +90,7 @@ class Onehand(BaseCog):
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
                 embed.set_image(url=filespec['url'])
-                embed.set_footer(text=f'{name} - {i + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
+                embed.set_footer(text=f'{name} - {num_sent + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
                 num_sent += 1
         if not num_sent:
