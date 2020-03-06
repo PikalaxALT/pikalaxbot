@@ -84,9 +84,13 @@ class Onehand(BaseCog):
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
-                embed.set_image(url=imagespec['file']['url'])
+                image_url = imagespec['file']['url']
+                embed.set_image(url=image_url)
                 embed.set_footer(text=f'{name} - {i + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
-                await ctx.send(embed=embed)
+                try:
+                    await ctx.send(embed=embed)
+                except discord.HTTPException:
+                    await ctx.send(f'Unable to embed image: {image_url}')
         else:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
