@@ -192,4 +192,4 @@ class Onehand(BaseCog):
 
 
 def setup(bot):
-    bot.add_cog(OneHand(bot))
+    bot.add_cog(Onehand(bot))
