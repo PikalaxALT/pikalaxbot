@@ -63,24 +63,28 @@ class Onehand(BaseCog):
             ) as r:
                 j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
         if j:
+            upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
+            downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
             for i, imagespec in enumerate(j):
-                score = imagespec['score']
-                width = imagespec['width']
-                height = imagespec['height']
+                score = imagespec['score']['total']
+                upvotes = imagespec['score']['up']
+                downvotes = imagespec['score']['down']
+                width = imagespec['file']['width']
+                height = imagespec['file']['height']
                 pic_id = imagespec['id']
-                file_ext = imagespec['file_ext']
+                file_ext = imagespec['file']['ext']
                 if file_ext in ('webm', 'swf'):
-                    description = f'**Score:** {score} | ' \
+                    description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
                                   f'**Link:** [Click Here](https://{name}.net/post/show/{pic_id})\n' \
                                   f'*This file ({file_ext}) cannot be previewed or embedded.*'
                 else:
-                    description = f'**Score:** {score} | ' \
+                    description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
                                   f'**Resolution:** {width} x {height} | ' \
                                   f'[Link](https://{name}.net/post/show/{pic_id})'
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
-                embed.set_image(url=imagespec['file_url'])
+                embed.set_image(url=imagespec['file']['url'])
                 embed.set_footer(text=f'{name} - {i + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
         else:
