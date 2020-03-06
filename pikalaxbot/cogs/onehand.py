@@ -93,6 +93,8 @@ class Onehand(BaseCog):
                 embed.set_footer(text=f'{name} - {num_sent + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
                 num_sent += 1
+                if num_sent >= num:
+                    break
         if not num_sent:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
