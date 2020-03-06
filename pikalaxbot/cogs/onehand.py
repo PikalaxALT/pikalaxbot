@@ -61,7 +61,7 @@ class Onehand(BaseCog):
                 headers={'User-Agent': self.bot.user.name},
                 params={'tags': ' '.join(params), 'limit': 100}
             ) as r:
-                j = list(filter(lambda x: not blacklist.intersection(x['tags'].split()), await r.json()))[:num]
+                j = list(filter(lambda x: not blacklist.intersection(x['tags'].split()), (await r.json())['posts']))[:num]
         if j:
             for i, imagespec in enumerate(j):
                 score = imagespec['score']
