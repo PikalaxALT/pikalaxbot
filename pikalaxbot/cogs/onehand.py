@@ -25,11 +25,12 @@ from . import BaseCog
 from .utils.errors import CommandBannedInGuild
 
 
-class OneHand(BaseCog):
+class Onehand(BaseCog):
     banned_guilds = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
     my_blacklist = set()
-    config_attrs = 'banned_guilds', 'my_blacklist'
+    e6_api_key = ''
+    config_attrs = 'banned_guilds', 'my_blacklist', 'e6_api_key'
 
     async def cog_check(self, ctx: commands.Context):
         if ctx.command == self.oklewd:
@@ -57,33 +58,46 @@ class OneHand(BaseCog):
             params.add('order:random')
         async with aiohttp.ClientSession(raise_for_status=True) as cs:
             async with cs.get(
-                f'https://{name}.net/post/index.json',
-                headers={'User-Agent': self.bot.user.name},
-                params={'tags': ' '.join(params), 'limit': 100}
+                    f'https://{name}.net/posts.json',
+                    headers={'User-Agent': self.bot.user.name},
+                    params={'tags': ' '.join(params), 'limit': 100, 'login': 'pikalaxalt', 'api_key': self.e6_api_key}
             ) as r:
-                j = list(filter(lambda x: not blacklist.intersection(x['tags'].split()), await r.json()))[:num]
-        if j:
-            for i, imagespec in enumerate(j):
-                score = imagespec['score']
-                width = imagespec['width']
-                height = imagespec['height']
+                resp = (await r.json())['posts']
+                j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
+        upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
+        downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
+        num_sent = 0
+        for imagespec in resp:
+            if not any(blacklist & set(value) for value in imagespec['tags'].values()):
+                filespec = discord.utils.find(lambda x: x['url'], (imagespec['file'], imagespec['sample'], imagespec['preview']))
+                if not filespec:
+                    print(imagespec['id'])
+                    continue
+                score = imagespec['score']['total']
+                upvotes = imagespec['score']['up']
+                downvotes = imagespec['score']['down']
+                width = filespec['width']
+                height = filespec['height']
                 pic_id = imagespec['id']
-                file_ext = imagespec['file_ext']
+                file_ext = imagespec['file']['ext']
                 if file_ext in ('webm', 'swf'):
-                    description = f'**Score:** {score} | ' \
+                    description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
                                   f'**Link:** [Click Here](https://{name}.net/post/show/{pic_id})\n' \
                                   f'*This file ({file_ext}) cannot be previewed or embedded.*'
                 else:
-                    description = f'**Score:** {score} | ' \
+                    description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
                                   f'**Resolution:** {width} x {height} | ' \
                                   f'[Link](https://{name}.net/post/show/{pic_id})'
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
-                embed.set_image(url=imagespec['file_url'])
-                embed.set_footer(text=f'{name} - {i + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
+                embed.set_image(url=filespec['url'])
+                embed.set_footer(text=f'{name} - {num_sent + 1}/{len(j)}', icon_url='http://i.imgur.com/RrHrSOi.png')
                 await ctx.send(embed=embed)
-        else:
+                num_sent += 1
+                if num_sent >= num:
+                    break
+        if not num_sent:
             await ctx.send(f':warning: | No results for: `{tags}`')
 
     @commands.command(aliases=['e621'])
@@ -192,4 +206,4 @@ class OneHand(BaseCog):
 
 
 def setup(bot):
-    bot.add_cog(OneHand(bot))
+    bot.add_cog(Onehand(bot))
