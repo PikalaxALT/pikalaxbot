@@ -45,7 +45,7 @@ class Onehand(BaseCog):
         try:
             num = min(max(int(params[-1]), 1), 5)
             params = params[:-1]
-        except ValueError:
+        except (ValueError, IndexError):
             num = 1
         blacklist = self.global_blacklist.union(self.my_blacklist)
         params = set(params)
@@ -201,6 +201,8 @@ class Onehand(BaseCog):
         elif isinstance(exc, (commands.NSFWChannelRequired, CommandBannedInGuild)):
             await ctx.send('This command is age-restricted and cannot be used in this channel.',
                            delete_after=10)
+        elif isinstance(exc, commands.MissingRequiredArgument):
+            await ctx.send(f'{exc}')
         else:
             self.log_tb(ctx, exc)
 
