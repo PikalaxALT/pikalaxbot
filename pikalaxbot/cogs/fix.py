@@ -53,7 +53,7 @@ class Fix(BaseCog):
         ctx = await self.bot.get_context(message)
         if ctx.prefix and not ctx.valid and Fix.get_fix_alias(ctx) \
                 and await self.fix.can_run(ctx):
-            await self.fix()
+            await self.fix(ctx)
 
 
 def setup(bot):
