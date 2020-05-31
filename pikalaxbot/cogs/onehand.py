@@ -45,10 +45,8 @@ class Onehand(BaseCog):
         try:
             num = min(max(int(params[-1]), 1), 5)
             params = params[:-1]
-        except ValueError:
+        except (ValueError, IndexError):
             num = 1
-        except IndexError:
-            raise commands.MissingRequiredArgument('tags') from None
         blacklist = self.global_blacklist.union(self.my_blacklist)
         params = set(params)
         params.difference_update(blacklist)
