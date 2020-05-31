@@ -72,11 +72,12 @@ class Meme(BaseCog):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
         timeout = aiohttp.ClientTimeout(total=15.0)
-        params = {'Subject1': subj1, 'Subject2': subj2}
+        params = {'Subject1': 'BLAH1', 'Subject2': 'BLAH2'}
         async with ctx.typing():
             async with aiohttp.ClientSession(raise_for_status=True) as cs:
                 async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
                     res = await r.text()
+        res = res.replace('BLAH1', subj1).replace('BLAH2', subj2)
         await ctx.send(res)
 
     @commands.command()
