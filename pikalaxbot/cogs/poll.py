@@ -172,10 +172,14 @@ class PollManager:
         self.task.cancel()
 
     async def convert(self, ctx, argument):
-        mgr = discord.utils.get(ctx.cog.polls, hash=argument)
-        if mgr is None:
-            raise NoPollFound('The supplied code does not correspond to a running poll')
-        return mgr
+        try:
+            mgr = discord.utils.get(ctx.cog.polls, hash=argument)
+            if mgr is None:
+                raise NoPollFound('The supplied code does not correspond to a running poll')
+            return mgr
+        except Exception as e:
+            await ctx.bot.owner.send(f'`{ctx.prefix}{ctx.invoked_with}` raised a(n) {e.__class__.__name__}: {e}')
+            raise
 
 
 class Poll(BaseCog):
@@ -243,7 +247,7 @@ class Poll(BaseCog):
     async def cancel(self, ctx: commands.Context, mgr: PollManager):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
-        if mgr.owner_id != ctx.author.id:
+        if ctx.author.id not in (mgr.owner_id, ctx.bot.owner_id):
             raise NotPollOwner('You may not cancel this poll')
         mgr.cancel()
 
