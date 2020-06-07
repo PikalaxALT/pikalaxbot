@@ -172,14 +172,10 @@ class PollManager:
         self.task.cancel()
 
     async def convert(self, ctx, argument):
-        try:
-            mgr = discord.utils.get(ctx.cog.polls, hash=argument)
-            if mgr is None:
-                raise NoPollFound('The supplied code does not correspond to a running poll')
-            return mgr
-        except Exception as e:
-            await ctx.bot.owner.send(f'`{ctx.prefix}{ctx.invoked_with}` raised a(n) {e.__class__.__name__}: {e}')
-            raise
+        mgr = discord.utils.get(ctx.cog.polls, hash=argument)
+        if mgr is None:
+            raise NoPollFound('The supplied code does not correspond to a running poll')
+        return mgr
 
 
 class Poll(BaseCog):
@@ -266,6 +262,11 @@ class Poll(BaseCog):
                 raise NoPollFound('Channel not found')
             await ctx.send(f'https://discord.gg/channels/{channel.guild.id}/{mgr.channel_id}/{mgr.message_id}\n'
                            f'⚠ This jump URL may be invalid ⚠')
+    
+    @show.error
+    @cancel.error
+    async def poll_access_error(self, ctx: commands.Context, exc: Exception):
+        await ctx.send(f'`{ctx.prefix}{ctx.invoked_with}` raised a(n) {exc.__class__.__name__}: {exc}')
 
     @poll_cmd.command()
     async def list(self, ctx: commands.Context):
