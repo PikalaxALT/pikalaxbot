@@ -266,6 +266,7 @@ class Poll(BaseCog):
     @show.error
     @cancel.error
     async def poll_access_error(self, ctx: commands.Context, exc: Exception):
+        exc = getattr(exc, 'original', exc)
         await ctx.send(f'`{ctx.prefix}{ctx.invoked_with}` raised a(n) {exc.__class__.__name__}: {exc}')
 
     @poll_cmd.command()
