@@ -282,8 +282,8 @@ class Poll(BaseCog):
     async def on_poll_end(self, mgr: PollManager):
         now = datetime.datetime.utcnow()
         async with self.bot.sql as sql:
-            await sql.execute('delete from polls where code = "?"', (mgr.hash,))
-            await sql.execute('delete from poll_options where code = "?"', (mgr.hash,))
+            await sql.execute('delete from polls where code = ?', (mgr.hash,))
+            await sql.execute('delete from poll_options where code = ?', (mgr.hash,))
         if mgr in self.polls:
             self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)
