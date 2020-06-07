@@ -19,7 +19,7 @@ import discord
 import aiohttp
 import sys
 import io
-from discord.ext import commands
+from discord.ext import commands, tasks
 from . import BaseCog
 import datetime
 import traceback
@@ -188,7 +188,7 @@ class Poll(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.polls: typing.List[PollManager] = []
-        bot.loop.create_task(self.cache_polls())
+        self.cleanup_polls.start()
 
     def cog_unload(self):
         for mgr in self.polls:
@@ -198,6 +198,11 @@ class Poll(BaseCog):
         await sql.execute('create table if not exists polls (code text, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
         await sql.execute('create table if not exists poll_options (code text, voter integer, option integer)')
 
+    @tasks.loop(seconds=60)
+    async def cleanup_polls(self):
+        self.polls = [poll for poll in self.polls if not poll.task.done()]
+
+    @cleanup_polls.before_loop
     async def cache_polls(self):
         await self.bot.wait_until_ready()
         try:
@@ -221,8 +226,6 @@ class Poll(BaseCog):
                     await channel.send('An error has occurred', file=discord.File(io.StringIO(tb)))
                 else:
                     await channel.send(f'An error has occurred: {url}')
-
-
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *opts):
@@ -267,7 +270,7 @@ class Poll(BaseCog):
     @poll_cmd.command()
     async def list(self, ctx: commands.Context):
         """Lists all polls"""
-        s = '\n'.join(str(poll) for poll in self.polls)
+        s = '\n'.join(str(poll) for poll in self.polls if not poll.task.done())
         if s:
             await ctx.send(f'Running polls: [\n{s}\n]')
         else:
