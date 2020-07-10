@@ -95,7 +95,9 @@ def main():
             embed.colour = discord.Colour.red()
             embed.add_field(name='Author', value=message.author.mention, inline=False)
             embed.add_field(name='Channel', value=message.channel.mention, inline=False)
-            embed.add_field(name='Invoked with', value='`' + message.content + '`', inline=False)
+            embed.add_field(name='Invoked with', value='`'
+                            + (message.content if len(message.content) < 100 else message.content[:97] + '...')
+                            + '`', inline=False)
             embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
         await send_tb(content, embed=embed)
 
