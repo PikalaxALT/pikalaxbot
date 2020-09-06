@@ -88,7 +88,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.reboot_after = True
 
         # Twitch bot
-        self._twitch_bot = create_twitch_bot(self)
+        self._twitch_bot = None  # create_twitch_bot(self)
         self._alive_since = None
 
     async def tmi_dispatch(self, event, *args, **kwargs):
