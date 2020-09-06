@@ -73,7 +73,7 @@ class Settings(dict):
     async def __aenter__(self):
         await self._lock.acquire()
         if os.path.getmtime(self._fname) > self._mtime:
-            async with aiofile.AIOFile(self._filename) as fp:
+            async with aiofile.AIOFile(self._fname) as fp:
                 t = await fp.read()
             data = await self._loop.run_in_executor(None, json.loads, t)
             await self._loop.run_in_executor(None, self.update, data)
@@ -85,7 +85,7 @@ class Settings(dict):
             if self._changed:
                 partial = functools.partial(json.dumps, self, indent=4, separators=(', ', ': '))
                 s = await self._loop.run_in_executor(None, partial)
-                async with aiofile.AIOFile(self._filename, 'w') as fp:
+                async with aiofile.AIOFile(self._fname, 'w') as fp:
                     await fp.write(s)
                 self._changed = False
                 self._mtime = os.path.getmtime(self._fname)
