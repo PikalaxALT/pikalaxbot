@@ -68,16 +68,19 @@ class Meme(BaseCog):
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command()
-    async def archeops(self, ctx, subj1: str = '', subj2: str = ''):
+    async def archeops(self, ctx, *subjs):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
+        if len(subjs) > 2:
+            raise commands.InvalidArgument('maximum two subjects for archeops command')
         timeout = aiohttp.ClientTimeout(total=15.0)
-        params = {'Subject1': 'BLAH1', 'Subject2': 'BLAH2'}
+        params = {f'Subject{i + 1}': f'BLAH{i + 1}' for i in range(subjs)}
         async with ctx.typing():
             async with aiohttp.ClientSession(raise_for_status=True) as cs:
                 async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
                     res = await r.text()
-        res = res.replace('BLAH1', subj1).replace('BLAH2', subj2)
+        for i, subj in enumerate(subjs):
+            res = res.replace(f'BLAH{i + 1}', subj)
         await ctx.send(res)
 
     @commands.command()
