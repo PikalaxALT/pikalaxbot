@@ -74,7 +74,7 @@ class Meme(BaseCog):
         if len(subjs) > 2:
             raise commands.InvalidArgument('maximum two subjects for archeops command')
         timeout = aiohttp.ClientTimeout(total=15.0)
-        params = {f'Subject{i + 1}': f'BLAH{i + 1}' for i in range(len(subjs))}
+        params = {f'Subject{i + 1}': (f'BLAH{i + 1}' if i < len(subjs) else '') for i in range(2)}
         async with ctx.typing():
             async with aiohttp.ClientSession(raise_for_status=True) as cs:
                 async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
