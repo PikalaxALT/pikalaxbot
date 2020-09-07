@@ -82,12 +82,12 @@ class Onehand(BaseCog):
                 file_ext = imagespec['file']['ext']
                 if file_ext in ('webm', 'swf'):
                     description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
-                                  f'**Link:** [Click Here](https://{name}.net/post/show/{pic_id})\n' \
+                                  f'**Link:** [Click Here](https://{name}.net/posts/{pic_id}?q={tags.replace(" ", "+")})\n' \
                                   f'*This file ({file_ext}) cannot be previewed or embedded.*'
                 else:
                     description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
                                   f'**Resolution:** {width} x {height} | ' \
-                                  f'[Link](https://{name}.net/post/show/{pic_id})'
+                                  f'[Link](https://{name}.net/posts/{pic_id}?q={tags.replace(" ", "+")})'
                 color = discord.Color.from_rgb(1, 46, 87)
                 embed = discord.Embed(color=color, description=description)
                 embed.set_author(name=tags, icon_url=ctx.author.avatar_url)
