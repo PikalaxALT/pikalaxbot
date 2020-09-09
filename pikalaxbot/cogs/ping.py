@@ -36,14 +36,16 @@ class Ping(BaseCog):
 
     def do_plot_ping(self, buffer, history):
         values = self.ping_history
+        start_time = self.start_time
         if history > 0:
+            start_time += datetime.timedelta(minutes=len(values) / 2 - history)
             values = values[-2 * history:]
         history = len(values)
         plt.figure()
         plt.plot(range(history), values)
         plt.fill_between(range(history), [0 for _ in values], values)
         xtickvalues = list(range(0, history, history // 10 + (history % 10 != 0)))
-        xticklabels = [(self.start_time + datetime.timedelta(seconds=i * 30)).strftime('%Y-%m-%d\nT%H:%M:%S') for i in xtickvalues]
+        xticklabels = [(start_time + datetime.timedelta(seconds=i * 30)).strftime('%Y-%m-%d\nT%H:%M:%S') for i in xtickvalues]
         plt.xticks(xtickvalues, xticklabels, rotation=45, ha='right', ma='right')
         plt.xlabel('Time (UTC)')
         plt.ylabel('Heartbeat latency (ms)')
