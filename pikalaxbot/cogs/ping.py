@@ -38,7 +38,7 @@ class Ping(BaseCog):
         values = self.ping_history
         start_time = self.start_time
         if history > 0:
-            start_time += datetime.timedelta(minutes=len(values) / 2 - history)
+            start_time = min(start_time, start_time + datetime.timedelta(minutes=len(values) / 2 - history))
             values = values[-2 * history:]
         history = len(values)
         plt.figure()
