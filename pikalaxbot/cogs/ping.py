@@ -56,9 +56,10 @@ class Ping(BaseCog):
     @commands.check(lambda ctx: ctx.cog.start_time)
     @ping.command(name='history', aliases=['graph', 'plot'])
     async def plot_ping(self, ctx, history=60):
+        """Plot the bot's ping history (measured as gateway heartbeat) for the indicated number of minutes (default: 60)"""
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history * 2)
+        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history)
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
