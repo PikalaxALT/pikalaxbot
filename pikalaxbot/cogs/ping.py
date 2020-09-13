@@ -4,6 +4,7 @@ from . import BaseCog
 import io
 import time
 import datetime
+import struct
 import matplotlib.pyplot as plt
 
 
@@ -63,6 +64,19 @@ class Ping(BaseCog):
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
+
+    @commands.check(lambda ctx: ctx.cog.start_time)
+    @ping.command(name='dump')
+    async def dump_ping(self, ctx: commands.Context):
+        async with ctx.typing():
+            output = b''
+            for i, record in enumerate(self.ping_history):
+                timestamp = (self.start_time + datetime.timedelta(seconds=30 * i)).timestamp()
+                output += struct.pack('=dd', timestamp, record)
+            curtime = datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
+            with open(f'ping_{curtime}.bin', 'wb') as ofp:
+                ofp.write(output)
+        await ctx.message.add_reaction('\u2705')
 
 
 def setup(bot):
