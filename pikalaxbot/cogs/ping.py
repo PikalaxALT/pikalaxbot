@@ -6,6 +6,7 @@ import time
 import datetime
 import struct
 import matplotlib.pyplot as plt
+import os
 
 
 class Ping(BaseCog):
@@ -19,10 +20,17 @@ class Ping(BaseCog):
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
-        self.ping_history[datetime.datetime.utcnow()] = self.bot.latency * 1000
+        now = datetime.datetime.utcnow()
+        ping = self.bot.latency * 1000
+        self.ping_history[now] = ping
+        with open('ping_history.bin', 'ab') as ofp:
+            ofp.write(struct.pack('=dd', now.timestamp(), ping))
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
+        if os.path.exists('ping_history.bin'):
+            with open('ping_history.bin', 'rb') as ifp:
+                self.ping_history = {datetime.datetime.fromtimestamp(t): p for t, p in struct.iter_unpack('=dd', ifp.read())}
         await self.bot.wait_until_ready()
 
     @commands.group(invoke_without_command=True)
@@ -60,19 +68,6 @@ class Ping(BaseCog):
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
-
-    @commands.check(lambda ctx: ctx.cog.start_time)
-    @ping.command(name='dump')
-    async def dump_ping(self, ctx: commands.Context):
-        async with ctx.typing():
-            output = b''
-            for t, record in self.ping_history.items():
-                timestamp = t.timestamp()
-                output += struct.pack('=dd', timestamp, record)
-            curtime = datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
-            with open(f'ping_{curtime}.bin', 'wb') as ofp:
-                ofp.write(output)
-        await ctx.message.add_reaction('\u2705')
 
 
 def setup(bot):
