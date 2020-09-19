@@ -58,7 +58,7 @@ class Ping(BaseCog):
         plt.savefig(buffer)
         plt.close()
 
-    @commands.check(lambda ctx: ctx.cog.start_time)
+    @commands.check(lambda ctx: ctx.cog.ping_history)
     @ping.command(name='history', aliases=['graph', 'plot'])
     async def plot_ping(self, ctx, history=60):
         """Plot the bot's ping history (measured as gateway heartbeat) for the indicated number of minutes (default: 60)"""
