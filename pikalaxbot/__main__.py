@@ -141,12 +141,9 @@ def main():
         embed.add_field(name='Invoking message', value=ctx.message.jump_url, inline=False)
         await send_tb(lines, embed=embed)
 
-    try:
-        bot.run()
-    finally:
-        if not bot.reboot_after:
-            os.system('systemctl stop pikalaxbot')
+    bot.run()
+    return not bot.reboot_after
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
