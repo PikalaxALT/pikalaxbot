@@ -12,7 +12,7 @@ async def hastebin(content: str) -> str:
     """
     timeout = aiohttp.ClientTimeout(total=15.0)
     async with aiohttp.ClientSession(raise_for_status=True) as cs:
-        async with cs.post('https://hastebin.com/documents', data=content.encode('utf-8'), timeout=timeout) as res:
+        async with cs.post('https://mystb.in/documents', data=content.encode('utf-8'), timeout=timeout) as res:
             post = await res.json()
     uri = post['key']
-    return f'https://hastebin.com/{uri}'
+    return f'https://mystb.in/{uri}'
