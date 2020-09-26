@@ -87,8 +87,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                         self.logger.error(f'Unable to find extn "{cogname}"')
                     except commands.ExtensionFailed as e:
                         self.logger.warning(f'Failed to load extn "{cogname}"')
-                    for line in traceback.format_exception(e.__class__, e, e.__traceback__):
-                        self.logger.warning(line)
+                        for line in traceback.format_exception(e.__class__, e, e.__traceback__):
+                            self.logger.warning(line)
                     else:
                         self.logger.info(f'Loaded extn "{cogname}"')
                 else:
