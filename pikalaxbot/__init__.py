@@ -109,10 +109,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         await self.close()
 
     @property
-    def owner(self):
-        return self.get_user(self.owner_id)
-
-    @property
     def exc_channel(self):
         try:
             return self.get_channel(self.settings.exc_channel)

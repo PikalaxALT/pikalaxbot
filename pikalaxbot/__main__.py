@@ -67,7 +67,6 @@ def main():
     @bot.event
     async def on_ready():
         print(f'Logged in as {bot.user}')
-        await bot.application_info()
 
     async def send_tb(tb, embed=None):
         channel = bot.exc_channel

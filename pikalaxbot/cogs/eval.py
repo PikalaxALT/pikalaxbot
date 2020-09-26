@@ -39,9 +39,9 @@ class Eval(BaseCog):
         self._running_evals = {}
         self._running_shells = {}
 
-    async def cog_check(self, ctx):
-        if ctx.author != self.bot.owner:
-            raise commands.NotOwner
+    async def cog_check(self, ctx: commands.Context):
+        if not await self.bot.is_owner(ctx.author):
+            raise commands.NotOwner('You do not own this bot')
         return True
 
     @staticmethod

@@ -140,7 +140,7 @@ class Modtools(BaseCog):
     async def send_oauth(self, ctx: commands.Context):
         """Sends the bot's OAUTH token."""
 
-        await self.bot.owner.send(self.bot.http.token)
+        await self.bot.get_user(self.bot.owner_id).send(self.bot.http.token)
         await ctx.message.add_reaction('✅')
 
     @admin.group(name='command', )
