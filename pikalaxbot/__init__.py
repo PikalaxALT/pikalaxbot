@@ -20,6 +20,7 @@ from discord.ext import commands
 import logging
 import os
 import glob
+import traceback
 from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
@@ -62,6 +63,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.logger.addHandler(handler)
 
         # Load cogs
+        if 'global:jishaku' not in disabled_cogs:
+            try:
+                self.load_extension('jishaku')
+            except commands.ExtensionNotFound:
+                self.logger.error('Unable to load "jishaku", maybe install it first?')
+            except commands.ExtensionFailed as e:
+                e = e.original
+                self.logger.warning('Failed to load extn "jishaku" due to an error')
+                for line in traceback.format_exception(e.__class__, e, e.__traceback__):
+                    self.logger.warning(line)
+            else:
+                self.logger.info('Loaded jishaku')
+
         for cogfile in glob.glob(f'{__dir__}/cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
                 cogname = os.path.splitext(os.path.basename(cogfile))[0]
@@ -71,8 +85,10 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                         self.load_extension(extn)
                     except commands.ExtensionNotFound:
                         self.logger.error(f'Unable to find extn "{cogname}"')
-                    except commands.ExtensionFailed:
+                    except commands.ExtensionFailed as e:
                         self.logger.warning(f'Failed to load extn "{cogname}"')
+                    for line in traceback.format_exception(e.__class__, e, e.__traceback__):
+                        self.logger.warning(line)
                     else:
                         self.logger.info(f'Loaded extn "{cogname}"')
                 else:
