@@ -109,6 +109,8 @@ def main():
             msg = f'Got a bad argument for `{ctx.command}`'
         elif isinstance(exc, CogOperationError):
             for cog, original in exc.cog_errors.items():
+                if not original:
+                    continue
                 bot.log_tb(ctx, exc)
                 orig = getattr(original, 'original', original)
                 lines = ''.join(traceback.format_exception(orig.__class__, orig, orig.__traceback__))

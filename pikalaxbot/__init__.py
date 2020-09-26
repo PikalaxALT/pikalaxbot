@@ -63,7 +63,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.logger.addHandler(handler)
 
         # Load cogs
-        if 'global:jishaku' not in disabled_cogs:
+        if 'jishaku' not in disabled_cogs:
             try:
                 self.load_extension('jishaku')
             except commands.ExtensionNotFound:

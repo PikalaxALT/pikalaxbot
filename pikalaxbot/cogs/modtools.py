@@ -185,7 +185,10 @@ class Modtools(BaseCog):
         return fut.returncode == 0
     
     async def cog_operation(self, ctx, mode, cog):
-        method = getattr(self.bot, f'{mode}_extension')
+        def default_method(_):
+            raise commands.ExtensionError
+
+        method = getattr(self.bot, f'{mode}_extension', default_method)
         if cog == 'jishaku':
             extension = cog
         else:
@@ -251,7 +254,10 @@ class Modtools(BaseCog):
         await self.git_pull(ctx)
         failures = {}
         for cog in cogs:
-            extn = f'pikalaxbot.cogs.{cog}'
+            if cog == 'jishaku':
+                extn = cog
+            else:
+                extn = f'pikalaxbot.cogs.{cog}'
             if extn in self.bot.extensions:
                 try:
                     await self.cog_operation(ctx, 'reload', cog)
