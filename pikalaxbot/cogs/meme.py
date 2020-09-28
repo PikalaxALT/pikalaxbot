@@ -118,6 +118,11 @@ class Meme(BaseCog):
     async def twitch_say(self, ctx, channel, *, message):
         await self.bot.tmi_dispatch('dpy_say', ctx, channel, message)
 
+    @commands.guild_only()
+    @commands.command()
+    async def someone(self, ctx):
+        await ctx.send(random.choice(ctx.guild.members).mention)
+
 
 def setup(bot):
     bot.add_cog(Meme(bot))
