@@ -227,3 +227,4 @@ fabric.properties
 *.sql
 .idea/
 settings.json
+ping_history.bin
