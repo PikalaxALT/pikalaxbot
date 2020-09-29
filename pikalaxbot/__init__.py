@@ -56,7 +56,16 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             case_insensitive=True,
             loop=loop,
             activity=discord.Game(self.settings.game),
-            intents=discord.Intents.all()
+            # d.py 1.5.0: Declare gateway intents
+            intents=discord.Intents(
+                members=True,
+                messages=True,
+                guilds=True,
+                emojis=True,
+                reactions=True,
+                typing=True,
+                voice_states=True
+            )
         )
         self.guild_prefixes = {}
         self._sql = sqlfile
