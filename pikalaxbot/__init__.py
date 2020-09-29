@@ -51,7 +51,13 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         loop = loop or asyncio.get_event_loop()
         self.settings = Settings(settings_file, loop=loop)
         disabled_cogs = self.settings.disabled_cogs
-        super().__init__(_command_prefix, case_insensitive=True, loop=loop, activity=discord.Game(self.settings.game))
+        super().__init__(
+            _command_prefix,
+            case_insensitive=True,
+            loop=loop,
+            activity=discord.Game(self.settings.game),
+            intents=discord.Intents.all()
+        )
         self.guild_prefixes = {}
         self._sql = sqlfile
 
