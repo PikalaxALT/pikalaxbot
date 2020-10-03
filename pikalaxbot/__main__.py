@@ -118,6 +118,8 @@ def main():
                 lines = f'Ignoring exception in {exc.mode}ing {cog}:\n{lines}'
                 await send_tb(lines)
             return
+        elif isinstance(exc, commands.DisabledCommand):
+            msg = f'Command "{ctx.command}" is disabled.'
         else:
             msg = f'An unhandled error {exc} has occurred'
         await ctx.send(f'{msg} {bot.command_error_emoji}', delete_after=10)
