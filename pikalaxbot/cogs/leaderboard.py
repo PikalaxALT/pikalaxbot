@@ -43,18 +43,13 @@ class Leaderboard(BaseCog):
     @leaderboard.command()
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
-        msgs = []
         async with self.bot.sql as sql:
-            async for _id, name, score in sql.get_all_scores():
-                msgs.append(f'{name}: {score:d}')
-        if len(msgs) == 0:
-            await ctx.send('The leaderboard is empty. Play some games to get your name up there!')
-        else:
-            msg = '\n'.join(msgs)
-            await ctx.send(f'Leaderboard:\n'
-                           f'```\n'
-                           f'{msg}\n'
-                           f'```')
+            msgs = [f'{name}: {score:d}' async for _id, name, score in sql.get_all_scores()] or ['Wumpus: 0']
+        msg = '\n'.join(msgs)
+        await ctx.send(f'Leaderboard:\n'
+                       f'```\n'
+                       f'{msg}\n'
+                       f'```')
 
     @leaderboard.command(name='clear')
     @commands.is_owner()
@@ -68,12 +63,9 @@ class Leaderboard(BaseCog):
     @commands.is_owner()
     async def give_points(self, ctx, person: discord.Member, score: int):
         """Give points to a player"""
-        if person is None:
-            await ctx.send('That person does not exist')
-        else:
-            async with self.bot.sql as sql:
-                await sql.increment_score(person, score)
-            await ctx.send(f'Gave {score:d} points to {person.name}')
+        async with self.bot.sql as sql:
+            await sql.increment_score(person, score)
+        await ctx.send(f'Gave {score:d} points to {person.name}')
 
 
 def setup(bot):

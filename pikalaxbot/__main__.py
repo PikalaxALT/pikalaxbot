@@ -30,7 +30,7 @@ import os
 from io import StringIO
 
 from . import PikalaxBOT
-from .utils.hastebin import hastebin
+from .utils.hastebin import mystbin
 from .cogs.utils.errors import CogOperationError
 
 __dir__ = os.path.dirname(__file__) or '.'
@@ -76,7 +76,7 @@ def main():
             await channel.send(f'```{tb}```', embed=embed)
         else:
             try:
-                url = await hastebin(tb)
+                url = await mystbin(tb)
             except aiohttp.ClientResponseError:
                 await channel.send('An error has occurred', file=discord.File(StringIO(tb)), embed=embed)
             else:

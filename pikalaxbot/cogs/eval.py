@@ -20,7 +20,7 @@ import textwrap
 import traceback
 from asyncio.subprocess import PIPE
 from contextlib import redirect_stdout
-from pikalaxbot.utils.hastebin import hastebin
+from pikalaxbot.utils.hastebin import mystbin
 
 import aiohttp
 from import_expression import exec
@@ -76,7 +76,7 @@ class Eval(BaseCog):
             content = self.mask_token(content)
             if len(content) >= 1000:
                 try:
-                    value = await hastebin(content)
+                    value = await mystbin(content)
                 except aiohttp.ClientResponseError:
                     return discord.File(io.StringIO(content), f'{name}.txt')
             else:

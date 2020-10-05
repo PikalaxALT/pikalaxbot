@@ -28,7 +28,7 @@ import base64
 from collections import Counter
 
 from .utils.errors import *
-from pikalaxbot.utils.hastebin import hastebin
+from pikalaxbot.utils.hastebin import mystbin
 
 
 class PollManager:
@@ -217,7 +217,7 @@ class Poll(BaseCog):
                 await channel.send(f'```{tb}```')
             else:
                 try:
-                    url = await hastebin(tb)
+                    url = await mystbin(tb)
                 except aiohttp.ClientResponseError:
                     await channel.send('An error has occurred', file=discord.File(io.StringIO(tb)))
                 else:
