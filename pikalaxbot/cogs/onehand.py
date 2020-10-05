@@ -117,6 +117,7 @@ class Onehand(BaseCog):
             await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
 
     @commands.command(aliases=['e926'])
+    @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
     @commands.cooldown(1, 5, commands.BucketType.channel)
     async def e9(self, ctx: commands.Context, *params):
