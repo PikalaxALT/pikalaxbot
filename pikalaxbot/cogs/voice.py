@@ -161,7 +161,7 @@ class Voice(BaseCog):
             player = await EspeakAudioSource.from_message(self, msg, **self.__ffmpeg_options)
         except subprocess.CalledProcessError as e:
             await ctx.send('Error saying shit')
-            await self.bot.get_user(self.bot.owner_id).send(e.stderr)
+            await self.bot.get_user(self.bot.owner_id).send(e.stderr.decode())
             return
         if ctx.voice_client.is_playing():
             raise VoiceCommandError('Race condition')
