@@ -11,6 +11,7 @@ class RockPaperScissors(BaseCog):
     @commands.command(aliases=['rps'])
     @commands.max_concurrency(1)
     async def rock_paper_scissors(self, ctx: commands.Context):
+        """Play a game of Rock-Paper-Scissors"""
         embed = discord.Embed(
             title=f'Rock Paper Scissors with {ctx.author}',
             description='Once all four reactions have been set, choose one to'
