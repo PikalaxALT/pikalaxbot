@@ -46,7 +46,11 @@ class RockPaperScissors(BaseCog):
         await msg.edit(embed=embed)
 
     async def cog_command_error(self, ctx, error):
-        if isinstance(error, commands.MaxConcurrencyReached)
+        error = getattr(error, 'original', error)
+        if isinstance(error, commands.MaxConcurrencyReached):
+            await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
+        else:
+            raise error
 
 
 def setup(bot):
