@@ -25,7 +25,7 @@ class RockPaperScissors(BaseCog):
 
         async def reaction(payload):
             menu.player_move = _emojis.index(str(payload.emoji))
-            await menu.stop()
+            menu.stop()
 
         for i, emoji in enumerate(_emojis):
             menu.add_button(menus.Button(emoji, reaction))
