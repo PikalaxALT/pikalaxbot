@@ -19,7 +19,7 @@ class RockPaperScissors(BaseCog):
             colour=discord.Colour.orange()
         )
         msg = await ctx.send(embed=embed)
-        menu = menus.Menu(message=msg, clear_reactions_after=True)
+        menu = menus.Menu(message=msg)
         menu.player_move = 3
         menu.bot_move = random.randint(0, 2)
 
