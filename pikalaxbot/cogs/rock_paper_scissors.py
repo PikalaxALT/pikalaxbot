@@ -29,7 +29,8 @@ class RockPaperScissors(BaseCog):
 
         for i, emoji in enumerate(_emojis):
             menu.add_button(menus.Button(emoji, reaction))
-        await menu.start(ctx)
+        await menu.start(ctx, wait=True)
+
         if menu.player_move == 3:
             embed.description += '\n\nGame cancelled by player'
         else:
