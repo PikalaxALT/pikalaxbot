@@ -19,7 +19,7 @@ class RockPaperScissors(BaseCog):
             colour=discord.Colour.orange()
         )
         msg = await ctx.send(embed=embed)
-        menu = menus.Menu(message=msg)
+        menu = menus.Menu(message=msg, clear_reactions_after=True)
         menu.player_move = 3
         menu.bot_move = random.randint(0, 2)
 
@@ -27,7 +27,7 @@ class RockPaperScissors(BaseCog):
             menu.player_move = _emojis.index(str(payload.emoji))
             menu.stop()
 
-        for i, emoji in enumerate(_emojis):
+        for emoji in _emojis:
             menu.add_button(menus.Button(emoji, reaction))
         await menu.start(ctx, wait=True)
 
