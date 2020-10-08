@@ -24,9 +24,9 @@ class RockPaperScissors(BaseCog):
         menu.player_move = 3
         menu.bot_move = random.randint(0, 2)
 
-        async def reaction(payload):
-            menu.player_move = _emojis.index(str(payload.emoji))
-            menu.stop()
+        async def reaction(menu_, payload):
+            menu_.player_move = _emojis.index(str(payload.emoji))
+            menu_.stop()
 
         for emoji in _emojis:
             menu.add_button(menus.Button(emoji, reaction))
@@ -44,6 +44,9 @@ class RockPaperScissors(BaseCog):
             embed.description += f'\n\n{ctx.author}: {player_emoji}\n{self.bot.user}: {bot_emoji}\n\n'
             embed.description += ('It\'s a draw!', 'The player loses...', 'The player wins!')[diff]
         await msg.edit(embed=embed)
+
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.MaxConcurrencyReached)
 
 
 def setup(bot):
