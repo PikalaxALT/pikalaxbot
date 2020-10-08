@@ -53,7 +53,7 @@ class RockPaperScissors(BaseCog):
     async def rock_paper_scissors(self, ctx: commands.Context):
         """Play a game of Rock-Paper-Scissors"""
         menu = RPSMenu(clear_reactions_after=True)
-        await menu.start(ctx)
+        await menu.start(ctx, wait=True)
 
     async def cog_command_error(self, ctx, error):
         error = getattr(error, 'original', error)
