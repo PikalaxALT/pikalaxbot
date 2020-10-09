@@ -19,6 +19,7 @@ import aiohttp
 import typing
 import platform
 import datetime
+import os
 
 import discord
 from discord.ext import commands
@@ -26,7 +27,8 @@ from discord.ext import commands
 from . import BaseCog
 from .utils.data import data
 
-with open('../../version.txt') as fp:
+__dir__ = os.path.dirname(__file__) or '.'
+with open(os.path.join(os.path.dirname(__dir__), '..', '..', 'version.txt')) as fp:
     __version__ = fp.read().strip()
 
 
