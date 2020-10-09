@@ -72,7 +72,7 @@ class Meme(BaseCog):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
         if len(subjs) > 2:
-            raise commands.InvalidArgument('maximum two subjects for archeops command')
+            raise commands.BadArgument('maximum two subjects for archeops command')
         timeout = aiohttp.ClientTimeout(total=15.0)
         params = {f'Subject{i + 1}': (f'BLAH{i + 1}' if i < len(subjs) else '') for i in range(2)}
         async with ctx.typing():
