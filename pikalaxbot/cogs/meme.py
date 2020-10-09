@@ -84,9 +84,9 @@ class Meme(BaseCog):
         await ctx.send(res)
 
     @commands.command()
-    async def riot(self, ctx, *args):
+    async def riot(self, ctx, *, args):
         """Riots (for some reason)"""
-        resp = ' '.join(args).upper()
+        resp = args.upper()
         if 'DANCE' in resp:
             await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {resp} RIOT ♪ └༼ຈل͜ຈ༽┐♫')
         else:
