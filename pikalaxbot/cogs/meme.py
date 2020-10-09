@@ -16,12 +16,16 @@
 
 import random
 import aiohttp
+import typing
+import platform
+import datetime
 
 import discord
 from discord.ext import commands
 
 from . import BaseCog
 from .utils.data import data
+from ..__main__ import __version__
 
 
 class HMM:
@@ -57,6 +61,18 @@ class Meme(BaseCog):
         'pew! '
     )
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.session: typing.Optional[aiohttp.ClientSession] = None
+
+        async def create_session():
+            self.session = aiohttp.ClientSession(raise_for_status=True)
+
+        bot.loop.create_task(create_session())
+
+    def cog_unload(self):
+        self.bot.loop.create_task(self.session.close())
+
     async def init_db(self, sql):
         c = await sql.execute("select count(*) from sqlite_master where type='table' and name='meme'")
         exists, = await c.fetchone()
@@ -76,9 +92,8 @@ class Meme(BaseCog):
         timeout = aiohttp.ClientTimeout(total=15.0)
         params = {f'Subject{i + 1}': (f'BLAH{i + 1}' if i < len(subjs) else '') for i in range(2)}
         async with ctx.typing():
-            async with aiohttp.ClientSession(raise_for_status=True) as cs:
-                async with cs.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
-                    res = await r.text()
+            async with self.session.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
+                res = await r.text()
         for i, subj in enumerate(subjs):
             res = res.replace(f'BLAH{i + 1}', subj)
         await ctx.send(res)
@@ -118,6 +133,23 @@ class Meme(BaseCog):
     @commands.command()
     async def someone(self, ctx):
         await ctx.send(random.choice(ctx.guild.members).mention, allowed_mentions=discord.AllowedMentions.none())
+
+    @commands.command()
+    async def beans(self, ctx):
+        for attempt in range(10):
+            async with self.session.get('https://reddit.com/r/beans/random.json', data={'limit': 100}, headers={'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__}'}) as r:
+                resp = await r.json()
+            child = resp[0]['data']['children'][0]
+            if child.get('url') and not child.get('is_video'):
+                break
+        else:
+            return await ctx.send('Hmm... I seem to be out of beans right now')
+        author = child['author']
+        permalink = child['permalink']
+        embed = discord.Embed(title=child['title'], url=f'https://reddit.com{permalink}', colour=discord.Colour.dark_orange(), timestamp=datetime.datetime.fromtimestamp(child['created_utc']))
+        embed.set_image(url=child['url'])
+        embed.set_author(name=f'/u/{author}', url=f'https://reddit.com/u/{author}')
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
