@@ -44,12 +44,6 @@ class Rng(BaseCog):
         await ctx.send(f'Rolled {count} {sides}-sided {dice}.  Result:\n'
                        f'{rollstr}')
 
-    @commands.command(name='someone')
-    @commands.is_owner()
-    async def ping_random(self, ctx: commands.Context):
-        """Ping a random person in the channel."""
-        await ctx.send(random.choice(ctx.channel.members).mention)
-
     @commands.group()
     async def random(self, ctx):
         """RNG-related commands"""

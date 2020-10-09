@@ -114,14 +114,10 @@ class Meme(BaseCog):
         emoji = discord.utils.get(self.bot.emojis, name='HONK')
         await ctx.message.add_reaction(emoji)
 
-    @commands.command()
-    async def twitch_say(self, ctx, channel, *, message):
-        await self.bot.tmi_dispatch('dpy_say', ctx, channel, message)
-
     @commands.guild_only()
     @commands.command()
     async def someone(self, ctx):
-        await ctx.send(random.choice(ctx.guild.members).mention)
+        await ctx.send(random.choice(ctx.guild.members).mention, allowed_mentions=discord.AllowedMentions.none())
 
 
 def setup(bot):
