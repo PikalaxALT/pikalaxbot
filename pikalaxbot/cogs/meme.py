@@ -28,7 +28,7 @@ from . import BaseCog
 from .utils.data import data
 
 __dir__ = os.path.dirname(__file__) or '.'
-with open(os.path.join(os.path.dirname(__dir__), '..', '..', 'version.txt')) as fp:
+with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
     __version__ = fp.read().strip()
 
 
