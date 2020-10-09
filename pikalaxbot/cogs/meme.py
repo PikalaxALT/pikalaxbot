@@ -25,7 +25,9 @@ from discord.ext import commands
 
 from . import BaseCog
 from .utils.data import data
-from ..__main__ import __version__
+
+with open('../../version.txt') as fp:
+    __version__ = fp.read().strip()
 
 
 class HMM:
