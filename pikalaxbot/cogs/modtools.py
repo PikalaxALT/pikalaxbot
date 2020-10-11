@@ -199,7 +199,7 @@ class Modtools(BaseCog):
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
-        if mode != 'unload':
+        if mode != 'unload' and real_cog != 'jishaku':
             try:
                 async with self.bot.sql as sql:
                     await self.bot.get_cog(real_cog).init_db(sql)
