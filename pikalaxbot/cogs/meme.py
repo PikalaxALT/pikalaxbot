@@ -145,7 +145,7 @@ class Meme(BaseCog):
             async with self.session.get('https://reddit.com/r/beans/random.json', headers=headers) as r:
                 resp = await r.json()
             child = resp[0]['data']['children'][0]['data']
-            if child.get('url_overridden_by_dest') and not child.get('is_video'):
+            if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
                 break
         else:
             return await ctx.send('Hmm... I seem to be out of beans right now')
