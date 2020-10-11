@@ -140,8 +140,9 @@ class Meme(BaseCog):
 
     @commands.command()
     async def beans(self, ctx):
+        headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         for attempt in range(10):
-            async with self.session.get('https://reddit.com/r/beans/random.json', headers={'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__}'}) as r:
+            async with self.session.get('https://reddit.com/r/beans/random.json', headers=headers) as r:
                 resp = await r.json()
             child = resp[0]['data']['children'][0]['data']
             if child.get('url') and not child.get('is_video'):
