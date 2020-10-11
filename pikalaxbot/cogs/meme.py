@@ -138,24 +138,6 @@ class Meme(BaseCog):
     async def someone(self, ctx):
         await ctx.send(random.choice(ctx.guild.members).mention, allowed_mentions=discord.AllowedMentions.none())
 
-    @commands.command()
-    async def beans(self, ctx):
-        headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
-        for attempt in range(10):
-            async with self.session.get('https://reddit.com/r/beans/random.json', headers=headers) as r:
-                resp = await r.json()
-            child = resp[0]['data']['children'][0]['data']
-            if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
-                break
-        else:
-            return await ctx.send('Hmm... I seem to be out of beans right now')
-        author = child['author']
-        permalink = child['permalink']
-        embed = discord.Embed(title=child['title'], url=f'https://reddit.com{permalink}', colour=discord.Colour.dark_orange(), timestamp=datetime.datetime.fromtimestamp(child['created_utc']))
-        embed.set_image(url=child['url'])
-        embed.set_author(name=f'/u/{author}', url=f'https://reddit.com/u/{author}')
-        await ctx.send(embed=embed)
-
 
 def setup(bot):
     bot.add_cog(Meme(bot))
