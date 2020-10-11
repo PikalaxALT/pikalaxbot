@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export JISHAKU_NO_UNDERSCORE=true
+
 BOTDIR=$(dirname "$(realpath -P "$0")"); cd "${BOTDIR}"
 git pull  # update the bot
 python3 -m pip install -U -r requirements.txt  # update discord
