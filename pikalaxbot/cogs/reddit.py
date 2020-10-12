@@ -32,6 +32,7 @@ class Reddit(BaseCog):
     @commands.command(name='reddit', aliases=['sub'])
     @commands.check(lambda ctx: ctx.guild.id not in [148079346685313034])
     async def get_subreddit(self, ctx, name):
+        """Randomly fetch an image post from the given subreddit."""
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         for attempt in range(10):
             async with self.session.get(f'https://reddit.com/r/{name}/random.json', headers=headers) as r:
@@ -54,6 +55,7 @@ class Reddit(BaseCog):
 
     @commands.command()
     async def beans(self, ctx):
+        """Gimme my beans reeeeeeeeeeeeee"""
         await self.get_subreddit(ctx, 'beans')
 
     async def cog_command_error(self, ctx, error):
