@@ -36,7 +36,7 @@ class Reddit(BaseCog):
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
 
         def check(post):
-            return (post['approved_at_utc'] or post['created_utc'] <= min_creation) \
+            return (post['approved_at_utc'] or datetime.datetime.fromtimestamp(post['created_utc']) <= min_creation) \
                 and post['score'] >= 10 \
                 and (not post['over_18'] or ctx.channel.is_nsfw()) \
                 and not post['spoiler']
