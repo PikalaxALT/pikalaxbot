@@ -35,6 +35,8 @@ class Reddit(BaseCog):
         for attempt in range(10):
             async with self.session.get(f'https://reddit.com/r/{name}/random.json', headers=headers) as r:
                 resp = await r.json()
+                if isinstance(resp, dict):
+                    raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{name}"', history=(r,), request_info=r.request_info)
             child = resp[0]['data']['children'][0]['data']
             if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
                 break
