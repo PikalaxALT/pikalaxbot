@@ -32,6 +32,7 @@ from io import StringIO
 from . import PikalaxBOT
 from .utils.hastebin import mystbin
 from .cogs.utils.errors import CogOperationError
+from .cogs import BaseCog
 
 __dir__ = os.path.dirname(__file__) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
@@ -131,6 +132,9 @@ def main():
 
         if isinstance(exc, PikalaxBOT.handle_excs):
             return await handle_command_error(ctx, exc)
+
+        if ctx.cog and BaseCog._get_overridden_method(ctx.cog.cog_command_error) is not None:
+            return
 
         bot.log_tb(ctx, exc)
         exc = getattr(exc, 'original', exc)
