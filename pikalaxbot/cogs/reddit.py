@@ -30,7 +30,7 @@ class Reddit(BaseCog):
         self.bot.loop.create_task(self.session.close())
 
     @commands.command(name='reddit', aliases=['sub'])
-    async def get_subreddit(self, ctx, name):
+    async def get_subreddit(self, ctx, subreddit):
         """Randomly fetch an image post from the given subreddit."""
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
@@ -42,20 +42,31 @@ class Reddit(BaseCog):
                 and not post['spoiler']
 
         for attempt in range(10):
-            async with self.session.get(f'https://reddit.com/r/{name}/random.json', headers=headers) as r:
+            async with self.session.get(f'https://reddit.com/r/{subreddit}/random.json', headers=headers) as r:
                 resp = await r.json()
                 if isinstance(resp, dict):
-                    raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{name}"', history=(r,), request_info=r.request_info)
+                    raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{subreddit}"', history=(r,), request_info=r.request_info)
             child = resp[0]['data']['children'][0]['data']
             if not check(child):
                 continue
             if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
                 break
         else:
-            return await ctx.send(f'Hmm... I seem to be out of {name} right now')
+            return await ctx.send(f'Hmm... I seem to be out of {subreddit} right now')
         author = child['author']
         permalink = child['permalink']
-        embed = discord.Embed(title=child['title'], url=f'https://reddit.com{permalink}', colour=discord.Colour.dark_orange(), timestamp=datetime.datetime.fromtimestamp(child['created_utc']))
+        score = child['score']
+        upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
+        downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
+        upvotes = child['ups']
+        downvotes = child['downs']
+        embed = discord.Embed(
+            title=child['title'],
+            description=f'Score: {score} ({upvote_emoji}{upvotes}/{downvote_emoji}{downvotes})',
+            url=f'https://reddit.com{permalink}',
+            colour=discord.Colour.dark_orange(),
+            timestamp=datetime.datetime.fromtimestamp(child['created_utc'])
+        )
         embed.set_image(url=child['url'])
         embed.set_author(name=f'/u/{author}', url=f'https://reddit.com/u/{author}')
         await ctx.send(embed=embed)
