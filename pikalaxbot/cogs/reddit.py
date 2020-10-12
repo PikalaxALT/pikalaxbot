@@ -30,22 +30,29 @@ class Reddit(BaseCog):
         self.bot.loop.create_task(self.session.close())
 
     @commands.command(name='reddit', aliases=['sub'])
-    @commands.check(lambda ctx: ctx.guild.id not in [148079346685313034])
     async def get_subreddit(self, ctx, name):
         """Randomly fetch an image post from the given subreddit."""
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
+        min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
+
+        def check(post):
+            return (post['approved_at_utc'] or post['created_utc'] <= min_creation) \
+                and post['score'] >= 10 \
+                and (not post['over_18'] or ctx.channel.is_nsfw()) \
+                and not post['spoiler']
+
         for attempt in range(10):
             async with self.session.get(f'https://reddit.com/r/{name}/random.json', headers=headers) as r:
                 resp = await r.json()
                 if isinstance(resp, dict):
                     raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{name}"', history=(r,), request_info=r.request_info)
             child = resp[0]['data']['children'][0]['data']
+            if not check(child):
+                continue
             if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
                 break
         else:
             return await ctx.send(f'Hmm... I seem to be out of {name} right now')
-        if child['over_18'] and not ctx.channel.is_nsfw():
-            return await ctx.send('This post is too naughty for this channel')
         author = child['author']
         permalink = child['permalink']
         embed = discord.Embed(title=child['title'], url=f'https://reddit.com{permalink}', colour=discord.Colour.dark_orange(), timestamp=datetime.datetime.fromtimestamp(child['created_utc']))
