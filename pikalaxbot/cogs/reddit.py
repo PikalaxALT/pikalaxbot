@@ -30,6 +30,7 @@ class Reddit(BaseCog):
         self.bot.loop.create_task(self.session.close())
 
     @commands.command(name='reddit', aliases=['sub'])
+    @commands.check(lambda ctx: ctx.guild.id not in [148079346685313034])
     async def get_subreddit(self, ctx, name):
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         for attempt in range(10):
@@ -62,6 +63,8 @@ class Reddit(BaseCog):
                 await ctx.send('I cannot find that subreddit!')
             else:
                 await ctx.send(f'An unhandled HTTP exception occurred: {error.status}: {error.message}')
+        elif isinstance(error, commands.CheckFailure):
+            pass
         else:
             await ctx.send(f'An unhandled internal exception occurred: {error.__class__.__name__}: {error}')
 
