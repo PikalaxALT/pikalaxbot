@@ -7,3 +7,4 @@ python-dateutil>=2.8.1
 matplotlib>=3.0.0
 import-expression>=1.0.0
 jishaku>=1.19
+parsedatetime>=2.6

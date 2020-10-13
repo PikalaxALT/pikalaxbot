@@ -16,7 +16,7 @@
 
 import discord
 from discord.ext import commands
-from pikalaxbot.utils import friendly_date
+from humanize import naturaltime
 import resource
 import typing
 import inspect
@@ -74,8 +74,8 @@ class Core(BaseCog):
         e.set_author(name=str(ctx.me))
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
-        e.add_field(name='Joined', value=friendly_date.human_timedelta(ctx.me.joined_at), inline=False)
-        e.add_field(name='Created', value=friendly_date.human_timedelta(ctx.me.created_at), inline=False)
+        e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at), inline=False)
+        e.add_field(name='Created', value=naturaltime(ctx.me.created_at), inline=False)
         if roles:
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
         e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
@@ -107,7 +107,7 @@ class Core(BaseCog):
 
     @commands.command()
     async def uptime(self, ctx):
-        date = friendly_date.human_timedelta(self.bot._alive_since)
+        date = naturaltime(self.bot._alive_since)
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])

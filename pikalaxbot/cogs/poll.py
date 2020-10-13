@@ -29,6 +29,7 @@ from collections import Counter
 
 from .utils.errors import *
 from pikalaxbot.utils.hastebin import mystbin
+from .utils.converters import FutureTime
 
 
 class PollManager:
@@ -255,11 +256,14 @@ class Poll(BaseCog):
                     await channel.send(f'An error has occurred: {url}')
 
     @commands.group(name='poll', invoke_without_command=True)
-    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[int], prompt, *opts):
-        """Create a poll with up to 10 options.  Poll will last for 60 seconds, with sudden death
-        tiebreakers as needed.  Use quotes to enclose multi-word prompt and options.
-        Optionally, pass an int before the prompt to indicate the number of seconds the poll lasts."""
-        timeout = timeout or Poll.TIMEOUT
+    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[typing.Union[float, FutureTime]], prompt, *opts):
+        f"""Create a poll with up to 10 options.  Poll will last for {Poll.TIMEOUT:.1f} seconds (or as specified), 
+        with sudden death tiebreakers as needed.  Use quotes to enclose multi-word
+duration, prompt, and options."""
+        if timeout is None:
+            timeout = Poll.TIMEOUT
+        elif isinstance(timeout, FutureTime):
+            timeout = (timeout.dt - ctx.message.created_at).total_seconds()
         # Do it this way because `set` does weird things with ordering
         options = []
         for opt in opts:
