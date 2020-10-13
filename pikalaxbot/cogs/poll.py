@@ -37,6 +37,7 @@ class PollManager:
         'channel_id',
         'context_id',
         'message',
+        'message_id',
         'owner_id',
         'options',
         'votes',
