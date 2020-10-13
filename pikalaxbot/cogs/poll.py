@@ -37,7 +37,6 @@ class PollManager:
         'channel_id',
         'context_id',
         'message',
-        'message_id',
         'owner_id',
         'options',
         'votes',
@@ -118,7 +117,6 @@ class PollManager:
         this.message = message
         return this
 
-    @discord.utils.cached_property
     def message_id(self):
         if self.message:
             return self.message.id
