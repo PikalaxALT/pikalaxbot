@@ -68,14 +68,15 @@ class Core(BaseCog):
 
     @commands.command()
     async def about(self, ctx):
+        tz = datetime.datetime.now() - datetime.datetime.utcnow()
         roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e = discord.Embed()
         e.set_author(name=str(ctx.me))
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
-        e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at), inline=False)
-        e.add_field(name='Created', value=naturaltime(ctx.me.created_at), inline=False)
+        e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + tz), inline=False)
+        e.add_field(name='Created', value=naturaltime(ctx.me.created_at + tz), inline=False)
         if roles:
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
         e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
@@ -107,7 +108,8 @@ class Core(BaseCog):
 
     @commands.command()
     async def uptime(self, ctx):
-        date = naturaltime(self.bot._alive_since)
+        tz = datetime.datetime.now() - datetime.datetime.utcnow()
+        date = naturaltime(self.bot._alive_since + tz)
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
