@@ -171,7 +171,8 @@ class PollManager:
         self.unloading = unloading
         self.task.cancel()
 
-    async def convert(self, ctx, argument):
+    @classmethod
+    async def convert(cls, ctx, argument):
         mgr = discord.utils.get(ctx.cog.polls, hash=argument)
         if mgr is None:
             raise NoPollFound('The supplied code does not correspond to a running poll')
