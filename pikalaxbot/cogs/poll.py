@@ -168,6 +168,7 @@ class PollManager:
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
         if payload.message_id == self.message_id:
+            self.message = None
             self.cancel()
 
     def start(self):
