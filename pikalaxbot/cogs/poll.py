@@ -36,7 +36,6 @@ class PollManager:
         'bot',
         'channel_id',
         'context_id',
-        'message_id',
         'message',
         'owner_id',
         'options',
@@ -49,59 +48,79 @@ class PollManager:
         'unloading'
     )
 
+    def __init__(self, *, bot, channel_id, context_id, owner_id, start_time, stop_time, my_hash=None, votes=None, options=None):
+        self.bot = bot
+        self.channel_id = channel_id
+        self.context_id = context_id
+        self.owner_id = owner_id
+        self.start_time = start_time
+        self.stop_time = stop_time
+        self.hash = my_hash or base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
+        self.votes = votes or {}
+        self.options = options or []
+        self.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
+        self.task = None
+        self.unloading = False
+        self.message = None
+
+    def __iter__(self):
+        yield self.hash
+        yield self.channel_id
+        yield self.owner_id
+        yield self.context_id
+        yield self.message_id
+        yield self.start_time.timestamp()
+        yield self.stop_time.timestamp()
+
     @classmethod
     async def from_command(cls, context, timeout, prompt, *options):
-        this = cls()
-        this.bot = context.bot
-        this.channel_id = context.channel.id
-        this.context_id = context.message.id
-        this.owner_id = context.author.id
-        this.options = options
-        this.start_time = datetime.datetime.utcnow()
-        this.hash = base64.b32encode((hash(this) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
-        this.votes = {}
-        this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
+        this = cls(
+            bot=context.bot,
+            channel_id=context.channel.id,
+            context_id=context.message.id,
+            owner_id=context.author.id,
+            start_time=context.message.created_at,
+            stop_time=context.message.created_at + datetime.timedelta(seconds=timeout),
+            options=options
+        )
+        end_time = this.stop_time.strftime('%d %b %Y at %H:%M:%S UTC')
         content = f'Vote using emoji reactions. ' \
-                  f'You have {timeout:d} seconds from when the last option appears. ' \
+                  f'You have until {end_time} to make your selection. ' \
                   f'Max one vote per user. ' \
                   f'To change your vote, clear your original selection first. ' \
                   f'The poll author may not cast a vote. ' \
-                  f'The poll author may cancel the poll using `{context.prefix}{context.cog.cancel.qualified_name} {this.hash}`'
+                  f'The poll author may cancel the poll using ' \
+                  f'`{context.prefix}{context.cog.cancel.qualified_name} {this.hash}` ' \
+                  f'or by deleting this message.'
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(this.emojis, options))
         embed = discord.Embed(title=prompt, description=description)
         embed.set_author(name=context.author.display_name, icon_url=context.author.avatar_url)
         this.message = await context.send(content, embed=embed)
         for emoji in this.emojis:
             await this.message.add_reaction(emoji)
-        this.message_id = this.message.id
-        this.stop_time = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout)
-        this.start()
-        async with this.bot.sql as sql:
-            await sql.execute('insert into polls (code, channel, owner, context, message, started, closes) values (?, ?, ?, ?, ?, ?, ?)', (this.hash, this.channel_id, this.owner_id, this.context_id, this.message_id, this.start_time.timestamp(), this.stop_time.timestamp()))
         return this
 
     @classmethod
     async def from_sql(cls, bot, sql, my_hash, channel_id, owner_id, context_id, message_id, start_time, stop_time):
-        this = cls()
-        this.bot = bot
-        this.channel_id = channel_id
-        this.context_id = context_id
-        this.message_id = message_id
-        try:
-            this.message = await bot.get_channel(channel_id).fetch_message(message_id)
-            this.options = [option.split(' ', 1)[1] for option in this.message.embeds[0].description.splitlines()]
-            this.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(this.options))]
-        except discord.HTTPException:
-            this.message = None
-            this.options = []
-            this.emojis = []
-        this.owner_id = owner_id
-        this.votes = dict(await sql.execute_fetchall('select voter, option from poll_options where code = ?', (my_hash,)))
-        this.hash = my_hash
-        this.start_time = datetime.datetime.fromtimestamp(start_time)
-        this.stop_time = datetime.datetime.fromtimestamp(stop_time)
-        this.start()
+        message = await bot.get_channel(channel_id).fetch_message(message_id)
+        this = cls(
+            bot=bot,
+            channel_id=channel_id,
+            context_id=context_id,
+            owner_id=owner_id,
+            start_time=datetime.datetime.fromtimestamp(start_time),
+            stop_time=datetime.datetime.fromtimestamp(stop_time),
+            my_hash=my_hash,
+            votes=dict(await sql.execute_fetchall('select voter, option from poll_options where code = ?', (my_hash,))),
+            options=[option.split(' ', 1)[1] for option in message.embeds[0].description.splitlines()]
+        )
+        this.message = message
         return this
+
+    @discord.utils.cached_property
+    def message_id(self):
+        if self.message:
+            return self.message.id
 
     def __eq__(self, other):
         if isinstance(other, PollManager):
@@ -117,7 +136,7 @@ class PollManager:
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.start_time.timestamp(), self.channel_id, self.owner_id))
+        return hash((self.start_time.timestamp(), self.stop_time.timestamp(), self.channel_id, self.owner_id))
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.message_id != self.message_id:
@@ -147,6 +166,10 @@ class PollManager:
         async with self.bot.sql as sql:
             await sql.execute('delete from poll_options where code = ? and voter = ?', (self.hash, payload.user_id))
 
+    async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
+        if payload.message_id == self.message_id:
+            self.cancel()
+
     def start(self):
         self.unloading = False
         now = datetime.datetime.utcnow()
@@ -155,6 +178,7 @@ class PollManager:
             return
         self.bot.add_listener(self.on_raw_reaction_add)
         self.bot.add_listener(self.on_raw_reaction_remove)
+        self.bot.add_listener(self.on_raw_message_delete)
 
         async def run():
             try:
@@ -162,6 +186,7 @@ class PollManager:
             finally:
                 self.bot.remove_listener(self.on_raw_reaction_add)
                 self.bot.remove_listener(self.on_raw_reaction_remove)
+                self.bot.remove_listener(self.on_raw_message_delete)
                 if not self.unloading:
                     self.bot.dispatch('poll_end', self)
 
@@ -205,8 +230,12 @@ class Poll(BaseCog):
         try:
             async with self.bot.sql as sql:
                 for row in await sql.execute_fetchall('select * from polls'):
-                    mgr = await PollManager.from_sql(self.bot, sql, *row)
-                    self.polls.append(mgr)
+                    try:
+                        mgr = await PollManager.from_sql(self.bot, sql, *row)
+                        self.polls.append(mgr)
+                        mgr.start()
+                    except discord.HTTPException:
+                        pass
         except Exception:
             s = traceback.format_exc()
             tb = f'Ignoring exception in Poll.cache_polls\n{s}'
@@ -241,7 +270,14 @@ class Poll(BaseCog):
         if nopts < 2:
             raise NotEnoughOptions('Not enough unique options!')
         mgr = await PollManager.from_command(ctx, timeout, prompt, *options)
+        async with ctx.bot.sql as sql:
+            await sql.execute(
+                'insert into polls (code, channel, owner, context, message, started, closes) '
+                'values (?, ?, ?, ?, ?, ?, ?)',
+                tuple(mgr)
+            )
         self.polls.append(mgr)
+        mgr.start()
 
     @poll_cmd.command()
     async def cancel(self, ctx: commands.Context, mgr: PollManager):
