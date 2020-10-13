@@ -117,6 +117,7 @@ class PollManager:
         this.message = message
         return this
 
+    @property
     def message_id(self):
         if self.message:
             return self.message.id
