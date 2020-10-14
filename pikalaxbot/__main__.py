@@ -143,9 +143,10 @@ def main():
         lines = f'Ignoring exception in command {ctx.command}:\n{lines}'
         embed = discord.Embed(title='Command error details')
         embed.add_field(name='Author', value=ctx.author.mention, inline=False)
-        embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
+        if ctx.guild:
+            embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
         embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
-        embed.add_field(name='Invoking message', value=ctx.message.jump_url, inline=False)
+        embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm", inline=False)
         await send_tb(lines, embed=embed)
 
     bot.run()
