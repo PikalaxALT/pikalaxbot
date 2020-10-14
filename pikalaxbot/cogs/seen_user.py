@@ -34,7 +34,7 @@ class SeenUser(BaseCog):
         if message.guild is not None:
             ref = get_msg_reference(message)
             self.member_cache[(message.guild.id, message.author.id)] = ref
-            self.history_cache[message.channel.id].append(ref)
+            self.history_cache[message.channel.id].append((message.author.id, ref))
 
     async def get_last_seen_msg(self, member: discord.Member) -> typing.Optional[discord.MessageReference]:
         last = datetime.datetime.utcnow() - SeenUser.MAX_LOOKBACK
@@ -43,13 +43,13 @@ class SeenUser(BaseCog):
             if channel.id in self.history_cache:
                 history = self.history_cache[channel.id]
             elif channel.permissions_for(member.guild.me).read_message_history:
-                history = [get_msg_reference(message) async for message in channel.history(limit=None, after=last)]
+                history = [(message.author.id, get_msg_reference(message)) async for message in channel.history(limit=None, after=last)]
                 if history:
-                    history.sort(key=lambda msg: discord.utils.snowflake_time(msg.message_id))
+                    history.sort(key=lambda msg: discord.utils.snowflake_time(msg[1].message_id))
                 self.history_cache[channel.id] = history
             else:
                 continue
-            seen_msg = discord.utils.get(reversed(history), author_id=member.id) or seen_msg
+            _, seen_msg = discord.utils.find(lambda m: m[0] == member.id, reversed(history)) or seen_msg
             if seen_msg is not None:
                 last = discord.utils.snowflake_time(seen_msg.message_id)
         return seen_msg
