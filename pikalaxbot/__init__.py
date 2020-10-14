@@ -64,7 +64,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 emojis=True,
                 reactions=True,
                 typing=True,
-                voice_states=True
+                voice_states=True,
+                presences=True
             )
         )
         self.guild_prefixes = {}
