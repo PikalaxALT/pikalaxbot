@@ -49,8 +49,9 @@ class SeenUser(BaseCog):
                 self.history_cache[channel.id] = history
             else:
                 continue
-            _, seen_msg = discord.utils.find(lambda m: m[0] == member.id, reversed(history)) or seen_msg
-            if seen_msg is not None:
+            x = discord.utils.find(lambda m: m[0] == member.id, reversed(history))
+            if x is not None:
+                seen_msg = x[1]
                 last = discord.utils.snowflake_time(seen_msg.message_id)
         return seen_msg
 
