@@ -94,7 +94,7 @@ class Pages:
 
     @property
     def has_manage_messages(self):
-        return self.channel.permissions_for(self.channel.guild.me).manage_messages
+        return isinstance(self.channel, discord.TextChannel) and self.channel.permissions_for(self.channel.guild.me).manage_messages
 
     def get_page(self, page):
         base = (page - 1) * self.per_page
