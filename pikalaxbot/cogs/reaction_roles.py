@@ -13,6 +13,8 @@ class ReactionRoles(BaseCog):
         self.reaction_roles = collections.defaultdict(dict)
     
     async def cog_check(self, ctx):
+        if not ctx.guild:
+            raise commands.NoPrivateMessage
         if not ctx.me.guild_permissions.manage_roles:
             raise commands.BotMissingPermissions(['manage_roles'])
         return True

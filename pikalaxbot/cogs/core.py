@@ -69,19 +69,20 @@ class Core(BaseCog):
     @commands.command()
     async def about(self, ctx):
         tz = datetime.datetime.now() - datetime.datetime.utcnow()
-        roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
-        shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e = discord.Embed()
+        shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e.set_author(name=str(ctx.me))
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
-        e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + tz), inline=False)
+        if ctx.guild:
+            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + tz), inline=False)
         e.add_field(name='Created', value=naturaltime(ctx.me.created_at + tz), inline=False)
-        if roles:
+        if ctx.guild:
+            roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
         e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
         e.add_field(name='Uptime', value=f'{datetime.datetime.utcnow() - self.bot._alive_since}')
-        if ctx.me.colour.value:
+        if ctx.guild and ctx.me.colour.value:
             e.colour = ctx.me.colour
         if ctx.me.avatar:
             e.set_thumbnail(url=ctx.me.avatar_url)
