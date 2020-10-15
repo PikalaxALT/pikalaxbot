@@ -44,6 +44,8 @@ def voice_client_not_playing(ctx):
 
 
 async def voice_cmd_ensure_connected(ctx):
+    if not ctx.guild:
+        raise commands.NoPrivateMessage
     vc: discord.VoiceClient = ctx.voice_client
     if vc is None or not vc.is_connected():
         if ctx.author.voice is None:
