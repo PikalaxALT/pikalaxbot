@@ -61,7 +61,7 @@ class MemberStatus(BaseCog):
         """Plot history of user status counts in the current guild."""
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, history.total_seconds())
+        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, round(history.total_seconds()))
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
