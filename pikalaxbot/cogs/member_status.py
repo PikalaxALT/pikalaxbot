@@ -6,6 +6,7 @@ import time
 import datetime
 import io
 import matplotlib.pyplot as plt
+from .utils.converters import HumanTime
 
 
 class MemberStatus(BaseCog):
@@ -17,11 +18,8 @@ class MemberStatus(BaseCog):
 
     @tasks.loop(seconds=30)
     async def update_counters(self):
-        tick = time.perf_counter()
         for guild in self.bot.guilds:
             self.counters[guild.id].append(Counter(m.status for m in guild.members))
-        tock = time.perf_counter()
-        self.update_counters.change_interval(seconds=30 - (tock - tick))
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
@@ -59,11 +57,11 @@ class MemberStatus(BaseCog):
     @commands.guild_only()
     @commands.check(lambda ctx: ctx.cog.start_time)
     @commands.command(name='userstatus')
-    async def plot_status(self, ctx, history=60):
+    async def plot_status(self, ctx, history: HumanTime = datetime.timedelta(minutes=1)):
         """Plot history of user status counts in the current guild."""
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, history * 2)
+        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, history.total_seconds())
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
