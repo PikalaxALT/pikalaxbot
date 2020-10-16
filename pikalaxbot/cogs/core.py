@@ -135,11 +135,14 @@ class Core(BaseCog):
 
     @commands.Cog.listener()
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent):
+        """Detect when the original version of a published announcement is delteted."""
         channel = self.bot.get_channel(payload.channel_id)
-        if isinstance(channel, discord.TextChannel) and channel.is_news() and channel.permissions_for(channel.guild.me).manage_messages:
-            message = discord.Message(data=payload.data, state=self.bot._connection, channel=channel)
-            if message.content == '[Original Message Deleted]' and message.author.discriminator == '0000':
-                await message.delete()
+        if isinstance(channel, discord.TextChannel) \
+                and channel.is_news() \
+                and channel.permissions_for(channel.guild.me).manage_messages \
+                and payload.data['content'] == '[Original Message Deleted]' \
+                and 'webhook_id' in payload.data:
+            await self.bot.http.delete_message(payload.channel_id, payload.message_id)
 
 
 def setup(bot):
