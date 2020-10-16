@@ -147,7 +147,7 @@ class Core(BaseCog):
                 rss /= size
                 break
         else:
-            unit = 'B'
+            unit = 'KiB'
         await ctx.send(f'Total resources used: {rss:.3f} {unit}')
 
     @commands.Cog.listener()
