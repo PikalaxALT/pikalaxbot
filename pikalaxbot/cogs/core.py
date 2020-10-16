@@ -138,9 +138,9 @@ class Core(BaseCog):
 
         rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         units = [
-            (1 << 30, 'GiB'),
-            (1 << 20, 'MiB'),
-            (1 << 10, 'KiB')
+            (1 << 30, 'TiB'),
+            (1 << 20, 'GiB'),
+            (1 << 10, 'MiB')
         ]
         for size, unit in units:
             if rss >= size:
