@@ -35,6 +35,8 @@ class Ping(BaseCog):
 
     @commands.group(invoke_without_command=True)
     async def ping(self, ctx: commands.Context):
+        """Quickly test the bot's ping"""
+
         new = await ctx.send('Pong!')
         delta = new.created_at - ctx.message.created_at
         await new.edit(content=f'Pong!\n'
