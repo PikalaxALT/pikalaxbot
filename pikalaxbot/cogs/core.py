@@ -108,7 +108,7 @@ class Core(BaseCog):
                 lines, start = inspect.getsourcelines(command.callback)
                 sourcefile = src[src.index(module):].replace('\\', '/')
                 end = start + len(lines) - 1
-                if command.cog and command.cog.name == 'Jishaku':
+                if command.cog and command.cog.__cog_name__ == 'Jishaku':
                     url = 'https://github.com/Gorialis/jishaku'
                     branch = jsk_ver
                 url = f'{url}/blob/{branch}/{sourcefile}#L{start}-L{end}'
