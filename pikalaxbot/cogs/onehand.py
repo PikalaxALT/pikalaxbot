@@ -106,15 +106,8 @@ class Onehand(BaseCog):
     @commands.cooldown(1, 5, commands.BucketType.channel)
     async def e6(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
-        await self.get_bad_dragon(ctx, 'e621', *params)
 
-    @e6.error
-    async def e6_error(self, ctx: commands.Context, exc: Exception):
-        if isinstance(exc, aiohttp.ClientError):
-            await ctx.send(f'Could not reach e621: {exc}',
-                           delete_after=10)
-        else:
-            await ctx.send(f'**{exc.__class__.__name__}**: {exc}')
+        await self.get_bad_dragon(ctx, 'e621', *params)
 
     @commands.command(aliases=['e926'])
     @commands.is_nsfw()
@@ -122,17 +115,24 @@ class Onehand(BaseCog):
     @commands.cooldown(1, 5, commands.BucketType.channel)
     async def e9(self, ctx: commands.Context, *params):
         """Search for up to 5 images on e926 with the given tags.  The number of images to return must come last."""
+
         await self.get_bad_dragon(ctx, 'e926', *params)
 
+    @e6.error
     @e9.error
     async def e9_error(self, ctx: commands.Context, exc: Exception):
+        dest = 'e621' if ctx.command == self.e6 else 'e926'
         if isinstance(exc, aiohttp.ClientError):
-            await ctx.send(f'Could not reach e926: {exc}',
+            await ctx.send(f'Could not reach {dest}: {exc}',
                            delete_after=10)
+        else:
+            await ctx.send(f'Unhandled exception in {dest}: **{exc.__class__.__name__}**: {exc}')
 
     @commands.command()
     @commands.is_owner()
     async def nolewd(self, ctx, *, guild: discord.Guild = None):
+        """Blacklist commands that have the potential to return questionable content in this guild."""
+
         if guild is None:
             guild = ctx.guild
         if guild.id in self.banned_guilds:
@@ -144,6 +144,8 @@ class Onehand(BaseCog):
     @commands.command()
     @commands.is_owner()
     async def oklewd(self, ctx, *, guild: discord.Guild = None):
+        """Whitelist commands that have the potential to return questionable content in this guild."""
+
         if guild is None:
             guild = ctx.guild
         if guild.id not in self.banned_guilds:
@@ -154,25 +156,35 @@ class Onehand(BaseCog):
 
     @commands.group()
     async def blacklist(self, ctx):
+        """Manage the e621/e926 tags blacklist"""
+
         pass
 
     @blacklist.command(name='add')
     async def blacklist_add(self, ctx, *tags):
+        """Add the tags to the blacklist"""
+
         self.my_blacklist.update(tags)
         await ctx.message.add_reaction('✅')
 
     @blacklist.command(name='remove')
     async def blacklist_remove(self, ctx, *tags):
+        """Remove the tags from the blacklist"""
+
         self.my_blacklist.difference_update(tags)
         await ctx.message.add_reaction('✅')
 
     @blacklist.command(name='clear')
     async def blacklist_clear(self, ctx):
+        """Delete the blacklisted tags"""
+
         self.my_blacklist = set()
         await ctx.message.add_reaction('✅')
 
     @blacklist.command(name='show')
     async def blacklist_show(self, ctx):
+        """Show the blacklisted tags"""
+
         glb = ', '.join(self.global_blacklist)
         loc = ', '.join(self.my_blacklist)
         await ctx.send(f'The following tags are blacklisted globally: `{glb}`\n'
@@ -183,6 +195,7 @@ class Onehand(BaseCog):
     @commands.bot_has_permissions(attach_files=True)
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
+
         async with aiohttp.ClientSession(raise_for_status=True) as cs:
             async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
                 url = await r.text()

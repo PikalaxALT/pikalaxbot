@@ -103,6 +103,7 @@ class ChatDeathIndex(BaseCog):
     @commands.command(name='cdi')
     async def get_cdi(self, ctx: commands.Context, channel: discord.TextChannel = None):
         """Returns the Chat Death Index of the given channel (if not specified, uses the current channel)"""
+
         channel = channel or ctx.channel
         chat_avg = self.cdi_samples[channel.id]
         n = len(chat_avg)
@@ -116,6 +117,7 @@ class ChatDeathIndex(BaseCog):
     @commands.command(name='plot-cdi')
     async def plot_cdi(self, ctx: commands.Context, *channels: discord.TextChannel):
         """Plots the Chat Death Index history of the given channel (if not specified, uses the current channel)"""
+
         channels = set(channels) or (ctx.channel,)
         async with ctx.typing():
             mem_buffer = io.BytesIO()
@@ -128,6 +130,9 @@ class ChatDeathIndex(BaseCog):
 
     @commands.command(name='plot-all-cdi')
     async def plot_all_cdi(self, ctx: commands.Context):
+        """Plots the Chat Death Index history of all channels the bot can see.
+        NSFW channels are skipped unless called in an NSFW channel."""
+
         nsfw = ctx.channel.is_nsfw()
         chs = [ch for ch in ctx.guild.text_channels if ch.is_nsfw() <= nsfw and ChatDeathIndex.can_get_messages(ch)]
         await self.plot_cdi(ctx, *chs)

@@ -48,6 +48,7 @@ class Core(BaseCog):
     @commands.is_owner()
     async def kill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
+
         self.bot.reboot_after = ctx.invoked_with == 'reboot'
         await ctx.send('Rebooting to apply updates')
         await self.bot.logout()
@@ -55,19 +56,23 @@ class Core(BaseCog):
     @commands.command()
     @commands.is_owner()
     async def ignore(self, ctx, person: discord.Member):
-        """Ban a member :datsheffy:"""
+        """Ban a member from using the bot :datsheffy:"""
+
         self.banlist.add(person.id)
         await ctx.send(f'{person.display_name} is now banned from interacting with me.')
 
     @commands.command()
     @commands.is_owner()
     async def unignore(self, ctx, person: discord.Member):
-        """Unban a member"""
+        """Unban a member from using the bot"""
+
         self.banlist.discard(person.id)
         await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
     @commands.command()
     async def about(self, ctx):
+        """Shows info about the bot in the current context"""
+
         tz = datetime.datetime.now() - datetime.datetime.utcnow()
         e = discord.Embed()
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
@@ -92,6 +97,7 @@ class Core(BaseCog):
     async def source(self, ctx, *, command: typing.Optional[CommandConverter]):
         """Links the source of the command. If command source cannot be retrieved,
         links the root of the bot's source tree."""
+
         url = 'https://github.com/PikalaxALT/pikalaxbot'
         if command is not None:
             src = command.callback.__code__.co_filename
@@ -109,16 +115,22 @@ class Core(BaseCog):
 
     @commands.command()
     async def uptime(self, ctx):
+        """Print the amount of time since the bot's last reboot"""
+
         tz = datetime.datetime.now() - datetime.datetime.utcnow()
         date = naturaltime(self.bot._alive_since + tz)
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
     async def list_cogs(self, ctx):
+        """Print the names of all loaded Cogs"""
+
         await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
 
     @commands.command()
     async def memory(self, ctx):
+        """Show the bot's current memory usage"""
+
         rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         units = [
             (1 << 30, 'GiB'),
@@ -136,6 +148,7 @@ class Core(BaseCog):
     @commands.Cog.listener()
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent):
         """Detect when the original version of a published announcement is delteted."""
+
         channel = self.bot.get_channel(payload.channel_id)
         if isinstance(channel, discord.TextChannel) \
                 and channel.is_news() \

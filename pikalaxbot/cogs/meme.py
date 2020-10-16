@@ -91,6 +91,7 @@ class Meme(BaseCog):
     async def archeops(self, ctx, *subjs):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
+
         if len(subjs) > 2:
             raise commands.BadArgument('maximum two subjects for archeops command')
         timeout = aiohttp.ClientTimeout(total=15.0)
@@ -105,6 +106,7 @@ class Meme(BaseCog):
     @commands.command()
     async def riot(self, ctx, *, args):
         """Riots (for some reason)"""
+
         resp = args.upper()
         if 'DANCE' in resp:
             await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {resp} RIOT ♪ └༼ຈل͜ຈ༽┐♫')
@@ -114,28 +116,36 @@ class Meme(BaseCog):
     @commands.command()
     async def nebby(self, ctx):
         """Pew!"""
+
         emission = ''.join(self._nebby.get_chain(100, end=4)).title()
         await ctx.send(emission)
 
     @commands.command()
     async def yolonome(self, ctx):
         """Happy birthday, Waggle!"""
+
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {data.random_move_name()}!')
 
     @commands.command()
     async def olden(self, ctx):
+        """Time to corrupt your save file >:D"""
+
         await ctx.send('https://vignette.wikia.nocookie.net/twitchplayspokemoncrystal/images/5/5f/'
                        'Serious_%22OLDEN%22_Times.png/revision/latest?cb=20160820193335')
 
     @commands.command()
     async def honk(self, ctx):
+        """HONK"""
+
         emoji = discord.utils.get(self.bot.emojis, name='HONK')
         await ctx.message.add_reaction(emoji)
 
     @commands.guild_only()
     @commands.command()
     async def someone(self, ctx):
+        """\"Pings\" someone"""
+
         await ctx.send(random.choice(ctx.guild.members).mention, allowed_mentions=discord.AllowedMentions.none())
 
 

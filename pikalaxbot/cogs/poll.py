@@ -257,9 +257,10 @@ class Poll(BaseCog):
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[typing.Union[float, FutureTime]], prompt, *opts):
-        f"""Create a poll with up to 10 options.  Poll will last for {Poll.TIMEOUT:.1f} seconds (or as specified), 
+        """Create a poll with up to 10 options.  Poll will last for 60.0 seconds (or as specified),
         with sudden death tiebreakers as needed.  Use quotes to enclose multi-word
 duration, prompt, and options."""
+
         if timeout is None:
             timeout = Poll.TIMEOUT
         elif isinstance(timeout, FutureTime):
@@ -288,6 +289,7 @@ duration, prompt, and options."""
     async def cancel(self, ctx: commands.Context, mgr: PollManager):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
+
         if ctx.author.id not in (mgr.owner_id, ctx.bot.owner_id):
             raise NotPollOwner('You may not cancel this poll')
         mgr.cancel()
@@ -295,6 +297,7 @@ duration, prompt, and options."""
     @poll_cmd.command()
     async def show(self, ctx: commands.Context, mgr: PollManager):
         """Gets poll info using a code."""
+
         if mgr.message is not None:
             await ctx.send(mgr.message.jump_url)
         else:
@@ -314,6 +317,7 @@ duration, prompt, and options."""
     @poll_cmd.command()
     async def list(self, ctx: commands.Context):
         """Lists all polls"""
+
         s = '\n'.join(str(poll) for poll in self.polls if not poll.task.done())
         if s:
             await ctx.send(f'Running polls: [\n{s}\n]')

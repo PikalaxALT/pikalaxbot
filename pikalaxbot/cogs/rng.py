@@ -28,6 +28,7 @@ class Rng(BaseCog):
     async def choose(self, ctx: commands.Context, *args):
         """Choose between multiple options separated by spaces.
         Use quotes to wrap multi-word options."""
+
         if len(set(args)) < 2:
             await ctx.send('I need at least 2 unique options!',
                            delete_after=10)
@@ -37,6 +38,7 @@ class Rng(BaseCog):
     @commands.command()
     async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
         """Roll one or more dice with a given number of sides."""
+
         count, sides = params
         rolls = [str(random.randint(1, sides)) for i in range(count)]
         rollstr = ', '.join(rolls)
@@ -51,11 +53,13 @@ class Rng(BaseCog):
     @random.command(name='pokemon')
     async def random_pokemon(self, ctx):
         """Get a random Pokemon name"""
+
         await ctx.send(data.random_pokemon_name())
     
     @random.command(name='quilava')
     async def random_quilava(self, ctx):
         """Random quilava image"""
+
         img_pool = [
             "http://25.media.tumblr.com/tumblr_m2y3fwJvIp1r29nmno1_1280.jpg",
             "http://orig12.deviantart.net/736b/f/2013/230/3/9/quilava_by_haychel-d6is5we.jpg",
