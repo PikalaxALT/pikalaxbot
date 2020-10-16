@@ -22,6 +22,7 @@ import typing
 import inspect
 import os
 import datetime
+from jishaku.meta import __version__ as jsk_ver
 
 from . import BaseCog
 from .utils.errors import *
@@ -99,6 +100,7 @@ class Core(BaseCog):
         links the root of the bot's source tree."""
 
         url = 'https://github.com/PikalaxALT/pikalaxbot'
+        branch = 'master'
         if command is not None:
             src = command.callback.__code__.co_filename
             module = command.callback.__module__.replace('.', os.path.sep)
@@ -106,7 +108,10 @@ class Core(BaseCog):
                 lines, start = inspect.getsourcelines(command.callback)
                 sourcefile = src[src.index(module):].replace('\\', '/')
                 end = start + len(lines) - 1
-                url = f'{url}/blob/master/{sourcefile}#L{start}-L{end}'
+                if command.cog and command.cog.name == 'Jishaku':
+                    url = 'https://github.com/Gorialis/jishaku'
+                    branch = jsk_ver
+                url = f'{url}/blob/{branch}/{sourcefile}#L{start}-L{end}'
         await ctx.send(f'<{url}>')
 
     @BaseCog.listener()
