@@ -4,6 +4,7 @@ import datetime
 from discord.ext import commands, tasks
 from . import BaseCog
 import typing
+import traceback
 import io
 import time
 import matplotlib.pyplot as plt
@@ -79,6 +80,12 @@ class ChatDeathIndex(BaseCog):
 
         for channel in self.bot.get_all_channels():
             await self.init_channel(channel, now)
+
+    @save_message_count.error
+    async def save_message_error(self, error):
+        s = traceback.format_exception(error.__class__, error, error.__traceback__)
+        content = f'Ignoring exception in ChatDathIndex.save_message_count\n{s}'
+        await self.bot.send_tb(content)
 
     @staticmethod
     def to_cdi(avg):
