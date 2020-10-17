@@ -17,18 +17,58 @@
 # Credits to Danny for making this featureful paginated help.
 
 import discord
-import itertools
-from discord.ext import commands
+from discord.ext import commands, menus
 
 from . import BaseCog
-from .utils.paginator import HelpPaginator
+import typing
+
+
+class BotHelpPageSource(menus.GroupByPageSource):
+    async def format_page(self, menu: menus.MenuPages, entry: menus._GroupByEntry):
+        bot = menu.bot
+        cog = bot.get_cog(entry.key)
+        embed = discord.Embed(
+            title=entry.key,
+            description=(cog and cog.description) or discord.Embed.Empty
+        )
+        for command in entry.items:
+            embed.add_field(name=command.qualified_name, value=command.help or 'No help given')
+        return embed
+
+
+class CogHelpPageSource(menus.ListPageSource):
+    _cog = None
+
+    async def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
+        cog = self._cog
+        embed = discord.Embed(
+            title=f'{cog.qualified_name} Help',
+            description=cog.description or discord.Embed.Empty
+        )
+        for command in entry:
+            embed.add_field(name=command.qualified_name, value=command.help or 'No help given')
+        return embed
+
+
+class GroupHelpPageSource(menus.ListPageSource):
+    title = discord.Embed.Empty
+    description = discord.Embed.Empty
+
+    async def format_page(self, menu, page):
+        embed = discord.Embed(
+            title=self.title,
+            description=self.description
+        )
+        for command in page:
+            embed.add_field(name=command.qualified_name, value=command.help or 'No help given')
+        return embed
 
 
 class PaginatedHelpCommand(commands.HelpCommand):
     def __init__(self, **options):
         command_attrs = options.pop('command_attrs', {})
         command_attrs.update(
-            cooldown=commands.Cooldown(1, 3.0, commands.BucketType.member),
+            max_concurrency=commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False),
             help='Shows help about the bot, a command, or a category'
         )
         super().__init__(command_attrs=command_attrs, **options)
@@ -55,37 +95,17 @@ class PaginatedHelpCommand(commands.HelpCommand):
             return c.cog_name or '\u200bNo Category'
 
         bot = self.context.bot
-        entries = await self.filter_commands(bot.commands, sort=True, key=key)
-        nested_pages = []
-        per_page = 9
-        total = 0
-
-        for cog, cmds in itertools.groupby(entries, key=key):
-            cmds = sorted(cmds, key=lambda c: c.name)
-            if len(cmds) == 0:
-                continue
-
-            total += len(cmds)
-            actual_cog = bot.get_cog(cog)
-            # get the description if it exists (and the cog is valid) or return Empty embed.
-            description = (actual_cog and actual_cog.description) or discord.Embed.Empty
-            nested_pages.extend((cog, description, cmds[i:i + per_page]) for i in range(0, len(cmds), per_page))
-
-        # a value of 1 forces the pagination session
-        pages = HelpPaginator(self, self.context, nested_pages, per_page=1)
-
-        # swap the get_page implementation to work with our nested pages.
-        pages.get_page = pages.get_bot_page
-        pages.total = total
-        await pages.paginate()
+        entries = [await self.filter_commands(bot.commands, sort=True, key=key)]
+        page_source = BotHelpPageSource(entries, key=key, per_page=9)
+        paginator = menus.MenuPages(page_source, bot=bot, delete_message_after=True)
+        await paginator.start(ctx=self.context, wait=True)
 
     async def send_cog_help(self, cog):
         entries = await self.filter_commands(cog.get_commands(), sort=True)
-        pages = HelpPaginator(self, self.context, entries)
-        pages.title = f'{cog.qualified_name} Commands'
-        pages.description = cog.description
-
-        await pages.paginate()
+        page_source = CogHelpPageSource(entries, per_page=6)
+        page_source._cog = cog
+        paginator = menus.MenuPages(page_source, bot=self.context.bot, delete_message_after=True)
+        await paginator.start(ctx=self.context, wait=True)
 
     def common_command_formatting(self, page_or_embed, command):
         page_or_embed.title = self.get_command_signature(command)
@@ -106,10 +126,11 @@ class PaginatedHelpCommand(commands.HelpCommand):
             return await self.send_command_help(group)
 
         entries = await self.filter_commands(subcommands, sort=True)
-        pages = HelpPaginator(self, self.context, entries)
-        self.common_command_formatting(pages, group)
+        page_source = GroupHelpPageSource(entries, per_page=9)
+        self.common_command_formatting(page_source, group)
 
-        await pages.paginate()
+        paginator = menus.MenuPages(page_source, bot=self.context.bot, delete_message_after=True)
+        await paginator.start(ctx=self.context, wait=True)
 
 
 class Help(BaseCog):
