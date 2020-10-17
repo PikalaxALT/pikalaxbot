@@ -69,6 +69,8 @@ class Ping(BaseCog):
         for the indicated number of minutes (default: 60)"""
         if isinstance(history, int):
             history = ctx.message.created_at - datetime.timedelta(minutes=history)
+        else:
+            history = history.dt
         buffer = io.BytesIO()
         start = time.perf_counter()
         await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history)
