@@ -8,7 +8,7 @@ import struct
 import matplotlib.pyplot as plt
 import os
 import typing
-from .utils.converters import HumanTime
+from .utils.converters import Time
 
 
 class Ping(BaseCog):
@@ -64,13 +64,12 @@ class Ping(BaseCog):
 
     @commands.check(lambda ctx: ctx.cog.ping_history)
     @ping.command(name='history', aliases=['graph', 'plot'])
-    async def plot_ping(self, ctx, history: typing.Union[HumanTime, int] = 60):
+    async def plot_ping(self, ctx, history: typing.Union[Time, int] = 60):
         """Plot the bot's ping history (measured as gateway heartbeat)
         for the indicated number of minutes (default: 60)"""
         if isinstance(history, int):
             history = ctx.message.created_at - datetime.timedelta(minutes=history)
         else:
-            assert history._past
             history = history.dt
         buffer = io.BytesIO()
         start = time.perf_counter()
