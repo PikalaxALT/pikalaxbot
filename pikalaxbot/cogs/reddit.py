@@ -55,12 +55,9 @@ class Reddit(BaseCog):
         permalink = child['permalink']
         score = child['score']
         upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
-        downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
-        upvotes = child['ups']
-        downvotes = child['downs']
         embed = discord.Embed(
             title=child['title'],
-            description=f'Score: {score} ({upvote_emoji}{upvotes}/{downvote_emoji}{downvotes})',
+            description=f'Score: {score}{upvote_emoji}',
             url=f'https://reddit.com{permalink}',
             colour=discord.Colour.dark_orange(),
             timestamp=datetime.datetime.fromtimestamp(child['created_utc'])
