@@ -29,9 +29,7 @@ class Reddit(BaseCog):
     def cog_unload(self):
         self.bot.loop.create_task(self.session.close())
 
-    @commands.command(name='reddit', aliases=['sub'])
-    async def get_subreddit(self, ctx, subreddit):
-        """Randomly fetch an image post from the given subreddit."""
+    async def get_subreddit_embed(self, ctx, subreddit):
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
 
@@ -69,6 +67,13 @@ class Reddit(BaseCog):
         )
         embed.set_image(url=child['url'])
         embed.set_author(name=f'/u/{author}', url=f'https://reddit.com/u/{author}')
+        return embed
+
+    @commands.command(name='reddit', aliases=['sub'])
+    async def get_subreddit(self, ctx, subreddit):
+        """Randomly fetch an image post from the given subreddit."""
+        async with ctx.typing():
+            embed = await self.get_subreddit_embed(ctx, subreddit)
         await ctx.send(embed=embed)
 
     @commands.command()

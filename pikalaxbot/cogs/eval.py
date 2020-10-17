@@ -146,6 +146,8 @@ class Eval(BaseCog):
 
     @eval_cmd.command(name='cancel')
     async def eval_cancel(self, ctx):
+        """Cancel the current running python eval"""
+
         fut = self._running_evals.get(ctx.channel.id)
         if fut is None:
             await ctx.send(f'No running eval {self.bot.command_error_emoji}', delete_after=10)
@@ -191,6 +193,8 @@ class Eval(BaseCog):
 
     @shell_cmd.command(name='cancel')
     async def shell_cancel(self, ctx):
+        """Cancel the current running shell process"""
+
         fut = self._running_shells.get(ctx.channel.id)
         if fut is None:
             await ctx.send(f'No running shell {self.bot.command_error_emoji}', delete_after=10)

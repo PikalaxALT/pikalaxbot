@@ -19,6 +19,7 @@ import discord
 import traceback
 import sqlite3
 import logging
+import typing
 from discord.ext import commands
 from . import BaseCog
 from .utils.converters import CommandConverter
@@ -314,11 +315,14 @@ class Modtools(BaseCog):
 
     @admin.command()
     @commands.bot_has_permissions(manage_messages=True)
-    async def purge(self, ctx: commands.Context, limit=10):
+    async def purge(self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel], limit=10):
+        """Purge <limit> of the bot's messages in the current (or given) channel"""
+
+        channel = channel or ctx.channel
         async with ctx.channel.typing():
-            to_delete = [m async for m in filter_history(ctx.channel, limit=limit, check=lambda m: m.author == self.bot.user)]
+            to_delete = [m async for m in filter_history(channel, limit=limit, check=lambda m: m.author == self.bot.user)]
             await ctx.channel.delete_messages(to_delete)
-            await ctx.message.add_reaction('✅')
+        await ctx.message.add_reaction('✅')
 
     async def cog_command_error(self, ctx, error):
         await ctx.message.add_reaction('❌')
@@ -327,10 +331,14 @@ class Modtools(BaseCog):
 
     @commands.command(name='cl')
     async def fast_cog_load(self, ctx, *cogs: lower):
+        """Load the extension"""
+
         await self.load_cog(ctx, *cogs)
 
     @commands.command(name='cr')
     async def fast_cog_reload(self, ctx, *cogs: lower):
+        """Reoad the extension"""
+
         await self.reload_cog(ctx, *cogs)
 
 
