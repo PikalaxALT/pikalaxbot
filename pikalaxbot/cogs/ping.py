@@ -7,6 +7,7 @@ import datetime
 import struct
 import matplotlib.pyplot as plt
 import typing
+import traceback
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import set_time_xlabs
 
@@ -39,6 +40,12 @@ class Ping(BaseCog):
     @build_ping_history.before_loop
     async def before_ping_history(self):
         await self.bot.wait_until_ready()
+
+    @build_ping_history.error
+    async def ping_history_error(self, error):
+        s = traceback.format_exception(error.__class__, error, error.__traceback__)
+        content = f'Ignoring exception in Ping.build_ping_history\n{s}'
+        await self.bot.send_tb(content)
 
     @commands.group(invoke_without_command=True)
     async def ping(self, ctx: commands.Context):

@@ -21,6 +21,9 @@ import logging
 import os
 import glob
 import traceback
+from io import StringIO
+import aiohttp
+from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
@@ -114,7 +117,12 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             async with self.sql as sql:
                 await sql.db_init(self)
 
+        async def init_client_session():
+            self.client_session = aiohttp.ClientSession()
+
+        self.client_session = None
         self.loop.create_task(init_sql())
+        self.loop.create_task(init_client_session())
 
         # Reboot handler
         self.reboot_after = True
@@ -130,6 +138,21 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     @property
     def sql(self):
         return connect(self._sql, loop=self.loop)
+
+    async def send_tb(self, tb, embed=None):
+        channel = self.exc_channel
+        client_session = self.client_session
+        if channel is None:
+            return
+        if len(tb) < 1990:
+            await channel.send(f'```{tb}```', embed=embed)
+        else:
+            try:
+                url = await mystbin(tb, cs=client_session)
+            except aiohttp.ClientResponseError:
+                await channel.send('An error has occurred', file=discord.File(StringIO(tb)), embed=embed)
+            else:
+                await channel.send(f'An error has occurred: {url}', embed=embed)
 
     def run(self):
         self.logger.info('Starting bot')

@@ -7,6 +7,7 @@ import datetime
 import io
 import matplotlib.pyplot as plt
 import typing
+import traceback
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import set_time_xlabs
 
@@ -60,6 +61,12 @@ class MemberStatus(BaseCog):
     @update_counters.before_loop
     async def update_counters_before_loop(self):
         await self.bot.wait_until_ready()
+
+    @update_counters.error
+    async def update_counters_error(self, error):
+        s = traceback.format_exception(error.__class__, error, error.__traceback__)
+        content = f'Ignoring exception in MemberStatus.update_counters\n{s}'
+        await self.bot.send_tb(content)
 
     def do_plot_status_history(self, buffer, ctx, history):
         times, values = zip(*sorted([t for t in self.counters[ctx.guild.id].items() if t[0] >= history]))

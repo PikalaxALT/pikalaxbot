@@ -24,13 +24,10 @@ import argparse
 import discord
 from discord.ext import commands
 import traceback
-import aiohttp
 import sys
 import os
-from io import StringIO
 
 from . import PikalaxBOT
-from .utils.hastebin import mystbin
 from .cogs.utils.errors import CogOperationError
 from .cogs import BaseCog
 
@@ -69,20 +66,6 @@ def main():
     async def on_ready():
         print(f'Logged in as {bot.user}')
 
-    async def send_tb(tb, embed=None):
-        channel = bot.exc_channel
-        if channel is None:
-            return
-        if len(tb) < 1990:
-            await channel.send(f'```{tb}```', embed=embed)
-        else:
-            try:
-                url = await mystbin(tb)
-            except aiohttp.ClientResponseError:
-                await channel.send('An error has occurred', file=discord.File(StringIO(tb)), embed=embed)
-            else:
-                await channel.send(f'An error has occurred: {url}', embed=embed)
-
     @bot.event
     async def on_error(event, *args, **kwargs):
         s = traceback.format_exc()
@@ -99,7 +82,7 @@ def main():
                             + (message.content if len(message.content) < 100 else message.content[:97] + '...')
                             + '`', inline=False)
             embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
-        await send_tb(content, embed=embed)
+        await bot.send_tb(content, embed=embed)
 
     async def handle_command_error(ctx: commands.Context, exc: PikalaxBOT.handle_excs):
         if isinstance(exc, commands.MissingRequiredArgument):
@@ -117,7 +100,7 @@ def main():
                 lines = ''.join(traceback.format_exception(orig.__class__, orig, orig.__traceback__))
                 print(lines)
                 lines = f'Ignoring exception in {exc.mode}ing {cog}:\n{lines}'
-                await send_tb(lines)
+                await bot.send_tb(lines)
             return
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
@@ -147,7 +130,7 @@ def main():
             embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
         embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
         embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm", inline=False)
-        await send_tb(lines, embed=embed)
+        await bot.send_tb(lines, embed=embed)
 
     bot.run()
     return not bot.reboot_after
