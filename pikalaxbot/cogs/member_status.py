@@ -30,7 +30,7 @@ class MemberStatus(BaseCog):
     async def init_db(self, sql):
         await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp integer, online integer, offline integer, dnd integer, idle integer)')
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
-        async for guild_id, timestamp, online, offline, dnd, idle in sql.execute_fetchall('select * from memberstatus'):
+        for guild_id, timestamp, online, offline, dnd, idle in await sql.execute_fetchall('select * from memberstatus'):
             self.counters[guild_id][datetime.datetime.utcfromtimestamp(timestamp)] = {
                 discord.Status.online: online,
                 discord.Status.offline: offline,
