@@ -67,7 +67,7 @@ class MemberStatus(BaseCog):
         counts = {key: [v[key] for v in values] for key in self.colormap}
         ax: plt.Axes = plt.gca()
         for key, value in counts.items():
-            ax.plot(range(history), value, c=self.colormap[key], label=str(key).title())
+            ax.plot(times, value, c=self.colormap[key], label=str(key).title())
         set_time_xlabs(ax, times)
         plt.xlabel('Time (UTC)')
         plt.ylabel('Number of users')
