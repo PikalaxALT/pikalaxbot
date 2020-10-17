@@ -97,14 +97,14 @@ class PaginatedHelpCommand(commands.HelpCommand):
         bot = self.context.bot
         entries = await self.filter_commands(bot.commands, sort=True, key=key)
         page_source = BotHelpPageSource(entries, key=key, per_page=9)
-        paginator = menus.MenuPages(page_source, bot=bot, delete_message_after=True)
+        paginator = menus.MenuPages(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
     async def send_cog_help(self, cog):
         entries = await self.filter_commands(cog.get_commands(), sort=True)
         page_source = CogHelpPageSource(entries, per_page=6)
         page_source._cog = cog
-        paginator = menus.MenuPages(page_source, bot=self.context.bot, delete_message_after=True)
+        paginator = menus.MenuPages(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
     def common_command_formatting(self, page_or_embed, command):
@@ -129,7 +129,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
         page_source = GroupHelpPageSource(entries, per_page=9)
         self.common_command_formatting(page_source, group)
 
-        paginator = menus.MenuPages(page_source, bot=self.context.bot, delete_message_after=True)
+        paginator = menus.MenuPages(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
 
