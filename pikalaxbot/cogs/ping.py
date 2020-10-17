@@ -34,8 +34,6 @@ class Ping(BaseCog):
         self.ping_history[now] = ping
         async with self.bot.sql as sql:
             await sql.execute_insert('insert or ignore into ping_history values (?, ?)', (now.timestamp(), ping))
-        with open('ping_history.bin', 'ab') as ofp:
-            ofp.write(struct.pack('=dd', now.timestamp(), ping))
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
