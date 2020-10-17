@@ -72,6 +72,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
     def __init__(self, **options):
         command_attrs = options.pop('command_attrs', {})
         command_attrs.update(
+            cooldown=commands.Cooldown(1, 3.0, commands.BucketType.user),
             max_concurrency=commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False),
             help='Shows help about the bot, a command, or a category'
         )
