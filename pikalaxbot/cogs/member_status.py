@@ -56,7 +56,7 @@ class MemberStatus(BaseCog):
                 counts[discord.Status.idle]
             ])
         async with self.bot.sql as sql:
-            await sql.executemany('insert or ignore into membserstatus values (?, ?, ?, ?, ?, ?)', to_insert)
+            await sql.executemany('insert or ignore into memberstatus values (?, ?, ?, ?, ?, ?)', to_insert)
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
