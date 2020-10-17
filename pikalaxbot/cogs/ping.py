@@ -46,7 +46,7 @@ class Ping(BaseCog):
                                f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms')
 
     def do_plot_ping(self, buffer, history):
-        start_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=history)
+        start_time = history
         times, values = zip(*sorted([t for t in self.ping_history.items() if t[0] >= start_time]))
         plt.figure()
         ax: plt.Axes = plt.gca()
@@ -67,8 +67,8 @@ class Ping(BaseCog):
     async def plot_ping(self, ctx, history: typing.Union[HumanTime, int] = 60):
         """Plot the bot's ping history (measured as gateway heartbeat)
         for the indicated number of minutes (default: 60)"""
-        if isinstance(history, HumanTime):
-            history = (datetime.datetime.utcnow() - history.dt).total_seconds() / 60.0
+        if isinstance(history, int):
+            history = ctx.message.created_at - datetime.timedelta(minutes=history)
         buffer = io.BytesIO()
         start = time.perf_counter()
         await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history)
