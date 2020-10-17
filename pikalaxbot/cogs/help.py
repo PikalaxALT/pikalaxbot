@@ -29,10 +29,11 @@ class BotHelpPageSource(menus.GroupByPageSource):
         cog = bot.get_cog(entry.key)
         embed = discord.Embed(
             title=entry.key,
-            description=(cog and cog.description) or discord.Embed.Empty
+            description=(cog and cog.description) or discord.Embed.Empty,
+            colour=discord.Colour.blurple()
         )
         for command in entry.items:
-            embed.add_field(name=command.qualified_name, value=command.help or 'No help given')
+            embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
         return embed
 
 
@@ -43,10 +44,11 @@ class CogHelpPageSource(menus.ListPageSource):
         cog = self._cog
         embed = discord.Embed(
             title=f'{cog.qualified_name} Help',
-            description=cog.description or discord.Embed.Empty
+            description=cog.description or discord.Embed.Empty,
+            colour=discord.Colour.blurple()
         )
         for command in entry:
-            embed.add_field(name=command.qualified_name, value=command.help or 'No help given')
+            embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
         return embed
 
 
@@ -57,10 +59,11 @@ class GroupHelpPageSource(menus.ListPageSource):
     async def format_page(self, menu, page):
         embed = discord.Embed(
             title=self.title,
-            description=self.description
+            description=self.description or discord.Embed.Empty,
+            colour=discord.Colour.blurple()
         )
         for command in page:
-            embed.add_field(name=command.qualified_name, value=command.help or 'No help given')
+            embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
         return embed
 
 
