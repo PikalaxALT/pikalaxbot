@@ -7,6 +7,7 @@ import datetime
 import struct
 import matplotlib.pyplot as plt
 import os
+import typing
 from .utils.converters import HumanTime
 
 
@@ -63,11 +64,14 @@ class Ping(BaseCog):
 
     @commands.check(lambda ctx: ctx.cog.ping_history)
     @ping.command(name='history', aliases=['graph', 'plot'])
-    async def plot_ping(self, ctx, history: HumanTime = datetime.timedelta(seconds=60)):
-        """Plot the bot's ping history (measured as gateway heartbeat) for the indicated number of minutes (default: 60)"""
+    async def plot_ping(self, ctx, history: typing.Union[HumanTime, int] = 60):
+        """Plot the bot's ping history (measured as gateway heartbeat)
+        for the indicated number of minutes (default: 60)"""
+        if isinstance(history, HumanTime):
+            history = (datetime.datetime.utcnow() - history.dt).total_seconds() / 60.0
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history.total_seconds())
+        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history)
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))

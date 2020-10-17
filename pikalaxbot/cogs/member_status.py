@@ -6,6 +6,7 @@ import time
 import datetime
 import io
 import matplotlib.pyplot as plt
+import typing
 from .utils.converters import HumanTime
 
 
@@ -57,11 +58,13 @@ class MemberStatus(BaseCog):
     @commands.guild_only()
     @commands.check(lambda ctx: ctx.cog.start_time)
     @commands.command(name='userstatus')
-    async def plot_status(self, ctx, history: HumanTime = datetime.timedelta(minutes=1)):
+    async def plot_status(self, ctx, history: typing.Union[HumanTime, int] = 60):
         """Plot history of user status counts in the current guild."""
+        if isinstance(history, HumanTime):
+            history = (datetime.datetime.utcnow() - history.dt).total_seconds() / 60.0
         buffer = io.BytesIO()
         start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, round(history.total_seconds()))
+        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, round(history))
         end = time.perf_counter()
         buffer.seek(0)
         await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'status.png'))
