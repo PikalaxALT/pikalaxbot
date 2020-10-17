@@ -70,6 +70,7 @@ class Ping(BaseCog):
         if isinstance(history, int):
             history = ctx.message.created_at - datetime.timedelta(minutes=history)
         else:
+            assert history._past
             history = history.dt
         buffer = io.BytesIO()
         start = time.perf_counter()
