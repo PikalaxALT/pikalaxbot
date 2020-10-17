@@ -155,3 +155,28 @@ class FutureTime(Time):
 
         if self._past:
             raise commands.BadArgument('this time is in the past')
+
+
+class ShortPastTime(ShortTime):
+    def __init__(self, argument, *, now=None):
+        match = self.compiled.fullmatch(argument)
+        if match is None or not match.group(0):
+            raise commands.BadArgument('invalid time provided')
+
+        data = { k: int(v) for k, v in match.groupdict(default=0).items() }
+        now = now or datetime.datetime.utcnow()
+        self.dt = now - relativedelta(**data)
+
+
+class PastTime(HumanTime):
+    def __init__(self, argument, *, now=None):
+        try:
+            o = ShortPastTime(argument, now=now)
+        except Exception as e:
+            super().__init__(argument, now=now)
+        else:
+            self.dt = o.dt
+            self._past = True
+
+        if not self._past:
+            raise commands.BadArgument('That time is in the future')
