@@ -6,9 +6,9 @@ import time
 import datetime
 import struct
 import matplotlib.pyplot as plt
-import os
 import typing
 from .utils.converters import PastTime
+from .utils.mpl_time_axis import set_time_xlabs
 
 
 class Ping(BaseCog):
@@ -20,19 +20,24 @@ class Ping(BaseCog):
     def cog_unload(self):
         self.build_ping_history.cancel()
 
+    async def init_db(self, sql):
+        await sql.execute('create table if not exists ping_history (timestamp real, latency real)')
+        await sql.execute('create unique index if not exists ping_history_idx on ping_history (timestamp)')
+        async for timestamp, latency in sql.execute_fetchall('select * from ping_history'):
+            self.ping_history[datetime.datetime.utcfromtimestamp(timestamp)] = latency
+
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
-        now = datetime.datetime.utcnow()
+        now = self.build_ping_history._last_iteration
         ping = self.bot.latency * 1000
         self.ping_history[now] = ping
+        async with self.bot.sql as sql:
+            await sql.execute_insert('insert or ignore into ping_history values (?, ?)', (now.timestamp(), ping))
         with open('ping_history.bin', 'ab') as ofp:
             ofp.write(struct.pack('=dd', now.timestamp(), ping))
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
-        if os.path.exists('ping_history.bin'):
-            with open('ping_history.bin', 'rb') as ifp:
-                self.ping_history = {datetime.datetime.fromtimestamp(t): p for t, p in struct.iter_unpack('=dd', ifp.read())}
         await self.bot.wait_until_ready()
 
     @commands.group(invoke_without_command=True)
@@ -46,16 +51,12 @@ class Ping(BaseCog):
                                f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms')
 
     def do_plot_ping(self, buffer, history):
-        start_time = history
-        times, values = zip(*sorted([t for t in self.ping_history.items() if t[0] >= start_time]))
+        times, values = zip(*sorted([t for t in self.ping_history.items() if t[0] >= history]))
         plt.figure()
         ax: plt.Axes = plt.gca()
         ax.plot(times, values)
         ax.fill_between(times, [0 for _ in values], values)
-        labs = ax.get_xticklabels()
-        tick_width = (times[-1] - times[0]).total_seconds() / (len(labs) - 1)
-        new_labs = [(times[0] + datetime.timedelta(seconds=i * tick_width)).strftime('%Y-%m-%d\nT%H:%M:%S') for i in range(len(labs))]
-        ax.set_xticklabels(new_labs, rotation=45, ha='right', ma='right')
+        set_time_xlabs(ax, times)
         plt.xlabel('Time (UTC)')
         plt.ylabel('Heartbeat latency (ms)')
         plt.tight_layout()
