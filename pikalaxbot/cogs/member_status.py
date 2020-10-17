@@ -31,7 +31,7 @@ class MemberStatus(BaseCog):
         await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp integer, online integer, offline integer, dnd integer, idle integer)')
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
         for guild_id, timestamp, online, offline, dnd, idle in await sql.execute_fetchall('select * from memberstatus'):
-            self.counters[guild_id][datetime.datetime.utcfromtimestamp(timestamp).replace(tzinfo=None)] = {
+            self.counters[guild_id][datetime.datetime.utcfromtimestamp(timestamp)] = {
                 discord.Status.online: online,
                 discord.Status.offline: offline,
                 discord.Status.dnd: dnd,
@@ -40,7 +40,7 @@ class MemberStatus(BaseCog):
 
     @tasks.loop(seconds=30)
     async def update_counters(self):
-        now = self.update_counters._last_iteration.astimezone(None)
+        now = self.update_counters._last_iteration.replace(tzinfo=None)
         sql_now = now.timestamp()
         to_insert = []
         for guild in self.bot.guilds:
