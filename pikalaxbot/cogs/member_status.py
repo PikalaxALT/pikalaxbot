@@ -7,7 +7,7 @@ import datetime
 import io
 import matplotlib.pyplot as plt
 import typing
-from .utils.converters import Time
+from .utils.converters import PastTime
 
 
 class MemberStatus(BaseCog):
@@ -58,9 +58,9 @@ class MemberStatus(BaseCog):
     @commands.guild_only()
     @commands.check(lambda ctx: ctx.cog.start_time)
     @commands.command(name='userstatus')
-    async def plot_status(self, ctx, history: typing.Union[Time, int] = 60):
+    async def plot_status(self, ctx, history: typing.Union[PastTime, int] = 60):
         """Plot history of user status counts in the current guild."""
-        if isinstance(history, Time):
+        if isinstance(history, PastTime):
             history = (datetime.datetime.utcnow() - history.dt).total_seconds() / 60.0
         buffer = io.BytesIO()
         start = time.perf_counter()
