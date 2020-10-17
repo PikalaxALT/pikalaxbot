@@ -24,6 +24,9 @@ class MemberStatus(BaseCog):
         self.counters = defaultdict(dict)
         self.update_counters.start()
 
+    def cog_unload(self):
+        self.update_counters.cancel()
+
     async def init_db(self, sql):
         await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp integer, online integer, offline integer, dnd integer, idle integer)')
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
@@ -35,12 +38,9 @@ class MemberStatus(BaseCog):
                 discord.Status.idle: idle
             }
 
-    def cog_unload(self):
-        self.update_counters.cancel()
-
     @tasks.loop(seconds=30)
     async def update_counters(self):
-        now: datetime.datetime = self.update_counters._last_iteration
+        now = self.update_counters._last_iteration.astimezone(None)
         sql_now = now.timestamp()
         to_insert = []
         for guild in self.bot.guilds:

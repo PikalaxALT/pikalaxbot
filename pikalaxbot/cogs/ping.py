@@ -28,7 +28,7 @@ class Ping(BaseCog):
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
-        now = self.build_ping_history._last_iteration
+        now = self.build_ping_history._last_iteration.astimezone(None)
         ping = self.bot.latency * 1000
         self.ping_history[now] = ping
         async with self.bot.sql as sql:
