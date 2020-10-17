@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Credits to Danny for making this featureful paginated help.
+# 17 Oct 2020: Refactored to use ext.menus
 
 import discord
 from discord.ext import commands, menus
