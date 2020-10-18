@@ -160,7 +160,8 @@ class Meme(BaseCog):
         else:
             shaft = '=' * ((hash(target) % 30) + 1)
         collective = 'average ' if isinstance(target, discord.Role) else ''
-        await ctx.send(f'{target.mention}\'s {collective}dick: 8{shaft}D', allowed_mentions=discord.AllowedMentions.none())
+        mention = '@everyone' if isinstance(target, discord.Role) and target.is_default() else target.mention
+        await ctx.send(f'{mention}\'s {collective}dick: 8{shaft}D', allowed_mentions=discord.AllowedMentions.none())
 
 
 def setup(bot):
