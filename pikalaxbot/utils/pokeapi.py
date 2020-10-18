@@ -6,9 +6,19 @@ import re
 class PokeApi:
     url = 'https://pokeapi.co/api/v2'
 
+    @staticmethod
+    def clean_name(name):
+        name = name.replace('♀', '_F').replace('♂', '_m')
+        name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
+        return name
+
     def __init__(self, *, cs: aiohttp.ClientSession = None):
         self._natdex = None
         self._movebank = None
+        self._mon_names = set()
+        self._type_names = set()
+        self._move_names = set()
+        self._ability_names = set()
         self.cs = cs or aiohttp.ClientSession(raise_for_status=True)
 
     async def __aenter__(self):
@@ -40,7 +50,15 @@ class PokeApi:
                 if init_movebank:
                     self._movebank += gen['moves']
                 if init_natdex:
-                    self._natdex += gen['pokemon_species']
+                    for mon in gen['pokemon_species']:
+                        for variety in mon['varieties']:
+                            name = variety['pokemon']['name']
+                            res = await self.get_json(f'pokemon/{name}')
+                            self._natdex.append(res)
+                            self._ability_names |= [ab['ability']['name'] for ab in res['abilities']]
+                            self._type_names |= [tp['type']['name'] for tp in res['types']]
+            self._mon_names |= [mon['name'] for mon in self._natdex]
+            self._move_names |= [move['name'] for move in self._movebank]
 
     async def random_pokemon(self):
         await self.init_caches()
@@ -50,8 +68,7 @@ class PokeApi:
         mon = await self.random_pokemon()
         name = mon['name']
         if clean:
-            name = name.replace('♀', '_F').replace('♂', '_m')
-            name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
+            name = self.clean_name(name)
         return name
 
     async def random_pokemon_attr(self, attr, default=None):
@@ -66,8 +83,7 @@ class PokeApi:
         move = await self.random_move()
         name = move['name']
         if clean:
-            name = name.replace('♀', '_F').replace('♂', '_m')
-            name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
+            name = self.clean_name(name)
         return name
 
     async def random_move_attr(self, attr, default=None):
