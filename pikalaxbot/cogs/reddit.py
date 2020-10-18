@@ -1,4 +1,3 @@
-import random
 import aiohttp
 import typing
 import platform

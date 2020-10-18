@@ -18,6 +18,7 @@ import asyncio
 import discord
 import math
 import time
+import traceback
 from .. import BaseCog
 from discord.ext import commands
 from .errors import BadGameArgument
@@ -169,4 +170,7 @@ class GameCogBase(BaseCog):
                            delete_after=10)
         elif isinstance(exc, commands.NoPrivateMessage):
             await ctx.send(exc)
+        else:
+            tb = traceback.format_exception(exc.__class__, exc, exc.__traceback__)
+            await self.bot.send_tb(f'Ignoring exception in command {ctx.command}\n```{tb}```')
         self.log_tb(ctx, exc)
