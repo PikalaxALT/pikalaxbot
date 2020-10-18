@@ -151,12 +151,16 @@ class Meme(BaseCog):
 
     @commands.check(lambda ctx: ctx.guild.id == DPY_GUILD_ID)
     @commands.command(aliases=['pp', 'peepee'])
-    async def dick(self, ctx, *, target: discord.Member = None):
+    async def dick(self, ctx, *, target: typing.Union[discord.Member, discord.Role] = None):
         """Get the size of your dick"""
 
         target = target or ctx.author
-        shaft = '=' * (hash(target) % 30)
-        await ctx.send(f'{target.mention}\'s dick: 8{shaft}D')
+        if ctx.author.id in (self.bot.user.id, self.bot.owner_id):
+            shaft = '=' * 69
+        else:
+            shaft = '=' * ((hash(target) % 30) + 1)
+        collective = 'average ' if isinstance(target, discord.Role) else ''
+        await ctx.send(f'{target.mention}\'s {collective}dick: 8{shaft}D', allowed_mentions=discord.AllowedMentions.none())
 
 
 def setup(bot):
