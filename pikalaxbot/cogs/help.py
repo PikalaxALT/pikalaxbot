@@ -36,6 +36,9 @@ class BotHelpPageSource(menus.GroupByPageSource):
         )
         for command in entry.items:
             embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
+        max_pages = self.get_max_pages()
+        if max_pages and max_pages > 1:
+            embed.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
         return embed
 
 
@@ -51,6 +54,9 @@ class CogHelpPageSource(menus.ListPageSource):
         )
         for command in entry:
             embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
+        max_pages = self.get_max_pages()
+        if max_pages and max_pages > 1:
+            embed.set_author(name=f'Page {menu.current_page + 1}/{self.get_max_pages()} ({len(self.entries)} commands)')
         return embed
 
 
@@ -58,7 +64,7 @@ class GroupHelpPageSource(menus.ListPageSource):
     title = discord.Embed.Empty
     description = discord.Embed.Empty
 
-    async def format_page(self, menu, page):
+    async def format_page(self, menu: menus.MenuPages, page):
         embed = discord.Embed(
             title=self.title,
             description=self.description or discord.Embed.Empty,
@@ -66,6 +72,9 @@ class GroupHelpPageSource(menus.ListPageSource):
         )
         for command in page:
             embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
+        max_pages = self.get_max_pages()
+        if max_pages and max_pages > 1:
+            embed.set_author(name=f'Page {menu.current_page + 1}/{self.get_max_pages()} ({len(self.entries)} commands)')
         return embed
 
 
