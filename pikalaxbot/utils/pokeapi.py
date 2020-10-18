@@ -50,7 +50,8 @@ class PokeApi:
         mon = await self.random_pokemon()
         name = mon['name']
         if clean:
-            name = re.sub(r'\W+', '_', name).upper()
+            name = name.replace('♀', '_F').replace('♂', '_m')
+            name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
     async def random_pokemon_attr(self, attr, default=None):
