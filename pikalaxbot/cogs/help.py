@@ -99,7 +99,7 @@ class HelpMenu(menus.MenuPages):
             await my_msg.delete()
         if msg.content.isdigit():
             page = int(msg.content)
-            await self.show_checked_page(page)
+            await self.show_checked_page(page - 1)
 
     @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(3))
     async def info(self, payload):
