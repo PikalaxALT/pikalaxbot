@@ -150,7 +150,7 @@ class Core(BaseCog):
             unit = 'KiB'
         await ctx.send(f'Total resources used: {rss:.3f} {unit}')
 
-    @commands.Cog.listener()
+    @BaseCog.listener()
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent):
         """Detect when the original version of a published announcement is delteted."""
 

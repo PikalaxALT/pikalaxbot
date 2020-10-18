@@ -19,7 +19,6 @@ import random
 from discord.ext import commands
 
 from . import BaseCog
-from .utils.data import data
 from .utils.converters import DiceRollConverter
 
 
@@ -54,7 +53,8 @@ class Rng(BaseCog):
     async def random_pokemon(self, ctx):
         """Get a random Pokemon name"""
 
-        await ctx.send(data.random_pokemon_name())
+        mon = await self.bot.pokeapi.random_pokemon_name()
+        await ctx.send(mon)
     
     @random.command(name='quilava')
     async def random_quilava(self, ctx):

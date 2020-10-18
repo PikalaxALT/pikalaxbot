@@ -27,6 +27,7 @@ from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
+from .utils.pokeapi import PokeApi
 
 from .ext.twitch import *
 from .cogs.utils.errors import *
@@ -119,8 +120,11 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
+            self.pokeapi = PokeApi(cs=self.client_session)
+            await self.pokeapi.init_caches()
 
         self.client_session = None
+        self.pokeapi = None
         self.loop.create_task(init_sql())
         self.loop.create_task(init_client_session())
 

@@ -17,15 +17,12 @@
 import random
 import aiohttp
 import typing
-import platform
-import datetime
 import os
 
 import discord
 from discord.ext import commands
 
 from . import BaseCog
-from .utils.data import data
 
 __dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
@@ -125,7 +122,7 @@ class Meme(BaseCog):
         """Happy birthday, Waggle!"""
 
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
-                       f'Waggling a finger allowed it to use {data.random_move_name()}!')
+                       f'Waggling a finger allowed it to use {await self.bot.pokeapi.random_move_name()}!')
 
     @commands.command()
     async def olden(self, ctx):

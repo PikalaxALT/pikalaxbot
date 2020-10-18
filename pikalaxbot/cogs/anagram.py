@@ -18,7 +18,6 @@ import random
 
 from discord.ext import commands
 
-from .utils.data import data
 from .utils.game import GameBase, GameCogBase
 
 
@@ -48,7 +47,7 @@ class AnagramGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Anagram is already running here.',
                            delete_after=10)
         else:
-            self._solution = data.random_pokemon_name().upper()
+            self._solution = await self.bot.pokeapi.random_pokemon_name().upper()
             self._state = list(self._solution)
             while ''.join(self._state) == self._solution:
                 random.shuffle(self._state)

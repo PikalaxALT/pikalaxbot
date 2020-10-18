@@ -9,7 +9,6 @@ import discord
 from discord.ext import commands
 
 from . import BaseCog
-from .utils.data import data
 
 __dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
