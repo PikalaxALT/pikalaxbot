@@ -149,11 +149,12 @@ class Meme(BaseCog):
 
     @commands.check(lambda ctx: ctx.guild.id == DPY_GUILD_ID)
     @commands.command(aliases=['pp', 'peepee'])
-    async def dick(self, ctx):
+    async def dick(self, ctx, target: discord.Member = None):
         """Get the size of your dick"""
 
-        shaft = '=' * (hash(ctx.author) % 30)
-        await ctx.send(f'{ctx.author.mention}\'s dick: 8{shaft}D')
+        target = target or ctx.author
+        shaft = '=' * (hash(target) % 30)
+        await ctx.send(f'{target.mention}\'s dick: 8{shaft}D')
 
 
 def setup(bot):
