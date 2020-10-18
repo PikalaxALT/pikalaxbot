@@ -87,7 +87,7 @@ class HelpMenu(menus.MenuPages):
         payload = done.pop().result()
         return payload
 
-    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}')
+    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(2))
     async def pick_page(self, payload):
         await self.ctx.send('What page do you want to go to?')
         try:
@@ -99,21 +99,21 @@ class HelpMenu(menus.MenuPages):
             page = int(msg.content)
             await self.show_checked_page(page)
 
-    @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(2))
+    @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(3))
     async def info(self, payload):
         self._in_info = not self._in_info
         if self._in_info:
             embed = discord.Embed(title='Paginator help', description='Hello! Welcome to the help page.')
-            value = '⏮: go to the first page' \
-                    '◀: go to the previous page' \
-                    '▶: go to the next page' \
-                    '⏭: go to the last page' \
-                    '🔢: lets you type a page number to go to' \
-                    '⏹: stops the pagination session.' \
-                    'ℹ: shows this message' \
+            value = '⏮: go to the first page\n' \
+                    '◀: go to the previous page\n' \
+                    '▶: go to the next page\n' \
+                    '⏭: go to the last page\n' \
+                    '🔢: lets you type a page number to go to\n' \
+                    '⏹: stops the pagination session.\n' \
+                    'ℹ: shows this message\n' \
                     '❔: shows how to use the bot'
             embed.add_field(name='What are these reactions for?', value=value)
-            embed.set_footer(text=f'We were on page {self.current_page} before this message.')
+            embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
             await self.message.edit(embed=embed)
             try:
                 await self.wait_for_reaction()
@@ -122,7 +122,7 @@ class HelpMenu(menus.MenuPages):
         if not self._in_info:
             await self.show_current_page()
 
-    @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(3))
+    @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(4))
     async def using_the_bot(self, payload):
         embed = discord.Embed(title='Using the bot', description='Hello! Welcome to the help page')
         embed.add_field(name='How do I use the bot?', value='Reading the bot signature is pretty simple.', inline=False)
@@ -131,7 +131,7 @@ class HelpMenu(menus.MenuPages):
         embed.add_field(name='[A|B]', value='This means that it can be either A or B.', inline=False)
         embed.add_field(name='[argument...]', value='This means you can have multiple arguments.', inline=False)
         embed.add_field(name='Now that you know the basics, it should be noted that...', value='You do not type in the brackets!', inline=False)
-        embed.set_footer(text=f'We were on page {self.current_page} before this message.')
+        embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
         await self.message.edit(embed=embed)
         try:
             await self.wait_for_reaction()
