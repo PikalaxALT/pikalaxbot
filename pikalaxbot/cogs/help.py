@@ -89,12 +89,14 @@ class HelpMenu(menus.MenuPages):
 
     @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(2))
     async def pick_page(self, payload):
-        await self.ctx.send('What page do you want to go to?')
+        my_msg = await self.ctx.send('What page do you want to go to?')
         try:
             msg = await self.bot.wait_for('message', check=lambda m: m.author == self.ctx.author and m.channel == self.ctx.channel, timeout=30.0)
         except asyncio.TimeoutError:
             await self.ctx.send('Took too long.')
             return
+        finally:
+            await my_msg.delete()
         if msg.content.isdigit():
             page = int(msg.content)
             await self.show_checked_page(page)
