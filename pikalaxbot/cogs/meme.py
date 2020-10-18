@@ -84,6 +84,8 @@ class Meme(BaseCog):
             await sql.executemany("insert into meme(bag) values (?)", sql.default_bag)
 
     async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.CheckFailure):
+            return
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command()
