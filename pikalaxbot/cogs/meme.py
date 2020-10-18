@@ -30,6 +30,8 @@ __dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
     __version__ = fp.read().strip()
 
+MaybeEmoji = typing.Union[discord.Emoji, discord.PartialEmoji, str]
+
 
 class HMM:
     def __init__(self, transition, emission):
@@ -88,20 +90,23 @@ class Meme(BaseCog):
             return
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
-    @commands.command()
-    async def archeops(self, ctx, *subjs):
+    @commands.command(ignore_extra=False)
+    async def archeops(self, ctx, subj1: MaybeEmoji = '', subj2: MaybeEmoji = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
 
-        if len(subjs) > 2:
-            raise commands.BadArgument('maximum two subjects for archeops command')
+        true_subj1 = subj1 if isinstance(subj1, str) else '%5bBLAH1%5d'
+        true_subj2 = subj2 if isinstance(subj2, str) else '%5bBLAH2%5d'
+
         timeout = aiohttp.ClientTimeout(total=15.0)
-        params = {f'Subject{i + 1}': (f'BLAH{i + 1}' if i < len(subjs) else '') for i in range(2)}
+        params = {'Subject1': true_subj1, 'Subject2': true_subj2}
         async with ctx.typing():
             async with self.session.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
                 res = await r.text()
-        for i, subj in enumerate(subjs):
-            res = res.replace(f'BLAH{i + 1}', subj)
+        if not isinstance(subj1, str):
+            res = res.replace(true_subj1, str(subj1))
+        if not isinstance(subj2, str):
+            res = res.replace(true_subj2, str(subj2))
         await ctx.send(res)
 
     @commands.command()
