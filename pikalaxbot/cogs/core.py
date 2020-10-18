@@ -111,6 +111,9 @@ class Core(BaseCog):
                 if command.cog and command.cog.__cog_name__ == 'Jishaku':
                     url = 'https://github.com/Gorialis/jishaku'
                     branch = jsk_ver
+                elif sourcefile.startswith('discord/'):
+                    url = 'https://github.com/Rapptz/discord.py'
+                    branch = f'v{discord.__version__}'
                 url = f'{url}/blob/{branch}/{sourcefile}#L{start}-L{end}'
         await ctx.send(f'<{url}>')
 
