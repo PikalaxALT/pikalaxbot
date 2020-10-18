@@ -24,6 +24,8 @@ from discord.ext import commands
 
 from . import BaseCog
 
+DPY_GUILD_ID = 336642139381301249
+
 __dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
     __version__ = fp.read().strip()
@@ -144,6 +146,14 @@ class Meme(BaseCog):
         """\"Pings\" someone"""
 
         await ctx.send(random.choice(ctx.guild.members).mention, allowed_mentions=discord.AllowedMentions.none())
+
+    @commands.check(lambda ctx: ctx.guild.id == DPY_GUILD_ID)
+    @commands.command(aliases=['pp', 'peepee'])
+    async def dick(self, ctx):
+        """Get the size of your dick"""
+
+        shaft = '=' * (hash(ctx.author) % 30)
+        await ctx.send(f'{ctx.author.mention}\'s dick: 8{shaft}D')
 
 
 def setup(bot):
