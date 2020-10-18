@@ -102,9 +102,12 @@ class Core(BaseCog):
         url = 'https://github.com/PikalaxALT/pikalaxbot'
         branch = 'master'
         if command is not None:
-            callback = self.bot.help_command if command.name == 'help' else command.callback
-            src = callback.__code__.co_filename
-            module = callback.__module__.replace('.', os.path.sep)
+            if command.name == 'help':
+                src = inspect.getsourcefile(type(self.bot.help_command))
+                module = type(self.bot.help_command).__module__.replace('.', os.path.sep)
+            else:
+                src = command.callback.__code__.co_filename
+                module = command.callback.__module__.replace('.', os.path.sep)
             if module in src:
                 lines, start = inspect.getsourcelines(command.callback)
                 sourcefile = src[src.index(module):].replace('\\', '/')
