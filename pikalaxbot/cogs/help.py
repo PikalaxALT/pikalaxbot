@@ -19,6 +19,7 @@
 
 import discord
 from discord.ext import commands, menus
+import asyncio
 
 from . import BaseCog
 import typing
@@ -68,6 +69,76 @@ class GroupHelpPageSource(menus.ListPageSource):
         return embed
 
 
+class HelpMenu(menus.MenuPages):
+    def __init__(self, source, **kwargs):
+        super().__init__(source, **kwargs)
+        self._in_info = False
+
+    async def wait_for_reaction(self, timeout=30.0):
+        tasks = [
+            asyncio.ensure_future(self.bot.wait_for('raw_reaction_add', check=self.reaction_check)),
+            asyncio.ensure_future(self.bot.wait_for('raw_reaction_remove', check=self.reaction_check))
+        ]
+        done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
+        for task in pending:
+            task.cancel()
+        if len(done) == 0:
+            raise asyncio.TimeoutError()
+        payload = done.pop().result()
+        return payload
+
+    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}')
+    async def pick_page(self, payload):
+        await self.ctx.send('What page do you want to go to?')
+        try:
+            msg = await self.bot.wait_for('message', check=lambda m: m.author == self.ctx.author and m.channel == self.ctx.channel, timeout=30.0)
+        except asyncio.TimeoutError:
+            await self.ctx.send('Took too long.')
+            return
+        if msg.content.isdigit():
+            page = int(msg.content)
+            await self.show_checked_page(page)
+
+    @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(2))
+    async def info(self, payload):
+        self._in_info = not self._in_info
+        if self._in_info:
+            embed = discord.Embed(title='Paginator help', description='Hello! Welcome to the help page.')
+            value = '⏮: go to the first page' \
+                    '◀: go to the previous page' \
+                    '▶: go to the next page' \
+                    '⏭: go to the last page' \
+                    '🔢: lets you type a page number to go to' \
+                    '⏹: stops the pagination session.' \
+                    'ℹ: shows this message' \
+                    '❔: shows how to use the bot'
+            embed.add_field(name='What are these reactions for?', value=value)
+            embed.set_footer(text=f'We were on page {self.current_page} before this message.')
+            await self.message.edit(embed=embed)
+            try:
+                await self.wait_for_reaction()
+            except asyncio.TimeoutError:
+                self._in_info = False
+        if not self._in_info:
+            await self.show_current_page()
+
+    @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(3))
+    async def using_the_bot(self, payload):
+        embed = discord.Embed(title='Using the bot', description='Hello! Welcome to the help page')
+        embed.add_field(name='How do I use the bot?', value='Reading the bot signature is pretty simple.', inline=False)
+        embed.add_field(name='<argument>', value='This means the argument is required.', inline=False)
+        embed.add_field(name='[argument]', value='This means the argument is optional.', inline=False)
+        embed.add_field(name='[A|B]', value='This means that it can be either A or B.', inline=False)
+        embed.add_field(name='[argument...]', value='This means you can have multiple arguments.', inline=False)
+        embed.add_field(name='Now that you know the basics, it should be noted that...', value='You do not type in the brackets!', inline=False)
+        embed.set_footer(text=f'We were on page {self.current_page} before this message.')
+        await self.message.edit(embed=embed)
+        try:
+            await self.wait_for_reaction()
+        except asyncio.TimeoutError:
+            await self.show_current_page()
+
+
 class PaginatedHelpCommand(commands.HelpCommand):
     def __init__(self, **options):
         command_attrs = options.pop('command_attrs', {})
@@ -102,14 +173,14 @@ class PaginatedHelpCommand(commands.HelpCommand):
         bot = self.context.bot
         entries = await self.filter_commands(bot.commands, sort=True, key=key)
         page_source = BotHelpPageSource(entries, key=key, per_page=9)
-        paginator = menus.MenuPages(page_source, delete_message_after=True)
+        paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
     async def send_cog_help(self, cog):
         entries = await self.filter_commands(cog.get_commands(), sort=True)
         page_source = CogHelpPageSource(entries, per_page=6)
         page_source._cog = cog
-        paginator = menus.MenuPages(page_source, delete_message_after=True)
+        paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
     def common_command_formatting(self, page_or_embed, command):
@@ -134,7 +205,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
         page_source = GroupHelpPageSource(entries, per_page=9)
         self.common_command_formatting(page_source, group)
 
-        paginator = menus.MenuPages(page_source, delete_message_after=True)
+        paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
 
