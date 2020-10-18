@@ -94,7 +94,7 @@ class Core(BaseCog):
             e.set_thumbnail(url=ctx.me.avatar_url)
         await ctx.send(embed=e)
 
-    @commands.command()
+    @commands.command(aliases=['src'])
     async def source(self, ctx, *, command: typing.Optional[CommandConverter]):
         """Links the source of the command. If command source cannot be retrieved,
         links the root of the bot's source tree."""
@@ -103,13 +103,15 @@ class Core(BaseCog):
         branch = 'master'
         if command is not None:
             if command.name == 'help':
-                src = inspect.getsourcefile(type(self.bot.help_command))
-                module = type(self.bot.help_command).__module__.replace('.', os.path.sep)
+                obj = type(self.bot.help_command)
+                src = inspect.getsourcefile(obj)
+                module = obj.__module__.replace('.', os.path.sep)
             else:
-                src = command.callback.__code__.co_filename
-                module = command.callback.__module__.replace('.', os.path.sep)
+                obj = command.callback
+                src = obj.__code__.co_filename
+                module = obj.__module__.replace('.', os.path.sep)
             if module in src:
-                lines, start = inspect.getsourcelines(command.callback)
+                lines, start = inspect.getsourcelines(obj)
                 sourcefile = src[src.index(module):].replace('\\', '/')
                 end = start + len(lines) - 1
                 if command.cog and command.cog.__cog_name__ == 'Jishaku':
