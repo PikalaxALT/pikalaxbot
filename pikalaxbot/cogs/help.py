@@ -26,6 +26,10 @@ import typing
 
 
 class BotHelpPageSource(menus.GroupByPageSource):
+    @property
+    def paginating(self):
+        return self.is_paginating()
+
     async def format_page(self, menu: menus.MenuPages, entry: menus._GroupByEntry):
         bot = menu.bot
         cog = bot.get_cog(entry.key)
@@ -45,6 +49,10 @@ class BotHelpPageSource(menus.GroupByPageSource):
 class CogHelpPageSource(menus.ListPageSource):
     _cog = None
 
+    @property
+    def paginating(self):
+        return self.is_paginating()
+
     async def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
         cog = self._cog
         embed = discord.Embed(
@@ -63,6 +71,10 @@ class CogHelpPageSource(menus.ListPageSource):
 class GroupHelpPageSource(menus.ListPageSource):
     title = discord.Embed.Empty
     description = discord.Embed.Empty
+
+    @property
+    def paginating(self):
+        return self.is_paginating()
 
     async def format_page(self, menu: menus.MenuPages, page):
         embed = discord.Embed(
