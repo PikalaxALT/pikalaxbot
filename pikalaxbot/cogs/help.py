@@ -74,18 +74,9 @@ class HelpMenu(menus.MenuPages):
         super().__init__(source, **kwargs)
         self._in_info = False
 
-    async def wait_for_reaction(self, timeout=30.0):
-        tasks = [
-            asyncio.ensure_future(self.bot.wait_for('raw_reaction_add', check=self.reaction_check)),
-            asyncio.ensure_future(self.bot.wait_for('raw_reaction_remove', check=self.reaction_check))
-        ]
-        done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
-        for task in pending:
-            task.cancel()
-        if len(done) == 0:
-            raise asyncio.TimeoutError()
-        payload = done.pop().result()
-        return payload
+    async def go_back_to_current_page(self):
+        await asyncio.sleep(30.0)
+        await self.show_current_page()
 
     @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(2))
     async def pick_page(self, payload):
@@ -115,11 +106,8 @@ class HelpMenu(menus.MenuPages):
             embed.add_field(name='What are these reactions for?', value=value)
             embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
             await self.message.edit(embed=embed)
-            try:
-                await self.wait_for_reaction()
-            except asyncio.TimeoutError:
-                self._in_info = False
-        if not self._in_info:
+            self.bot.loop.create_task(self.go_back_to_current_page())
+        else:
             await self.show_current_page()
 
     @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(4))
@@ -133,10 +121,7 @@ class HelpMenu(menus.MenuPages):
         embed.add_field(name='Now that you know the basics, it should be noted that...', value='You do not type in the brackets!', inline=False)
         embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
         await self.message.edit(embed=embed)
-        try:
-            await self.wait_for_reaction()
-        except asyncio.TimeoutError:
-            await self.show_current_page()
+        self.bot.loop.create_task(self.go_back_to_current_page())
 
 
 class PaginatedHelpCommand(commands.HelpCommand):
