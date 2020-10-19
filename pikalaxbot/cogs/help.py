@@ -23,6 +23,7 @@ import asyncio
 
 from . import BaseCog
 import typing
+import traceback
 
 
 class BotHelpPageSource(menus.GroupByPageSource):
@@ -228,6 +229,12 @@ class Help(BaseCog):
         self._original_help_command = bot.help_command
         bot.help_command = PaginatedHelpCommand(command_attrs={'name': bot.settings.help_name})
         bot.help_command.cog = self
+
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, (commands.CommandOnCooldown, commands.MaxConcurrencyReached)):
+            return
+        tb = '\n'.join(traceback.format_exception(error.__class__, error, error.__traceback__))
+        await self.bot.send_tb(f'Ignoring exception in help command\n{tb}')
 
     def cog_unload(self):
         self.bot.help_command = self._original_help_command
