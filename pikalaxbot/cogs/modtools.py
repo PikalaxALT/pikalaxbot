@@ -192,20 +192,24 @@ class Modtools(BaseCog):
         method = getattr(self.bot, f'{mode}_extension', default_method)
         if cog == 'jishaku':
             extension = cog
+        elif cog.startswith('ext.'):
+            extension = f'pikalaxbot.{cog}'
         else:
             extension = f'pikalaxbot.cogs.{cog}'
         real_cog = cog.title().replace('_', '')
         try:
-            method(extension)
+            await self.bot.loop.run_in_executor(None, method, extension)
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
-        if mode != 'unload' and cog != 'jishaku':
-            try:
-                async with self.bot.sql as sql:
-                    await self.bot.get_cog(real_cog).init_db(sql)
-            except sqlite3.Error:
-                await ctx.send(f'{mode.title()}ed cog "{real_cog}", but database initialization failed')
+        if mode != 'unload':
+            cog_obj = self.bot.get_cog(real_cog)
+            if isinstance(cog_obj, BaseCog):
+                try:
+                    async with self.bot.sql as sql:
+                        await cog_obj.init_db(sql)
+                except sqlite3.Error:
+                    await ctx.send(f'{mode.title()}ed cog "{real_cog}", but database initialization failed')
                 raise
         await ctx.send(f'{mode.title()}ed cog "{real_cog}"')
 
@@ -257,6 +261,8 @@ class Modtools(BaseCog):
         for cog in cogs:
             if cog == 'jishaku':
                 extn = cog
+            elif cog.startswith('ext.'):
+                extn = f'pikalaxbot.{cog}'
             else:
                 extn = f'pikalaxbot.cogs.{cog}'
             if extn in self.bot.extensions:

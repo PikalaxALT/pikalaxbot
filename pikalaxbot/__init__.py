@@ -114,14 +114,15 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 else:
                     self.logger.info(f'Skipping disabled extn "{cogname}"')
 
+        self.load_extension('ext.pokeapi')
+        # self.load_extension('ext.twitch')
+
         async def init_sql():
             async with self.sql as sql:
                 await sql.db_init(self)
 
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
-            self.pokeapi = PokeApi()
-            await self.pokeapi.init_caches()
 
         self.client_session = None
         self.pokeapi = None

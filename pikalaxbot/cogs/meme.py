@@ -131,7 +131,7 @@ class Meme(BaseCog):
         """Happy birthday, Waggle!"""
 
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
-                       f'Waggling a finger allowed it to use {self.bot.pokeapi.random_move_name(clean=False)}!')
+                       f'Waggling a finger allowed it to use {await self.bot.pokeapi.random_move_name(clean=False)}!')
 
     @commands.command()
     async def olden(self, ctx):

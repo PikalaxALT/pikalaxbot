@@ -53,7 +53,7 @@ class Rng(BaseCog):
     async def random_pokemon(self, ctx):
         """Get a random Pokemon name"""
 
-        mon = self.bot.pokeapi.random_pokemon_name(clean=False)
+        mon = await self.bot.pokeapi.random_pokemon_name(clean=False)
         await ctx.send(mon)
     
     @random.command(name='quilava')
