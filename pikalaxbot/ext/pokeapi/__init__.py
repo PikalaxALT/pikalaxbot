@@ -10,7 +10,7 @@ from aiofile import AIOFile, LineReader
 # Copied from aiofile readme
 class AsyncDictReader:
     def __init__(self, afp, **kwargs):
-        self.buffer = io.BytesIO()
+        self.buffer = io.StringIO()
         self.file_reader = LineReader(
             afp, line_sep=kwargs.pop('line_sep', '\n'),
             chunk_size=kwargs.pop('chunk_size', 4096),
