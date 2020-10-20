@@ -27,7 +27,6 @@ from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
-from .utils.pokeapi import PokeApi
 
 from .ext.twitch import *
 from .cogs.utils.errors import *
