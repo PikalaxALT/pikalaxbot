@@ -6,7 +6,7 @@ import discord
 
 
 class PokeApi:
-    path = os.path.dirname(__file__) + '/../pokeapi/data/v2/csv'
+    path = os.path.dirname(__file__) + '/../../pokeapi/data/v2/csv'
     language = '9'
 
     @staticmethod
@@ -21,7 +21,7 @@ class PokeApi:
                 with open(f'{PokeApi.path}/{item}.csv') as fp:
                     self.__dict__[item] = list(csv.DictReader(fp))
             except OSError:
-                raise AttributeError
+                raise AttributeError(f'Object of type {self.__class__.__name__} has no attribute \'{item}\'')
         return self.__dict__[item]
 
     def random_pokemon(self):
