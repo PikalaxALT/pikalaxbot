@@ -127,10 +127,14 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         # self.load_extension('pikalaxbot.ext.twitch')
 
         async def init_sql():
+            self.logger.info('Start init db')
             async with self.sql as sql:
                 await sql.db_init(self)
+            self.logger.info('Finish init db')
 
+        self.logger.info('Init db')
         self.loop.run_until_complete(init_sql())
+        self.logger.info('DB init complete')
 
         # Reboot handler
         self.reboot_after = True
