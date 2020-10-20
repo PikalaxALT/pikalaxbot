@@ -30,7 +30,7 @@ class MemberStatus(BaseCog):
         self.update_counters.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp integer, online integer, offline integer, dnd integer, idle integer)')
+        await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp real, online integer, offline integer, dnd integer, idle integer)')
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
         async with sql.execute('select * from memberstatus order by timestamp') as cur:
             i = 0
