@@ -83,16 +83,16 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
 
-        self.logger.info('Creating aiohttp session')
+        self.log_info('Creating aiohttp session')
         self.client_session = None
         self.loop.run_until_complete(init_client_session())
 
-        self.logger.info('Loading pokeapi')
+        self.log_info('Loading pokeapi')
         self.pokeapi = None
         self.load_extension('pikalaxbot.ext.pokeapi')
 
         # Load cogs
-        self.logger.info('Loading extensions')
+        self.log_info('Loading extensions')
         if 'jishaku' not in disabled_cogs:
             try:
                 self.load_extension('jishaku')
@@ -104,7 +104,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 for line in traceback.format_exception(e.__class__, e, e.__traceback__):
                     self.logger.warning(line)
             else:
-                self.logger.info('Loaded jishaku')
+                self.log_info('Loaded jishaku')
 
         for cogfile in glob.glob(f'{__dir__}/cogs/*.py'):
             if os.path.isfile(cogfile) and '__init__' not in cogfile:
@@ -120,21 +120,21 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                         for line in traceback.format_exception(e.__class__, e, e.__traceback__):
                             self.logger.warning(line)
                     else:
-                        self.logger.info(f'Loaded extn "{cogname}"')
+                        self.log_info(f'Loaded extn "{cogname}"')
                 else:
-                    self.logger.info(f'Skipping disabled extn "{cogname}"')
+                    self.log_info(f'Skipping disabled extn "{cogname}"')
 
         # self.load_extension('pikalaxbot.ext.twitch')
 
         async def init_sql():
-            self.logger.info('Start init db')
+            self.log_info('Start init db')
             async with self.sql as sql:
                 await sql.db_init(self)
-            self.logger.info('Finish init db')
+            self.log_info('Finish init db')
 
-        self.logger.info('Init db')
+        self.log_info('Init db')
         self.loop.run_until_complete(init_sql())
-        self.logger.info('DB init complete')
+        self.log_info('DB init complete')
 
         # Reboot handler
         self.reboot_after = True
@@ -162,12 +162,12 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 await channel.send(f'An error has occurred: {url}', embed=embed)
 
     def run(self):
-        self.logger.info('Starting bot')
+        self.log_info('Starting bot')
         token = self.settings.token
         super().run(token)
 
     async def logout(self):
-        self.logger.info('Logout request received')
+        self.log_info('Logout request received')
         await self.close()
 
     @property
