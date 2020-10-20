@@ -42,7 +42,7 @@ class PokeApi:
 
     def random_move_name(self, *, clean=True):
         move = self.random_move()
-        name = discord.utils.find(lambda row: row['move_id'] == move['id'] and row['local_language_id'] == PokeApi.language, self.move_names)['identifier']
+        name = discord.utils.find(lambda row: row['move_id'] == move['id'] and row['local_language_id'] == PokeApi.language, self.move_names)['name']
         if clean:
             name = self.clean_name(name)
         return name
