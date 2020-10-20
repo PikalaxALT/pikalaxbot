@@ -9,14 +9,43 @@ import glob
 class PokeApi:
     path = os.path.dirname(__file__) + '/../../../pokeapi/data/v2/csv'
     language = '9'
+    csv_files = (
+        'abilities',
+        'ability_names',
+        'egg_groups',
+        'evolution_chains',
+        'generation_names',
+        'generations',
+        'move_names',
+        'moves',
+        'pokemon',
+        'pokemon_abilities',
+        'pokemon_color_names',
+        'pokemon_colors',
+        'pokemon_dex_numbers',
+        'pokemon_egg_groups',
+        'pokemon_evolution',
+        'pokemon_habitat_names',
+        'pokemon_habitats',
+        'pokemon_moves',
+        'pokemon_shapes',
+        'pokemon_species',
+        'pokemon_species_names',
+        'pokemon_stats',
+        'pokemon_types',
+        'stat_names',
+        'stats',
+        'type_efficacy',
+        'type_names',
+        'types'
+    )
 
     def __init__(self, *, bot):
         self._bot = bot
-        for file in glob.glob(f'{PokeApi.path}/*.csv'):
-            attrname = os.path.splitext(os.path.basename(file))[0]
+        for attrname in self.csv_files:
+            file = f'{PokeApi.path}/{attrname}.csv'
             with open(file) as fp:
                 setattr(self, attrname, list(csv.DictReader(fp)))
-        self._bot.dispatch('pokeapi_ready')
 
     def __repr__(self):
         return f'<{self.__class__.__name__}>'
