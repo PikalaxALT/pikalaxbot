@@ -10,7 +10,7 @@ from aiofile import AIOFile, LineReader
 # Copied from aiofile readme
 class AsyncDictReader:
     def __init__(self, afp, **kwargs):
-        self.buffer = io.StringIO()
+        self.buffer = io.BytesIO()
         self.file_reader = LineReader(
             afp, line_sep=kwargs.pop('line_sep', '\n'),
             chunk_size=kwargs.pop('chunk_size', 4096),
@@ -75,7 +75,7 @@ class PokeApi:
             path = f'{PokeApi.path}/{item}.csv'
             if not os.path.exists(path):
                 raise AttributeError(f'Object of type {self.__class__.__name__} has no attribute \'{item}\'')
-            async with AIOFile(path) as fp:
+            async with AIOFile(path, 'rb') as fp:
                 self._loaded_csvs[item] = [row async for row in AsyncDictReader(fp)]
         return self._loaded_csvs[item]
 
