@@ -30,7 +30,7 @@ __dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
     __version__ = fp.read().strip()
 
-MaybeEmoji = typing.Union[discord.Emoji, discord.PartialEmoji, str]
+MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
 
 
 class HMM:
@@ -91,7 +91,7 @@ class Meme(BaseCog):
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command(ignore_extra=False)
-    async def archeops(self, ctx, subj1: MaybeEmoji = '', subj2: MaybeEmoji = ''):
+    async def archeops(self, ctx, subj1: MaybePartialEmoji = '', subj2: MaybePartialEmoji = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
 
