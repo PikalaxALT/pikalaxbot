@@ -120,7 +120,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
-            self.pokeapi = PokeApi(cs=self.client_session)
+            self.pokeapi = PokeApi()
             await self.pokeapi.init_caches()
 
         self.client_session = None

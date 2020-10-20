@@ -1,10 +1,13 @@
-import aiohttp
 import random
 import re
+import csv
+import os
+import discord
 
 
 class PokeApi:
-    url = 'https://pokeapi.co/api/v2'
+    path = os.path.dirname(__file__) + '/../pokeapi/data/v2/csv'
+    language = '9'
 
     @staticmethod
     def clean_name(name):
@@ -12,80 +15,34 @@ class PokeApi:
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
-    def __init__(self, *, cs: aiohttp.ClientSession = None):
-        self._natdex = None
-        self._movebank = None
-        self._mon_names = set()
-        self._type_names = set()
-        self._move_names = set()
-        self._ability_names = set()
-        self.cs = cs or aiohttp.ClientSession(raise_for_status=True)
+    def __getattr__(self, item):
+        if item not in self.__dict__:
+            try:
+                with open(f'{PokeApi.path}/{item}.csv') as fp:
+                    self.__dict__[item] = list(csv.DictReader(fp))
+            except OSError:
+                raise AttributeError
+        return self.__dict__[item]
 
-    async def __aenter__(self):
-        return self
+    def random_pokemon(self):
+        return random.choice(self.pokemon)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.cs.close()
+    def random_pokemon_name(self, *, clean=True):
+        def find_cb(row):
+            return row['pokemon_species_id'] == mon['id'] and row['local_language_id'] == PokeApi.language
 
-    async def get_json(self, endpoint):
-        async with self.cs.get(f'{self.url}/{endpoint}') as res:
-            return await res.json()
-
-    def get_pokemon(self, id_or_name):
-        return self.get_json(f'pokemon/{id_or_name}/')
-
-    def get_move(self, id_or_name):
-        return self.get_json(f'move/{id_or_name}')
-
-    async def init_caches(self):
-        init_movebank = self._movebank is None
-        init_natdex = self._natdex is None
-        if init_movebank or init_natdex:
-            gens = [await self.get_json(f'generation/{i + 1}') for i in range(8)]
-            if init_movebank:
-                self._movebank = []
-            if init_natdex:
-                self._natdex = []
-            for gen in gens:
-                if init_movebank:
-                    self._movebank += gen['moves']
-                if init_natdex:
-                    for mon in gen['pokemon_species']:
-                        for variety in mon['varieties']:
-                            name = variety['pokemon']['name']
-                            res = await self.get_json(f'pokemon/{name}')
-                            self._natdex.append(res)
-                            self._ability_names |= [ab['ability']['name'] for ab in res['abilities']]
-                            self._type_names |= [tp['type']['name'] for tp in res['types']]
-            self._mon_names |= [mon['name'] for mon in self._natdex]
-            self._move_names |= [move['name'] for move in self._movebank]
-
-    async def random_pokemon(self):
-        await self.init_caches()
-        return random.choice(self._natdex)
-
-    async def random_pokemon_name(self, *, clean=True):
-        mon = await self.random_pokemon()
-        name = mon['name']
+        mon = self.random_pokemon()
+        name = discord.utils.find(find_cb, self.pokemon_species_names + self.pokemon_form_names)['name']
         if clean:
             name = self.clean_name(name)
         return name
 
-    async def random_pokemon_attr(self, attr, default=None):
-        mon = await self.random_pokemon()
-        return mon.get(attr, default)
+    def random_move(self):
+        return random.choice(self.moves)
 
-    async def random_move(self):
-        await self.init_caches()
-        return random.choice(self._movebank)
-
-    async def random_move_name(self, *, clean=True):
-        move = await self.random_move()
-        name = move['name']
+    def random_move_name(self, *, clean=True):
+        move = self.random_move()
+        name = discord.utils.find(lambda row: row['move_id'] == move['id'] and row['local_language_id'] == PokeApi.language, self.move_names)['identifier']
         if clean:
             name = self.clean_name(name)
         return name
-
-    async def random_move_attr(self, attr, default=None):
-        move = await self.random_move()
-        return move.get(attr, default)

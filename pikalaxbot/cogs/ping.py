@@ -4,12 +4,11 @@ from . import BaseCog
 import io
 import time
 import datetime
-import struct
 import matplotlib.pyplot as plt
 import typing
 import traceback
 from .utils.converters import PastTime
-from .utils.mpl_time_axis import set_time_xlabs
+from .utils.mpl_time_axis import *
 
 
 class Ping(BaseCog):
@@ -59,6 +58,9 @@ class Ping(BaseCog):
         times, values = zip(*sorted([t for t in self.ping_history.items() if t[0] >= history]))
         plt.figure()
         ax: plt.Axes = plt.gca()
+        idxs = thin_points(len(times), 1000)
+        times = times[idxs]
+        values = values[idxs]
         ax.plot(times, values)
         ax.fill_between(times, [0 for _ in values], values)
         set_time_xlabs(ax, times)

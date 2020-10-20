@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import typing
 import traceback
 from .utils.converters import PastTime
-from .utils.mpl_time_axis import set_time_xlabs
+from .utils.mpl_time_axis import *
 
 
 class MemberStatus(BaseCog):
@@ -73,8 +73,9 @@ class MemberStatus(BaseCog):
         plt.figure()
         counts = {key: [v[key] for v in values] for key in self.colormap}
         ax: plt.Axes = plt.gca()
+        idxs = thin_points(len(times), 1000)
         for key, value in counts.items():
-            ax.plot(times, value, c=self.colormap[key], label=str(key).title())
+            ax.plot(times[idxs], value[idxs], c=self.colormap[key], label=str(key).title())
         set_time_xlabs(ax, times)
         plt.xlabel('Time (UTC)')
         plt.ylabel('Number of users')
