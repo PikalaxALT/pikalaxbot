@@ -9,7 +9,7 @@ import glob
 class PokeApi:
     path = os.path.dirname(__file__) + '/../../../pokeapi/data/v2/csv'
     language = '9'
-    csv_files = (
+    __slots__ = (
         'abilities',
         'ability_names',
         'egg_groups',
@@ -25,6 +25,8 @@ class PokeApi:
         'pokemon_dex_numbers',
         'pokemon_egg_groups',
         'pokemon_evolution',
+        'pokemon_form_names',
+        'pokemon_forms',
         'pokemon_habitat_names',
         'pokemon_habitats',
         'pokemon_moves',
@@ -40,9 +42,8 @@ class PokeApi:
         'types'
     )
 
-    def __init__(self, *, bot):
-        self._bot = bot
-        for attrname in self.csv_files:
+    def __init__(self):
+        for attrname in PokeApi.__slots__:
             file = f'{PokeApi.path}/{attrname}.csv'
             with open(file) as fp:
                 setattr(self, attrname, list(csv.DictReader(fp)))
@@ -83,9 +84,14 @@ class PokeApi:
             name = self.clean_name(name)
         return name
 
+    def get_mon_types(self, mon):
+        """Returns a list of type names for that Pokemon"""
+        types = set(row['type_id'] for row in self.pokemon_types if row['pokemon_id'] == mon['id'])
+        return [row['name'] for row in self.type_names if row['type_id'] in types and row['local_language_id'] == PokeApi.language]
+
 
 def setup(bot):
-    bot.pokeapi = PokeApi(bot=bot)
+    bot.pokeapi = PokeApi()
 
 
 def teardown(bot):
