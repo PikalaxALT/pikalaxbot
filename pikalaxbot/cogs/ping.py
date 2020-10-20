@@ -25,8 +25,12 @@ class Ping(BaseCog):
         await sql.execute('create table if not exists ping_history (timestamp real, latency real)')
         await sql.execute('create unique index if not exists ping_history_idx on ping_history (timestamp)')
         async with sql.execute('select * from ping_history order by timestamp') as cur:
+            i = 0
             async for timestamp, latency in cur:
                 self.ping_history[datetime.datetime.utcfromtimestamp(timestamp)] = latency
+                i += 1
+                if i % 1000 == 0:
+                    self.log_info(f'Loaded {i} rows')
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
