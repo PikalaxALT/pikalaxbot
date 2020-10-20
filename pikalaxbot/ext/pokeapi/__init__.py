@@ -54,7 +54,7 @@ class AsyncDictReader:
 
 
 class PokeApi:
-    path = os.path.dirname(__file__) + '/../../pokeapi/data/v2/csv'
+    path = os.path.dirname(__file__) + '/../../../pokeapi/data/v2/csv'
     language = '9'
 
     def __init__(self, *, bot):
