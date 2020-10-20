@@ -49,6 +49,7 @@ class Rng(BaseCog):
     async def random(self, ctx):
         """RNG-related commands"""
 
+    @commands.check(lambda ctx: ctx.bot.pokeapi)
     @random.command(name='pokemon')
     async def random_pokemon(self, ctx):
         """Get a random Pokemon name"""

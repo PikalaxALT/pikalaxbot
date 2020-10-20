@@ -126,6 +126,7 @@ class Meme(BaseCog):
         emission = ''.join(self._nebby.get_chain(100, end=4)).title()
         await ctx.send(emission)
 
+    @commands.check(lambda ctx: ctx.bot.pokeapi)
     @commands.command()
     async def yolonome(self, ctx):
         """Happy birthday, Waggle!"""

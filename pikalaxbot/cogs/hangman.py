@@ -135,7 +135,7 @@ class Hangman(GameCogBase):
     gamecls = HangmanGame
 
     def cog_check(self, ctx):
-        return self._local_check(ctx)
+        return self._local_check(ctx) and ctx.bot.pokeapi is not None
 
     @commands.group(case_insensitive=True)
     async def hangman(self, ctx):
