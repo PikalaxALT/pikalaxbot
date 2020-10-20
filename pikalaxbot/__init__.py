@@ -28,7 +28,6 @@ from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
-from .ext.twitch import *
 from .cogs.utils.errors import *
 
 
@@ -81,7 +80,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         handler.setFormatter(fmt)
         self.logger.addHandler(handler)
 
+        async def init_client_session():
+            self.client_session = aiohttp.ClientSession()
+
+        self.logger.info('Creating aiohttp session')
+        self.client_session = None
+        self.loop.run_until_complete(init_client_session())
+
+        self.logger.info('Loading pokeapi')
+        self.pokeapi = None
+        self.load_extension('pikalaxbot.ext.pokeapi')
+
         # Load cogs
+        self.logger.info('Loading extensions')
         if 'jishaku' not in disabled_cogs:
             try:
                 self.load_extension('jishaku')
@@ -113,31 +124,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 else:
                     self.logger.info(f'Skipping disabled extn "{cogname}"')
 
-        self.pokeapi = None
-        self.load_extension('pikalaxbot.ext.pokeapi')
         # self.load_extension('pikalaxbot.ext.twitch')
 
         async def init_sql():
             async with self.sql as sql:
                 await sql.db_init(self)
 
-        async def init_client_session():
-            self.client_session = aiohttp.ClientSession()
-
-        self.client_session = None
         self.loop.run_until_complete(init_sql())
-        self.loop.run_until_complete(init_client_session())
 
         # Reboot handler
         self.reboot_after = True
 
         # Twitch bot
-        self._twitch_bot = None  # create_twitch_bot(self)
         self._alive_since = None
-
-    async def tmi_dispatch(self, event, *args, **kwargs):
-        if self._twitch_bot is not None:
-            await self._twitch_bot._dispatch(event, *args, **kwargs)
 
     @property
     def sql(self):
