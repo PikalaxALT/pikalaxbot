@@ -113,6 +113,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 else:
                     self.logger.info(f'Skipping disabled extn "{cogname}"')
 
+        self.pokeapi = None
         self.load_extension('pikalaxbot.ext.pokeapi')
         # self.load_extension('pikalaxbot.ext.twitch')
 
@@ -124,7 +125,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             self.client_session = aiohttp.ClientSession()
 
         self.client_session = None
-        self.pokeapi = None
         self.loop.create_task(init_sql())
         self.loop.create_task(init_client_session())
 
