@@ -125,8 +125,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             self.client_session = aiohttp.ClientSession()
 
         self.client_session = None
-        self.loop.create_task(init_sql())
-        self.loop.create_task(init_client_session())
+        self.loop.run_until_complete(init_sql())
+        self.loop.run_until_complete(init_client_session())
 
         # Reboot handler
         self.reboot_after = True
