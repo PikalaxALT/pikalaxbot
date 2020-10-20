@@ -114,8 +114,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 else:
                     self.logger.info(f'Skipping disabled extn "{cogname}"')
 
-        self.load_extension('ext.pokeapi')
-        # self.load_extension('ext.twitch')
+        self.load_extension('pikalaxbot.ext.pokeapi')
+        # self.load_extension('pikalaxbot.ext.twitch')
 
         async def init_sql():
             async with self.sql as sql:
