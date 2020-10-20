@@ -76,7 +76,7 @@ class Eval(BaseCog):
             content = self.mask_token(content)
             if len(content) >= 1000:
                 try:
-                    value = await mystbin(content, cs=self.bot.session)
+                    value = await mystbin(content, cs=self.bot.client_session)
                 except aiohttp.ClientResponseError:
                     return discord.File(io.StringIO(content), f'{name}.txt')
             else:

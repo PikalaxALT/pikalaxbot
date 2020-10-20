@@ -56,7 +56,7 @@ class Onehand(BaseCog):
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params.add('order:random')
-        async with self.bot.session.get(
+        async with self.bot.client_session.get(
                 f'https://{name}.net/posts.json',
                 headers={'User-Agent': self.bot.user.name},
                 params={'tags': ' '.join(params), 'limit': 100, 'login': 'pikalaxalt', 'api_key': self.e6_api_key}
@@ -195,9 +195,9 @@ class Onehand(BaseCog):
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
 
-        async with self.bot.session.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
+        async with self.bot.client_session.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
             url = await r.text()
-        async with self.bot.session.get(url) as r:
+        async with self.bot.client_session.get(url) as r:
             stream = io.BytesIO(await r.read())
         await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
 

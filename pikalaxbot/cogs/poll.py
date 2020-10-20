@@ -256,7 +256,7 @@ class Poll(BaseCog):
                 await channel.send(f'```{tb}```')
             else:
                 try:
-                    url = await mystbin(tb, cs=self.bot.session)
+                    url = await mystbin(tb, cs=self.bot.client_session)
                 except aiohttp.ClientResponseError:
                     await channel.send('An error has occurred', file=discord.File(io.StringIO(tb)))
                 else:
