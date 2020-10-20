@@ -16,4 +16,4 @@ def set_time_xlabs(ax: plt.Axes, times: typing.List[datetime.datetime]):
 
 
 def thin_points(cur_npoints, max_npoints):
-    return np.linspace(0, max(cur_npoints, max_npoints), max_npoints + 1).astype(int)
+    return np.linspace(0, max(cur_npoints, max_npoints) - 1, max_npoints).astype(int)
