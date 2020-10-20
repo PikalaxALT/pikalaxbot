@@ -1,10 +1,56 @@
 import random
 import re
+import aiofile
 import io
 import csv
 import os
 import discord
 import glob
+
+
+class AsyncDictReader:
+    def __init__(self, afp, **kwargs):
+        self.buffer = io.BytesIO()
+        self.file_reader = aiofile.LineReader(
+            afp, line_sep=kwargs.pop('line_sep', '\n'),
+            chunk_size=kwargs.pop('chunk_size', 4096),
+            offset=kwargs.pop('offset', 0),
+        )
+        self.reader = csv.DictReader(
+            io.TextIOWrapper(
+                self.buffer,
+                encoding=kwargs.pop('encoding', 'utf-8'),
+                errors=kwargs.pop('errors', 'replace'),
+            ), **kwargs,
+        )
+        self.line_num = 0
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self.line_num == 0:
+            header = await self.file_reader.readline()
+            self.buffer.write(header)
+
+        line = await self.file_reader.readline()
+
+        if not line:
+            raise StopAsyncIteration
+
+        self.buffer.write(line)
+        self.buffer.seek(0)
+
+        try:
+            result = next(self.reader)
+        except StopIteration as e:
+            raise StopAsyncIteration from e
+
+        self.buffer.seek(0)
+        self.buffer.truncate(0)
+        self.line_num = self.reader.line_num
+
+        return result
 
 
 class PokeApi:
@@ -13,10 +59,20 @@ class PokeApi:
 
     def __init__(self, *, bot):
         self._bot = bot
+        self._ready = False
+        self._bot.loop.create_task(self.__ainit__())
+
+    async def __ainit__(self):
         for file in glob.glob(f'{PokeApi.path}/*.csv'):
             attrname = os.path.splitext(os.path.basename(file))[0]
-            with open(file) as fp:
-                setattr(self, attrname, list(csv.DictReader(fp)))
+            async with aiofile.AIOFile(file, 'rb') as fp:
+                setattr(self, attrname, [row async for row in AsyncDictReader(fp)])
+        self._ready = True
+        self._bot.dispatch('pokeapi_ready')
+
+    @property
+    def ready(self):
+        return self._ready
 
     def __repr__(self):
         return f'<{self.__class__.__name__}>'
