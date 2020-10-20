@@ -43,9 +43,11 @@ class Sql(aiosqlite.Connection):
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
     async def db_init(self, bot):
-        for cog in bot.cogs.values():
+        for name, cog in bot.cogs.items():
             if hasattr(cog, 'init_db'):
+                bot.logger.info(f'Init db start: {name}')
                 await cog.init_db(self)
+                bot.logger.info(f'Init db done: {name}')
 
     async def db_clear(self):
         await self.execute("drop table if exists meme")
