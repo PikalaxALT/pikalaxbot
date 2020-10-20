@@ -68,15 +68,7 @@ class Meme(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.session: typing.Optional[aiohttp.ClientSession] = None
-
-        async def create_session():
-            self.session = aiohttp.ClientSession(raise_for_status=True)
-
-        bot.loop.create_task(create_session())
-
-    def cog_unload(self):
-        self.bot.loop.create_task(self.session.close())
+        self.session: aiohttp.ClientSession = bot.session
 
     async def init_db(self, sql):
         c = await sql.execute("select count(*) from sqlite_master where type='table' and name='meme'")
