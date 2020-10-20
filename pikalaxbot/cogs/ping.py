@@ -7,6 +7,7 @@ import datetime
 import matplotlib.pyplot as plt
 import typing
 import traceback
+import numpy as np
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 
@@ -59,8 +60,8 @@ class Ping(BaseCog):
         plt.figure()
         ax: plt.Axes = plt.gca()
         idxs = thin_points(len(times), 1000)
-        times = times[idxs]
-        values = values[idxs]
+        times = np.array(times)[idxs]
+        values = np.array(values)[idxs]
         ax.plot(times, values)
         ax.fill_between(times, [0 for _ in values], values)
         set_time_xlabs(ax, times)
