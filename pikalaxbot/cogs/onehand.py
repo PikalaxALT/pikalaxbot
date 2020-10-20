@@ -56,14 +56,13 @@ class Onehand(BaseCog):
         tags = ' '.join(params)
         if not any(param.startswith('order:') for param in params):
             params.add('order:random')
-        async with aiohttp.ClientSession(raise_for_status=True) as cs:
-            async with cs.get(
-                    f'https://{name}.net/posts.json',
-                    headers={'User-Agent': self.bot.user.name},
-                    params={'tags': ' '.join(params), 'limit': 100, 'login': 'pikalaxalt', 'api_key': self.e6_api_key}
-            ) as r:
-                resp = (await r.json())['posts']
-                j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
+        async with self.bot.session.get(
+                f'https://{name}.net/posts.json',
+                headers={'User-Agent': self.bot.user.name},
+                params={'tags': ' '.join(params), 'limit': 100, 'login': 'pikalaxalt', 'api_key': self.e6_api_key}
+        ) as r:
+            resp = (await r.json())['posts']
+            j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
         upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
         downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
         num_sent = 0
@@ -196,11 +195,10 @@ class Onehand(BaseCog):
     async def inspire(self, ctx: commands.Context):
         """Generate an inspirational poster using inspirobot.me"""
 
-        async with aiohttp.ClientSession(raise_for_status=True) as cs:
-            async with cs.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
-                url = await r.text()
-            async with cs.get(url) as r:
-                stream = io.BytesIO(await r.read())
+        async with self.bot.session.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
+            url = await r.text()
+        async with self.bot.session.get(url) as r:
+            stream = io.BytesIO(await r.read())
         await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
 
     @inspire.error

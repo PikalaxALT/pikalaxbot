@@ -17,15 +17,7 @@ with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
 class Reddit(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
-        self.session: typing.Optional[aiohttp.ClientSession] = None
-
-        async def create_session():
-            self.session = aiohttp.ClientSession(raise_for_status=True)
-
-        bot.loop.create_task(create_session())
-
-    def cog_unload(self):
-        self.bot.loop.create_task(self.session.close())
+        self.session: aiohttp.ClientSession = bot.session
 
     async def get_subreddit_embed(self, ctx, subreddit):
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
