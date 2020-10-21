@@ -160,7 +160,7 @@ class Core(BaseCog):
         await ctx.send(f'Total resources used: {rss:.3f} {unit}')
 
     @commands.command()
-    async def userinfo(self, ctx, target: typing.Union[discord.Member, discord.User] = None):
+    async def userinfo(self, ctx, *, target: typing.Union[discord.Member, discord.User] = None):
         def format_datetime(dt):
             strftime = dt.strftime('%Y-%m-%d %H:%M')
             human_time = precisedelta(dt, minimum_unit='minutes', format='%d')
