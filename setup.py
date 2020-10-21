@@ -11,6 +11,10 @@ with open('version.txt', 'r') as verf:
 if not version:
     raise RuntimeError('version is not set')
 
+extras_require = {
+    'twitch': 'twitchio>=1.0.0'
+}
+
 setuptools.setup(
     name='pikalaxbot',
     version=version,
@@ -24,6 +28,7 @@ setuptools.setup(
     url='https://github.com/PikalaxALT/pikalaxbot',
     packages=['pikalaxbot', 'pikalaxbot.ext.twitch'],
     install_requires=requirements,
+    extras_require=extras_require,
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',

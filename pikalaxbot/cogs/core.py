@@ -16,7 +16,7 @@
 
 import discord
 from discord.ext import commands
-from humanize import naturaltime
+from humanize import naturaltime, precisedelta
 import resource
 import typing
 import inspect
@@ -158,6 +158,28 @@ class Core(BaseCog):
         else:
             unit = 'KiB'
         await ctx.send(f'Total resources used: {rss:.3f} {unit}')
+
+    @commands.command()
+    async def userinfo(self, ctx, target: typing.Union[discord.Member, discord.User] = None):
+        def format_datetime(dt):
+            strftime = dt.strftime('%Y-%m-%d %H:%M')
+            human_time = precisedelta(dt, minimum_unit='minutes', format='%d')
+            return f'{strftime} ({human_time} ago)'
+
+        target = target or ctx.author
+        embed = discord.Embed()
+        embed.set_author(name=str(target), icon_url=str(target.avatar_url))
+        embed.add_field(name='ID', value=str(target.id), inline=False)
+        embed.add_field(name='Servers', value=str(sum(1 for guild in self.bot.guilds if guild.get_member(target.id))), inline=False)
+        embed.add_field(name='Joined', value=target.guild and format_datetime(target.joined_at) or 'N/A', inline=False)
+        embed.add_field(name='Created', value=format_datetime(target.created_at), inline=False)
+        if target.guild:
+            embed.add_field(name='Roles', value=', '.join(str(role) for role in target.roles[1:]))
+        elif ctx.channel is None:
+            embed.set_footer(text='This command was used in a DM.')
+        else:
+            embed.set_footer(text='This member is not in this server.')
+        await ctx.send(embed=embed)
 
     @BaseCog.listener()
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent):
