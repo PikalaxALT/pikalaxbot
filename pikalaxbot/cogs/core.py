@@ -176,7 +176,7 @@ class Core(BaseCog):
         embed.add_field(name='Joined', value=is_member and format_datetime(target.joined_at) or 'N/A', inline=False)
         embed.add_field(name='Created', value=format_datetime(target.created_at), inline=False)
         if is_member:
-            embed.add_field(name='Roles', value=', '.join(str(role) for role in target.roles[1:]))
+            embed.add_field(name='Roles', value=', '.join(str(role) for role in target.roles[1:]) or '\u200b')
         elif ctx.channel is None:
             embed.set_footer(text='This command was used in a DM.')
         else:
