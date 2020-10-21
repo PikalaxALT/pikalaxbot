@@ -14,9 +14,9 @@ with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
     __version__ = fp.read().strip()
 
 
-class SubredditNotFound(commands.CommandError):
-    def __init__(self, subreddit, message, *args):
-        super().__init__(message, *args)
+class NoPostsFound(commands.CommandError):
+    def __init__(self, subreddit, message=None, *args):
+        super().__init__(message=message, *args)
         self.subreddit = subreddit
 
 
@@ -46,7 +46,7 @@ class Reddit(BaseCog):
             if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
                 break
         else:
-            raise SubredditNotFound(subreddit)
+            raise NoPostsFound(subreddit)
         author = child['author']
         permalink = child['permalink']
         score = child['score']
@@ -81,7 +81,7 @@ class Reddit(BaseCog):
                 await ctx.send('I cannot find that subreddit!')
             else:
                 await ctx.send(f'An unhandled HTTP exception occurred: {error.status}: {error.message}')
-        elif isinstance(error, SubredditNotFound):
+        elif isinstance(error, NoPostsFound):
             await ctx.send(f'Hmm... I seem to be out of {error.subreddit} right now')
         elif isinstance(error, commands.CheckFailure):
             pass
