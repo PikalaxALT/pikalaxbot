@@ -96,7 +96,7 @@ def main():
                 if not original:
                     continue
                 bot.log_tb(ctx, exc)
-                orig = getattr(original, 'original', original)
+                orig = getattr(original, 'original', original) or original
                 lines = ''.join(traceback.format_exception(orig.__class__, orig, orig.__traceback__))
                 print(lines)
                 lines = f'Ignoring exception in {exc.mode}ing {cog}:\n{lines}'
