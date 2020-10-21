@@ -65,7 +65,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 guilds=True,
                 emojis=True,
                 reactions=True,
-                typing=True,
                 voice_states=True,
                 presences=True
             )
