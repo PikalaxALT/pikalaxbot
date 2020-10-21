@@ -38,7 +38,7 @@ class RPSMenu(menus.Menu):
         else:
             player_emoji = _emojis[self.player_move]
             bot_emoji = _emojis[self.bot_move]
-            diff = (self.bot_move - self.player_move) % 3
+            diff = self.bot_move - self.player_move
             # 0: tied
             # 1: bot wins
             # 2: player wins
