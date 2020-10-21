@@ -169,7 +169,8 @@ class Core(BaseCog):
         target = target or ctx.author
         is_member = isinstance(target, discord.Member)
         embed = discord.Embed()
-        embed.set_author(name=str(target), icon_url=str(target.avatar_url))
+        embed.set_author(name=str(target))
+        embed.set_thumbnail(url=str(target.avatar_url))
         embed.add_field(name='ID', value=str(target.id), inline=False)
         embed.add_field(name='Servers', value=str(sum(1 for guild in self.bot.guilds if guild.get_member(target.id))), inline=False)
         embed.add_field(name='Joined', value=is_member and format_datetime(target.joined_at) or 'N/A', inline=False)
