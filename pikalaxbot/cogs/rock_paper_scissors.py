@@ -44,6 +44,7 @@ class RPSMenu(menus.Menu):
             # 2: player wins
             embed.description += f'\n\n{self.ctx.author}: {player_emoji}\n{self.bot.user}: {bot_emoji}\n\n'
             embed.description += ('It\'s a draw!', 'The player loses...', 'The player wins!')[diff]
+            embed.colour = (discord.Colour.dark_gray, discord.Colour.red, discord.Colour.green)[diff]()
         await self.message.edit(embed=embed)
 
 
