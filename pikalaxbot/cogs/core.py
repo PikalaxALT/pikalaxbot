@@ -167,13 +167,14 @@ class Core(BaseCog):
             return f'{strftime} ({human_time} ago)'
 
         target = target or ctx.author
+        is_member = isinstance(target, discord.Member)
         embed = discord.Embed()
         embed.set_author(name=str(target), icon_url=str(target.avatar_url))
         embed.add_field(name='ID', value=str(target.id), inline=False)
         embed.add_field(name='Servers', value=str(sum(1 for guild in self.bot.guilds if guild.get_member(target.id))), inline=False)
-        embed.add_field(name='Joined', value=target.guild and format_datetime(target.joined_at) or 'N/A', inline=False)
+        embed.add_field(name='Joined', value=is_member and format_datetime(target.joined_at) or 'N/A', inline=False)
         embed.add_field(name='Created', value=format_datetime(target.created_at), inline=False)
-        if target.guild:
+        if is_member:
             embed.add_field(name='Roles', value=', '.join(str(role) for role in target.roles[1:]))
         elif ctx.channel is None:
             embed.set_footer(text='This command was used in a DM.')
