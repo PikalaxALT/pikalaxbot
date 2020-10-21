@@ -139,7 +139,7 @@ class Voice(BaseCog):
 
     def load_opus(self):
         if not discord.opus.is_loaded():
-            opus_name = ctypes.util.find_library('libopus')
+            opus_name = ctypes.util.find_library('opus') or ctypes.util.find_library('libopus')
             if opus_name is None:
                 self.log_error('Failed to find the Opus library.')
             else:
