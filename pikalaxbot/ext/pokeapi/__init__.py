@@ -58,15 +58,15 @@ class PokeApi:
         return name
 
     def random_pokemon(self):
-        return random.choice(self.pokemon)
+        mon = random.choice([mon for mon in self.pokemon if int(mon['id']) < 10000])
+        return mon
 
     def random_pokemon_name(self, *, clean=True):
         def find_cb(row):
             return row['pokemon_species_id'] == mon['id'] and row['local_language_id'] == PokeApi.language
 
         mon = self.random_pokemon()
-        mon_names = self.pokemon_species_names + self.pokemon_form_names
-        name = discord.utils.find(find_cb, mon_names)['name']
+        name = discord.utils.find(find_cb, self.pokemon_species_names)['name']
         if clean:
             name = self.clean_name(name)
         return name
