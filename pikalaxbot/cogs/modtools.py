@@ -31,7 +31,7 @@ class HoisterPageSource(menus.ListPageSource):
         mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
         mbd.add_field(name='Display name', value=entry.display_name)
         mbd.add_field(name='Nickname set', value='Yes' if entry.nick else 'No')
-        mbd.add_field(name='Is online', value='Yes' if entry.status is discord.Status.online else 'No')
+        mbd.add_field(name='Is online', value='No' if entry.status is discord.Status.offline else 'Yes')
         mbd.set_author(name=str(entry))
         mbd.set_thumbnail(url=str(entry.avatar_url))
         mbd.set_footer(text=f'Member {menu.current_page + 1}/{self.get_max_pages()}')
