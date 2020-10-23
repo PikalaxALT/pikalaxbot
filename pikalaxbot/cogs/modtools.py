@@ -37,7 +37,7 @@ class HoisterPageSource(menus.ListPageSource):
     async def format_page(self, menu: menus.MenuPages, entry: typing.List[discord.Member]):
         mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
         for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
-            mbd.add_field(name=f'[{i}] Username#dscm', value=str(member))
+            mbd.add_field(name=f'[{i}] Username#dscm', value=member.mention)
             mbd.add_field(name=f'[{i}] Display name', value=member.display_name)
             mbd.add_field(name=f'[{i}] Online status', value=str(member.status))
         mbd.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
@@ -379,7 +379,7 @@ class Modtools(BaseCog):
             if not any(role.hoist for role in member.roles)
             and member.display_name < '0'
         ]
-        hoisters.sort(key=lambda m: (m.status is discord.Status.offline, m.display_name))
+        hoisters.sort(key=lambda m: (m.status is discord.Status.offline, m.nick is None, m.display_name))
         menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=8), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
