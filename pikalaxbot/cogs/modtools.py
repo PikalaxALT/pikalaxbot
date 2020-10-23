@@ -373,6 +373,7 @@ class Modtools(BaseCog):
             if not any(role.hoist for role in member.roles)
             and member.display_name[0] < '0'
         ]
+        hoisters.sort(key=lambda m: m.display_name)
         menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=1), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
