@@ -61,32 +61,36 @@ class PokeApi:
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
-    def random_pokemon(self):
-        mon = random.choice([mon for mon in self.pokemon if int(mon['id']) < 10000])
+    def random_species(self):
+        mon = random.choice(self.pokemon_species)
         return mon
 
-    def random_pokemon_name(self, *, clean=True):
+    random_pokemon = random_species
+    
+    def get_name(self, item, from_, *, clean=True):
         def find_cb(row):
-            return row['pokemon_species_id'] == mon['id'] and row['local_language_id'] == PokeApi.language
-
-        mon = self.random_pokemon()
-        name = discord.utils.find(find_cb, self.pokemon_species_names)['name']
+            return row[f'{from_}_id'] == item['id']
+        
+        name = discord.utils.find(find_cb, getattr(self, f'{from_}_names'))['name']
         if clean:
             name = self.clean_name(name)
         return name
+
+    def get_mon_name(self, mon, *, clean=True):
+        return self.get_name(mon, 'pokemon_species', clean=clean)
+
+    def random_species_name(self, *, clean=True):
+        mon = self.random_species()
+        return self.get_mon_name(mon, clean=clean)
+
+    random_pokemon_name = random_species_name
 
     def random_move(self):
         return random.choice(self.moves)
 
     def random_move_name(self, *, clean=True):
-        def find_cb(row):
-            return row['move_id'] == move['id']
-
         move = self.random_move()
-        name = discord.utils.find(find_cb, self.move_names)['name']
-        if clean:
-            name = self.clean_name(name)
-        return name
+        return self.get_name(move, 'move', clean=clean)
 
     def get_mon_types(self, mon):
         """Returns a list of type names for that Pokemon"""
