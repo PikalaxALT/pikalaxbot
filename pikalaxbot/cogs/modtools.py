@@ -34,14 +34,13 @@ class HoisterPageSource(menus.ListPageSource):
         discord.Status.idle: 0xFAA61A
     }
 
-    async def format_page(self, menu: menus.MenuPages, entry: discord.Member):
-        mbd = discord.Embed(title='Accused of hoisting', colour=self.colormap.get(entry.status, 0))
-        mbd.add_field(name='Display name', value=entry.display_name)
-        mbd.add_field(name='Nickname set', value='Yes' if entry.nick else 'No')
-        mbd.add_field(name='Is online', value='No' if entry.status is discord.Status.offline else 'Yes')
-        mbd.set_author(name=str(entry))
-        mbd.set_thumbnail(url=str(entry.avatar_url))
-        mbd.set_footer(text=f'Member {menu.current_page + 1}/{self.get_max_pages()}')
+    async def format_page(self, menu: menus.MenuPages, entry: typing.List[discord.Member]):
+        mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
+        for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
+            mbd.add_field(name=f'[{i}] Display name', value=member.display_name)
+            mbd.add_field(name=f'[{i}] Nickname set', value='Yes' if member.nick else 'No')
+            mbd.add_field(name=f'[{i}] Is online', value='No' if member.status is discord.Status.offline else 'Yes')
+        mbd.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
         return mbd
 
 
@@ -381,7 +380,7 @@ class Modtools(BaseCog):
             and member.display_name < '0'
         ]
         hoisters.sort(key=lambda m: (m.status is discord.Status.offline, m.display_name))
-        menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=1), delete_message_after=True)
+        menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=8), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
 
