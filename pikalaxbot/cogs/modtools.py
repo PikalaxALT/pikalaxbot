@@ -27,8 +27,15 @@ from .utils.errors import CogOperationError
 
 
 class HoisterPageSource(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, entry):
-        mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
+    colormap = {
+        discord.Status.online: 0x43B581,
+        discord.Status.offline: 0x747F8D,
+        discord.Status.dnd: 0xF04747,
+        discord.Status.idle: 0xFAA61A
+    }
+
+    async def format_page(self, menu: menus.MenuPages, entry: discord.Member):
+        mbd = discord.Embed(title='Accused of hoisting', colour=self.colormap.get(entry.status, 0))
         mbd.add_field(name='Display name', value=entry.display_name)
         mbd.add_field(name='Nickname set', value='Yes' if entry.nick else 'No')
         mbd.add_field(name='Is online', value='No' if entry.status is discord.Status.offline else 'Yes')
@@ -373,7 +380,7 @@ class Modtools(BaseCog):
             if not any(role.hoist for role in member.roles)
             and member.display_name < '0'
         ]
-        hoisters.sort(key=lambda m: m.display_name)
+        hoisters.sort(key=lambda m: (m.status is not discord.Status.offline, m.display_name))
         menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=1), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
