@@ -20,10 +20,22 @@ import traceback
 import sqlite3
 import logging
 import typing
-from discord.ext import commands
+from discord.ext import commands, menus
 from . import BaseCog
 from .utils.converters import CommandConverter
 from .utils.errors import CogOperationError
+
+
+class HoisterPageSource(menus.ListPageSource):
+    async def format_page(self, menu: menus.MenuPages, entry):
+        mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
+        mbd.add_field(name='Display name', value=entry.display_name)
+        mbd.add_field(name='Nickname set', value='Yes' if entry.nick else 'No')
+        mbd.add_field(name='Is online', value='Yes' if entry.status is discord.Status.online else 'No')
+        mbd.set_author(name=str(entry))
+        mbd.set_thumbnail(url=str(entry.avatar_url))
+        mbd.set_footer(text=f'Member {menu.current_page + 1}/{self.get_max_pages()}')
+        return mbd
 
 
 class lower(str):
@@ -349,6 +361,20 @@ class Modtools(BaseCog):
         """Reoad the extension"""
 
         await self.reload_cog(ctx, *cogs)
+
+    @commands.max_concurrency(1, commands.BucketType.channel)
+    @commands.check(lambda ctx: ctx.guild.id == 336642139381301249)
+    @commands.command(name='hoisters')
+    async def get_hoisters(self, ctx):
+        """Get a list of all people in the server whose names are hoisted"""
+
+        hoisters = [
+            member for member in ctx.guild.members
+            if not any(role.hoist for role in member.roles)
+            and member.display_name[0] < '0'
+        ]
+        menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=1), delete_message_after=True)
+        await menu.start(ctx, wait=True)
 
 
 def setup(bot):
