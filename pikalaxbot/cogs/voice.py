@@ -177,6 +177,7 @@ class Voice(BaseCog):
         """Use eSpeak to say the message aloud in the voice channel."""
         await self.say(ctx, msg=msg)
 
+    @commands.check(voice_cmd_ensure_connected)
     @pikavoice.command()
     async def stop(self, ctx: commands.Context):
         """Stop all playing audio"""
@@ -184,6 +185,7 @@ class Voice(BaseCog):
         if vclient.is_playing():
             vclient.stop()
 
+    @commands.check(voice_cmd_ensure_connected)
     @commands.command()
     async def shutup(self, ctx):
         """Stop all playing audio"""
