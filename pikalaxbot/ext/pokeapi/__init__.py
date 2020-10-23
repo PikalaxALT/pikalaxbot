@@ -3,7 +3,6 @@ import re
 import csv
 import os
 import discord
-import glob
 
 
 class PokeApi:
@@ -46,7 +45,12 @@ class PokeApi:
         for attrname in PokeApi.__slots__:
             file = f'{PokeApi.path}/{attrname}.csv'
             with open(file) as fp:
-                setattr(self, attrname, list(csv.DictReader(fp)))
+                reader = csv.DictReader(fp)
+                if attrname.endswith('_names'):
+                    data = [row for row in reader if row['local_language_id'] == PokeApi.language]
+                else:
+                    data = list(csv.DictReader(fp))
+                setattr(self, attrname, data)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}>'
@@ -76,7 +80,7 @@ class PokeApi:
 
     def random_move_name(self, *, clean=True):
         def find_cb(row):
-            return row['move_id'] == move['id'] and row['local_language_id'] == PokeApi.language
+            return row['move_id'] == move['id']
 
         move = self.random_move()
         name = discord.utils.find(find_cb, self.move_names)['name']
@@ -87,7 +91,7 @@ class PokeApi:
     def get_mon_types(self, mon):
         """Returns a list of type names for that Pokemon"""
         types = set(row['type_id'] for row in self.pokemon_types if row['pokemon_id'] == mon['id'])
-        return [row['name'] for row in self.type_names if row['type_id'] in types and row['local_language_id'] == PokeApi.language]
+        return [row['name'] for row in self.type_names if row['type_id'] in types]
 
 
 def setup(bot):
