@@ -6,18 +6,19 @@ from . import BaseCog
 DPY_GUILD_ID = 336642139381301249
 
 
-class HoisterPageSource(menus.ListPageSource):
-    colormap = {
-        discord.Status.online: 0x43B581,
-        discord.Status.offline: 0x747F8D,
-        discord.Status.dnd: 0xF04747,
-        discord.Status.idle: 0xFAA61A
-    }
+class HoistersMenu(menus.MenuPages):
+    async def start(self, ctx, *, channel=None, wait=False):
+        self.emojis = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status}
+        await super().start(ctx, channel=channel, wait=wait)
 
-    async def format_page(self, menu: menus.MenuPages, entry: typing.List[discord.Member]):
+
+class HoisterPageSource(menus.ListPageSource):
+    async def format_page(self, menu: HoistersMenu, entry: typing.List[discord.Member]):
         mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
         for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
-            mbd.add_field(name=f'[{i}] {member}', value=member.nick or 'No nickname')
+            nick = member.nick or 'No nickname'
+            emoji = menu.emojis[member.status]
+            mbd.add_field(name=f'[{i}] {member} | {member.id}', value=f'{nick} {emoji}')
         mbd.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
         return mbd
 
@@ -37,7 +38,7 @@ class Hoisters(BaseCog):
             and not member.bot  # bots are exempt
             and member.display_name < '0'
         ]
-        hoisters.sort(key=lambda m: (m.status is discord.Status.offline, m.nick is None, m.display_name))
+        hoisters.sort(key=lambda m: (m.nick is None, m.status is discord.Status.offline, m.display_name))
         menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=25), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
