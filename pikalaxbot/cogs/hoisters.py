@@ -18,7 +18,12 @@ class HoisterPageSource(menus.ListPageSource):
         for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
             nick = member.nick or 'No nickname'
             emoji = menu.emojis[member.status]
-            mbd.add_field(name=f'[{i}] {member} | {member.id}', value=f'{emoji} {nick}')
+            mbd.add_field(
+                name=f'[{i}] {member}',
+                value=f'**Nickname:** {nick}\n'
+                      f'**User ID:** {member.id}\n'
+                      f'**Status:** {emoji} {member.status}'
+            )
         mbd.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
         return mbd
 
@@ -39,7 +44,7 @@ class Hoisters(BaseCog):
             and member.display_name < '0'
         ]
         hoisters.sort(key=lambda m: (m.nick is None, m.status is discord.Status.offline, m.display_name))
-        menu = HoistersMenu(HoisterPageSource(hoisters, per_page=25), delete_message_after=True)
+        menu = HoistersMenu(HoisterPageSource(hoisters, per_page=9), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
 
