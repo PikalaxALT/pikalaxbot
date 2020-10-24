@@ -51,7 +51,7 @@ class ChatDeathIndex(BaseCog):
         context = await self.bot.get_context(message)
         return not context.valid
 
-    @tasks.loop(seconds=60, reconnect=True)
+    @tasks.loop(seconds=60)
     async def save_message_count(self):
         for channel in self.bot.get_all_channels():
             self.cdi_samples[channel.id].append(self.cumcharcount[channel.id])
