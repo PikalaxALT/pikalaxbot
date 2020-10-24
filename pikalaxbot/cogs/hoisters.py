@@ -39,7 +39,7 @@ class Hoisters(BaseCog):
             and member.display_name < '0'
         ]
         hoisters.sort(key=lambda m: (m.nick is None, m.status is discord.Status.offline, m.display_name))
-        menu = menus.MenuPages(HoisterPageSource(hoisters, per_page=25), delete_message_after=True)
+        menu = HoistersMenu(HoisterPageSource(hoisters, per_page=25), delete_message_after=True)
         await menu.start(ctx, wait=True)
 
 
