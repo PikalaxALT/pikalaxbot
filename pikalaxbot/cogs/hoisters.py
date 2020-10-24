@@ -18,7 +18,7 @@ class HoisterPageSource(menus.ListPageSource):
         for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
             nick = member.nick or 'No nickname'
             emoji = menu.emojis[member.status]
-            mbd.add_field(name=f'[{i}] {member} | {member.id}', value=f'{nick} {emoji}')
+            mbd.add_field(name=f'[{i}] {member} | {member.id}', value=f'{emoji} {nick}')
         mbd.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
         return mbd
 
