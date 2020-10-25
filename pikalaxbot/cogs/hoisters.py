@@ -16,7 +16,7 @@ class HoisterPageSource(menus.ListPageSource):
     async def format_page(self, menu: HoistersMenu, entry: typing.List[discord.Member]):
         mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
         for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
-            nick = member.nick or 'No nickname'
+            nick = discord.utils.escape_markdown(member.nick) or 'No nickname'
             emoji = menu.emojis[member.status]
             mbd.add_field(
                 name=f'[{i}] {member}',
