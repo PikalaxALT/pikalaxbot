@@ -47,18 +47,19 @@ class BotHelpPageSource(menus.GroupByPageSource):
         return embed
 
 
-class CogHelpPageSource(menus.ListPageSource):
-    _cog = None
-
+class GroupOrCogHelpPageSource(menus.ListPageSource):
     @property
     def paginating(self):
         return self.is_paginating()
 
-    async def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
-        cog = self._cog
+    async def format_page(self, menu, page):
+        # Silence IDE warnings
+        raise NotImplementedError
+
+    def format_embed(self, menu, entry, *, title=discord.Embed.Empty, description=discord.Embed.Empty):
         embed = discord.Embed(
-            title=f'{cog.qualified_name} Help',
-            description=cog.description or discord.Embed.Empty,
+            title=title,
+            description=description,
             colour=discord.Colour.blurple()
         )
         for command in entry:
@@ -69,7 +70,17 @@ class CogHelpPageSource(menus.ListPageSource):
         return embed
 
 
-class GroupHelpPageSource(menus.ListPageSource):
+class CogHelpPageSource(GroupOrCogHelpPageSource):
+    def __init__(self, cog, entries, *, per_page):
+        super().__init__(entries, per_page=per_page)
+        self._cog = cog
+
+    async def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
+        cog = self._cog
+        return self.format_embed(menu, entry, title=f'{cog.qualified_name} Help', description=cog.description or discord.Embed.Empty)
+
+
+class GroupHelpPageSource(GroupOrCogHelpPageSource):
     title = discord.Embed.Empty
     description = discord.Embed.Empty
 
@@ -78,17 +89,7 @@ class GroupHelpPageSource(menus.ListPageSource):
         return self.is_paginating()
 
     async def format_page(self, menu: menus.MenuPages, page):
-        embed = discord.Embed(
-            title=self.title,
-            description=self.description or discord.Embed.Empty,
-            colour=discord.Colour.blurple()
-        )
-        for command in page:
-            embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
-        max_pages = self.get_max_pages()
-        if max_pages and max_pages > 1:
-            embed.set_author(name=f'Page {menu.current_page + 1}/{self.get_max_pages()} ({len(self.entries)} commands)')
-        return embed
+        return self.format_embed(menu, page, title=self.title, description=self.description)
 
 
 class HelpMenu(menus.MenuPages):
@@ -192,8 +193,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     async def send_cog_help(self, cog):
         entries = await self.filter_commands(cog.get_commands(), sort=True)
-        page_source = CogHelpPageSource(entries, per_page=6)
-        page_source._cog = cog
+        page_source = CogHelpPageSource(cog, entries, per_page=6)
         paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
