@@ -13,9 +13,16 @@ class HoistersMenu(menus.MenuPages):
 
 
 class HoisterPageSource(menus.ListPageSource):
+    @discord.utils.cached_property
+    def num_entries(self):
+        return len(self.entries)
+
     async def format_page(self, menu: HoistersMenu, entry: typing.List[discord.Member]):
         mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
-        for i, member in enumerate(entry, menu.current_page * self.per_page + 1):
+        first_idx = menu.current_page * self.per_page + 1
+        max_idx = self.num_entries
+        last_idx = min(max_idx, first_idx + self.per_page - 1)
+        for i, member in enumerate(entry,first_idx):
             nick = discord.utils.escape_markdown(member.nick) or 'No nickname'
             emoji = menu.emojis[member.status]
             mbd.add_field(
@@ -24,7 +31,11 @@ class HoisterPageSource(menus.ListPageSource):
                       f'**User ID:** {member.id}\n'
                       f'**Status:** {emoji} {member.status}'
             )
-        mbd.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
+        if first_idx == last_idx:
+            footer_text = f'Member {first_idx} of {max_idx}'
+        else:
+            footer_text = f'Members {first_idx}-{last_idx} of {max_idx}'
+        mbd.set_footer(text=footer_text)
         return mbd
 
 
