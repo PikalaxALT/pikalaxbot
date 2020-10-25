@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands, menus
 import typing
-import traceback
 from . import BaseCog
 
 DPY_GUILD_ID = 336642139381301249
@@ -25,7 +24,7 @@ class HoisterPageSource(menus.ListPageSource):
             max_idx = self.num_entries
             last_idx = min(max_idx, first_idx + self.per_page - 1)
             for i, member in enumerate(entry,first_idx):
-                nick = discord.utils.escape_markdown(member.nick) or 'No nickname'
+                nick = discord.utils.escape_markdown(member.nick) if member.nick else 'No nickname'
                 emoji = menu.emojis[member.status]
                 mbd.add_field(
                     name=f'[{i}] {member}',
