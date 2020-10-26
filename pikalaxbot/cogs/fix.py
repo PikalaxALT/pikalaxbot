@@ -72,22 +72,22 @@ class Fix(BaseCog):
             await self.fix(ctx)
 
     @fix.command()
-    async def add(self, ctx, key, name, owner=None):
-        self.bot_names[key] = name
-        if owner:
-            self.bot_owners[key] = owner
-        elif key in self.bot_owners:
-            del self.bot_owners[key]
+    async def add(self, ctx, key, owner, altname=None):
+        self.bot_owners[key] = owner
+        if altname:
+            self.bot_owners[key] = altname
+        elif key in self.bot_names:
+            del self.bot_names[key]
         async with self.bot.sql as sql:
-            await sql.execute('INSERT INTO fix VALUES (?, ?, ?)', (key, name, owner))
+            await sql.execute('INSERT INTO fix VALUES (?, ?, ?)', (key, owner, altname))
         await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     @fix.command(name='del')
     async def delete_key(self, ctx, key):
-        if key in self.bot_names:
-            del self.bot_names[key]
-            if key in self.bot_owners:
-                del self.bot_owners[key]
+        if key in self.bot_owners:
+            del self.bot_owners[key]
+            if key in self.bot_names:
+                del self.bot_names[key]
             async with self.bot.sql as sql:
                 await sql.execute('DELETE FROM fix WHERE name = ?', (key,))
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
