@@ -56,7 +56,7 @@ class Fix(BaseCog):
             match = re.match(r'fix(\w*)', ctx.invoked_with)
             return match and match.group(1)
 
-    @commands.command()
+    @commands.group(invoke_without_command=True)
     async def fix(self, ctx: commands.Context):
         """!fix<botname> - Nag the bot's owner to fix their bot"""
         alias = self.get_fix_alias(ctx)
@@ -70,6 +70,29 @@ class Fix(BaseCog):
         if ctx.prefix and not ctx.valid and Fix.get_fix_alias(ctx) \
                 and await self.fix.can_run(ctx):
             await self.fix(ctx)
+
+    @fix.command()
+    async def add(self, ctx, key, name, owner=None):
+        self.bot_names[key] = name
+        if owner:
+            self.bot_owners[key] = owner
+        elif key in self.bot_owners:
+            del self.bot_owners[key]
+        async with self.bot.sql as sql:
+            await sql.execute('INSERT INTO fix VALUES (?, ?, ?)', (key, name, owner))
+        await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+
+    @fix.command(name='del')
+    async def delete_key(self, ctx, key):
+        if key in self.bot_names:
+            del self.bot_names[key]
+            if key in self.bot_owners:
+                del self.bot_owners[key]
+            async with self.bot.sql as sql:
+                await sql.execute('DELETE FROM fix WHERE name = ?', (key,))
+            await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+        else:
+            await ctx.message.add_reaction('\N{CROSS MARK}')
 
 
 def setup(bot):
