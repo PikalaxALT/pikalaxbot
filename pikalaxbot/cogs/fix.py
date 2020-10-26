@@ -21,7 +21,7 @@ from . import BaseCog
 
 
 class Fix(BaseCog):
-    bot_owners = {
+    initial_bot_owners = {
         'pika': 'PikalaxALT',
         'groudon': 'chfoo',
         'yay': 'azum and tustin',
@@ -30,9 +30,25 @@ class Fix(BaseCog):
         'danny': 'Danny',
         'meme': 'Jet'
     }
-    bot_names = {
+    initial_bot_names = {
         'yay': 'xfix\'s bot'
     }
+
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.bot_owners = {}
+        self.bot_names = {}
+
+    async def init_db(self, sql):
+        await sql.execute('CREATE TABLE IF NOT EXISTS fix (name TEXT PRIMARY KEY, owner TEXT NOT NULL, altname TEXT)')
+        for key, value in self.initial_bot_owners.items():
+            altname = self.initial_bot_names.get(key)
+            await sql.execute('INSERT OR IGNORE INTO fix VALUES (?, ?, ?)', (key, value, altname))
+        async with sql.execute('SELECT * FROM fix') as cur:
+            async for name, owner, altname in cur:
+                self.bot_owners[name] = owner
+                if altname:
+                    self.bot_names[name] = altname
 
     @staticmethod
     def get_fix_alias(ctx):
