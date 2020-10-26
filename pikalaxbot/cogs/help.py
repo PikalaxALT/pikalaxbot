@@ -27,10 +27,6 @@ import traceback
 
 
 class BotHelpPageSource(menus.GroupByPageSource):
-    @property
-    def paginating(self):
-        return self.is_paginating()
-
     async def format_page(self, menu: menus.MenuPages, entry: menus._GroupByEntry):
         bot = menu.bot
         cog = bot.get_cog(entry.key)
@@ -48,10 +44,6 @@ class BotHelpPageSource(menus.GroupByPageSource):
 
 
 class GroupOrCogHelpPageSource(menus.ListPageSource):
-    @property
-    def paginating(self):
-        return self.is_paginating()
-
     async def format_page(self, menu, page):
         # Silence IDE warnings
         raise NotImplementedError
@@ -83,10 +75,6 @@ class CogHelpPageSource(GroupOrCogHelpPageSource):
 class GroupHelpPageSource(GroupOrCogHelpPageSource):
     title = discord.Embed.Empty
     description = discord.Embed.Empty
-
-    @property
-    def paginating(self):
-        return self.is_paginating()
 
     async def format_page(self, menu: menus.MenuPages, page):
         return self.format_embed(menu, page, title=self.title, description=self.description)
