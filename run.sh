@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -xe
 
 BOTDIR=$(dirname "$(realpath -P "$0")"); cd "${BOTDIR}"
 
