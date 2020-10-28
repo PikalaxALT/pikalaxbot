@@ -56,7 +56,7 @@ class Hoisters(BaseCog):
             member for member in ctx.guild.members
             if not any(role.hoist for role in member.roles)
             and not member.bot  # bots are exempt
-            and member.display_name < '!'
+            and member.display_name < '0'
         ]
         if not hoisters:
             return await ctx.send('No hoisters found')
