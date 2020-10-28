@@ -197,9 +197,7 @@ class Onehand(BaseCog):
 
         async with self.bot.client_session.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
             url = await r.text()
-        async with self.bot.client_session.get(url) as r:
-            stream = io.BytesIO(await r.read())
-        await ctx.send(file=discord.file.File(stream, os.path.basename(url)))
+        await ctx.send(url)
 
     @inspire.error
     async def inspire_error(self, ctx, exc):
