@@ -56,7 +56,7 @@ class Hoisters(BaseCog):
             member for member in ctx.guild.members
             if not any(role.hoist for role in member.roles)
             and not member.bot  # bots are exempt
-            and member.display_name < '0'
+            and member.display_name < ' '
         ]
         hoisters.sort(key=lambda m: (m.nick is None, m.status is discord.Status.offline, m.display_name))
         menu = HoistersMenu(HoisterPageSource(hoisters, per_page=9), delete_message_after=True)
