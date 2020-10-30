@@ -45,13 +45,14 @@ class Core(BaseCog):
             raise BotIsIgnoringUser(f'I am ignoring {ctx.author}')
         return True
 
-    @commands.command(aliases=['reboot'])
+    @commands.command(aliases=['reboot', 'restart', 'shutdown'])
     @commands.is_owner()
     async def kill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
 
-        self.bot.reboot_after = ctx.invoked_with == 'reboot'
-        await ctx.send('Rebooting to apply updates')
+        mode = ctx.invoked_with in ('reboot', 'restart')
+        self.bot.reboot_after = mode
+        await ctx.send('Rebooting to apply updates' if mode else 'Shutting down')
         await self.bot.logout()
 
     @commands.command()

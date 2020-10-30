@@ -44,7 +44,7 @@ class PokeApi:
     def __init__(self):
         for attrname in PokeApi.__slots__:
             file = f'{PokeApi.path}/{attrname}.csv'
-            with open(file) as fp:
+            with open(file, encoding='utf-8') as fp:
                 reader = csv.DictReader(fp)
                 if attrname.endswith('_names'):
                     data = [row for row in reader if row['local_language_id'] == PokeApi.language]
