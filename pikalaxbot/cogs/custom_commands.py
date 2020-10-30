@@ -22,9 +22,13 @@ class CustomCommands(BaseCog):
         await sql.execute('create unique index if not exists custom_commands_idx on custom_commands (guild_id, invoke_with)')
 
     async def custom_command_callback(self, ctx, *fields):
-        await ctx.send(ctx._cc_template.format(*fields))
-        async with self.bot.sql as sql:
-            await sql.execute('update custom_commands set uses = uses + 1 where guild_id = ? and invoke_with = ?', (ctx.guild.id, ctx.invoked_with))
+        try:
+            await ctx.send(ctx._cc_template.format(*fields))
+        except IndexError:
+            await ctx.send('Missing one or more required arguments')
+        else:
+            async with self.bot.sql as sql:
+                await sql.execute('update custom_commands set uses = uses + 1 where guild_id = ? and invoke_with = ?', (ctx.guild.id, ctx.invoked_with))
 
     @BaseCog.listener()
     async def on_message(self, message):
@@ -107,6 +111,8 @@ class CustomCommands(BaseCog):
             async with sql.execute('select invoke_with from custom_commands where guild_id = ? and owner_id = ?', (ctx.guild.id, owner.id)) as cur:
                 async for record, in cur:
                     pag.add_line(record)
+        if not pag.pages:
+            return await ctx.send('You own no custom commands in this guild')
         page_source = PaginatorPageSource(pag)
         menu = menus.MenuPages(page_source, delete_message_after=True)
         await menu.start(ctx, wait=True)
@@ -120,6 +126,8 @@ class CustomCommands(BaseCog):
             async with sql.execute('select invoke_with from custom_commands where guild_id = ?', (ctx.guild.id,)) as cur:
                 async for record, in cur:
                     pag.add_line(record)
+        if not pag.pages:
+            return await ctx.send('No custom commands in this guild')
         page_source = PaginatorPageSource(pag)
         menu = menus.MenuPages(page_source, delete_message_after=True)
         await menu.start(ctx, wait=True)
@@ -139,7 +147,7 @@ class CustomCommands(BaseCog):
         except discord.NotFound:
             owner = None
         if owner:
-            mention = f'**Owner mention:** {owner.mention}'
+            mention = f'**Owner mention:** {owner.mention}\n'
         else:
             mention = ''
         embed = discord.Embed(
