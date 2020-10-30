@@ -23,9 +23,11 @@ class CustomCommands(BaseCog):
 
     async def custom_command_callback(self, ctx, *fields):
         try:
-            await ctx.send(ctx._cc_template.format(*fields))
+            await ctx.send(ctx._cc_template.format(*fields, author=ctx.author))
         except IndexError:
             await ctx.send('Missing one or more required arguments')
+        except (KeyError, AttributeError) as e:
+            await ctx.send(f'Invalid template raised {e.__class__.name}: {e}')
         else:
             async with self.bot.sql as sql:
                 await sql.execute('update custom_commands set uses = uses + 1 where guild_id = ? and invoke_with = ?', (ctx.guild.id, ctx.invoked_with))
@@ -53,8 +55,10 @@ class CustomCommands(BaseCog):
         """Commands for creating custom commands
 
         Command templates are evaluated using str.format.
-        Use {} for placeholders for additional args on
-        invoke."""
+        Use {} for placeholders for additional args oninvoke.
+
+        Use {author} for the author's name#discrim, or you can use attributes of discord.Member as, for instance, {author.mention}.
+        See also: https://discordpy.readthedocs.io/en/latest/api.html#discord.Member"""
 
     @cmd.command(aliases=['create', 'mk', 'new'])
     async def add(self, ctx, invoke_with, *, template):
