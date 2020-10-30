@@ -23,7 +23,9 @@ class CustomCommands(BaseCog):
 
     async def custom_command_callback(self, ctx, *fields):
         try:
-            await ctx.send(ctx._cc_template.format(*fields, author=ctx.author))
+            msg = ctx._cc_template.format(*fields, author=ctx.author)
+            msg = msg.replace(self.bot.http.token, '<Haha nope!>')
+            await ctx.send(msg)
         except IndexError:
             await ctx.send('Missing one or more required arguments')
         except (KeyError, AttributeError) as e:
