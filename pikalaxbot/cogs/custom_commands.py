@@ -57,8 +57,7 @@ class CustomCommands(BaseCog):
         Command templates are evaluated using str.format.
         Use {} for placeholders for additional args oninvoke.
 
-        Use {author} for the author's name#discrim, or you can use attributes of discord.Member as, for instance, {author.mention}.
-        See also: https://discordpy.readthedocs.io/en/latest/api.html#discord.Member"""
+        Use {author} for the author's name#discrim, or you can use attributes of [discord.Member](https://discordpy.readthedocs.io/en/latest/api.html#discord.Member) as, for instance, {author.mention}."""
 
     @cmd.command(aliases=['create', 'mk', 'new'])
     async def add(self, ctx, invoke_with, *, template):
