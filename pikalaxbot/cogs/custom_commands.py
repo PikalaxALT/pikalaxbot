@@ -173,7 +173,7 @@ class CustomCommands(BaseCog):
             async with self.bot.sql as sql:
                 async with sql.execute('select template from custom_commands where guild_id = ? and invoke_with = ?', (ctx.guild.id, invoke_with)) as cur:
                     template, = await cur.fetchone()
-        except ValueError:
+        except TypeError:
             return await ctx.send('Command not found')
         await ctx.send(discord.utils.escape_markdown(template))
 
