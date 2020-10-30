@@ -19,7 +19,7 @@ class CustomCommands(BaseCog):
 
     async def init_db(self, sql):
         await sql.execute('create table if not exists custom_commands (guild_id integer, owner_id integer, invoke_with text, template text, uses integer default 0, created_at real)')
-        await sql.execute('create unique index if not exists on custom_commands (guild_id, invoke_with)')
+        await sql.execute('create unique index if not exists custom_commands_idx on custom_commands (guild_id, invoke_with)')
 
     async def custom_command_callback(self, ctx, *fields):
         await ctx.send(ctx._cc_template.format(*fields))
