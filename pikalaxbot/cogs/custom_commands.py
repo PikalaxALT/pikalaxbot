@@ -112,7 +112,7 @@ class CustomCommands(BaseCog):
                 async for record, in cur:
                     pag.add_line(record)
         if not pag.pages:
-            return await ctx.send('You own no custom commands in this guild')
+            return await ctx.send(f'{owner.display_name} owns no custom commands in this guild')
         page_source = PaginatorPageSource(pag)
         menu = menus.MenuPages(page_source, delete_message_after=True)
         await menu.start(ctx, wait=True)
