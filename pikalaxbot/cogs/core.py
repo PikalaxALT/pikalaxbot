@@ -196,6 +196,25 @@ class Core(BaseCog):
                 and 'webhook_id' in payload.data:
             await self.bot.http.delete_message(payload.channel_id, payload.message_id)
 
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        if not await self.bot.is_owner(before):
+            return
+        before_roles = set(before.roles)
+        after_roles = set(after.roles)
+        new_roles = after_roles - before_roles
+        rem_roles = before_roles - after_roles
+        embed = discord.Embed(title=f'Your member object in {before.guild} was updated')
+        if new_roles:
+            embed.add_field(name='Roles added', value=', '.join(r.name for r in new_roles))
+        if rem_roles:
+            embed.add_field(name='Roles removed', value=', '.join(r.name for r in rem_roles))
+        # if before.nick != after.nick:
+        #     embed.add_field(name='Nickname changed', value=after.nick or 'reset to username')
+        if not embed.fields:
+            return
+        await self.bot.get_user(self.bot.owner_id).send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Core(bot))
