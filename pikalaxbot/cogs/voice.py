@@ -118,6 +118,9 @@ class Voice(BaseCog):
                 raise discord.ClientException('ffmpeg or avconv not installed')
         self.timeout_tasks = {}
 
+    def cog_unload(self):
+        [task.cancel() for task in self.timeout_tasks.values()]
+
     @staticmethod
     async def idle_timeout(ctx):
         await asyncio.sleep(600)
