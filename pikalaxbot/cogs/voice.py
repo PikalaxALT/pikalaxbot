@@ -52,8 +52,7 @@ async def voice_cmd_ensure_connected(ctx):
             raise VoiceCommandError('Invoker is not connected to voice')
         vchan = ctx.author.voice.channel
         if not vchan.permissions_for(ctx.me).connect:
-            raise VoiceCommandError('I do not have permission to connect to the voice channel '
-                                    'configured for this guild')
+            raise VoiceCommandError('I do not have permission to connect to your voice channel')
         await vchan.connect()
     return True
 
@@ -64,11 +63,11 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
         self.fname = fname
 
     @staticmethod
-    async def call_espeak(msg, fname, *, loop=None, **kwargs):
+    async def call_espeak(msg, fname, **kwargs):
         flags = ' '.join(f'-{flag} {value}' for flag, value in kwargs.items())
         msg = msg.replace('"', '\\"')
         args = f'espeak -w {fname} {flags} "{msg}"'
-        fut = await asyncio.create_subprocess_shell(args, loop=loop, stderr=-1, stdout=-1)
+        fut = await asyncio.create_subprocess_shell(args, stderr=-1, stdout=-1)
         out, err = await fut.communicate()
         if fut.returncode != 0:
             raise subprocess.CalledProcessError(fut.returncode, args, out, err)
@@ -76,7 +75,7 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
     @classmethod
     async def from_message(cls, cog, msg, **kwargs):
         fname = f'{os.getcwd()}/{time.time()}.wav'
-        await cls.call_espeak(msg, fname, loop=cog.bot.loop, **cog.espeak_kw)
+        await cls.call_espeak(msg, fname, **cog.espeak_kw)
         return cls(fname, **kwargs)
 
     def cleanup(self):
