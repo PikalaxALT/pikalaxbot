@@ -133,7 +133,7 @@ class Voice(BaseCog):
 
     def player_after(self, ctx, exc):
         if exc:
-            ctx.bot.dispatch('command_error', ctx, exc)
+            asyncio.run_coroutine_threadsafe(ctx.command.dispatch_error(ctx, exc), self.bot.loop)
             print(f'Player error: {exc}')
         self.start_timeout(ctx)
 
