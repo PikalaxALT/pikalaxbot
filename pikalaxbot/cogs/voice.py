@@ -66,6 +66,8 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
     async def call_espeak(msg, fname, **kwargs):
         flags = ' '.join(f'-{flag} {value}' for flag, value in kwargs.items())
         msg = msg.replace('"', '\\"')
+        if msg.startswith('-'):
+            msg = '\\' + msg
         args = f'espeak -w {fname} {flags} "{msg}"'
         fut = await asyncio.create_subprocess_shell(args, stderr=-1, stdout=-1)
         out, err = await fut.communicate()
@@ -87,7 +89,8 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
 class Voice(BaseCog):
     __ffmpeg_options = {
         'before_options': '-loglevel error',
-        'options': '-vn'
+        'options': '-vn',
+        'stderr': subprocess.PIPE
     }
     espeak_kw = {}
     config_attrs = 'espeak_kw',
