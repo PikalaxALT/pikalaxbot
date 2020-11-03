@@ -45,9 +45,6 @@ async def _command_prefix(bot, message):
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
-    filter_excs = commands.CommandNotFound, commands.CheckFailure, commands.MaxConcurrencyReached
-    handle_excs = commands.UserInputError, CogOperationError, commands.DisabledCommand
-
     def __init__(self, settings_file, logfile, sqlfile, *, loop=None):
         # Load settings
         loop = loop or asyncio.get_event_loop()

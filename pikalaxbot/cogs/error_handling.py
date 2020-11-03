@@ -7,6 +7,9 @@ from .utils.errors import *
 
 
 class ErrorHandling(BaseCog):
+    filter_excs = commands.CommandNotFound, commands.CheckFailure, commands.MaxConcurrencyReached
+    handle_excs = commands.UserInputError, CogOperationError, commands.DisabledCommand
+
     @BaseCog.listener()
     async def on_error(self, event, *args, **kwargs):
         s = traceback.format_exc()
@@ -51,10 +54,10 @@ class ErrorHandling(BaseCog):
 
     @BaseCog.listener()
     async def on_command_error(self, ctx, exc):
-        if isinstance(exc, self.bot.filter_excs):
+        if isinstance(exc, self.filter_excs):
             return
 
-        if isinstance(exc, self.bot.handle_excs):
+        if isinstance(exc, self.handle_excs):
             return await self.handle_command_error(ctx, exc)
 
         if ctx.cog and BaseCog._get_overridden_method(ctx.cog.cog_command_error) is not None:
