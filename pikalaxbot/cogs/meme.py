@@ -94,7 +94,7 @@ class Meme(BaseCog):
         timeout = aiohttp.ClientTimeout(total=15.0)
         params = {'Subject1': true_subj1, 'Subject2': true_subj2}
         async with ctx.typing():
-            async with self.session.post('http://www.watchout4snakes.com/wo4snakes/Random/RandomParagraph', data=params, timeout=timeout) as r:
+            async with self.session.post('http://www.watchout4snakes.com/Random/RandomParagraph', data=params, timeout=timeout) as r:
                 res = await r.text()
         if not isinstance(subj1, str):
             res = res.replace(true_subj1, str(subj1))
