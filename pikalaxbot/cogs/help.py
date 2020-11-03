@@ -89,7 +89,7 @@ class HelpMenu(menus.MenuPages):
         await asyncio.sleep(30.0)
         await self.show_current_page()
 
-    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(2))
+    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(0))
     async def pick_page(self, payload):
         my_msg = await self.ctx.send('What page do you want to go to?')
         try:
@@ -103,7 +103,7 @@ class HelpMenu(menus.MenuPages):
             page = int(msg.content)
             await self.show_checked_page(page - 1)
 
-    @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(3))
+    @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(2))
     async def info(self, payload):
         self._in_info = not self._in_info
         if self._in_info:
@@ -128,7 +128,7 @@ class HelpMenu(menus.MenuPages):
         else:
             await self.show_current_page()
 
-    @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(4))
+    @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(3))
     async def using_the_bot(self, payload):
         embed = discord.Embed(title='Using the bot', description='Hello! Welcome to the help page')
         embed.add_field(name='How do I use the bot?', value='Reading the bot signature is pretty simple.', inline=False)

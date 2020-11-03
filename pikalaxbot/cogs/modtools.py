@@ -20,7 +20,7 @@ import traceback
 import sqlite3
 import logging
 import typing
-from discord.ext import commands, menus
+from discord.ext import commands
 from . import BaseCog
 from .utils.converters import CommandConverter
 from .utils.errors import CogOperationError
