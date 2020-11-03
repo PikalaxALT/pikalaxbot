@@ -89,7 +89,7 @@ class HelpMenu(menus.MenuPages):
         await asyncio.sleep(30.0)
         await self.show_current_page()
 
-    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(0))
+    @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(1))
     async def pick_page(self, payload):
         my_msg = await self.ctx.send('What page do you want to go to?')
         try:
