@@ -103,7 +103,7 @@ class Meme(BaseCog):
         if len(res) < 2000:
             await ctx.send(res)
         else:
-            await mystbin(res, cs=self.bot.client_session)
+            await ctx.send(await mystbin(res, cs=self.bot.client_session))
 
     @commands.command()
     async def riot(self, ctx, *, args):
