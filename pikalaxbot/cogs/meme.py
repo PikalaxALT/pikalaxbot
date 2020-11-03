@@ -100,10 +100,7 @@ class Meme(BaseCog):
             res = res.replace(true_subj1, str(subj1))
         if not isinstance(subj2, str):
             res = res.replace(true_subj2, str(subj2))
-        if len(res) < 2000:
-            await ctx.send(res)
-        else:
-            await ctx.send(await mystbin(res, cs=self.bot.client_session))
+        await ctx.send(res)
 
     @commands.command()
     async def riot(self, ctx, *, args):
