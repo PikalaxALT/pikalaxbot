@@ -23,6 +23,7 @@ import discord
 from discord.ext import commands
 
 from . import BaseCog
+from ..utils.hastebin import mystbin
 
 DPY_GUILD_ID = 336642139381301249
 
@@ -99,7 +100,10 @@ class Meme(BaseCog):
             res = res.replace(true_subj1, str(subj1))
         if not isinstance(subj2, str):
             res = res.replace(true_subj2, str(subj2))
-        await ctx.send(res)
+        if len(res) < 2000:
+            await ctx.send(res)
+        else:
+            await mystbin(res, cs=self.bot.client_session)
 
     @commands.command()
     async def riot(self, ctx, *, args):
