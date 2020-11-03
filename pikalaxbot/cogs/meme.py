@@ -23,7 +23,6 @@ import discord
 from discord.ext import commands
 
 from . import BaseCog
-from ..utils.hastebin import mystbin
 
 DPY_GUILD_ID = 336642139381301249
 
