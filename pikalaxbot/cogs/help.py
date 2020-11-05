@@ -137,7 +137,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             return c.cog_name or '\u200bNo Category'
 
         bot = self.context.bot
-        page_source = BotHelpPageSource(bot.cogs.items(), per_page=6)
+        page_source = BotHelpPageSource(list(bot.cogs.items()), per_page=6)
         paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
