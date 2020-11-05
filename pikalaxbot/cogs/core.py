@@ -34,6 +34,47 @@ class Core(BaseCog):
     game = 'p!help'
     config_attrs = 'banlist', 'game'
 
+    async def init_db(self, sql):
+        await sql.execute('create table if not exists commandstats (command text, uses integer default 0)')
+
+    @BaseCog.listener()
+    async def on_command_completion(self, ctx):
+        async with self.bot.sql as sql:
+            await sql.execute('update commandstats set uses = uses + 1 where command = ?', (ctx.command.qualified_name,))
+
+    @commands.command()
+    async def stats(self, ctx):
+        """Shows usage stats about the bot"""
+
+        localnow = datetime.datetime.now()
+        now = localnow.astimezone()
+        tz = localnow - now
+        api_ping = (now - ctx.message.created_at).total_seconds()
+        cmds = []
+        places = '\U0001f947', '\U0001f948', '\U0001f949'
+        async with self.bot.sql as sql:
+            async with sql.execute('select * from commandstats order by uses desc limit 3') as cur:
+                async for name, uses in cur:
+                    cmds.append(f'{name} ({uses} uses)')
+        embed = discord.Embed(
+            title=f'{self.bot.user.name} Stats',
+            description=f'My prefix for this server is `{ctx.prefix}`',
+            colour=0xf47fff
+        ).add_field(
+            name='General Info',
+            value=f'{len(self.bot.guilds)} servers\n'
+                  f'{len(self.bot.users)} users\n'
+                  f'Websocket Ping: {self.bot.latency * 1000:.02f}ms\n'
+                  f'API Ping: {api_ping * 1000:.02f}ms'
+        ).add_field(
+            name='Uptime',
+            value=naturaltime(self.bot._alive_since + tz)
+        ).add_field(
+            name='Command Stats',
+            value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
+        )
+        await ctx.send(embed=embed)
+
     async def bot_check(self, ctx: commands.Context):
         if not self.bot.is_ready():
             raise NotReady('The bot is not ready to process commands')
