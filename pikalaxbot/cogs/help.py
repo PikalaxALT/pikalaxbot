@@ -43,17 +43,25 @@ class HelpMenu(NavMenuPages):
         self.bot.loop.create_task(self.go_back_to_current_page())
 
 
-class BotHelpPageSource(menus.GroupByPageSource):
-    async def format_page(self, menu: menus.MenuPages, entry: menus._GroupByEntry):
+class BotHelpPageSource(menus.ListPageSource):
+    async def format_page(self, menu: menus.MenuPages, entry):
         bot = menu.bot
-        cog = bot.get_cog(entry.key)
+        prefix = menu.ctx.prefix
+        cmd_name = bot.help_command.command_attrs['name']
         embed = discord.Embed(
             title=entry.key,
-            description=(cog and cog.description) or discord.Embed.Empty,
+            description=f'Use "{prefix}{cmd_name} command" for more info on a command.\n'
+                        f'Use "{prefix}{cmd_name} category" for more info on a category.\n'
+                        f'If you need additional help, idk what to tell you i really don\'t',
             colour=discord.Colour.blurple()
         )
-        for command in entry.items:
-            embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
+        for cog_name, cog in entry:
+            cmds = ' '.join(f'`{command}`' for command in cog.get_commands())
+            cog_help = cog.description or 'No description'
+            embed.add_field(
+                name=cog.qualified_name,
+                value=f'{cog_help}\n{cmds}'
+            )
         max_pages = self.get_max_pages()
         if max_pages and max_pages > 1:
             embed.set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
@@ -129,8 +137,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             return c.cog_name or '\u200bNo Category'
 
         bot = self.context.bot
-        entries = await self.filter_commands(bot.commands, sort=True, key=key)
-        page_source = BotHelpPageSource(entries, key=key, per_page=9)
+        page_source = BotHelpPageSource(bot.cogs.items(), per_page=6)
         paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
