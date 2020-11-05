@@ -135,13 +135,13 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     async def send_bot_help(self, mapping):
         def key(c):
-            return c.cog_name or '\u200bNo Category'
+            return (c.cog_name or '\u200bNo Category', c.name)
 
         bot = self.context.bot
         cog_mapping = collections.defaultdict(lambda: [None, []])
         for cmd in await self.filter_commands(bot.commands, sort=True, key=key):
             cog = cmd.cog
-            cog_name = key(cmd)
+            cog_name = cmd.cog_name or '\u200bNo Category'
             cog_mapping[cog_name][0] = cog
             cog_mapping[cog_name][1].append(cmd)
         page_source = BotHelpPageSource(sorted(cog_mapping.items()), per_page=6)
