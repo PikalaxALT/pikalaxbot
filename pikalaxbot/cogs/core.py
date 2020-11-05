@@ -36,7 +36,7 @@ class Core(BaseCog):
     LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists commandstats (command text, uses integer default 0)')
+        await sql.execute('create table if not exists commandstats (command text unique not null primary key, uses integer default 0)')
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx):
