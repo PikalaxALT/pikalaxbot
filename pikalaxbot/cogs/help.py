@@ -26,6 +26,23 @@ import typing
 import traceback
 
 
+class HelpMenu(NavMenuPages):
+    @menus.button('\N{WHITE QUESTION MARK ORNAMENT}', position=menus.Last(5))
+    async def using_the_bot(self, payload):
+        """shows how to use the bot"""
+
+        embed = discord.Embed(title='Using the bot', description='Hello! Welcome to the help page')
+        embed.add_field(name='How do I use the bot?', value='Reading the bot signature is pretty simple.', inline=False)
+        embed.add_field(name='<argument>', value='This means the argument is required.', inline=False)
+        embed.add_field(name='[argument]', value='This means the argument is optional.', inline=False)
+        embed.add_field(name='[A|B]', value='This means that it can be either A or B.', inline=False)
+        embed.add_field(name='[argument...]', value='This means you can have multiple arguments.', inline=False)
+        embed.add_field(name='Now that you know the basics, it should be noted that...', value='You do not type in the brackets!', inline=False)
+        embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
+        await self.message.edit(embed=embed)
+        self.bot.loop.create_task(self.go_back_to_current_page())
+
+
 class BotHelpPageSource(menus.GroupByPageSource):
     async def format_page(self, menu: menus.MenuPages, entry: menus._GroupByEntry):
         bot = menu.bot
