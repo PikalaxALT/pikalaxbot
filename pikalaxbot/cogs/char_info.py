@@ -30,6 +30,7 @@ class CharInfoMenu(menus.ListPageSource):
 
 
 class CharInfo(BaseCog):
+    @commands.max_concurrency(1)
     @commands.command()
     async def charinfo(self, ctx, *, characters):
         """Shows you information about a number of characters."""
