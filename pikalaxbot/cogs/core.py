@@ -48,7 +48,7 @@ class Core(BaseCog):
         """Shows usage stats about the bot"""
 
         now = datetime.datetime.utcnow()
-        api_ping = (now.astimezone() - ctx.message.created_at).total_seconds()
+        api_ping = (now - ctx.message.created_at).total_seconds()
         cmds = []
         places = '\U0001f947', '\U0001f948', '\U0001f949'
         async with self.bot.sql as sql:
