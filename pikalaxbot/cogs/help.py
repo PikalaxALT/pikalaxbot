@@ -24,6 +24,7 @@ from . import BaseCog
 from .utils.menus import NavMenuPages
 import typing
 import traceback
+import collections
 
 
 class HelpMenu(NavMenuPages):
@@ -55,8 +56,8 @@ class BotHelpPageSource(menus.ListPageSource):
                         f'If you need additional help, idk what to tell you i really don\'t',
             colour=discord.Colour.blurple()
         )
-        for cog_name, cog in entry:
-            cmds = ' '.join(f'`{command}`' for command in cog.get_commands())
+        for cog_name, (cog, commands) in entry:
+            cmds = ' '.join(f'`{command}`' for command in commands)
             cog_help = cog.description or 'No description'
             embed.add_field(
                 name=cog.qualified_name,
@@ -137,7 +138,13 @@ class PaginatedHelpCommand(commands.HelpCommand):
             return c.cog_name or '\u200bNo Category'
 
         bot = self.context.bot
-        page_source = BotHelpPageSource(list(bot.cogs.items()), per_page=6)
+        cog_mapping = collections.defaultdict(lambda: [None, []])
+        for cmd in await self.filter_commands(bot.commands, sort=True, key=key):
+            cog = cmd.cog
+            cog_name = key(cmd)
+            cog_mapping[cog_name][0] = cog
+            cog_mapping[cog_name][1].append(cmd)
+        page_source = BotHelpPageSource(sorted(cog_mapping), per_page=6)
         paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
