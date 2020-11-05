@@ -45,6 +45,7 @@ class Core(BaseCog):
             await sql.execute('update commandstats set uses = uses + 1 where command = ?', (ctx.command.qualified_name,))
 
     async def get_runnable_commands(self, ctx):
+        cmds = []
         async with self.bot.sql as sql:
             async with sql.execute('select * from commandstats order by uses desc') as cur:
                 async for name, uses in cur:
@@ -52,9 +53,10 @@ class Core(BaseCog):
                     try:
                         valid = await cmd.can_run(ctx)
                         if valid:
-                            yield f'{name} ({uses} uses)'
+                            cmds.append(f'{name} ({uses} uses)')
                     except commands.CommandError:
                         continue
+        return cmds
 
     @commands.command()
     async def stats(self, ctx):
@@ -62,7 +64,7 @@ class Core(BaseCog):
 
         now = datetime.datetime.utcnow()
         api_ping = (now - ctx.message.created_at).total_seconds()
-        cmds = list(x async for x in self.get_runnable_commands(ctx))
+        cmds = await self.get_runnable_commands(ctx)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
         embed = discord.Embed(
             title=f'{self.bot.user.name} Stats',
