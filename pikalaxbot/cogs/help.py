@@ -144,7 +144,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
             cog_name = key(cmd)
             cog_mapping[cog_name][0] = cog
             cog_mapping[cog_name][1].append(cmd)
-        page_source = BotHelpPageSource(sorted(cog_mapping), per_page=6)
+        page_source = BotHelpPageSource(sorted(cog_mapping.items()), per_page=6)
         paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
 
