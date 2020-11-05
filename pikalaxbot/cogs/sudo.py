@@ -16,6 +16,8 @@ def transform_context(ctx, user, content):
 
 
 class Sudo(BaseCog):
+    """Commands for executing a command as someone else."""
+
     @commands.is_owner()
     @commands.command()
     async def sudo(self, ctx, user: discord.Member, *, content):

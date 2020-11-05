@@ -25,6 +25,8 @@ from .utils.markov import Chain
 
 
 class Markov(BaseCog):
+    """Commands and listeners for generating random word Markov chains."""
+
     markov_channels = set()
     config_attrs = 'markov_channels',
 

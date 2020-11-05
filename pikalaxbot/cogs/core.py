@@ -30,6 +30,8 @@ from .utils.converters import CommandConverter
 
 
 class Core(BaseCog):
+    """The core functionality of the bot."""
+
     banlist = set()
     game = 'p!help'
     config_attrs = 'banlist', 'game'

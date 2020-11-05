@@ -30,6 +30,8 @@ class CharInfoMenu(menus.ListPageSource):
 
 
 class CharInfo(BaseCog):
+    """Commands for getting information about unicode characters."""
+
     @commands.max_concurrency(1)
     @commands.command()
     async def charinfo(self, ctx, *, characters):

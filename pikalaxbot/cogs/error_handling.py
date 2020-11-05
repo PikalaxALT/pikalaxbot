@@ -7,6 +7,8 @@ from .utils.errors import *
 
 
 class ErrorHandling(BaseCog):
+    """Error handling extension"""
+
     filter_excs = commands.CommandNotFound, commands.CheckFailure, commands.MaxConcurrencyReached
     handle_excs = commands.UserInputError, CogOperationError, commands.DisabledCommand
 

@@ -85,6 +85,8 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
 
 
 class Voice(BaseCog):
+    """Voice channel commands, primarily text-to-speech."""
+
     __ffmpeg_options = {
         'before_options': '-loglevel error',
         'options': '-vn',

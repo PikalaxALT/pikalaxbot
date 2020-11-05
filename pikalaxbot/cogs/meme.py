@@ -57,6 +57,8 @@ class HMM:
 
 
 class Meme(BaseCog):
+    """Random meme commands"""
+
     _nebby = HMM(
         [[0, 1, 0, 0, 0],
          [1, 2, 1, 0, 0],

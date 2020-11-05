@@ -22,6 +22,8 @@ class NoPostsFound(commands.CommandError):
 
 
 class Reddit(BaseCog):
+    """Commands for yoinking image posts off of Reddit."""
+
     def __init__(self, bot):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session

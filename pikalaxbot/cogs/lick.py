@@ -6,6 +6,8 @@ import re
 
 
 class Lick(BaseCog):
+    """Commands that lick you."""
+
     notes_s = 'C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'
     notes_f = 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'
     lick = 0, 2, 3, 5, 2, -2, 0

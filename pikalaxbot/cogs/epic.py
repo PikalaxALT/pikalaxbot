@@ -4,6 +4,8 @@ from . import BaseCog
 
 
 class Epic(BaseCog):
+    """Commands unique to the Epic guild. Hi Cyan o/"""
+
     def cog_check(self, ctx):
         return ctx.guild.id == 471312957687463956
 

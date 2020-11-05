@@ -21,6 +21,8 @@ from . import BaseCog
 
 
 class Leaderboard(BaseCog):
+    """Commands for viewing and managing the shared leaderboard for games."""
+
     @commands.group(case_insensitive=True)
     async def leaderboard(self, ctx: commands.Context):
         """Commands to check the leaderboard"""

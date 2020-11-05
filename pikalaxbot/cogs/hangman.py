@@ -132,6 +132,11 @@ class HangmanGame(GameBase):
 
 
 class Hangman(GameCogBase):
+    """Commands for playing a game of Pokemon Hangman.
+
+    All commands are under the `hangman` group, or you can use one
+    of the shortcuts below."""
+
     gamecls = HangmanGame
 
     def cog_check(self, ctx):

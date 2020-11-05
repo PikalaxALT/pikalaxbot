@@ -23,6 +23,8 @@ from .utils.converters import DiceRollConverter
 
 
 class Rng(BaseCog):
+    """Commands for random number generators"""
+
     @commands.command()
     async def choose(self, ctx: commands.Context, *args):
         """Choose between multiple options separated by spaces.

@@ -7,6 +7,8 @@ from .utils.errors import *
 
 
 class ReactionRoles(BaseCog):
+    """Commands and functionality for reaction roles."""
+
     def __init__(self, bot):
         super().__init__(bot)
         self.reaction_schema = {}

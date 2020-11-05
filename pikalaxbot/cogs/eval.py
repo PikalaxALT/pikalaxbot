@@ -32,6 +32,8 @@ from . import BaseCog
 
 
 class Eval(BaseCog):
+    """Commands for evaluating arbitrary code. Stolen from R. Danny."""
+
     _last_result = None
 
     def __init__(self, bot):

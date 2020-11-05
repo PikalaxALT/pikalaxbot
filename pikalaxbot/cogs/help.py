@@ -181,6 +181,8 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
 
 class Help(BaseCog):
+    """This command."""
+
     def __init__(self, bot):
         super().__init__(bot)
         self._original_help_command = bot.help_command

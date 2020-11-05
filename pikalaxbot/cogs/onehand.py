@@ -26,6 +26,8 @@ from .utils.errors import CommandBannedInGuild
 
 
 class Onehand(BaseCog):
+    """Lewd commands owo"""
+
     banned_guilds = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
     my_blacklist = set()

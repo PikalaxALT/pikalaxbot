@@ -46,6 +46,8 @@ async def filter_history(channel, **kwargs):
 
 
 class Modtools(BaseCog):
+    """Commands for the bot owner to use"""
+
     prefix = 'p!'
     game = 'p!help'
     disabled_commands = set()

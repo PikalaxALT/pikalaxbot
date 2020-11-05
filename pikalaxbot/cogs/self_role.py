@@ -34,6 +34,8 @@ def bot_role_is_higher(ctx):
 
 
 class SelfAssignableRole(BaseCog):
+    """Commands for roles that can be self-assigned using commands."""
+
     roles = {}
     config_attrs = 'roles',
 

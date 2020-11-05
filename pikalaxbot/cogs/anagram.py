@@ -109,6 +109,11 @@ class AnagramGame(GameBase):
 
 
 class Anagram(GameCogBase):
+    """Play a Pokemon anagram game.
+
+    All commands are under the `anagram` group,
+    or you can use one of the shortcuts."""
+
     gamecls = AnagramGame
 
     def cog_check(self, ctx):

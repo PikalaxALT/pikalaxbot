@@ -142,6 +142,8 @@ converter = BoardCoords(maxy=3)
 
 
 class Trashcans(GameCogBase):
+    """Commands for playing a game based on the Vermilion Gym puzzle."""
+
     gamecls = TrashcansGame
 
     def cog_check(self, ctx):

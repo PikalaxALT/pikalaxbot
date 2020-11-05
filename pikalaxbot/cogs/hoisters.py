@@ -45,6 +45,9 @@ class HoisterPageSource(menus.ListPageSource):
 
 
 class Hoisters(BaseCog):
+    """Commands for inspecting users who are elevating their names to the top
+    of the user list. Restricted to the discord.py guild where this is regulated."""
+
     def cog_check(self, ctx):
         return ctx.guild.id == DPY_GUILD_ID
 

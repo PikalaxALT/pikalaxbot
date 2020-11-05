@@ -267,6 +267,9 @@ converter = BoardCoords()
 
 
 class VoltorbFlip(GameCogBase):
+    """Commands for playing Voltorb Flip, everyone's favorite game from
+    the international release of Pokemon HeartGold and SoulSilver."""
+
     gamecls = VoltorbFlipGame
 
     async def init_db(self, sql):

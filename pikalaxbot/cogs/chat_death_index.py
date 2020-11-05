@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 
 class ChatDeathIndex(BaseCog):
+    """Commands for displaying the chat death index of a given channel."""
+
     MIN_SAMPLES = 5
     MAX_SAMPLES = 30
 

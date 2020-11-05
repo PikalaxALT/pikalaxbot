@@ -54,6 +54,8 @@ def horse_decode(input_str):
 
 
 class HorseCode(BaseCog):
+    """Commands for decoding and encoding Horse Code."""
+
     @commands.group()
     async def horse(self, ctx: commands.Context):
         """Horse Code commands"""

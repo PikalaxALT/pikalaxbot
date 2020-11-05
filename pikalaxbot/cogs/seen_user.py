@@ -22,6 +22,8 @@ def get_jump_url(ref):
 
 
 class SeenUser(BaseCog):
+    """Commands for tracking users' most recent activity."""
+
     MAX_LOOKBACK = datetime.timedelta(days=1)
 
     def __init__(self, bot):

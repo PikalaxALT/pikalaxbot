@@ -49,6 +49,8 @@ class RPSMenu(menus.Menu):
 
 
 class RockPaperScissors(BaseCog):
+    """Commands for playing rock-paper-scissors"""
+
     @commands.command(aliases=['rps'])
     @commands.max_concurrency(1, commands.BucketType.channel)
     async def rock_paper_scissors(self, ctx: commands.Context):

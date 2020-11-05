@@ -14,6 +14,9 @@ import numpy as np
 
 
 class MemberStatus(BaseCog):
+    """Commands for showing the historical distribution of user statuses
+    (online, offline, etc.) in the guild."""
+
     colormap = {
         discord.Status.online: '#43B581',
         discord.Status.offline: '#747F8D',

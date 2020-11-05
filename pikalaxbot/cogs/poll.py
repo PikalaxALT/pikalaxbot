@@ -207,6 +207,8 @@ class PollManager:
 
 
 class Poll(BaseCog):
+    """Commands for starting and managing opinion polls"""
+
     TIMEOUT = 60
 
     def __init__(self, bot):

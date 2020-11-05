@@ -21,6 +21,8 @@ from . import BaseCog
 
 
 class Groudonger(BaseCog):
+    """Meme extension for responding to the bot Groudonger."""
+
     @BaseCog.listener()
     async def on_reaction_add(self, reaction, user):
         msg: discord.Message = reaction.message

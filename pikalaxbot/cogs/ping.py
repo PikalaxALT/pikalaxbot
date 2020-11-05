@@ -13,6 +13,8 @@ from .utils.mpl_time_axis import *
 
 
 class Ping(BaseCog):
+    """Commands for testing the bot's ping, and for reporting history."""
+
     def __init__(self, bot):
         super().__init__(bot)
         self.ping_history = {}

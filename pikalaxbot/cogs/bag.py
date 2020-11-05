@@ -20,6 +20,8 @@ from .utils.game import find_emoji
 
 
 class Bag(BaseCog):
+    """Commands related to Lillie's bag. Get in, Nebby."""
+
     @commands.group()
     async def bag(self, ctx):
         """Get in the bag, Nebby."""

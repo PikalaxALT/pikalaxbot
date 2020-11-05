@@ -21,6 +21,8 @@ from . import BaseCog
 
 
 class Fix(BaseCog):
+    """Use these commands to yell at bot developers."""
+
     initial_bot_owners = {
         'pika': 'PikalaxALT',
         'groudon': 'chfoo',
