@@ -6,7 +6,7 @@ import unicodedata
 
 
 class CharInfoMenu(menus.ListPageSource):
-    async def format_page(self, menu, page):
+    async def format_page(self, menu: NavMenuPages, page: tuple[str, str, str]):
         c, digit, name = page
         c_ord = ord(c)
         py_repr = f'{digit}'
@@ -23,7 +23,9 @@ class CharInfoMenu(menus.ListPageSource):
             value=py_repr
         ).add_field(
             name='More info',
-            value=f'[Click here](http://www.fileformat.info/info/unicode/char/{digit}'
+            value=f'[Click here](http://www.fileformat.info/info/unicode/char/{digit})'
+        ).set_footer(
+            text=f'Character {menu.current_page + 1} of {self.get_max_pages()}'
         )
 
 
@@ -35,7 +37,7 @@ class CharInfo(BaseCog):
         units = [
             (0xFFFF0000, 8, 'U'),
             (0xFF00, 4, 'u'),
-            (0xFF, 2, 'u'),
+            (0xFF, 2, 'x'),
         ]
 
         def as_hex_str(c, default=None):
