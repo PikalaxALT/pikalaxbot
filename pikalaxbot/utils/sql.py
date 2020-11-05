@@ -35,7 +35,7 @@ class Sql(aiosqlite.Connection):
             return sqlite3.connect(database, **kwargs)
 
         loop = loop or asyncio.get_event_loop()
-        super().__init__(connector, loop=loop)
+        super().__init__(connector, iter_chunk_size, loop=loop)
         self.database = database
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
