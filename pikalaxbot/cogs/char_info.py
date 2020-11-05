@@ -23,7 +23,7 @@ class CharInfoMenu(menus.ListPageSource):
             value=py_repr
         ).add_field(
             name='More info',
-            value=f'[Click here](http://www.fileformat.info/info/unicode/char/{digit})'
+            value=f'[Click here](http://www.fileformat.info/info/unicode/char/{c_ord:x})'
         ).set_footer(
             text=f'Character {menu.current_page + 1} of {self.get_max_pages()}'
         )
