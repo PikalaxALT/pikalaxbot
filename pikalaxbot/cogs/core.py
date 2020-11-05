@@ -67,7 +67,7 @@ class Core(BaseCog):
                   f'API Ping: {api_ping * 1000:.02f}ms'
         ).add_field(
             name='Uptime',
-            value=naturaltime(self.bot._alive_since.astimezone(self.LOCAL_TZ))
+            value=naturaltime(self.bot._alive_since + self.LOCAL_TZ.utcoffset(None))
         ).add_field(
             name='Command Stats',
             value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
@@ -121,8 +121,8 @@ class Core(BaseCog):
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
         if ctx.guild:
-            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at.astimezone(self.LOCAL_TZ)), inline=False)
-        e.add_field(name='Created', value=naturaltime(ctx.me.created_at.astimezone(self.LOCAL_TZ)), inline=False)
+            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + self.LOCAL_TZ.utcoffset(None)), inline=False)
+        e.add_field(name='Created', value=naturaltime(ctx.me.created_at + self.LOCAL_TZ.utcoffset(None)), inline=False)
         if ctx.guild:
             roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
@@ -171,7 +171,7 @@ class Core(BaseCog):
     async def uptime(self, ctx):
         """Print the amount of time since the bot's last reboot"""
 
-        date = naturaltime(self.bot._alive_since.astimezone(self.LOCAL_TZ))
+        date = naturaltime(self.bot._alive_since + self.LOCAL_TZ.utcoffset(None))
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
