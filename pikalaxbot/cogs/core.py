@@ -33,6 +33,7 @@ class Core(BaseCog):
     banlist = set()
     game = 'p!help'
     config_attrs = 'banlist', 'game'
+    LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
 
     async def init_db(self, sql):
         await sql.execute('create table if not exists commandstats (command text, uses integer default 0)')
@@ -46,9 +47,7 @@ class Core(BaseCog):
     async def stats(self, ctx):
         """Shows usage stats about the bot"""
 
-        localnow = datetime.datetime.now()
-        now = localnow.astimezone(datetime.timezone.utc)
-        tz = localnow - now
+        now = datetime.datetime.utcnow()
         api_ping = (now.astimezone() - ctx.message.created_at).total_seconds()
         cmds = []
         places = '\U0001f947', '\U0001f948', '\U0001f949'
@@ -68,7 +67,7 @@ class Core(BaseCog):
                   f'API Ping: {api_ping * 1000:.02f}ms'
         ).add_field(
             name='Uptime',
-            value=naturaltime(self.bot._alive_since + tz)
+            value=naturaltime(self.bot._alive_since.astimezone(self.LOCAL_TZ))
         ).add_field(
             name='Command Stats',
             value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
@@ -116,15 +115,14 @@ class Core(BaseCog):
     async def about(self, ctx):
         """Shows info about the bot in the current context"""
 
-        tz = datetime.datetime.now() - datetime.datetime.utcnow()
         e = discord.Embed()
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e.set_author(name=str(ctx.me))
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
         if ctx.guild:
-            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + tz), inline=False)
-        e.add_field(name='Created', value=naturaltime(ctx.me.created_at + tz), inline=False)
+            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at.astimezone(self.LOCAL_TZ)), inline=False)
+        e.add_field(name='Created', value=naturaltime(ctx.me.created_at.astimezone(self.LOCAL_TZ)), inline=False)
         if ctx.guild:
             roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
@@ -173,8 +171,7 @@ class Core(BaseCog):
     async def uptime(self, ctx):
         """Print the amount of time since the bot's last reboot"""
 
-        tz = datetime.datetime.now() - datetime.datetime.utcnow()
-        date = naturaltime(self.bot._alive_since + tz)
+        date = naturaltime(self.bot._alive_since.astimezone(self.LOCAL_TZ))
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
