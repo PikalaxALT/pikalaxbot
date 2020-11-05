@@ -164,6 +164,6 @@ class Sql(aiosqlite.Connection):
         await self.execute("replace into prefixes (guild, prefix) values (?, ?)", (guild.id, prefix))
 
 
-def connect(database, *, loop=None, **kwargs):
+def connect(database, *, iter_chunk_size=64, loop=None, **kwargs):
     """Create and return a connection proxy to the sqlite database."""
-    return Sql(database, loop=loop, **kwargs)
+    return Sql(database, iter_chunk_size=iter_chunk_size, loop=loop, **kwargs)
