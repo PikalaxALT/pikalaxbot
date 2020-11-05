@@ -30,7 +30,7 @@ class Sql(aiosqlite.Connection):
         ('let out a cry in protest!',)
     )
 
-    def __init__(self, database, *, loop=None, **kwargs):
+    def __init__(self, database, iter_chunk_size, *, loop=None, **kwargs):
         def connector():
             return sqlite3.connect(database, **kwargs)
 
@@ -166,4 +166,4 @@ class Sql(aiosqlite.Connection):
 
 def connect(database, *, iter_chunk_size=64, loop=None, **kwargs):
     """Create and return a connection proxy to the sqlite database."""
-    return Sql(database, iter_chunk_size=iter_chunk_size, loop=loop, **kwargs)
+    return Sql(database, iter_chunk_size, loop=loop, **kwargs)
