@@ -2,11 +2,12 @@ import discord
 from discord.ext import commands, menus
 import typing
 from . import BaseCog
+from .utils.menus import NavMenuPages
 
 DPY_GUILD_ID = 336642139381301249
 
 
-class HoistersMenu(menus.MenuPages):
+class HoistersMenu(NavMenuPages):
     async def start(self, ctx, *, channel=None, wait=False):
         self.emojis = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status}
         await super().start(ctx, channel=channel, wait=wait)
