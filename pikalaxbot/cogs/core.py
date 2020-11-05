@@ -41,6 +41,7 @@ class Core(BaseCog):
     @BaseCog.listener()
     async def on_command_completion(self, ctx):
         async with self.bot.sql as sql:
+            await sql.execute('insert or ignore into commandstats(command) values (?)', (ctx.command.qualified_name,))
             await sql.execute('update commandstats set uses = uses + 1 where command = ?', (ctx.command.qualified_name,))
 
     @commands.command()
