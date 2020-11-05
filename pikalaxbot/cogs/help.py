@@ -49,7 +49,7 @@ class BotHelpPageSource(menus.ListPageSource):
         prefix = menu.ctx.prefix
         cmd_name = bot.help_command.command_attrs['name']
         embed = discord.Embed(
-            title=entry.key,
+            title='Categories',
             description=f'Use "{prefix}{cmd_name} command" for more info on a command.\n'
                         f'Use "{prefix}{cmd_name} category" for more info on a category.\n'
                         f'If you need additional help, idk what to tell you i really don\'t',
