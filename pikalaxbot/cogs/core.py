@@ -33,6 +33,57 @@ class Core(BaseCog):
     banlist = set()
     game = 'p!help'
     config_attrs = 'banlist', 'game'
+    LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
+
+    async def init_db(self, sql):
+        await sql.execute('create table if not exists commandstats (command text unique not null primary key, uses integer default 0)')
+
+    @BaseCog.listener()
+    async def on_command_completion(self, ctx):
+        async with self.bot.sql as sql:
+            await sql.execute('insert or ignore into commandstats(command) values (?)', (ctx.command.qualified_name,))
+            await sql.execute('update commandstats set uses = uses + 1 where command = ?', (ctx.command.qualified_name,))
+
+    async def get_runnable_commands(self, ctx):
+        cmds = []
+        async with self.bot.sql as sql:
+            async with sql.execute('select * from commandstats order by uses desc') as cur:
+                async for name, uses in cur:
+                    cmd: commands.Command = self.bot.get_command(name)
+                    try:
+                        valid = await cmd.can_run(ctx)
+                        if valid:
+                            cmds.append(f'{name} ({uses} uses)')
+                    except commands.CommandError:
+                        continue
+        return cmds
+
+    @commands.command()
+    async def stats(self, ctx):
+        """Shows usage stats about the bot"""
+
+        now = datetime.datetime.utcnow()
+        api_ping = (now - ctx.message.created_at).total_seconds()
+        cmds = await self.get_runnable_commands(ctx)
+        places = '\U0001f947', '\U0001f948', '\U0001f949'
+        embed = discord.Embed(
+            title=f'{self.bot.user.name} Stats',
+            description=f'My prefix for this server is `{ctx.prefix}`',
+            colour=0xf47fff
+        ).add_field(
+            name='General Info',
+            value=f'{len(self.bot.guilds)} servers\n'
+                  f'{len(self.bot.users)} users\n'
+                  f'Websocket Ping: {self.bot.latency * 1000:.02f}ms\n'
+                  f'API Ping: {api_ping * 1000:.02f}ms'
+        ).add_field(
+            name='Uptime',
+            value=naturaltime(self.bot._alive_since + self.LOCAL_TZ.utcoffset(None))
+        ).add_field(
+            name='Command Stats',
+            value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
+        )
+        await ctx.send(embed=embed)
 
     async def bot_check(self, ctx: commands.Context):
         if not self.bot.is_ready():
@@ -75,15 +126,14 @@ class Core(BaseCog):
     async def about(self, ctx):
         """Shows info about the bot in the current context"""
 
-        tz = datetime.datetime.now() - datetime.datetime.utcnow()
         e = discord.Embed()
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e.set_author(name=str(ctx.me))
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
         if ctx.guild:
-            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + tz), inline=False)
-        e.add_field(name='Created', value=naturaltime(ctx.me.created_at + tz), inline=False)
+            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + self.LOCAL_TZ.utcoffset(None)), inline=False)
+        e.add_field(name='Created', value=naturaltime(ctx.me.created_at + self.LOCAL_TZ.utcoffset(None)), inline=False)
         if ctx.guild:
             roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
             e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
@@ -132,8 +182,7 @@ class Core(BaseCog):
     async def uptime(self, ctx):
         """Print the amount of time since the bot's last reboot"""
 
-        tz = datetime.datetime.now() - datetime.datetime.utcnow()
-        date = naturaltime(self.bot._alive_since + tz)
+        date = naturaltime(self.bot._alive_since + self.LOCAL_TZ.utcoffset(None))
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
