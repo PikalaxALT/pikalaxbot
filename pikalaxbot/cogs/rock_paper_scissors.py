@@ -3,6 +3,7 @@ from discord.ext import commands, menus
 import random
 from . import BaseCog
 import asyncio
+import traceback
 
 
 _emojis = '\U0001faa8', '\U0001f4f0', '\u2702', '\u274c'
@@ -133,7 +134,16 @@ class RockPaperScissors(BaseCog):
         if isinstance(error, commands.MaxConcurrencyReached):
             await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
         else:
-            raise error
+            tb = traceback.format_exception(error.__class__, error, error.__traceback__)
+            pag = commands.Paginator
+            [pag.add_line(line) for line in tb]
+
+            class ErrorPageSource(menus.ListPageSource):
+                async def format_page(self, menu, page):
+                    return page
+
+            menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
+            await menu.start(ctx)
 
 
 def setup(bot):
