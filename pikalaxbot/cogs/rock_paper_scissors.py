@@ -100,8 +100,8 @@ class RockPaperScissors(BaseCog):
             msg = await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
                                  f'Check your DMs!')
             tasks = [
-                menu1.start(ctx, channel=ctx.author, wait=True),
-                menu2.start(ctx, channel=opponent, wait=True)
+                menu1.start(ctx, channel=ctx.author.dm_channel, wait=True),
+                menu2.start(ctx, channel=opponent.dm_channel, wait=True)
             ]
             for i in range(2):
                 try:
