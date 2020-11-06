@@ -81,6 +81,10 @@ class RockPaperScissors(BaseCog):
         if opponent is None:
             menu = RPSMenu(clear_reactions_after=True)
             await menu.start(ctx, wait=True)
+        elif opponent == ctx.author:
+            return await ctx.send('You can\'t play against yourself!')
+        elif opponent.bot:
+            return await ctx.send('You can\'t play against a bot!')
         else:
             menu1 = RPSMenu(player=ctx.author, opponent=opponent, clear_reactions_after=True)
             menu2 = RPSMenu(player=opponent, opponent=ctx.author, clear_reactions_after=True)
