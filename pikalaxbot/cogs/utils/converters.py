@@ -20,8 +20,9 @@ __all__ = (
 )
 
 
-class CommandConverter(commands.Converter):
-    async def convert(self, ctx: commands.Context, argument):
+class CommandConverter(commands.Command):
+    @classmethod
+    async def convert(cls, ctx: commands.Context, argument):
         cmd = ctx.bot.get_command(argument)
         if cmd is None:
             raise commands.CommandNotFound(argument)

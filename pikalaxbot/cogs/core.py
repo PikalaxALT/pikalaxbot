@@ -137,13 +137,29 @@ class Core(BaseCog):
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
         if ctx.guild:
-            e.add_field(name='Joined', value=naturaltime(ctx.me.joined_at + self.LOCAL_TZ.utcoffset(None)), inline=False)
-        e.add_field(name='Created', value=naturaltime(ctx.me.created_at + self.LOCAL_TZ.utcoffset(None)), inline=False)
+            e.add_field(
+                name='Joined',
+                value=naturaltime(ctx.me.joined_at + self.LOCAL_TZ.utcoffset(None)),
+                inline=False
+            ).add_field(
+                name='Created',
+                value=naturaltime(ctx.me.created_at + self.LOCAL_TZ.utcoffset(None)),
+                inline=False
+            )
         if ctx.guild:
             roles = [r.name.replace('@', '@\u200b') for r in ctx.me.roles]
-            e.add_field(name='Roles', value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles', inline=False)
-        e.add_field(name='Source', value='https://github.com/PikalaxALT/pikalaxbot')
-        e.add_field(name='Uptime', value=f'{datetime.datetime.utcnow() - self.bot._alive_since}')
+            e.add_field(
+                name='Roles',
+                value=', '.join(roles) if len(roles) < 10 else f'{len(roles)} roles',
+                inline=False
+            )
+        e.add_field(
+            name='Source',
+            value='https://github.com/PikalaxALT/pikalaxbot'
+        ).add_field(
+            name='Uptime',
+            value=f'{datetime.datetime.utcnow() - self.bot._alive_since}'
+        )
         if ctx.guild and ctx.me.colour.value:
             e.colour = ctx.me.colour
         if ctx.me.avatar:
@@ -223,15 +239,32 @@ class Core(BaseCog):
 
         target = target or ctx.author
         is_member = isinstance(target, discord.Member)
-        embed = discord.Embed()
-        embed.set_author(name=str(target))
-        embed.set_thumbnail(url=str(target.avatar_url))
-        embed.add_field(name='ID', value=str(target.id), inline=False)
-        embed.add_field(name='Servers', value=str(sum(1 for guild in self.bot.guilds if guild.get_member(target.id))), inline=False)
-        embed.add_field(name='Joined', value=is_member and format_datetime(target.joined_at) or 'N/A', inline=False)
-        embed.add_field(name='Created', value=format_datetime(target.created_at), inline=False)
+        embed = discord.Embed().set_author(
+            name=str(target)
+        ).set_thumbnail(
+            url=str(target.avatar_url)
+        ).add_field(
+            name='ID',
+            value=str(target.id),
+            inline=False
+        ).add_field(
+            name='Servers',
+            value=str(sum(1 for guild in self.bot.guilds if guild.get_member(target.id))),
+            inline=False
+        ).add_field(
+            name='Joined',
+            value=is_member and format_datetime(target.joined_at) or 'N/A',
+            inline=False
+        ).add_field(
+            name='Created',
+            value=format_datetime(target.created_at),
+            inline=False
+        )
         if is_member:
-            embed.add_field(name='Roles', value=', '.join(str(role) for role in target.roles[1:]) or 'This member has no roles in this server.')
+            embed.add_field(
+                name='Roles',
+                value=', '.join(str(role) for role in target.roles[1:]) or 'This member has no roles in this server.'
+            )
         elif ctx.channel is None:
             embed.set_footer(text='This command was used in a DM.')
         else:
