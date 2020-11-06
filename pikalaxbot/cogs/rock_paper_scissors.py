@@ -88,6 +88,15 @@ class RockPaperScissors(BaseCog):
         else:
             menu1 = RPSMenu(player=ctx.author, opponent=opponent, clear_reactions_after=True)
             menu2 = RPSMenu(player=opponent, opponent=ctx.author, clear_reactions_after=True)
+            try:
+                menu1.message = await menu1.send_initial_message(ctx, ctx.author)
+            except discord.Forbidden:
+                return await ctx.send('You need to turn on your DMs for this!')
+            try:
+                menu2.message = await menu2.send_initial_message(ctx, opponent)
+            except discord.Forbidden:
+                await menu1.message.delete(delay=5)
+                return await ctx.send('Your opponent has their DMs closed...')
             msg = await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
                                  f'Check your DMs!')
             tasks = [
