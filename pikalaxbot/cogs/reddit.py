@@ -28,6 +28,9 @@ class Reddit(BaseCog):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
 
+    def cog_check(self, ctx):
+        return ctx.guild.id not in self.bot.settings.banned_guilds
+
     async def get_subreddit_embed(self, ctx, subreddit):
         headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
