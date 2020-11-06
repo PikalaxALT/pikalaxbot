@@ -41,7 +41,7 @@ class RPSMenu(menus.Menu):
 
     async def finalize(self, timed_out):
         embed = self.message.embeds[0]
-        if self.opponent:
+        if self.opponent != self.ctx.me:
             self.timed_out = timed_out
             return
         elif timed_out:
