@@ -78,7 +78,7 @@ class RockPaperScissors(BaseCog):
     async def rock_paper_scissors(self, ctx: commands.Context, *, opponent: discord.Member = None):
         """Play a game of Rock-Paper-Scissors with someone, or with the bot"""
 
-        if opponent is None:
+        if opponent in {ctx.me, None}:
             menu = RPSMenu(clear_reactions_after=True)
             await menu.start(ctx, wait=True)
         elif opponent == ctx.author:
