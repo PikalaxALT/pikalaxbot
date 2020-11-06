@@ -330,7 +330,7 @@ class Modtools(BaseCog):
         """Purge <limit> of the bot's messages in the current (or given) channel"""
 
         channel = channel or ctx.channel
-        async with ctx.channel.typing():
+        async with ctx.typing():
             to_delete = [m async for m in filter_history(channel, limit=limit, check=lambda m: m.author == self.bot.user)]
             await ctx.channel.delete_messages(to_delete)
         await ctx.message.add_reaction('✅')
