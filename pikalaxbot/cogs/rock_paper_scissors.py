@@ -103,19 +103,7 @@ class RockPaperScissors(BaseCog):
                 menu1.start(ctx, channel=ctx.author.dm_channel, wait=True),
                 menu2.start(ctx, channel=opponent.dm_channel, wait=True)
             ]
-            for i in range(2):
-                try:
-                    done, tasks = await asyncio.wait(tasks)
-                    done.pop().result()
-                except asyncio.TimeoutError:
-                    [task.cancel() for task in tasks]
-                    return await msg.edit(content='Request timed out.')
-                except discord.Forbidden:
-                    [task.cancel() for task in tasks]
-                    return await msg.edit(content='Whoops! One or both of you has your DMs closed...')
-                except Exception as e:
-                    [task.cancel() for task in tasks]
-                    raise RPSError from e
+            await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
             if menu1.timed_out:
                 return await msg.edit(content=f'{ctx.author.mention} took too long to respond...')
             elif menu1.player_move == 3:
