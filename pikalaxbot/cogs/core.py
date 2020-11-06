@@ -22,6 +22,7 @@ import typing
 import inspect
 import os
 import datetime
+import time
 from jishaku.meta import __version__ as jsk_ver
 
 from . import BaseCog
@@ -64,8 +65,10 @@ class Core(BaseCog):
     async def stats(self, ctx):
         """Shows usage stats about the bot"""
 
-        now = datetime.datetime.utcnow()
-        api_ping = (now - ctx.message.created_at).total_seconds()
+        a = time.perf_counter()
+        await ctx.trigger_typing()
+        b = time.perf_counter()
+        api_ping = b - a
         cmds = await self.get_runnable_commands(ctx)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
         embed = discord.Embed(
@@ -79,7 +82,7 @@ class Core(BaseCog):
                   f'Websocket Ping: {self.bot.latency * 1000:.02f}ms\n'
                   f'API Ping: {api_ping * 1000:.02f}ms'
         ).add_field(
-            name='Uptime',
+            name='Last rebooted',
             value=naturaltime(self.bot._alive_since + self.LOCAL_TZ.utcoffset(None))
         ).add_field(
             name='Command Stats',
