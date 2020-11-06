@@ -141,22 +141,22 @@ class RockPaperScissors(BaseCog):
                     await sql.increment_score(winner, by=69)
                 content += f'\n\n{winner.mention} earns 69 points for winning!'
             await msg.edit(content=content)
-
-    async def cog_command_error(self, ctx, error):
-        error = getattr(error, 'original', error)
-        if isinstance(error, commands.MaxConcurrencyReached):
-            await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
-        else:
-            tb = traceback.format_exception(error.__class__, error, error.__traceback__)
-            pag = commands.Paginator
-            [pag.add_line(line) for line in tb]
-
-            class ErrorPageSource(menus.ListPageSource):
-                async def format_page(self, menu, page):
-                    return page
-
-            menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
-            await menu.start(ctx)
+    #
+    # async def cog_command_error(self, ctx, error):
+    #     error = getattr(error, 'original', error)
+    #     if isinstance(error, commands.MaxConcurrencyReached):
+    #         await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
+    #     else:
+    #         tb = traceback.format_exception(error.__class__, error, error.__traceback__)
+    #         pag = commands.Paginator
+    #         [pag.add_line(line) for line in tb]
+    #
+    #         class ErrorPageSource(menus.ListPageSource):
+    #             async def format_page(self, menu, page):
+    #                 return page
+    #
+    #         menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
+    #         await menu.start(ctx)
 
 
 def setup(bot):
