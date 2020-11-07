@@ -61,6 +61,7 @@ def main():
         return
 
     bot = PikalaxBOT(args.settings, args.logfile, args.sqlfile)
+    bot.init_extensions()
 
     @bot.event
     async def on_ready():

@@ -49,7 +49,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         # Load settings
         loop = loop or asyncio.get_event_loop()
         self.settings = Settings(settings_file, loop=loop)
-        disabled_cogs = self.settings.disabled_cogs
         super().__init__(
             _command_prefix,
             case_insensitive=True,
@@ -87,8 +86,20 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.pokeapi = None
         self.load_extension('pikalaxbot.ext.pokeapi')
 
+        # Reboot handler
+        self.reboot_after = True
+
+        # Twitch bot
+        self._alive_since = None
+
+    @property
+    def sql(self):
+        return connect(self._sql, loop=self.loop)
+
+    def init_extensions(self):
         # Load cogs
         self.log_info('Loading extensions')
+        disabled_cogs = self.settings.disabled_cogs
         if 'jishaku' not in disabled_cogs:
             try:
                 self.load_extension('jishaku')
@@ -131,16 +142,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.log_info('Init db')
         self.loop.run_until_complete(init_sql())
         self.log_info('DB init complete')
-
-        # Reboot handler
-        self.reboot_after = True
-
-        # Twitch bot
-        self._alive_since = None
-
-    @property
-    def sql(self):
-        return connect(self._sql, loop=self.loop)
 
     async def send_tb(self, tb, embed=None):
         channel = self.exc_channel
