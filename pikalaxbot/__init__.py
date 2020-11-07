@@ -18,9 +18,6 @@ import asyncio
 import discord
 from discord.ext import commands
 import logging
-import os
-import glob
-import traceback
 from io import StringIO
 import aiohttp
 from .utils.hastebin import mystbin
@@ -32,38 +29,17 @@ from .cogs.utils.errors import *
 
 
 __all__ = ('PikalaxBOT',)
-__dir__ = os.path.dirname(__file__) or '.'
-
-
-async def _command_prefix(bot, message):
-    if message.guild is None:
-        return ''
-    if message.guild.id not in bot.guild_prefixes:
-        async with bot.sql as sql:
-            bot.guild_prefixes[message.guild.id] = await sql.get_prefix(bot, message)
-    return bot.guild_prefixes[message.guild.id]
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
-    def __init__(self, settings_file, logfile, sqlfile, *, loop=None):
+    def __init__(self, settings_file, logfile, sqlfile, **kwargs):
         # Load settings
-        loop = loop or asyncio.get_event_loop()
+        loop = kwargs.pop('loop', None) or asyncio.get_event_loop()
         self.settings = Settings(settings_file, loop=loop)
         super().__init__(
-            _command_prefix,
-            case_insensitive=True,
-            loop=loop,
             activity=discord.Game(self.settings.game),
-            # d.py 1.5.0: Declare gateway intents
-            intents=discord.Intents(
-                members=True,
-                messages=True,
-                guilds=True,
-                emojis=True,
-                reactions=True,
-                voice_states=True,
-                presences=True
-            )
+            loop=loop,
+            **kwargs
         )
         self.guild_prefixes = {}
         self._sql = sqlfile
@@ -85,61 +61,23 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         # Reboot handler
         self.reboot_after = True
 
-        # Twitch bot
         self._alive_since = None
+        self.pokeapi = None
+
+    @property
+    def exc_channel(self):
+        try:
+            return self.get_channel(self.settings.exc_channel)
+        except AttributeError:
+            return None
+
+    @property
+    def command_error_emoji(self):
+        return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     @property
     def sql(self):
         return connect(self._sql, loop=self.loop)
-
-    def init_extensions(self):
-        # Load cogs
-        self.log_info('Loading extensions')
-        disabled_cogs = self.settings.disabled_cogs
-        if 'jishaku' not in disabled_cogs:
-            try:
-                self.load_extension('jishaku')
-            except commands.ExtensionNotFound:
-                self.logger.error('Unable to load "jishaku", maybe install it first?')
-            except commands.ExtensionFailed as e:
-                e = e.original
-                self.logger.warning('Failed to load extn "jishaku" due to an error')
-                for line in traceback.format_exception(e.__class__, e, e.__traceback__):
-                    self.logger.warning(line)
-            else:
-                self.log_info('Loaded jishaku')
-
-        for cogfile in glob.glob(f'{__dir__}/cogs/*.py'):
-            if os.path.isfile(cogfile) and '__init__' not in cogfile:
-                cogname = os.path.splitext(os.path.basename(cogfile))[0]
-                if cogname not in disabled_cogs:
-                    extn = f'pikalaxbot.cogs.{cogname}'
-                    try:
-                        self.load_extension(extn)
-                    except commands.ExtensionNotFound:
-                        self.logger.error(f'Unable to find extn "{cogname}"')
-                    except commands.ExtensionFailed as e:
-                        self.logger.warning(f'Failed to load extn "{cogname}"')
-                        for line in traceback.format_exception(e.__class__, e, e.__traceback__):
-                            self.logger.warning(line)
-                    else:
-                        self.log_info(f'Loaded extn "{cogname}"')
-                else:
-                    self.log_info(f'Skipping disabled extn "{cogname}"')
-
-        self.log_info('Loading pokeapi')
-        self.pokeapi = None
-        self.load_extension('pikalaxbot.ext.pokeapi')
-
-        async def init_sql():
-            self.log_info('Start init db')
-            async with self.sql as sql:
-                await sql.db_init(self)
-            self.log_info('Finish init db')
-
-        self.log_info('Init db')
-        self.loop.run_until_complete(init_sql())
-        self.log_info('DB init complete')
 
     async def send_tb(self, tb, embed=None):
         channel = self.exc_channel
@@ -168,13 +106,5 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         finally:
             await self.client_session.close()
 
-    @property
-    def exc_channel(self):
-        try:
-            return self.get_channel(self.settings.exc_channel)
-        except AttributeError:
-            return None
-
-    @property
-    def command_error_emoji(self):
-        return discord.utils.get(self.emojis, name=self.settings.error_emoji)
+    async def on_ready(self):
+        self.log_info(f'Logged in as {self.user}')
