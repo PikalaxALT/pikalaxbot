@@ -3,7 +3,7 @@ from discord.ext import commands, menus
 import random
 from . import BaseCog
 import asyncio
-import traceback
+import re
 
 
 _emojis = '\U0001faa8', '\U0001f4f0', '\u2702', '\u274c'
@@ -86,6 +86,17 @@ class RockPaperScissors(BaseCog):
         elif opponent.bot:
             return await ctx.send('You can\'t play against a bot!')
         else:
+            await ctx.send(f'{opponent} you have been challenged to an epic game of Rock Paper Scissors with {ctx.author.mention}. Do you accept?')
+
+            def check(m):
+                return m.channel == ctx.channel and m.author == opponent
+
+            try:
+                msg = await self.bot.wait_for('message', check=check, timeout=60.0)
+            except asyncio.TimeoutError:
+                return await ctx.send('The other player did not respond...')
+            if not re.match(r'^(y(es|e?a?h?)?|o?k(ay)?|sure)$', msg.content, re.I):
+                return await ctx.send('That wasn\'t a yes. Challenge canceled.')
             menu1 = RPSMenu(player=ctx.author, opponent=opponent, clear_reactions_after=True)
             menu2 = RPSMenu(player=opponent, opponent=ctx.author, clear_reactions_after=True)
             try:
