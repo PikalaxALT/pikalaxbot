@@ -21,15 +21,10 @@ at PikalaxALT#5823.
 """
 
 import argparse
-import discord
-from discord.ext import commands
-import traceback
 import sys
 import os
 
 from . import PikalaxBOT
-from .cogs.utils.errors import CogOperationError
-from .cogs import BaseCog
 
 __dir__ = os.path.dirname(__file__) or '.'
 with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
