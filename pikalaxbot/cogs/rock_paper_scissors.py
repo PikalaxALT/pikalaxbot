@@ -4,6 +4,7 @@ import random
 from . import BaseCog
 import asyncio
 import re
+import traceback
 
 
 _emojis = '\U0001faa8', '\U0001f4f0', '\u2702', '\u274c'
@@ -73,11 +74,11 @@ class RPSMenu(menus.Menu):
 class RockPaperScissors(BaseCog):
     """Commands for playing rock-paper-scissors"""
 
-    @commands.command(aliases=['rps'])
-    @commands.max_concurrency(1, commands.BucketType.channel)
-    async def rock_paper_scissors(self, ctx: commands.Context, *, opponent: discord.Member = None):
-        """Play a game of Rock-Paper-Scissors with someone, or with the bot"""
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.rps_tasks = {}
 
+    async def do_rps(self, ctx, *, opponent: discord.Member = None):
         if opponent in {ctx.me, None}:
             menu = RPSMenu(clear_reactions_after=True)
             await menu.start(ctx, wait=True)
@@ -86,7 +87,9 @@ class RockPaperScissors(BaseCog):
         elif opponent.bot:
             return await ctx.send('You can\'t play against a bot!')
         else:
-            await ctx.send(f'{opponent} you have been challenged to an epic game of Rock Paper Scissors with {ctx.author.mention}. Do you accept?')
+            await ctx.send(f'{opponent.mention} you have been challenged to '
+                           f'an epic game of Rock Paper Scissors with {ctx.author.mention}. '
+                           f'Do you accept?')
 
             def check(m):
                 return m.channel == ctx.channel and m.author == opponent
@@ -106,15 +109,20 @@ class RockPaperScissors(BaseCog):
             try:
                 menu2.message = await menu2.send_initial_message(ctx, opponent)
             except discord.Forbidden:
+                await menu1.message.edit(content='Game cancelled', embed=None)
                 await menu1.message.delete(delay=5)
                 return await ctx.send('Your opponent has their DMs closed...')
             msg = await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
                                  f'Check your DMs!')
             tasks = [
-                menu1.start(ctx, channel=ctx.author.dm_channel, wait=True),
-                menu2.start(ctx, channel=opponent.dm_channel, wait=True)
+                self.bot.loop.create_task(menu1.start(ctx, channel=ctx.author.dm_channel, wait=True)),
+                self.bot.loop.create_task(menu2.start(ctx, channel=opponent.dm_channel, wait=True))
             ]
-            await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+            try:
+                await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+            except asyncio.CancelledError:
+                [task.cancel() for task in tasks]
+                raise
             if menu1.timed_out:
                 return await msg.edit(content=f'{ctx.author.mention} took too long to respond...')
             elif menu1.player_move == 3:
@@ -140,22 +148,34 @@ class RockPaperScissors(BaseCog):
                     await sql.increment_score(winner, by=69)
                 content += f'\n\n{winner.mention} earns 69 points for winning!'
             await msg.edit(content=content)
-    #
-    # async def cog_command_error(self, ctx, error):
-    #     error = getattr(error, 'original', error)
-    #     if isinstance(error, commands.MaxConcurrencyReached):
-    #         await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
-    #     else:
-    #         tb = traceback.format_exception(error.__class__, error, error.__traceback__)
-    #         pag = commands.Paginator
-    #         [pag.add_line(line) for line in tb]
-    #
-    #         class ErrorPageSource(menus.ListPageSource):
-    #             async def format_page(self, menu, page):
-    #                 return page
-    #
-    #         menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
-    #         await menu.start(ctx)
+
+    @commands.group(aliases=['rps'])
+    @commands.max_concurrency(1, commands.BucketType.channel)
+    async def rock_paper_scissors(self, ctx: commands.Context, *, opponent: discord.Member = None):
+        """Play a game of Rock-Paper-Scissors with someone, or with the bot"""
+        coro = self.do_rps(ctx, opponent=opponent)
+        task = self.bot.loop.create_task(coro)
+        self.rps_tasks[(ctx.guild.id, ctx.channel.id, ctx.author.id)] = task
+        try:
+            await task
+        except asyncio.CancelledError:
+            await ctx.send('The game was cancelled.')
+
+    async def cog_command_error(self, ctx, error):
+        error = getattr(error, 'original', error)
+        if isinstance(error, commands.MaxConcurrencyReached):
+            await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
+        else:
+            tb = traceback.format_exception(error.__class__, error, error.__traceback__)
+            pag = commands.Paginator
+            [pag.add_line(line) for line in tb]
+
+            class ErrorPageSource(menus.ListPageSource):
+                async def format_page(self, menu, page):
+                    return page
+
+            menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
+            await menu.start(ctx)
 
 
 def setup(bot):

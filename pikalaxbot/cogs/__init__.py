@@ -19,6 +19,7 @@ import collections
 
 from discord.ext import commands
 from pikalaxbot.utils.logging_mixin import LoggingMixin
+from .. import PikalaxBOT
 
 
 __all__ = ('BaseCog',)
@@ -31,13 +32,13 @@ class BaseCog(LoggingMixin, commands.Cog):
     __init__ params:
         bot: PikalaxBOT - The instance of the bot.
 
-    Attributes:
+    Class Attributes:
         config_attrs: tuple - Names of attributes to fetch from the bot's
         settings.  When subclassing BaseCog, define this at the class level.
     """
     config_attrs: typing.Tuple[str] = tuple()
 
-    def __init__(self, bot):
+    def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot = bot
 
