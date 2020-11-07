@@ -25,8 +25,6 @@ from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
-from .cogs.utils.errors import *
-
 
 __all__ = ('PikalaxBOT',)
 
