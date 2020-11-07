@@ -82,10 +82,6 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.client_session = None
         self.loop.run_until_complete(init_client_session())
 
-        self.log_info('Loading pokeapi')
-        self.pokeapi = None
-        self.load_extension('pikalaxbot.ext.pokeapi')
-
         # Reboot handler
         self.reboot_after = True
 
@@ -131,7 +127,9 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 else:
                     self.log_info(f'Skipping disabled extn "{cogname}"')
 
-        # self.load_extension('pikalaxbot.ext.twitch')
+        self.log_info('Loading pokeapi')
+        self.pokeapi = None
+        self.load_extension('pikalaxbot.ext.pokeapi')
 
         async def init_sql():
             self.log_info('Start init db')
