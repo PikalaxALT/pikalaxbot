@@ -174,8 +174,8 @@ class RockPaperScissors(BaseCog):
                 async def format_page(self, menu, page):
                     return page
 
-            menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
-            await menu.start(ctx)
+            exc_menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
+            await exc_menu.start(ctx)
 
 
 def setup(bot):
