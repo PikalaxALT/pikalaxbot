@@ -18,6 +18,7 @@ import random
 import aiohttp
 import typing
 import os
+import re
 
 import discord
 from discord.ext import commands
@@ -104,14 +105,15 @@ class Meme(BaseCog):
         await ctx.send(res)
 
     @commands.command()
-    async def riot(self, ctx, *, args):
+    async def riot(self, ctx, *, reason=''):
         """Riots (for some reason)"""
 
-        resp = args.upper()
-        if 'DANCE' in resp:
-            await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {resp} RIOT ♪ └༼ຈل͜ຈ༽┐♫')
+        if reason:
+            reason = reason.upper() + ' '
+        if re.search(r'\bDANCE\b', reason):
+            await ctx.send(f'♫ ┌༼ຈل͜ຈ༽┘ ♪ {reason}RIOT ♪ └༼ຈل͜ຈ༽┐♫')
         else:
-            await ctx.send(f'ヽ༼ຈل͜ຈ༽ﾉ {resp} RIOT ヽ༼ຈل͜ຈ༽ﾉ')
+            await ctx.send(f'ヽ༼ຈل͜ຈ༽ﾉ {reason}RIOT ヽ༼ຈل͜ຈ༽ﾉ')
 
     @commands.command()
     async def nebby(self, ctx):
