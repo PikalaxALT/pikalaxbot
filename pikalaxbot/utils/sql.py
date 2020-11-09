@@ -17,9 +17,6 @@
 import aiosqlite
 import sqlite3
 import asyncio
-import glob
-import shutil
-import time
 
 
 class Sql(aiosqlite.Connection):
@@ -136,20 +133,6 @@ class Sql(aiosqlite.Connection):
         c = await self.execute("select score_dead from puppy")
         score, = await c.fetchone()
         return score
-
-    async def backup_db(self):
-        curtime = int(time.time())
-        dbbak = f'{self.database}.{curtime:d}.bak'
-        return await self._loop.run_in_executor(None, shutil.copy, self.database, dbbak)
-
-    async def restore_db(self, idx):
-        files = glob.glob(f'{self.database}.*.bak')
-        if len(files) == 0:
-            return None
-        files.sort(reverse=True)
-        dbbak = files[(idx - 1) % len(files)]
-        await self._loop.run_in_executor(shutil.copy, dbbak, self.database)
-        return dbbak
 
     async def get_prefix(self, bot, message):
         c = await self.execute("select prefix from prefixes where guild = ?", (message.guild.id,))
