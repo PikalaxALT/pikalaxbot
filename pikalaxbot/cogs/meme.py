@@ -17,7 +17,6 @@
 import random
 import aiohttp
 import typing
-import os
 import re
 
 import discord
@@ -26,11 +25,6 @@ from discord.ext import commands
 from . import BaseCog
 
 DPY_GUILD_ID = 336642139381301249
-
-__dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
-with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
-    __version__ = fp.read().strip()
-
 MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
 
 

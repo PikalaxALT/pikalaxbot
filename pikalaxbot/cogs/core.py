@@ -23,9 +23,12 @@ import inspect
 import os
 import datetime
 import time
+import glob
+import collections
 from jishaku.meta import __version__ as jsk_ver
 
 from . import BaseCog
+from .. import __dir__
 from .utils.errors import *
 from .utils.converters import CommandConverter
 
@@ -70,6 +73,16 @@ class Core(BaseCog):
         b = time.perf_counter()
         api_ping = b - a
         cmds = await self.get_runnable_commands(ctx)
+        # Get source lines
+        ctr = collections.Counter()
+        for ctr['file'], f in enumerate(glob.glob(f'{__dir__}/**/*.py', recursive=True)):
+            with open(f) as fp:
+                for ctr['line'], line in enumerate(fp, ctr['line']):
+                    line = line.lstrip()
+                    ctr['class'] += line.startswith('class')
+                    ctr['function'] += line.startswith('def')
+                    ctr['coroutine'] += line.startswith('async def')
+                    ctr['comment'] += '#' in line
         places = '\U0001f947', '\U0001f948', '\U0001f949'
         embed = discord.Embed(
             title=f'{self.bot.user.name} Stats',
@@ -87,6 +100,9 @@ class Core(BaseCog):
         ).add_field(
             name='Command Stats',
             value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
+        ).add_field(
+            name='Code stats',
+            value='\n'.join(f'{key.title()}: {value}' for key, value in ctr.items())
         )
         await ctx.send(embed=embed)
 

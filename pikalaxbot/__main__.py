@@ -28,11 +28,7 @@ import os
 import glob
 import traceback
 
-from . import PikalaxBOT
-
-__dir__ = os.path.dirname(__file__) or '.'
-with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
-    __version__ = fp.read().strip()
+from . import PikalaxBOT, __dir__, __version__
 
 
 async def _command_prefix(bot, message):

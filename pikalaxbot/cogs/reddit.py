@@ -1,18 +1,13 @@
 import aiohttp
-import typing
 import platform
 import datetime
-import os
-import asyncio
 
 import discord
 from discord.ext import commands
 
 from . import BaseCog
 
-__dir__ = os.path.dirname(os.path.dirname(__file__)) or '.'
-with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
-    __version__ = fp.read().strip()
+from .. import __version__
 
 
 class NoPostsFound(commands.CommandError):

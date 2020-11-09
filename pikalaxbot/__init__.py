@@ -20,10 +20,15 @@ from discord.ext import commands
 import logging
 from io import StringIO
 import aiohttp
+import os
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
+
+__dir__ = os.path.dirname(__file__) or '.'
+with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
+    __version__ = fp.read().strip()
 
 
 __all__ = ('PikalaxBOT',)
