@@ -296,6 +296,8 @@ duration, prompt, and options."""
 
     @poll_cmd.command(name='new')
     async def interactive_poll_maker(self, ctx: commands.Context, timeout: typing.Union[float, FutureTime] = 60.0):
+        """Create a poll interactively"""
+
         embed = discord.Embed(
             title='Interactive Poll Maker',
             description=f'Poll created by {ctx.author.mention}\n\n'
