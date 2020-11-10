@@ -102,10 +102,10 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         token = self.settings.token
         super().run(token)
 
-    async def logout(self):
+    async def close(self):
         self.log_info('Logout request receeived')
         try:
-            await self.close()
+            await super().close()
         finally:
             await self.client_session.close()
 

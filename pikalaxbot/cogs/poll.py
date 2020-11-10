@@ -294,6 +294,83 @@ duration, prompt, and options."""
         self.polls.append(mgr)
         mgr.start()
 
+    @poll_cmd.command(name='new')
+    async def interactive_poll_maker(self, ctx: commands.Context, timeout: typing.Union[float, FutureTime] = 60.0):
+        embed = discord.Embed(
+            title='Interactive Poll Maker',
+            description=f'Poll created by {ctx.author.mention}\n\n'
+                        f'React with :x: to cancel.',
+            colour=discord.Colour.orange()
+        )
+        my_message = await ctx.send('Hello, you\'ve entered the interactive poll maker. '
+                                    'Please enter your question below.',
+                                    embed=embed)
+        await my_message.add_reaction('\N{CROSS MARK}')
+        accepted_emojis = ['\N{CROSS MARK}']
+
+        def msg_check(msg):
+            return msg.channel == ctx.channel and msg.author == ctx.author
+
+        def rxn_check(rxn, usr):
+            return rxn.message == my_message and usr == ctx.author and str(rxn) in accepted_emojis
+
+        i = 0
+        while i < 11:
+            futs = [
+                    self.bot.loop.create_task(self.bot.wait_for('message', check=msg_check)),
+                    self.bot.loop.create_task(self.bot.wait_for('reaction_add', check=rxn_check))
+                ]
+            try:
+                done, pending = await asyncio.wait(futs, timeout=60.0, return_when=asyncio.FIRST_COMPLETED)
+                params = done.pop().result()
+            except KeyError:
+                await my_message.delete()
+                return await ctx.send('Request timed out')
+            except Exception as e:
+                await my_message.delete()
+                return await ctx.send(f'Request failed with {e.__class__.__name__}: {e}')
+            finally:
+                [fut.cancel() for fut in futs]
+            if isinstance(params, discord.Message):
+                response = params.content.strip()
+                if not response:
+                    await ctx.send('Message has no content', delete_after=10)
+                    continue
+                if i > 0 and discord.utils.find(lambda f: f.value == response, embed.fields):
+                    await ctx.send('Duplicate options are not allowed', delete_after=10)
+                    continue
+                embed.add_field(
+                    name=i and f'Option {i}' or 'Question',
+                    value=response
+                )
+                i += 1
+                content = f'Hello, you\'ve entered the interactive poll maker. ' \
+                          f'Please enter option {i} below.'
+                if i == 3:
+                    accepted_emojis.append('\N{WHITE HEAVY CHECK MARK}')
+                    embed.description += '\nReact with :white_check_mark: to exit'
+                await my_message.delete()
+                if i > 10:
+                    break
+                my_message = await ctx.send(content, embed=embed)
+                for emo in accepted_emojis:
+                    await my_message.add_reaction(emo)
+            else:
+                r, u = params
+                await my_message.delete()
+                if str(r) == '\N{CROSS MARK}':
+                    return await ctx.send('Poll creation cancelled by user', delete_after=10)
+                break
+        mgr = await PollManager.from_command(ctx, timeout, *[field.value for field in embed.fields])
+        async with ctx.bot.sql as sql:
+            await sql.execute(
+                'insert into polls (code, channel, owner, context, message, started, closes) '
+                'values (?, ?, ?, ?, ?, ?, ?)',
+                tuple(mgr)
+            )
+        self.polls.append(mgr)
+        mgr.start()
+
     @poll_cmd.command()
     async def cancel(self, ctx: commands.Context, mgr: PollManager):
         """Cancel a running poll using a code. You must be the one who started the poll
