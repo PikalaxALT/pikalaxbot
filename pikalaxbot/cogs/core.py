@@ -28,7 +28,7 @@ import collections
 from jishaku.meta import __version__ as jsk_ver
 
 from . import BaseCog
-from .. import __dir__
+from .. import __dirname__
 from .utils.errors import *
 from .utils.converters import CommandConverter
 
@@ -75,7 +75,7 @@ class Core(BaseCog):
         cmds = await self.get_runnable_commands(ctx)
         # Get source lines
         ctr = collections.Counter()
-        for ctr['file'], f in enumerate(glob.glob(f'{__dir__}/**/*.py', recursive=True)):
+        for ctr['file'], f in enumerate(glob.glob(f'{__dirname__}/**/*.py', recursive=True)):
             with open(f) as fp:
                 for ctr['line'], line in enumerate(fp, ctr['line']):
                     line = line.lstrip()

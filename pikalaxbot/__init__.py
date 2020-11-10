@@ -26,8 +26,8 @@ from .utils.config_io import Settings
 from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
-__dir__ = os.path.dirname(__file__) or '.'
-with open(os.path.join(os.path.dirname(__dir__), 'version.txt')) as fp:
+__dirname__ = os.path.dirname(__file__) or '.'
+with open(os.path.join(os.path.dirname(__dirname__), 'version.txt')) as fp:
     __version__ = fp.read().strip()
 
 

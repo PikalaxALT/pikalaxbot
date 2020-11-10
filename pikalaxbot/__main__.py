@@ -28,7 +28,7 @@ import os
 import glob
 import traceback
 
-from . import PikalaxBOT, __dir__, __version__
+from . import PikalaxBOT, __dirname__, __version__
 
 
 async def _command_prefix(bot, message):
@@ -57,7 +57,7 @@ def init_extensions(bot):
         else:
             bot.log_info('Loaded jishaku')
 
-    for cogfile in glob.glob(f'{__dir__}/cogs/*.py'):
+    for cogfile in glob.glob(f'{__dirname__}/cogs/*.py'):
         if os.path.isfile(cogfile) and '__init__' not in cogfile:
             cogname = os.path.splitext(os.path.basename(cogfile))[0]
             if cogname not in disabled_cogs:
@@ -104,13 +104,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--settings', default='settings.json')
     parser.add_argument('--logfile', default='bot.log')
-    parser.add_argument('--sqlfile', default='pikalaxbot/data/db.sql')
+    parser.add_argument('--sqlfile', default=f'{__dirname__}/data/db.sql')
     parser.add_argument('--version', action='store_true')
     args = parser.parse_args()
     if args.version:
-        with open('../version.txt') as fp:
-            version = fp.read().rstrip()
-        print(f'{os.path.basename(os.path.dirname(__file__))} v{version}')
+        print(f'{os.path.basename(os.path.dirname(__file__))} v{__version__}')
         return
 
     bot = PikalaxBOT(
