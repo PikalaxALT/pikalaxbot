@@ -324,6 +324,43 @@ class Core(BaseCog):
             return
         await self.bot.get_user(self.bot.owner_id).send(embed=embed)
 
+    @commands.guild_only()
+    @commands.command(aliases=['guildinfo'])
+    async def serverinfo(self, ctx: commands.Context):
+        guild: discord.Guild = ctx.guild
+        emojis = ''.join([str(e) for e in guild.emojis if e.is_usable()])
+        status_icons = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status}
+        member_statuses = collections.Counter(m.status for m in guild.members)
+        nbots = sum(1 for m in guild.members if m.bot)
+        status_string = ' '.join(f'{icon} {member_statuses[stat]}' for stat, icon in status_icons.items())
+        embed = discord.Embed(
+            title=str(guild),
+            description=f'**ID:** {guild.id}\n'
+                        f'**Owner:** {guild.owner}'
+        ).set_thumbnail(
+            url=str(guild.icon_url)
+        ).add_field(
+            name='Boosts',
+            value=f'Level {guild.premium_tier}\n'
+                  f'{guild.premium_subscription_count} boosts',
+            inline=False
+        ).add_field(
+            name='Emojis',
+            value=f'{emojis}...',
+            inline=False
+        ).add_field(
+            name='Channels',
+            value=f'{len(guild.text_channels)} text channels\n'
+                  f'{len(guild.voice_channels)} voice channels\n'
+                  f'{len(guild.categories)} categories',
+            inline=False
+        ).add_field(
+            name='Members',
+            value=f'{status_string}\n'
+                  f'Total: {guild.member_count} ({nbots} bots)'
+        )
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Core(bot))
