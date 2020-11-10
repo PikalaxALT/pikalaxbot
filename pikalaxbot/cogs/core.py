@@ -52,16 +52,21 @@ class Core(BaseCog):
 
     async def get_runnable_commands(self, ctx):
         cmds = []
+        lost_cmds = []
         async with self.bot.sql as sql:
             async with sql.execute('select * from commandstats order by uses desc') as cur:
                 async for name, uses in cur:
                     cmd: commands.Command = self.bot.get_command(name)
+                    if cmd is None:
+                        lost_cmds.append((name,))
+                        continue
                     try:
                         valid = await cmd.can_run(ctx)
                         if valid:
                             cmds.append(f'{name} ({uses} uses)')
                     except commands.CommandError:
                         continue
+            await sql.executemany('delete from commandstats where command = ?', lost_cmds)
         return cmds
 
     @commands.command()
