@@ -328,7 +328,7 @@ class Core(BaseCog):
     @commands.command(aliases=['guildinfo'])
     async def serverinfo(self, ctx: commands.Context):
         guild: discord.Guild = ctx.guild
-        emojis = ''.join([str(e) for e in guild.emojis if e.is_usable()])
+        emojis = ''.join([str(e) for e in guild.emojis if e.is_usable()][:10])
         status_icons = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status}
         member_statuses = collections.Counter(m.status for m in guild.members)
         nbots = sum(1 for m in guild.members if m.bot)
