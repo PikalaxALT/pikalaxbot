@@ -336,7 +336,8 @@ class Core(BaseCog):
         embed = discord.Embed(
             title=str(guild),
             description=f'**ID:** {guild.id}\n'
-                        f'**Owner:** {guild.owner}'
+                        f'**Owner:** {guild.owner}',
+            colour=0xf47fff
         ).set_thumbnail(
             url=str(guild.icon_url)
         ).add_field(
