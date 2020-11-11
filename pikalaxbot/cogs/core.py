@@ -78,7 +78,6 @@ class Core(BaseCog):
         await ctx.trigger_typing()
         b = time.perf_counter()
         api_ping = b - a
-        cmds = await self.get_runnable_commands(ctx)
         # Get source lines
         ctr = collections.Counter()
         for ctr['file'], f in enumerate(glob.glob(f'{__dirname__}/**/*.py', recursive=True)):
@@ -111,7 +110,7 @@ class Core(BaseCog):
         ).add_field(
             name='Code stats',
             value='\n'.join(f'{key.title()}: {value}' for key, value in ctr.items()) + f'\n'
-                  f'Commands: {n_total_cmds} ({n_usable_cmds} you can use)'
+                  f'Commands: {n_total_cmds}'
         )
         await ctx.send(embed=embed)
 
