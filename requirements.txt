@@ -11,3 +11,4 @@ setuptools>=50.3.0
 twitchio>=1.1.0
 numpy>=1.19.0
 humanize>=3.1.0
+pyfiglet>=0.7

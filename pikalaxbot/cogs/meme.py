@@ -18,6 +18,7 @@ import random
 import aiohttp
 import typing
 import re
+import pyfiglet
 
 import discord
 from discord.ext import commands
@@ -158,6 +159,11 @@ class Meme(BaseCog):
         collective = 'average ' if isinstance(target, discord.Role) else ''
         mention = '@everyone' if isinstance(target, discord.Role) and target.is_default() else target.mention
         await ctx.send(f'{mention}\'s {collective}dick: 8{shaft}D', allowed_mentions=discord.AllowedMentions.none())
+
+    @commands.command()
+    async def ascii(self, ctx, *, message):
+        text = pyfiglet.figlet_format(message, width=37)
+        await ctx.send(f'```\n{text}\n```')
 
 
 def setup(bot):
