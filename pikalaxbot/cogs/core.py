@@ -78,6 +78,7 @@ class Core(BaseCog):
         await ctx.trigger_typing()
         b = time.perf_counter()
         api_ping = b - a
+        cmds = await self.get_runnable_commands(ctx)
         # Get source lines
         ctr = collections.Counter()
         for ctr['file'], f in enumerate(glob.glob(f'{__dirname__}/**/*.py', recursive=True)):
@@ -88,7 +89,6 @@ class Core(BaseCog):
                     ctr['function'] += line.startswith('def')
                     ctr['coroutine'] += line.startswith('async def')
                     ctr['comment'] += '#' in line
-        n_usable_cmds = len(cmds)
         n_total_cmds = len(self.bot.commands)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
         embed = discord.Embed(
