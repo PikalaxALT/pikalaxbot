@@ -189,9 +189,11 @@ class Help(BaseCog):
         bot.help_command = PaginatedHelpCommand(command_attrs={'name': bot.settings.help_name})
         bot.help_command.cog = self
 
-    async def cog_command_error(self, ctx, error):
-        if isinstance(error, (commands.CommandOnCooldown, commands.MaxConcurrencyReached)):
-            return
+    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        if isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send(f'You are using this command too frequently. Try again in {error.retry_after}s.', delete_after=10)
+        elif isinstance(error, commands.MaxConcurrencyReached):
+            return await ctx.send('Someone else is using a Help menu in this channel.', delete_after=10)
         tb = '\n'.join(traceback.format_exception(error.__class__, error, error.__traceback__))
         await self.bot.send_tb(f'Ignoring exception in help command\n{tb}')
 
