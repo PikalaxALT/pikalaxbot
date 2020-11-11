@@ -89,6 +89,8 @@ class Core(BaseCog):
                     ctr['function'] += line.startswith('def')
                     ctr['coroutine'] += line.startswith('async def')
                     ctr['comment'] += '#' in line
+        n_usable_cmds = len(cmds)
+        n_total_cmds = len(self.bot.commands)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
         embed = discord.Embed(
             title=f'{self.bot.user.name} Stats',
@@ -108,7 +110,8 @@ class Core(BaseCog):
             value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
         ).add_field(
             name='Code stats',
-            value='\n'.join(f'{key.title()}: {value}' for key, value in ctr.items())
+            value='\n'.join(f'{key.title()}: {value}' for key, value in ctr.items()) +
+                  f'Commands: {n_total_cmds} ({n_usable_cmds} you can use)'
         )
         await ctx.send(embed=embed)
 
