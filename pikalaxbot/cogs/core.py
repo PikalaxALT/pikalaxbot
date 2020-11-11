@@ -110,7 +110,7 @@ class Core(BaseCog):
             value='\n'.join(f'{place} {cmd}' for place, cmd in zip(places, cmds)) or 'Insufficient data'
         ).add_field(
             name='Code stats',
-            value='\n'.join(f'{key.title()}: {value}' for key, value in ctr.items()) +
+            value='\n'.join(f'{key.title()}: {value}' for key, value in ctr.items()) + f'\n'
                   f'Commands: {n_total_cmds} ({n_usable_cmds} you can use)'
         )
         await ctx.send(embed=embed)
