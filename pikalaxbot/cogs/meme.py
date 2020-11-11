@@ -19,9 +19,11 @@ import aiohttp
 import typing
 import re
 import pyfiglet
+import asyncio
+import time
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from . import BaseCog
 
@@ -164,6 +166,42 @@ class Meme(BaseCog):
     async def ascii(self, ctx, *, message):
         text = pyfiglet.figlet_format(message, width=37)
         await ctx.send(f'```\n{text}\n```')
+
+    @commands.max_concurrency(1, commands.BucketType.channel)
+    @commands.command(aliases=['cookie', 'c'])
+    async def cookies(self, ctx: commands.Context):
+        emoji, = random.choices(['🥠', '🍪'], k=1, weights=[0.05, 0.95])
+        embed = discord.Embed(
+            description=f'First one to eat the cookie {emoji} wins!',
+            colour=0xf47fff
+        )
+        msg = await ctx.send(embed=embed)
+        await asyncio.sleep(5)
+
+        @tasks.loop(seconds=1, count=3)
+        async def countdown():
+            embed.description = 3 - countdown.current_loop
+            await msg.edit(embed=embed)
+
+        t = countdown.start()
+
+        @self.bot.listen()
+        async def on_reaction_add(reaction, user):
+            if reaction.message == msg and user != self.bot.user:
+                try:
+                    await reaction.clear()
+                except discord.Forbidden:
+                    pass
+
+        await t
+        await discord.utils.sleep_until(countdown._next_iteration)
+        self.bot.remove_listener(on_reaction_add)
+        self.bot.loop.create_task(msg.add_reaction(emoji))
+        start = time.perf_counter()
+        rxn, usr = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == msg and str(r) == emoji and u != self.bot.user)
+        end = time.perf_counter()
+        embed.description = f'**{usr}** has eaten the cookie in {end - start:.3f}s, yum yum'
+        await msg.edit(embed=embed)
 
 
 def setup(bot):
