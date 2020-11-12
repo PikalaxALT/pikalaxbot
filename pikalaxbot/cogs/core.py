@@ -368,7 +368,10 @@ class Core(BaseCog):
     async def send_perms(ctx, member, perms):
         paginator = commands.Paginator('', '', 1024)
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
-        [paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ")}') for name, value in perms]
+        for i, (name, value) in enumerate(perms, 1):
+            paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ")}')
+            if i % 12 == 0:
+                paginator.close_page()
         embed = discord.Embed(
             title=f'Permissions for {member}',
             colour=0xf47fff
