@@ -365,7 +365,7 @@ class Core(BaseCog):
         await ctx.send(embed=embed)
 
     @staticmethod
-    async def send_perms(ctx, member, perms):
+    async def send_perms(ctx, member, where, perms):
         paginator = commands.Paginator('', '', 1024)
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
         for i, (name, value) in enumerate(perms, 1):
@@ -383,13 +383,14 @@ class Core(BaseCog):
     async def permissions(self, ctx, channel: typing.Optional[typing.Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel]], *, member: discord.Member = None):
         """Print the member's permissions in a channel"""
         member = member or ctx.author
-        await Core.send_perms(ctx, member, member.permissions_in(channel or ctx.channel))
+        channel = channel or ctx.channel
+        await Core.send_perms(ctx, member, channel, member.permissions_in(channel))
 
     @permissions.command(name='guild')
     async def guild_permissions(self, ctx, *, member: discord.Member = None):
         """Print the member's permissions in the guild"""
         member = member or ctx.author
-        await Core.send_perms(ctx, member, member.guild_permissions)
+        await Core.send_perms(ctx, member, ctx.guild, member.guild_permissions)
 
 
 def setup(bot):
