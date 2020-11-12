@@ -7,7 +7,7 @@ import re
 import traceback
 
 
-_emojis = '\U0001faa8', '\U0001f4f0', '\u2702', '\u274c'
+_emojis = '\u270a', '\u270b', '\u270c', '\u274c'
 
 
 class RPSError(commands.CommandError):
