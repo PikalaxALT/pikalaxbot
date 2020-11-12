@@ -379,7 +379,7 @@ class Core(BaseCog):
         [embed.add_field(name='\u200b', value=page) for page in paginator.pages]
         await ctx.send(embed=embed)
 
-    @commands.group(aliases=['perms'])
+    @commands.group(aliases=['perms'], invoke_without_command=True)
     async def permissions(self, ctx, channel: typing.Optional[discord.abc.GuildChannel], *, member: discord.Member = None):
         """Print the member's permissions in a channel"""
         member = member or ctx.author
