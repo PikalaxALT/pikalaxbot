@@ -367,7 +367,7 @@ duration, prompt, and options."""
                 if str(r) == '\N{CROSS MARK}':
                     return await ctx.send('Poll creation cancelled by user', delete_after=10)
                 break
-        timeout += datetime.datetime.utcnow() - ctx.message.created_at
+        timeout += (datetime.datetime.utcnow() - ctx.message.created_at).total_seconds()
         mgr = await PollManager.from_command(ctx, timeout, *[field.value for field in embed.fields])
         async with ctx.bot.sql as sql:
             await sql.execute(
