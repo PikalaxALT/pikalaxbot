@@ -344,6 +344,8 @@ class Modtools(BaseCog):
         await ctx.message.add_reaction('✅')
 
     async def cog_command_error(self, ctx, error):
+        if hasattr(ctx.command, 'on_error'):
+            return
         await ctx.message.add_reaction('❌')
         await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
         self.log_tb(ctx, error)
