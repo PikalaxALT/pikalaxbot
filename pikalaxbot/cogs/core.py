@@ -369,7 +369,7 @@ class Core(BaseCog):
         paginator = commands.Paginator('', '', 1024)
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
         for i, (name, value) in enumerate(perms, 1):
-            paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ")}')
+            paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ").replace("Tts", "TTS")}')
             if i % 12 == 0:
                 paginator.close_page()
         embed = discord.Embed(
