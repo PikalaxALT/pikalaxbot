@@ -164,8 +164,10 @@ class Meme(BaseCog):
 
     @commands.command()
     async def ascii(self, ctx, *, message):
-        text = pyfiglet.figlet_format(message, width=37)
-        await ctx.send(f'```\n{text}\n```')
+        paginator = commands.Paginator()
+        [paginator.add_line(line) for line in pyfiglet.figlet_format(message, width=37).splitlines()]
+        for page in paginator.pages:
+            await ctx.send(page)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.command(aliases=['cookie', 'c'])
