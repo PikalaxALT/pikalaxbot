@@ -58,6 +58,7 @@ class Sql(aiosqlite.Connection):
         await self.execute("drop table if exists prefixes")
 
     async def increment_score(self, player, by=1):
+        await self.execute('insert or ignore into game(id, name) values (?, ?)', (player.id, player.name))
         await self.execute("update game set score = score + ? where id = ? and name = ?", (by, player.id, player.name))
 
     async def get_all_scores(self):
