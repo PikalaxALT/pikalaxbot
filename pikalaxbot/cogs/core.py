@@ -366,12 +366,16 @@ class Core(BaseCog):
 
     @staticmethod
     async def send_perms(ctx, member, where, perms):
+        voice_perms = {'priority_speaker', 'stream', 'connect', 'speak', 'mute_members', 'deafen_members', 'move_members', 'use_voice_activation'}
         paginator = commands.Paginator('', '', 1024)
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
-        for i, (name, value) in enumerate(perms, 1):
-            paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ").replace("Tts", "TTS")}')
-            if i % 12 == 0:
-                paginator.close_page()
+        i = 1
+        for name, value in perms:
+            if isinstance(where, (discord.VoiceChannel, discord.Guild)) or name not in voice_perms:
+                paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ").replace("Tts", "TTS")}')
+                i += 1
+                if i % 12 == 0:
+                    paginator.close_page()
         embed = discord.Embed(
             title=f'Permissions for {member} in {where}',
             colour=0xf47fff
