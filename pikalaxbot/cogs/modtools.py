@@ -132,11 +132,14 @@ class Modtools(BaseCog):
     @call_sql.error
     async def sql_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
+        tb = traceback.format_exc(limit=3)
+        embed = discord.Embed(color=discord.Color.red())
+        embed.add_field(name='Traceback', value=f'```{tb}```')
         if isinstance(exc, sqlite3.Error):
-            tb = traceback.format_exc(limit=3)
-            embed = discord.Embed(color=discord.Color.red())
-            embed.add_field(name='Traceback', value=f'```{tb}```')
-            await ctx.send('The script failed with an error (check your syntax?)', embed=embed)
+            msg = 'The script failed with an error (check your syntax?)'
+        else:
+            msg = 'An unexpected error has occurred, my husbando is on the case'
+        await ctx.send('The script failed with an error (check your syntax?)', embed=embed)
         self.log_tb(ctx, exc)
 
     @admin.command(name='oauth')
