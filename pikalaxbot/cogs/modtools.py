@@ -123,7 +123,7 @@ class Modtools(BaseCog):
 
         async with self.bot.sql as sql:
             async with sql.execute(script) as cursor:
-                result = '\n'.join('|'.join(row) async for row in cursor)
+                result = '\n'.join('|'.join(row) for row in await cursor.fetchall())
         if result:
             embed = discord.Embed(description=f'```\n{result}\n```')
         else:
