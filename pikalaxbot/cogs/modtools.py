@@ -144,6 +144,7 @@ class Modtools(BaseCog):
             msg = 'The script failed with an error (check your syntax?)'
         else:
             msg = 'An unexpected error has occurred, my husbando is on the case'
+        await ctx.message.add_reaction('\N{CROSS MARK}')
         await ctx.send(msg, embed=embed)
         self.log_tb(ctx, exc)
 
