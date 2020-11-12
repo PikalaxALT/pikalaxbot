@@ -373,7 +373,7 @@ class Core(BaseCog):
             if i % 12 == 0:
                 paginator.close_page()
         embed = discord.Embed(
-            title=f'Permissions for {member}',
+            title=f'Permissions for {member} in {where}',
             colour=0xf47fff
         )
         [embed.add_field(name='\u200b', value=page) for page in paginator.pages]
