@@ -364,6 +364,28 @@ class Core(BaseCog):
         )
         await ctx.send(embed=embed)
 
+    @staticmethod
+    async def send_perms(ctx, member, perms):
+        paginator = commands.Paginator('', '', 1024)
+        emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
+        [paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ")}') for name, value in perms]
+        embed = discord.Embed(
+            title=f'Permissions for {member}',
+            colour=0xf47fff
+        )
+        [embed.add_field(name='\u200b', value=page) for page in paginator.pages]
+        await ctx.send(embed=embed)
+
+    @commands.group(aliases=['perms'])
+    async def permissions(self, ctx, channel: typing.Optional[discord.abc.GuildChannel], *, member: discord.Member):
+        """Print the member's permissions in a channel"""
+        await Core.send_perms(ctx, member, member.permissions_in(channel or ctx.channel))
+
+    @permissions.command(name='guild')
+    async def guild_permissions(self, ctx, *, member: discord.Member):
+        """Print the member's permissions in the guild"""
+        await Core.send_perms(ctx, member, member.guild_permissions)
+
 
 def setup(bot):
     bot.add_cog(Core(bot))

@@ -201,8 +201,7 @@ class Meme(BaseCog):
         async def after_countdown():
             await discord.utils.sleep_until(countdown._next_iteration)
 
-        t: asyncio.Task = countdown.start()
-
+        t = countdown.start()
         t.add_done_callback(functools.partial(self.bot.remove_listener, on_reaction_add))
         await t
         self.bot.loop.create_task(msg.add_reaction(emoji))
