@@ -21,6 +21,7 @@ import re
 import pyfiglet
 import asyncio
 import time
+import functools
 
 import discord
 from discord.ext import commands, tasks
@@ -178,14 +179,6 @@ class Meme(BaseCog):
             colour=0xf47fff
         )
         msg = await ctx.send(embed=embed)
-        await asyncio.sleep(5)
-
-        @tasks.loop(seconds=1, count=3)
-        async def countdown():
-            embed.description = 3 - countdown.current_loop
-            await msg.edit(embed=embed)
-
-        t = countdown.start()
 
         @self.bot.listen()
         async def on_reaction_add(reaction, user):
@@ -195,9 +188,23 @@ class Meme(BaseCog):
                 except discord.Forbidden:
                     pass
 
+        @tasks.loop(seconds=1, count=3)
+        async def countdown():
+            embed.description = 3 - countdown.current_loop
+            await msg.edit(embed=embed)
+
+        @countdown.before_loop
+        async def before_countdown():
+            await asyncio.sleep(5)
+
+        @countdown.after_loop
+        async def after_countdown():
+            await discord.utils.sleep_until(countdown._next_iteration)
+
+        t: asyncio.Task = countdown.start()
+
+        t.add_done_callback(functools.partial(self.bot.remove_listener, on_reaction_add))
         await t
-        await discord.utils.sleep_until(countdown._next_iteration)
-        self.bot.remove_listener(on_reaction_add)
         self.bot.loop.create_task(msg.add_reaction(emoji))
         start = time.perf_counter()
         rxn, usr = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == msg and str(r) == emoji and u != self.bot.user)
