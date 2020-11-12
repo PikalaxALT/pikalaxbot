@@ -371,7 +371,7 @@ class Core(BaseCog):
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
         i = 0
         show_voice_perms = isinstance(where, (discord.VoiceChannel, discord.Guild))
-        page_limit = 12 if show_voice_perms else 9
+        page_limit = 11 if show_voice_perms else 8
         for name, value in perms:
             if show_voice_perms or name not in voice_perms:
                 paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ").replace("Tts", "TTS")}')
