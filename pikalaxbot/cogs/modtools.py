@@ -131,6 +131,7 @@ class Modtools(BaseCog):
 
     @call_sql.error
     async def sql_error(self, ctx, exc):
+        exc = getattr(exc, 'original', exc)
         if isinstance(exc, sqlite3.Error):
             tb = traceback.format_exc(limit=3)
             embed = discord.Embed(color=discord.Color.red())
