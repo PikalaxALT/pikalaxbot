@@ -380,7 +380,7 @@ class Core(BaseCog):
         await ctx.send(embed=embed)
 
     @commands.group(aliases=['perms'], invoke_without_command=True)
-    async def permissions(self, ctx, channel: typing.Optional[discord.abc.GuildChannel], *, member: discord.Member = None):
+    async def permissions(self, ctx, channel: typing.Optional[typing.Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel]], *, member: discord.Member = None):
         """Print the member's permissions in a channel"""
         member = member or ctx.author
         await Core.send_perms(ctx, member, member.permissions_in(channel or ctx.channel))
