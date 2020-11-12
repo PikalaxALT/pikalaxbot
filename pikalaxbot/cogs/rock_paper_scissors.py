@@ -137,8 +137,7 @@ class RockPaperScissors(BaseCog):
             # 0: tied
             # 1: defender wins
             # 2: challenger wins
-            content = msg.content
-            content += f'\n\n' \
+            content = f'\n\n' \
                        f'{ctx.author.mention}\'s move: {player_emoji}\n' \
                        f'{opponent.mention}\'s move: {opponent_emoji}\n\n'
             content += ['It\'s a draw!', f'{opponent.mention} wins!', f'{ctx.author.mention} wins!'][diff]
@@ -147,7 +146,7 @@ class RockPaperScissors(BaseCog):
                 async with self.bot.sql as sql:
                     await sql.increment_score(winner, by=69)
                 content += f'\n\n{winner.mention} earns 69 points for winning!'
-            await msg.edit(content=content)
+            await ctx.send(content)
 
     @commands.group(aliases=['rps'])
     @commands.max_concurrency(1, commands.BucketType.channel)
