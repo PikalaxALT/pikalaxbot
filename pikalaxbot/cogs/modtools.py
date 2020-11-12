@@ -129,7 +129,12 @@ class Modtools(BaseCog):
             embed = discord.Embed(title=script, description=f'```\n{result}\n```', colour=0xf47fff)
             await ctx.send(embed=embed)
 
+    @commands.command(name='sql')
+    async def top_call_sql(self, ctx, *, script):
+        await self.call_sql(ctx, script=script)
+
     @call_sql.error
+    @top_call_sql.error
     async def sql_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, limit=3))
