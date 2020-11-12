@@ -112,7 +112,7 @@ class RockPaperScissors(BaseCog):
                 await menu1.message.edit(content='Game cancelled', embed=None)
                 await menu1.message.delete(delay=5)
                 return await ctx.send('Your opponent has their DMs closed...')
-            msg = await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
+            await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
                                  f'Check your DMs!')
             tasks = [
                 self.bot.loop.create_task(menu1.start(ctx, channel=ctx.author.dm_channel, wait=True)),
@@ -123,14 +123,15 @@ class RockPaperScissors(BaseCog):
             except asyncio.CancelledError:
                 [task.cancel() for task in tasks]
                 raise
+            [self.bot.loop.create_task(user.send(f'Game finished, go back to {ctx.channel.mention} for the results')) for user in (ctx.author, opponent)]
             if menu1.timed_out:
-                return await msg.edit(content=f'{ctx.author.mention} took too long to respond...')
+                return await ctx.send(f'{ctx.author} took too long to respond...')
             elif menu1.player_move == 3:
-                return await msg.edit(content=f'{ctx.author.mention} forfeited...')
+                return await ctx.send(f'{ctx.author} forfeited...')
             elif menu2.timed_out:
-                return await msg.edit(content=f'{opponent} took too long to respond...')
+                return await ctx.send(f'{opponent} took too long to respond...')
             elif menu2.player_move == 3:
-                return await msg.edit(content=f'{opponent} forfeited...')
+                return await ctx.send(f'{opponent} forfeited...')
             player_emoji = _emojis[menu1.player_move]
             opponent_emoji = _emojis[menu2.player_move]
             diff = menu2.player_move - menu1.player_move
