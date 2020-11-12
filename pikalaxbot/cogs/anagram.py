@@ -119,12 +119,10 @@ class Anagram(GameCogBase):
     def cog_check(self, ctx):
         return self._local_check(ctx) and ctx.bot.pokeapi is not None
 
-    @commands.group(case_insensitive=True)
+    @commands.group(case_insensitive=True, invoke_without_command=True)
     async def anagram(self, ctx: commands.Context):
         """Play Anagram"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect anagram subcommand passed. '
-                           f'Try `{ctx.prefix}{self.bot.settings.help_name} anagram`')
+        await ctx.send_help(ctx.command)
 
     @anagram.command()
     async def start(self, ctx: commands.Context):

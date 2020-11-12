@@ -279,12 +279,10 @@ class VoltorbFlip(GameCogBase):
     def cog_check(self, ctx):
         return self._local_check(ctx)
 
-    @commands.group(case_insensitive=True)
+    @commands.group(case_insensitive=True, invoke_without_command=True)
     async def voltorb(self, ctx):
         """Play Voltorb Flip"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect voltorb subcommand passed. '
-                           f'Try {ctx.prefix}{self.bot.settings.help_name} voltorb')
+        await ctx.send_help(ctx.command)
 
     @voltorb.command()
     async def start(self, ctx):

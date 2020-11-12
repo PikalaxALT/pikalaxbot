@@ -149,12 +149,10 @@ class Trashcans(GameCogBase):
     def cog_check(self, ctx):
         return self._local_check(ctx)
 
-    @commands.group(case_insensitive=True)
+    @commands.group(case_insensitive=True, invoke_without_command=True)
     async def trashcans(self, ctx):
         """Play trashcans"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send(f'Incorrect trashcans subcommand passed. '
-                           f'Try `{ctx.prefix}{self.bot.settings.help_name} trashcans`')
+        await ctx.send_help(ctx.command)
 
     @trashcans.command()
     async def start(self, ctx):
