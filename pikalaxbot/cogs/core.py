@@ -369,12 +369,14 @@ class Core(BaseCog):
         voice_perms = {'priority_speaker', 'stream', 'connect', 'speak', 'mute_members', 'deafen_members', 'move_members', 'use_voice_activation'}
         paginator = commands.Paginator('', '', 1024)
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
-        i = 1
+        i = 0
+        show_voice_perms = isinstance(where, (discord.VoiceChannel, discord.Guild))
+        page_limit = 12 if show_voice_perms else 9
         for name, value in perms:
-            if isinstance(where, (discord.VoiceChannel, discord.Guild)) or name not in voice_perms:
+            if show_voice_perms or name not in voice_perms:
                 paginator.add_line(f'{emojis[value]} {name.title().replace("_", " ").replace("Tts", "TTS")}')
                 i += 1
-                if i % 12 == 0:
+                if i % page_limit == 0:
                     paginator.close_page()
         embed = discord.Embed(
             title=f'Permissions for {member} in {where}',
