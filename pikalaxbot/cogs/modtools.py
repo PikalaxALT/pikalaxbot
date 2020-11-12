@@ -132,7 +132,7 @@ class Modtools(BaseCog):
     @call_sql.error
     async def sql_error(self, ctx, exc):
         exc = getattr(exc, 'original', exc)
-        tb = traceback.format_exception(exc.__class__, exc, exc.__traceback__, limit=3)
+        tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, limit=3))
         embed = discord.Embed(color=discord.Color.red())
         embed.add_field(name='Traceback', value=f'```{tb}```')
         if isinstance(exc, sqlite3.Error):
