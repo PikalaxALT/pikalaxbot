@@ -379,12 +379,14 @@ class Core(BaseCog):
     @commands.group(aliases=['perms'])
     async def permissions(self, ctx, channel: typing.Optional[discord.abc.GuildChannel], *, member: discord.Member = None):
         """Print the member's permissions in a channel"""
-        await Core.send_perms(ctx, member or ctx.author, member.permissions_in(channel or ctx.channel))
+        member = member or ctx.author
+        await Core.send_perms(ctx, member, member.permissions_in(channel or ctx.channel))
 
     @permissions.command(name='guild')
     async def guild_permissions(self, ctx, *, member: discord.Member = None):
         """Print the member's permissions in the guild"""
-        await Core.send_perms(ctx, member or ctx.author, member.guild_permissions)
+        member = member or ctx.author
+        await Core.send_perms(ctx, member, member.guild_permissions)
 
 
 def setup(bot):
