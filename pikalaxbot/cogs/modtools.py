@@ -124,11 +124,10 @@ class Modtools(BaseCog):
         async with self.bot.sql as sql:
             async with sql.execute(script) as cursor:
                 result = '\n'.join('|'.join(map(str, row)) for row in await cursor.fetchall())
+        await ctx.message.add_reaction('\N{white heavy check mark}')
         if result:
-            embed = discord.Embed(description=f'```\n{result}\n```')
-        else:
-            embed = None
-        await ctx.send('Script successfully executed', embed=embed)
+            embed = discord.Embed(title=script, description=f'```\n{result}\n```', colour=0xf47fff)
+            await ctx.send(embed=embed)
 
     @call_sql.error
     async def sql_error(self, ctx, exc):
