@@ -138,8 +138,8 @@ class RockPaperScissors(BaseCog):
             # 1: defender wins
             # 2: challenger wins
             content = f'\n\n' \
-                       f'{ctx.author.mention}\'s move: {player_emoji}\n' \
-                       f'{opponent.mention}\'s move: {opponent_emoji}\n\n'
+                      f'{ctx.author.mention}\'s move: {player_emoji}\n' \
+                      f'{opponent.mention}\'s move: {opponent_emoji}\n\n'
             content += ['It\'s a draw!', f'{opponent.mention} wins!', f'{ctx.author.mention} wins!'][diff]
             winner = [None, opponent, ctx.author][diff]
             if winner:
