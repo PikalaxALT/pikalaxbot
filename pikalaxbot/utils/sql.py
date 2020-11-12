@@ -81,16 +81,14 @@ class Sql(aiosqlite.Connection):
 
     async def get_voltorb_level(self, channel):
         c = await self.execute("select level from voltorb where id = ?", (channel.id,))
-        level = await c.fetchone()
-        if level is None:
-            await self.execute("insert into voltorb values (?, 1)", (channel.id,))
+        try:
+            level, = await c.fetchone()
+        except TypeError:
             level = 1
-        else:
-            level, = level
         return level
 
     async def set_voltorb_level(self, channel, new_level):
-        await self.execute("replace into voltorb values (?, ?)", (channel.id, new_level))
+        await self.execute("replace into voltorb values (?, ?) on conflict (id) do update set level = ?", (channel.id, new_level, new_level))
 
     async def get_leaderboard_rank(self, player):
         c = await self.execute("select score, rank () over (order by score desc) ranking from game where id = ?", (player.id,))
