@@ -22,13 +22,26 @@ class Reddit(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
+        self.headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
 
-    async def fetch_random_reddit_post(self, subreddit):
-        headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
-        async with self.session.get(f'https://reddit.com/r/{subreddit}/random.json', headers=headers) as r:
+    async def get_reddit(self, endpoint):
+        async with self.session.get(f'https://reddit.com/{endpoint}', headers=self.headers) as r:
             resp = await r.json()
             if isinstance(resp, dict):
-                raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{subreddit}"', history=(r,), request_info=r.request_info)
+                raise aiohttp.ClientResponseError(
+                    status=404,
+                    message=f'Unable to reach {endpoint}',
+                    history=(r,),
+                    request_info=r.request_info
+                )
+        return resp
+
+    async def fetch_subreddit_info(self, subreddit):
+        resp = await self.get_reddit(f'r/{subreddit}/about.json')
+        return resp['data']
+
+    async def fetch_random_reddit_post(self, subreddit):
+        resp = await self.get_reddit(f'r/{subreddit}/random.json')
         return resp[0]['data']['children'][0]['data']
 
     def cog_check(self, ctx):
@@ -36,6 +49,10 @@ class Reddit(BaseCog):
 
     async def get_subreddit_embed(self, ctx, subreddit):
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
+
+        subinfo = await self.fetch_subreddit_info(subreddit)
+        if subinfo['over18'] and not ctx.channel.is_nsfw():
+            raise commands.NSFWChannelRequired
 
         def check(post):
             return (post['approved_at_utc'] or datetime.datetime.fromtimestamp(post['created_utc']) <= min_creation) \
@@ -51,14 +68,17 @@ class Reddit(BaseCog):
                 break
         else:
             raise NoPostsFound(subreddit)
+        title = child['title']
+        sub_prefixed = child['subreddit_name_prefixed']
         author = child['author']
         permalink = child['permalink']
         score = child['score']
         upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
         embed = discord.Embed(
-            title=child['title'],
-            description=f'Score: {score}{upvote_emoji}',
-            url=f'https://reddit.com{permalink}',
+            title=f'/{sub_prefixed}',
+            description=f'[{title}](https://reddit.com{permalink})\n'
+                        f'Score: {score}{upvote_emoji}',
+            url=f'https://reddit.com/{sub_prefixed}',
             colour=discord.Colour.dark_orange(),
             timestamp=datetime.datetime.fromtimestamp(child['created_utc'])
         )
@@ -87,6 +107,8 @@ class Reddit(BaseCog):
                 await ctx.send(f'An unhandled HTTP exception occurred: {error.status}: {error.message}')
         elif isinstance(error, NoPostsFound):
             await ctx.send(f'Hmm... I seem to be out of {error.subreddit} right now')
+        elif isinstance(error, commands.NSFWChannelRequired):
+            await ctx.send('That subreddit is too spicy for this channel!')
         elif isinstance(error, commands.CheckFailure):
             pass
         else:
