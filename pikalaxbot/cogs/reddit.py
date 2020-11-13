@@ -1,9 +1,10 @@
 import aiohttp
 import platform
 import datetime
+import traceback
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 
 from . import BaseCog
 
@@ -20,6 +21,25 @@ class SubredditNotFound(commands.CommandError):
     def __init__(self, subreddit, message=None, *args):
         super().__init__(message=message, *args)
         self.subreddit = subreddit
+
+
+class RedditErrorPageSource(menus.ListPageSource):
+    def __init__(self, ctx, error):
+        paginator = commands.Paginator()
+        paginator.add_line(f'Ignoring exception in command {ctx.command}:')
+        for line in traceback.format_exception(error.__class__, error, error.__traceback__):
+            paginator.add_line(line.rstrip('\n'))
+        super().__init__(paginator.pages, per_page=1)
+        self.embed = discord.Embed(title='Command error details')
+        self.embed.add_field(name='Author', value=ctx.author.mention, inline=False)
+        if ctx.guild:
+            self.embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
+        self.embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
+        self.embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm",
+                             inline=False)
+
+    async def format_page(self, menu, page):
+        return {'content': page, 'embed': self.embed}
 
 
 class Reddit(BaseCog):
@@ -113,6 +133,9 @@ class Reddit(BaseCog):
             pass
         else:
             await ctx.send(f'An unhandled internal exception occurred: {error.__class__.__name__}: {error}')
+            source = RedditErrorPageSource(ctx, error)
+            menu = menus.MenuPages(source)
+            await menu.start(ctx, channel=self.bot.exc_channel)
 
 
 def setup(bot):
