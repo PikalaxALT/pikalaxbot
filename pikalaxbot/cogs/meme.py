@@ -205,9 +205,13 @@ class Meme(BaseCog):
         await countdown.start()
         self.bot.loop.create_task(msg.add_reaction(emoji))
         start = time.perf_counter()
-        rxn, usr = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == msg and str(r) == emoji and u != self.bot.user)
-        end = time.perf_counter()
-        embed.description = f'**{usr}** has eaten the cookie in {end - start:.3f}s, yum yum'
+        try:
+            rxn, usr = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == msg and str(r) == emoji and u != self.bot.user, timeout=10.0)
+        except asyncio.TimeoutError:
+            embed.description = 'No one claimed the cookie...'
+        else:
+            end = time.perf_counter()
+            embed.description = f'**{usr}** has eaten the cookie in {end - start:.3f}s, yum yum'
         await msg.edit(embed=embed)
 
 
