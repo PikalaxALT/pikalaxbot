@@ -25,7 +25,7 @@ class Reddit(BaseCog):
         self.headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
 
     async def get_reddit(self, endpoint):
-        async with self.session.get(f'https://reddit.com/{endpoint}', headers=self.headers) as r:
+        async with self.session.get(f'https://reddit.com/{endpoint}', headers=self.headers, raise_for_status=True) as r:
             resp = await r.json()
             if isinstance(resp, dict):
                 raise aiohttp.ClientResponseError(
