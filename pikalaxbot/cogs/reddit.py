@@ -16,6 +16,12 @@ class NoPostsFound(commands.CommandError):
         self.subreddit = subreddit
 
 
+class SubredditNotFound(commands.CommandError):
+    def __init__(self, subreddit, message=None, *args):
+        super().__init__(message=message, *args)
+        self.subreddit = subreddit
+
+
 class Reddit(BaseCog):
     """Commands for yoinking image posts off of Reddit."""
 
@@ -27,13 +33,6 @@ class Reddit(BaseCog):
     async def get_reddit(self, endpoint):
         async with self.session.get(f'https://reddit.com/{endpoint}', headers=self.headers, raise_for_status=True) as r:
             resp = await r.json()
-            if isinstance(resp, dict):
-                raise aiohttp.ClientResponseError(
-                    status=404,
-                    message=f'Unable to reach {endpoint}',
-                    history=(r,),
-                    request_info=r.request_info
-                )
         return resp
 
     async def fetch_subreddit_info(self, subreddit):
@@ -42,6 +41,8 @@ class Reddit(BaseCog):
 
     async def fetch_random_reddit_post(self, subreddit):
         resp = await self.get_reddit(f'r/{subreddit}/random.json')
+        if isinstance(resp, dict):
+            raise SubredditNotFound(subreddit)
         return resp[0]['data']['children'][0]['data']
 
     def cog_check(self, ctx):
@@ -101,10 +102,9 @@ class Reddit(BaseCog):
     async def cog_command_error(self, ctx, error):
         error = getattr(error, 'original', error)
         if isinstance(error, aiohttp.ClientResponseError):
-            if error.status == 404:
-                await ctx.send('I cannot find that subreddit!')
-            else:
-                await ctx.send(f'An unhandled HTTP exception occurred: {error.status}: {error.message}')
+            await ctx.send(f'An unhandled HTTP exception occurred: {error.status}: {error.message}')
+        elif isinstance(error, SubredditNotFound):
+            await ctx.send(f'Hmm... I can\'t seem to find r/{error.subreddit}')
         elif isinstance(error, NoPostsFound):
             await ctx.send(f'Hmm... I seem to be out of {error.subreddit} right now')
         elif isinstance(error, commands.NSFWChannelRequired):
