@@ -73,7 +73,7 @@ class Eval(BaseCog):
         return ''
 
     async def format_embed_value(self, embed, name, content):
-        if content not in ('', None):
+        if content not in {'', None}:
             content = format(content)
             content = self.mask_token(content)
             if len(content) >= 1000:

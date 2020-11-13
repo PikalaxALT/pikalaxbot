@@ -144,7 +144,7 @@ class PollManager:
             return
         if payload.emoji.name not in self.emojis:
             return
-        if payload.user_id in (self.owner_id, self.bot.user.id):
+        if payload.user_id in {self.owner_id, self.bot.user.id}:
             return
         if payload.user_id in self.votes:
             return
@@ -158,7 +158,7 @@ class PollManager:
             return
         if payload.emoji.name not in self.emojis:
             return
-        if payload.user_id in (self.owner_id, self.bot.user.id):
+        if payload.user_id in {self.owner_id, self.bot.user.id}:
             return
         selection = self.emojis.index(payload.emoji.name)
         if self.votes.get(payload.user_id) != selection:
@@ -383,7 +383,7 @@ duration, prompt, and options."""
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
 
-        if ctx.author.id not in (mgr.owner_id, ctx.bot.owner_id):
+        if ctx.author.id not in {mgr.owner_id, ctx.bot.owner_id}:
             raise NotPollOwner('You may not cancel this poll')
         mgr.cancel()
 
