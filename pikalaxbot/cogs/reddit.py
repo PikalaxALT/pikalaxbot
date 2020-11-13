@@ -72,13 +72,13 @@ class Reddit(BaseCog):
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
 
         subinfo = await self.fetch_subreddit_info(subreddit)
-        if subinfo['over18'] and not ctx.channel.is_nsfw():
-            raise commands.NSFWChannelRequired
+        if subinfo['over18'] and not (ctx.guild and ctx.channel.is_nsfw()):
+            raise commands.NSFWChannelRequired(ctx.channel)
 
         def check(post):
             return (post['approved_at_utc'] or datetime.datetime.fromtimestamp(post['created_utc']) <= min_creation) \
                 and post['score'] >= 10 \
-                and (not post['over_18'] or ctx.channel.is_nsfw()) \
+                and (not post['over_18'] or not (ctx.guild and ctx.channel.is_nsfw())) \
                 and not post['spoiler']
 
         for attempt in range(10):
