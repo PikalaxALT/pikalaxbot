@@ -23,11 +23,18 @@ class Reddit(BaseCog):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
 
+    async def fetch_random_reddit_post(self, subreddit):
+        headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
+        async with self.session.get(f'https://reddit.com/r/{subreddit}/random.json', headers=headers) as r:
+            resp = await r.json()
+            if isinstance(resp, dict):
+                raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{subreddit}"', history=(r,), request_info=r.request_info)
+        return resp[0]['data']['children'][0]['data']
+
     def cog_check(self, ctx):
         return ctx.guild.id not in self.bot.settings.banned_guilds
 
     async def get_subreddit_embed(self, ctx, subreddit):
-        headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
 
         def check(post):
@@ -37,11 +44,7 @@ class Reddit(BaseCog):
                 and not post['spoiler']
 
         for attempt in range(10):
-            async with self.session.get(f'https://reddit.com/r/{subreddit}/random.json', headers=headers) as r:
-                resp = await r.json()
-                if isinstance(resp, dict):
-                    raise aiohttp.ClientResponseError(status=404, message=f'No subreddit named "{subreddit}"', history=(r,), request_info=r.request_info)
-            child = resp[0]['data']['children'][0]['data']
+            child = await self.fetch_random_reddit_post(subreddit)
             if not check(child):
                 continue
             if child.get('url_overridden_by_dest') and not child.get('is_video') and not child.get('media'):
