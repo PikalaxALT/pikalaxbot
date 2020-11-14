@@ -155,7 +155,7 @@ class Meme(BaseCog):
         """Get the size of your dick"""
 
         target = target or ctx.author
-        if not isinstance(target, discord.Role) and target.id in (self.bot.user.id, self.bot.owner_id):
+        if not isinstance(target, discord.Role) and target.id in {self.bot.user.id, self.bot.owner_id}:
             shaft = '=' * 69
         else:
             shaft = '=' * ((hash(target) % 30) + 1)

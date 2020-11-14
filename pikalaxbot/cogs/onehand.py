@@ -81,7 +81,7 @@ class Onehand(BaseCog):
                 height = filespec['height']
                 pic_id = imagespec['id']
                 file_ext = imagespec['file']['ext']
-                if file_ext in ('webm', 'swf'):
+                if file_ext in {'webm', 'swf'}:
                     description = f'**Score:** {score} ({upvotes}{upvote_emoji}/{downvotes}{downvote_emoji}) | ' \
                                   f'**Link:** [Click Here](https://{name}.net/posts/{pic_id}?q={tags.replace(" ", "+")})\n' \
                                   f'*This file ({file_ext}) cannot be previewed or embedded.*'
