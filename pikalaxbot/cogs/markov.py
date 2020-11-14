@@ -36,6 +36,7 @@ class Markov(BaseCog):
         self.storedMsgsSet = set()
         self.chain = Chain(store_lowercase=True)
         self.bot.loop.create_task(self.init_chain())
+        self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
 
     def cog_check(self, ctx: commands.Context):
         # Check that the cog is initialized
@@ -48,10 +49,7 @@ class Markov(BaseCog):
         if ctx.me.mentioned_in(ctx.message):
             return True
         name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
-        if not name_grp:
-            raise commands.CheckFailure('Something fucked up!!')
-        pat = re.compile(rf'\b({name_grp})\b', re.I)
-        return pat.search(ctx.message.clean_content) is not None
+        return re.search(rf'\b({name_grp})\b', ctx.message.clean_content, re.I) is not None
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
@@ -105,10 +103,14 @@ class Markov(BaseCog):
     async def markov(self, ctx, *, recipient: typing.Optional[discord.Member]):
         """Generate a random word Markov chain."""
         recipient = recipient or ctx.author
-        chain = self.gen_msg(len_max=250, n_attempts=10)
-        if not chain:
-            chain = 'An error has occurred.'
-        await ctx.send(f'{recipient.mention}: {chain}')
+        chain = self.gen_msg(len_max=250, n_attempts=10) or 'An error has occurred.'
+        embed = None
+        if ctx.me.mentioned_in(ctx.message) \
+                and not ctx.prefix \
+                and not self.prefix_reminder_cooldown.update_rate_limit(ctx.message):
+            prefix = await self.bot.get_prefix(ctx.message)
+            embed = discord.Embed(description=f'Trying to get one of my commands? Type `{prefix}help`', colour=0xf47fff)
+        await ctx.send(f'{recipient.mention}: {chain}', embed=embed)
 
     @markov.command(name='add')
     @commands.is_owner()
