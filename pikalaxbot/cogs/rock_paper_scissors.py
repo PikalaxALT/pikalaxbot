@@ -113,7 +113,7 @@ class RockPaperScissors(BaseCog):
                 await menu1.message.delete(delay=5)
                 return await ctx.send('Your opponent has their DMs closed...')
             await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
-                                 f'Check your DMs!')
+                           f'Check your DMs!')
             tasks = [
                 self.bot.loop.create_task(menu1.start(ctx, channel=ctx.author.dm_channel, wait=True)),
                 self.bot.loop.create_task(menu2.start(ctx, channel=opponent.dm_channel, wait=True))
@@ -123,7 +123,8 @@ class RockPaperScissors(BaseCog):
             except asyncio.CancelledError:
                 [task.cancel() for task in tasks]
                 raise
-            [self.bot.loop.create_task(user.send(f'Game finished, go back to {ctx.channel.mention} for the results')) for user in (ctx.author, opponent)]
+            content_return = f'Game finished, go back to {ctx.channel.mention} for the results'
+            [self.bot.loop.create_task(user.send(content_return)) for user in (ctx.author, opponent)]
             if menu1.timed_out:
                 return await ctx.send(f'{ctx.author} took too long to respond...')
             elif menu1.player_move == 3:
