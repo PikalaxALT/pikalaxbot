@@ -24,6 +24,10 @@ from . import BaseCog
 from .utils.markov import Chain
 
 
+class MarkovNoInit(commands.CheckFailure):
+    pass
+
+
 class Markov(BaseCog):
     """Commands and listeners for generating random word Markov chains."""
 
@@ -37,11 +41,12 @@ class Markov(BaseCog):
         self.chain = Chain(store_lowercase=True)
         self.bot.loop.create_task(self.init_chain())
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
+        self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
 
     def cog_check(self, ctx: commands.Context):
         # Check that the cog is initialized
         if not self.initialized:
-            return False
+            raise MarkovNoInit
         # If a command was invoked directly, the check passes.
         if ctx.message.guild is not None and ctx.valid:
             return True
@@ -50,6 +55,10 @@ class Markov(BaseCog):
             return True
         name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
         return re.search(rf'\b({name_grp})\b', ctx.message.clean_content, re.I) is not None
+
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
+            await ctx.send('Still compiling data for Markov, check again in a minute', delete_after=10)
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
