@@ -58,7 +58,8 @@ class Markov(BaseCog):
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
-            await ctx.send('Still compiling data for Markov, check again in a minute', delete_after=10)
+            embed = await self.get_prefix_help_embed(ctx)
+            await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
@@ -107,18 +108,20 @@ class Markov(BaseCog):
                 await self.learn_markov_from_history(channel)
         self.initialized = True
 
+    async def get_prefix_help_embed(self, ctx):
+        if ctx.me.mentioned_in(ctx.message) \
+                and not ctx.prefix \
+                and not self.prefix_reminder_cooldown.update_rate_limit(ctx.message):
+            prefix = await self.bot.get_prefix(ctx.message)
+            return discord.Embed(description=f'Trying to get one of my commands? Type `{prefix}help`', colour=0xf47fff)
+
     @commands.check(lambda ctx: len(ctx.cog.markov_channels) != 0)
     @commands.group(hidden=True, invoke_without_command=True)
     async def markov(self, ctx, *, recipient: typing.Optional[discord.Member]):
         """Generate a random word Markov chain."""
         recipient = recipient or ctx.author
         chain = self.gen_msg(len_max=250, n_attempts=10) or 'An error has occurred.'
-        embed = None
-        if ctx.me.mentioned_in(ctx.message) \
-                and not ctx.prefix \
-                and not self.prefix_reminder_cooldown.update_rate_limit(ctx.message):
-            prefix = await self.bot.get_prefix(ctx.message)
-            embed = discord.Embed(description=f'Trying to get one of my commands? Type `{prefix}help`', colour=0xf47fff)
+        embed = await self.get_prefix_help_embed(ctx)
         await ctx.send(f'{recipient.mention}: {chain}', embed=embed)
 
     @markov.command(name='add')
@@ -156,6 +159,8 @@ class Markov(BaseCog):
         try:
             if await self.markov.can_run(ctx):
                 await self.markov(ctx, recipient=None)
+        except MarkovNoInit as e:
+            self.bot.dispatch('command_error', ctx, e)
         except commands.CheckFailure:
             pass
 
