@@ -76,14 +76,17 @@ class Fix(BaseCog):
     @fix.command()
     async def add(self, ctx, key, owner, altname=None):
         """Add a bot to my database"""
-        self.bot_owners[key] = owner
-        if altname:
-            self.bot_owners[key] = altname
-        elif key in self.bot_names:
-            del self.bot_names[key]
-        async with self.bot.sql as sql:
-            await sql.execute('INSERT INTO fix VALUES (?, ?, ?) ON CONFLICT (name) DO UPDATE SET owner = ? AND altname = ?', (key, owner, altname, owner, altname))
-        await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+        if key not in self.bot_owners:
+            self.bot_owners[key] = owner
+            if altname:
+                self.bot_owners[key] = altname
+            elif key in self.bot_names:
+                del self.bot_names[key]
+            async with self.bot.sql as sql:
+                await sql.execute('INSERT INTO fix VALUES (?, ?, ?) ON CONFLICT (name) DO UPDATE SET owner = ? AND altname = ?', (key, owner, altname, owner, altname))
+            await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+        else:
+            await ctx.message.add_reaction('\N{CROSS MARK}')
 
     @fix.command(name='del')
     async def delete_key(self, ctx, key):
