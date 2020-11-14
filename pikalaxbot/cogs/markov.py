@@ -44,17 +44,23 @@ class Markov(BaseCog):
         self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
 
     def cog_check(self, ctx: commands.Context):
+        def inner():
+            # If a command was invoked directly, the check passes.
+            if ctx.message.guild is not None and ctx.valid:
+                return True
+            # Invoked from on_message without command.
+            if ctx.me.mentioned_in(ctx.message):
+                return True
+            name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
+            return re.search(rf'\b({name_grp})\b', ctx.message.clean_content, re.I) is not None
+
+        if not inner():
+            return False
+
         # Check that the cog is initialized
         if not self.initialized:
             raise MarkovNoInit
-        # If a command was invoked directly, the check passes.
-        if ctx.message.guild is not None and ctx.valid:
-            return True
-        # Invoked from on_message without command.
-        if ctx.me.mentioned_in(ctx.message):
-            return True
-        name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
-        return re.search(rf'\b({name_grp})\b', ctx.message.clean_content, re.I) is not None
+        return True
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
