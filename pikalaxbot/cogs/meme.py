@@ -212,6 +212,8 @@ class Meme(BaseCog):
         else:
             end = time.perf_counter()
             embed.description = f'**{usr}** has eaten the cookie in {end - start:.3f}s, yum yum'
+        finally:
+            await msg.remove_reaction(emoji, ctx.me)
         await msg.edit(embed=embed)
 
 
