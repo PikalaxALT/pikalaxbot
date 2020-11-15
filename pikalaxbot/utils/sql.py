@@ -51,11 +51,8 @@ class Sql(aiosqlite.Connection):
                     bot.log_info(f'Init db done: {name}')
 
     async def db_clear(self):
-        await self.execute("drop table if exists meme")
-        await self.execute("drop table if exists game")
-        await self.execute("drop table if exists voltorb")
-        await self.execute("drop table if exists puppy")
-        await self.execute("drop table if exists prefixes")
+        await self.execute("select 'drop table ' || name || ';' from sqlite_master where type = 'table'")
+        await self.execute('vacuum')
 
     async def increment_score(self, player, by=1):
         await self.execute('insert into game values (?, ?, ?) on conflict(id) do update set score = score + ?', (player.id, player.name, by, by))
@@ -64,20 +61,6 @@ class Sql(aiosqlite.Connection):
         c = await self.execute("select * from game order by score desc limit 10")
         for row in await c.fetchall():
             yield row
-
-    async def add_bag(self, text):
-        try:
-            await self.execute("insert into meme(bag) values (?)", (text,))
-        except sqlite3.IntegrityError:
-            return False
-        else:
-            return True
-
-    async def read_bag(self):
-        c = await self.execute("select bag from meme order by random() limit 1")
-        msg = await c.fetchone()
-        if msg is not None:
-            return msg[0]
 
     async def get_voltorb_level(self, channel):
         c = await self.execute("select level from voltorb where id = ?", (channel.id,))
@@ -97,40 +80,6 @@ class Sql(aiosqlite.Connection):
 
     async def reset_leaderboard(self):
         await self.execute("delete from game")
-
-    async def remove_bag(self, msg):
-        if (msg,) in self.default_bag:
-            return False
-        await self.execute("delete from meme where bag = ?", (msg,))
-        return True
-
-    async def reset_bag(self):
-        await self.execute("delete from meme")
-        await self.executemany("insert into meme values(?)", self.default_bag)
-
-    async def puppy_add_uranium(self):
-        await self.execute("update puppy set uranium = uranium + 1")
-
-    async def update_puppy_score(self, by):
-        await self.execute("update puppy set score_puppy = score_puppy + ?", (by,))
-
-    async def update_dead_score(self, by):
-        await self.execute("update puppy set score_dead = score_dead + ?", (by,))
-
-    async def get_uranium(self):
-        c = await self.execute("select uranium from puppy")
-        uranium, = await c.fetchone()
-        return uranium
-
-    async def get_puppy_score(self):
-        c = await self.execute("select score_puppy from puppy")
-        score, = await c.fetchone()
-        return score
-
-    async def get_dead_score(self):
-        c = await self.execute("select score_dead from puppy")
-        score, = await c.fetchone()
-        return score
 
     async def get_prefix(self, bot, message):
         c = await self.execute("select prefix from prefixes where guild = ?", (message.guild.id,))
