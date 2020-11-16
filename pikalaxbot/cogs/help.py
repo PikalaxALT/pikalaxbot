@@ -81,7 +81,11 @@ class GroupOrCogHelpPageSource(menus.ListPageSource):
             colour=discord.Colour.blurple()
         )
         for command in entry:
-            embed.add_field(name=command.qualified_name, value=command.help or 'No help given', inline=False)
+            embed.add_field(
+                name=command.qualified_name,
+                value=command.help and command.help.format(ctx=menu.ctx) or 'No help given',
+                inline=False
+            )
         max_pages = self.get_max_pages()
         if max_pages and max_pages > 1:
             embed.set_author(name=f'Page {menu.current_page + 1}/{self.get_max_pages()} ({len(self.entries)} commands)')
@@ -157,9 +161,10 @@ class PaginatedHelpCommand(commands.HelpCommand):
     def common_command_formatting(self, page_or_embed, command):
         page_or_embed.title = self.get_command_signature(command)
         if command.description:
-            page_or_embed.description = f'{command.description}\n\n{command.help}'
+            page_or_embed.description = f'{command.description}\n\n' \
+                                        f'{command.help and command.help.format(ctx=self.context)}'
         else:
-            page_or_embed.description = command.help or 'No help found...'
+            page_or_embed.description = command.help and command.help.format(ctx=self.context) or 'No help found...'
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
