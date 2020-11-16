@@ -57,6 +57,8 @@ class Markov(BaseCog):
         if not inner():
             return False
 
+        ctx.command = self.markov
+
         # Check that the cog is initialized
         if not self.initialized:
             raise MarkovNoInit
