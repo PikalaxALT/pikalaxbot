@@ -27,7 +27,6 @@ class MemberStatus(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.counters = defaultdict(dict)
-        self.update_counters.start()
 
     def cog_unload(self):
         self.update_counters.cancel()
@@ -47,6 +46,7 @@ class MemberStatus(BaseCog):
                 i += 1
                 if i % 1000 == 0:
                     self.log_info(f'Loaded {i} rows')
+        self.update_counters.start()
 
     @tasks.loop(seconds=30)
     async def update_counters(self):

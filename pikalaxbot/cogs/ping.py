@@ -18,7 +18,6 @@ class Ping(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.ping_history = {}
-        self.build_ping_history.start()
 
     def cog_unload(self):
         self.build_ping_history.cancel()
@@ -33,6 +32,7 @@ class Ping(BaseCog):
                 i += 1
                 if i % 1000 == 0:
                     self.log_info(f'Loaded {i} rows')
+        self.build_ping_history.start()
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
