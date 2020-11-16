@@ -39,9 +39,12 @@ class Markov(BaseCog):
         self.initialized = False
         self.storedMsgsSet = set()
         self.chain = Chain(store_lowercase=True)
-        self.bot.loop.create_task(self.init_chain())
+        self._init_task = self.bot.loop.create_task(self.init_chain())
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
         self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
+
+    def cog_unload(self):
+        self._init_task and self._init_task.cancel()
 
     def cog_check(self, ctx: commands.Context):
         def inner():
@@ -113,6 +116,7 @@ class Markov(BaseCog):
             else:
                 await self.learn_markov_from_history(channel)
         self.initialized = True
+        self._init_task = None
 
     async def get_prefix_help_embed(self, ctx):
         first_word = ctx.message.content.split()[0]
