@@ -57,8 +57,6 @@ class Markov(BaseCog):
         if not inner():
             return False
 
-        ctx.command = self.markov
-
         # Check that the cog is initialized
         if not self.initialized:
             raise MarkovNoInit
@@ -164,6 +162,7 @@ class Markov(BaseCog):
         if ctx.prefix:
             return
         self.learn_markov(msg)
+        ctx.command = self.markov
         try:
             if await self.markov.can_run(ctx):
                 await self.markov(ctx, recipient=None)
