@@ -43,9 +43,6 @@ class BaseCog(LoggingMixin, commands.Cog):
     """
     config_attrs: typing.Tuple[str] = tuple()
 
-    def __eq__(self, other):
-        return isinstance(other, BaseCog) and self.qualified_name == other.qualified_name
-
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot = bot
