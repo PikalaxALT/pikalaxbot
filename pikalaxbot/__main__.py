@@ -51,7 +51,7 @@ def filter_extensions(bot):
                 extn = f'pikalaxbot.cogs.{cogname}'
                 yield extn, cogname.title().replace('_', '')
     if 'ext.pokeapi' not in disabled_cogs:
-        yield 'ext.pokeapi', 'PokeAPI'
+        yield 'pikalaxbot.ext.pokeapi', 'PokeAPI'
 
 
 def init_extensions(bot):
