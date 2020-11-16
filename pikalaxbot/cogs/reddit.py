@@ -48,7 +48,10 @@ class Reddit(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
-        self.headers = {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
+
+    @property
+    def headers(self):
+        return {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
 
     async def get_reddit(self, endpoint):
         async with self.session.get(f'https://reddit.com/{endpoint}', headers=self.headers, raise_for_status=True) as r:
