@@ -15,6 +15,7 @@ class ErrorHandling(BaseCog):
     @BaseCog.listener()
     async def on_error(self, event, *args, **kwargs):
         s = traceback.format_exc()
+        await self.bot.wait_until_ready()
         content = f'Ignoring exception in {event}\n{s}'
         print(content, file=sys.stderr)
         embed = None

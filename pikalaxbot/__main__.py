@@ -40,53 +40,35 @@ async def _command_prefix(bot, message):
     return bot.guild_prefixes[message.guild.id]
 
 
-def init_extensions(bot):
-    # Load cogs
-    bot.log_info('Loading extensions')
+def filter_extensions(bot):
     disabled_cogs = bot.settings.disabled_cogs
     if 'jishaku' not in disabled_cogs:
-        try:
-            bot.load_extension('jishaku')
-        except commands.ExtensionNotFound:
-            bot.logger.error('Unable to load "jishaku", maybe install it first?')
-        except commands.ExtensionFailed as e:
-            e = e.original
-            bot.logger.warning('Failed to load extn "jishaku" due to an error')
-            for line in traceback.format_exception(e.__class__, e, e.__traceback__):
-                bot.logger.warning(line)
-        else:
-            bot.log_info('Loaded jishaku')
-
+        yield 'jishaku', 'Jishaku'
     for cogfile in glob.glob(f'{__dirname__}/cogs/*.py'):
         if os.path.isfile(cogfile) and '__init__' not in cogfile:
             cogname = os.path.splitext(os.path.basename(cogfile))[0]
             if cogname not in disabled_cogs:
                 extn = f'pikalaxbot.cogs.{cogname}'
-                try:
-                    bot.load_extension(extn)
-                except commands.ExtensionNotFound:
-                    bot.logger.error(f'Unable to find extn "{cogname}"')
-                except commands.ExtensionFailed as e:
-                    bot.logger.warning(f'Failed to load extn "{cogname}"')
-                    for line in traceback.format_exception(e.__class__, e, e.__traceback__):
-                        bot.logger.warning(line)
-                else:
-                    bot.log_info(f'Loaded extn "{cogname}"')
-            else:
-                bot.log_info(f'Skipping disabled extn "{cogname}"')
+                yield extn, cogname.title().replace('_', '')
+    if 'ext.pokeapi' not in disabled_cogs:
+        yield 'ext.pokeapi', 'PokeAPI'
 
-    bot.log_info('Loading pokeapi')
-    bot.load_extension('pikalaxbot.ext.pokeapi')
 
-    async def init_sql():
-        bot.log_info('Start init db')
-        async with bot.sql as sql:
-            await sql.db_init(bot)
-        bot.log_info('Finish init db')
+def init_extensions(bot):
+    # Load cogs
+    bot.log_info('Loading extensions')
 
-    bot.log_info('Init db')
-    bot.loop.run_until_complete(init_sql())
-    bot.log_info('DB init complete')
+    for extn, cogname in filter_extensions(bot):
+        try:
+            bot.load_extension(extn)
+        except commands.ExtensionNotFound:
+            bot.logger.error(f'Unable to find extn "{cogname}"')
+        except commands.ExtensionFailed as e:
+            bot.logger.warning(f'Failed to load extn "{cogname}"')
+            for line in traceback.format_exception(e.__class__, e, e.__traceback__):
+                bot.logger.warning(line)
+        else:
+            bot.log_info(f'Loaded extn "{cogname}"')
 
 
 def main():

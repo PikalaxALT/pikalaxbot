@@ -216,16 +216,23 @@ class Modtools(BaseCog):
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
-        if mode != 'unload':
-            cog_obj = self.bot.get_cog(real_cog)
-            if isinstance(cog_obj, BaseCog):
-                try:
-                    async with self.bot.sql as sql:
-                        await cog_obj.init_db(sql)
-                except sqlite3.Error:
-                    await ctx.send(f'{mode.title()}ed cog "{real_cog}", but database initialization failed')
-                    raise
         await ctx.send(f'{mode.title()}ed cog "{real_cog}"')
+
+    @BaseCog.listener()
+    async def on_cog_db_init(self, cog):
+        tasks = [
+            self.bot.loop.create_task(self.bot.wait_for('cog_db_init_error', check=lambda c, e: c == cog)),
+            self.bot.loop.create_task(self.bot.wait_for('cog_db_init_complete', check=lambda c: c == cog))
+        ]
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+        [task.cancel() for task in pending]
+        result = done.pop().result()
+        if isinstance(result, tuple):
+            _, error = result
+            await self.bot.wait_until_ready()
+            tb = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
+            msg = f'Ignoring exception in db init for cog {cog}:\n{tb}'
+            await self.bot.send_tb(msg)
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):

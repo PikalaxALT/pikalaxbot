@@ -25,6 +25,11 @@ from .. import PikalaxBOT
 __all__ = ('BaseCog',)
 
 
+def _cog_special_method(func):
+    func.__cog_special_method__ = None
+    return func
+
+
 class BaseCog(LoggingMixin, commands.Cog):
     """
     Base class for all cog files.  Inherits :class:LoggingMixin
@@ -38,10 +43,27 @@ class BaseCog(LoggingMixin, commands.Cog):
     """
     config_attrs: typing.Tuple[str] = tuple()
 
+    def __eq__(self, other):
+        return isinstance(other, BaseCog) and self.qualified_name == other.qualified_name
+
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot = bot
 
+        async def do_db_init():
+            bot.dispatch('cog_db_init', self)
+            try:
+                async with self.bot.sql as sql:
+                    await self.init_db(sql)
+            except Exception as e:
+                bot.dispatch('cog_db_init_error', self, e)
+            else:
+                bot.dispatch('cog_db_init_complete', self)
+
+        if BaseCog._get_overridden_method(self.init_db) is not None:
+            bot.loop.create_task(do_db_init())
+
+    @_cog_special_method
     async def init_db(self, sql):
         """Override this"""
         pass
