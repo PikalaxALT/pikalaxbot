@@ -115,7 +115,9 @@ class Markov(BaseCog):
         self.initialized = True
 
     async def get_prefix_help_embed(self, ctx):
-        if re.search(rf'^<@!?{self.bot.user.id}>\b', ctx.message.content) \
+        first_word = ctx.message.content.split()[0]
+        mentions = {f'<@{self.bot.user.id}>', f'<@!{self.bot.user.id}>'}
+        if first_word in mentions \
                 and not ctx.prefix \
                 and not self.prefix_reminder_cooldown.update_rate_limit(ctx.message):
             prefix = await self.bot.get_prefix(ctx.message)
