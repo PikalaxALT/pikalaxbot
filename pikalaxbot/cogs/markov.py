@@ -166,8 +166,9 @@ class Markov(BaseCog):
         try:
             if await self.markov.can_run(ctx):
                 await self.markov(ctx, recipient=None)
-        except MarkovNoInit as e:
-            self.bot.dispatch('command_error', ctx, e)
+        except MarkovNoInit:
+            embed = await self.get_prefix_help_embed(ctx)
+            await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
         except commands.CheckFailure:
             pass
 
