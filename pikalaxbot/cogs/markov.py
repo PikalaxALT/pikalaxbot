@@ -63,7 +63,7 @@ class Markov(BaseCog):
         return True
 
     async def cog_command_error(self, ctx, error):
-        if isinstance(error, MarkovNoInit):
+        if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
             embed = await self.get_prefix_help_embed(ctx)
             await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
 
