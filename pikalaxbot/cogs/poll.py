@@ -214,7 +214,6 @@ class Poll(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.polls: typing.List[PollManager] = []
-        self.cleanup_polls.start()
 
     def cog_unload(self):
         self.cleanup_polls.cancel()
@@ -224,6 +223,7 @@ class Poll(BaseCog):
     async def init_db(self, sql):
         await sql.execute('create table if not exists polls (code text, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
         await sql.execute('create table if not exists poll_options (code text, voter integer, option integer)')
+        self.cleanup_polls.start()
 
     @tasks.loop(seconds=60)
     async def cleanup_polls(self):
