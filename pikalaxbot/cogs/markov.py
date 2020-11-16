@@ -173,8 +173,9 @@ class Markov(BaseCog):
             if await self.markov.can_run(ctx):
                 await self.markov(ctx, recipient=None)
         except MarkovNoInit:
-            embed = await self.get_prefix_help_embed(ctx)
-            await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
+            if not self.no_init_error_cooldown.update_rate_limit(msg):
+                embed = await self.get_prefix_help_embed(ctx)
+                await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
         except commands.CheckFailure:
             pass
 
