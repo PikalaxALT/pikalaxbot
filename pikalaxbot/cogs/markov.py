@@ -172,12 +172,8 @@ class Markov(BaseCog):
         try:
             if await self.markov.can_run(ctx):
                 await self.markov(ctx, recipient=None)
-        except MarkovNoInit:
-            if not self.no_init_error_cooldown.update_rate_limit(msg):
-                embed = await self.get_prefix_help_embed(ctx)
-                await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
-        except commands.CheckFailure:
-            pass
+        except Exception as e:
+            await self.cog_command_error(ctx, e)
 
     @BaseCog.listener()
     async def on_message_edit(self, old, new):
