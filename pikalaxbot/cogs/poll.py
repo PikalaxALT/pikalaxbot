@@ -328,6 +328,7 @@ duration, prompt, and options."""
                 ]
             try:
                 done, pending = await asyncio.wait(futs, timeout=60.0, return_when=asyncio.FIRST_COMPLETED)
+                [fut.cancel() for fut in pending]
                 params = done.pop().result()
             except KeyError:
                 await my_message.delete()
@@ -335,8 +336,6 @@ duration, prompt, and options."""
             except Exception as e:
                 await my_message.delete()
                 return await ctx.send(f'Request failed with {e.__class__.__name__}: {e}')
-            finally:
-                [fut.cancel() for fut in futs]
             if isinstance(params, discord.Message):
                 response = params.content.strip()
                 if not response:

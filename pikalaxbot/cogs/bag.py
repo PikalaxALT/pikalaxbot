@@ -17,50 +17,66 @@
 from discord.ext import commands
 from . import BaseCog
 from .utils.game import find_emoji
+import aiosqlite
 
 
 class Bag(BaseCog):
     """Commands related to Lillie's bag. Get in, Nebby."""
 
-    @commands.group()
+    default_bag = (
+        ('happily jumped into the bag!',),
+        ('reluctantly clambored into the bag.',),
+        ('turned away!',),
+        ('let out a cry in protest!',)
+    )
+
+    async def init_db(self, sql):
+        await sql.execute("create table if not exists meme (bag text unique)")
+        await sql.executemany("insert into meme values (?) on conflict (bag) do nothing", self.default_bag)
+
+    @commands.group(invoke_without_command=True)
     async def bag(self, ctx):
         """Get in the bag, Nebby."""
-        if ctx.invoked_subcommand is None:
-            async with self.bot.sql as sql:
-                message = await sql.read_bag()
-            if message is None:
+        async with self.bot.sql as sql:
+            async for message, in sql.execute('select bag from meme order by random() limit 1'):
+                await ctx.send(f'*{message}*')
+                break
+            else:
                 emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
                 await ctx.send(f'*cannot find the bag {emoji}*')
-            else:
-                await ctx.send(f'*{message}*')
 
     @bag.command()
     async def add(self, ctx, *, fmtstr):
         """Add a message to the bag."""
-        async with self.bot.sql as sql:
-            res = await sql.add_bag(fmtstr)
-        if res:
-            await ctx.send('Message was successfully placed in the bag')
-        else:
+        try:
+            async with self.bot.sql as sql:
+                await sql.execute('insert into meme values (?)', (fmtstr,))
+        except aiosqlite.Error:
             await ctx.send('That message is already in the bag')
+        else:
+            await ctx.send('Message was successfully placed in the bag')
 
     @bag.command(name='remove')
     @commands.is_owner()
     async def remove_bag(self, ctx, *, msg):
         """Remove a phrase from the bag"""
-        async with self.bot.sql as sql:
-            res = await sql.remove_bag(msg)
-        if res:
-            await ctx.send('Removed message from bag')
+        if msg in self.default_bag:
+            return await ctx.send('Cannot remove default message from bag')
+        try:
+            async with self.bot.sql as sql:
+                await sql.execute('delete from meme where bag = ?', (msg,))
+        except aiosqlite.Error:
+            await ctx.send('Cannot remove message from the bag')
         else:
-            await ctx.send('Cannot remove default message from bag')
+            await ctx.send('Removed message from bag')
 
     @bag.command(name='reset')
     @commands.is_owner()
     async def reset_bag(self, ctx):
         """Reset the bag"""
         async with self.bot.sql as sql:
-            await sql.reset_bag()
+            await sql.execute('drop table meme')
+            await self.init_db(sql)
         await ctx.send('Reset the bag')
 
 
