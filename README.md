@@ -19,9 +19,6 @@ Linux users may need to install their distributions' `python3-matplotlib` packag
 ```json
 {
     "token": "My Discord Bot Token",
-    "twitch_token": "My Twitch Bot Token",
-    "twitch_client": "My Twitch Bot Client ID",
-    "twitch_nick": "My Twitch Bot Nickname",
     "prefix": "p!",
     "markov_channels": [],
     "debug": false,

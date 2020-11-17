@@ -25,8 +25,6 @@ __all__ = ('Settings',)
 
 _defaults = {
     'token': None,
-    'twitch_token': None,
-    'twitch_client': None,
     'prefix': 'p!',
     'markov_channels': [],
     'debug': False,
