@@ -70,6 +70,8 @@ class MemberStatus(BaseCog):
         for key, value in counts.items():
             ax.plot(np.array(times)[idxs], np.array(value)[idxs], c=self.colormap[key], label=str(key).title())
         set_time_xlabs(ax, times)
+        _, ymax = ax.get_ylim()
+        ax.set_ylim(0, ymax)
         plt.xlabel('Time (UTC)')
         plt.ylabel('Number of users')
         plt.legend(loc=0)
@@ -98,7 +100,7 @@ class MemberStatus(BaseCog):
         buffer.seek(0)
         await ctx.send(
             f'Fetched records in {fetch_end - fetch_start:.3f}s\n'
-            f'Completed in {end - start:.3f}s',
+            f'Rendered image in {end - start:.3f}s',
             file=discord.File(buffer, 'status.png')
         )
 
