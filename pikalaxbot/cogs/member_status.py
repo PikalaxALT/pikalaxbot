@@ -24,28 +24,12 @@ class MemberStatus(BaseCog):
         discord.Status.idle: '#FAA61A'
     }
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.counters = defaultdict(dict)
-
     def cog_unload(self):
         self.update_counters.cancel()
 
     async def init_db(self, sql):
         await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp real, online integer, offline integer, dnd integer, idle integer)')
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
-        async with sql.execute('select * from memberstatus order by timestamp') as cur:
-            i = 0
-            async for guild_id, timestamp, online, offline, dnd, idle in cur:
-                self.counters[guild_id][datetime.datetime.utcfromtimestamp(timestamp)] = {
-                    discord.Status.online: online,
-                    discord.Status.offline: offline,
-                    discord.Status.dnd: dnd,
-                    discord.Status.idle: idle
-                }
-                i += 1
-                if i % 1000 == 0:
-                    self.log_info(f'Loaded {i} rows')
         self.update_counters.start()
 
     @tasks.loop(seconds=30)
@@ -55,7 +39,6 @@ class MemberStatus(BaseCog):
         to_insert = []
         for guild in self.bot.guilds:
             counts = Counter(m.status for m in guild.members)
-            self.counters[guild.id][now] = counts
             to_insert.append([
                 guild.id,
                 sql_now,
@@ -77,8 +60,9 @@ class MemberStatus(BaseCog):
         content = f'Ignoring exception in MemberStatus.update_counters\n{s}'
         await self.bot.send_tb(content)
 
-    def do_plot_status_history(self, buffer, ctx, history):
-        times, values = zip(*sorted([t for t in self.counters[ctx.guild.id].items() if t[0] >= history]))
+    def do_plot_status_history(self, buffer, history):
+        times = list(history.keys())
+        values = list(history.values())
         plt.figure()
         counts = {key: [v[key] for v in values] for key in self.colormap}
         ax: plt.Axes = plt.gca()
@@ -94,7 +78,6 @@ class MemberStatus(BaseCog):
         plt.close()
 
     @commands.guild_only()
-    @commands.check(lambda ctx: ctx.cog.counters)
     @commands.command(name='userstatus')
     async def plot_status(self, ctx, history: typing.Union[PastTime, int] = 60):
         """Plot history of user status counts in the current guild."""
@@ -102,12 +85,22 @@ class MemberStatus(BaseCog):
             history = ctx.message.created_at - datetime.timedelta(minutes=history)
         else:
             history = history.dt
-        buffer = io.BytesIO()
-        start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, ctx, history)
-        end = time.perf_counter()
+        async with ctx.typing():
+            fetch_start = time.perf_counter()
+            async with self.bot.sql as sql:
+                async with sql.execute('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = ? and timestamp > ? order by timestamp', (ctx.guild.id, history.timestamp())) as cur:
+                    counts = {row[0]: {name: count for name, count in zip(discord.Status, row[1:])} async for row in cur}
+            fetch_end = time.perf_counter()
+            buffer = io.BytesIO()
+            start = time.perf_counter()
+            await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, counts)
+            end = time.perf_counter()
         buffer.seek(0)
-        await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'status.png'))
+        await ctx.send(
+            f'Fetched records in {fetch_end - fetch_start:.3f}s\n'
+            f'Completed in {end - start:.3f}s',
+            file=discord.File(buffer, 'status.png')
+        )
 
 
 def setup(bot):
