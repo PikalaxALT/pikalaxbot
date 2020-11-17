@@ -227,11 +227,11 @@ class Poll(BaseCog):
 
     @tasks.loop(seconds=60)
     async def cleanup_polls(self):
-        self.polls = [poll for poll in self.polls if not poll.task.done()]
+        self.polls = [poll for poll in self.polls if not poll.task or not poll.task.done()]
 
     @cleanup_polls.error
     async def cleanup_polls_error(self, error):
-        s = traceback.format_exception(error.__class__, error, error.__traceback__)
+        s = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
         content = f'Ignoring exception in Poll.cleanup_polls\n{s}'
         await self.bot.send_tb(content)
 
