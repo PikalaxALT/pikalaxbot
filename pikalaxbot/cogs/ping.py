@@ -15,30 +15,18 @@ from .utils.mpl_time_axis import *
 class Ping(BaseCog):
     """Commands for testing the bot's ping, and for reporting history."""
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.ping_history = {}
-
     def cog_unload(self):
         self.build_ping_history.cancel()
 
     async def init_db(self, sql):
         await sql.execute('create table if not exists ping_history (timestamp real, latency real)')
         await sql.execute('create unique index if not exists ping_history_idx on ping_history (timestamp)')
-        async with sql.execute('select * from ping_history order by timestamp') as cur:
-            i = 0
-            async for timestamp, latency in cur:
-                self.ping_history[datetime.datetime.utcfromtimestamp(timestamp)] = latency
-                i += 1
-                if i % 1000 == 0:
-                    self.log_info(f'Loaded {i} rows')
         self.build_ping_history.start()
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
         now = self.build_ping_history._last_iteration.replace(tzinfo=None)
         ping = self.bot.latency * 1000
-        self.ping_history[now] = ping
         async with self.bot.sql as sql:
             await sql.execute_insert('insert or ignore into ping_history values (?, ?)', (now.timestamp(), ping))
 
@@ -63,7 +51,8 @@ class Ping(BaseCog):
                                f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms')
 
     def do_plot_ping(self, buffer, history):
-        times, values = zip(*sorted([t for t in self.ping_history.items() if t[0] >= history]))
+        times = list(history.keys())
+        values = list(history.values())
         plt.figure()
         ax: plt.Axes = plt.gca()
         idxs = thin_points(len(times), 1000)
@@ -78,7 +67,6 @@ class Ping(BaseCog):
         plt.savefig(buffer)
         plt.close()
 
-    @commands.check(lambda ctx: ctx.cog.ping_history)
     @ping.command(name='history', aliases=['graph', 'plot'])
     async def plot_ping(self, ctx, history: typing.Union[PastTime, int] = 60):
         """Plot the bot's ping history (measured as gateway heartbeat)
@@ -87,12 +75,22 @@ class Ping(BaseCog):
             history = ctx.message.created_at - datetime.timedelta(minutes=history)
         else:
             history = history.dt
-        buffer = io.BytesIO()
-        start = time.perf_counter()
-        await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, history)
-        end = time.perf_counter()
-        buffer.seek(0)
-        await ctx.send(f'Completed in {end - start:.3f}s', file=discord.File(buffer, 'ping.png'))
+        async with ctx.typing():
+            fetch_start = time.perf_counter()
+            async with self.bot.sql as sql:
+                async with sql.execute('select * from ping_history where timestamp > ? order by timestamp', (history.timestamp())) as cur:
+                    ping_history = {datetime.datetime.fromtimestamp(timestamp): latency async for timestamp, latency in cur}
+            fetch_end = time.perf_counter()
+            buffer = io.BytesIO()
+            start = time.perf_counter()
+            await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, ping_history)
+            end = time.perf_counter()
+            buffer.seek(0)
+        await ctx.send(
+            f'Fetched records in {fetch_end - fetch_start:.3f}s\n'
+            f'Rendered image in {end - start:.3f}s',
+            file=discord.File(buffer, 'ping.png')
+        )
 
 
 def setup(bot):
