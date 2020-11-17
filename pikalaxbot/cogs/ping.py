@@ -78,7 +78,7 @@ class Ping(BaseCog):
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                async with sql.execute('select * from ping_history where timestamp > ? order by timestamp', (history.timestamp())) as cur:
+                async with sql.execute('select * from ping_history where timestamp > ? order by timestamp', (history.timestamp(),)) as cur:
                     ping_history = {datetime.datetime.fromtimestamp(timestamp): latency async for timestamp, latency in cur}
             fetch_end = time.perf_counter()
             buffer = io.BytesIO()
