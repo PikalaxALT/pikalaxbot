@@ -140,6 +140,8 @@ class Core(BaseCog):
     async def ignore(self, ctx, person: discord.Member):
         """Ban a member from using the bot :datsheffy:"""
 
+        if person == self.bot.user or await self.bot.is_owner(person):
+            return await ctx.send('Hmmm... Nope, not gonna do that.')
         self.banlist.add(person.id)
         await ctx.send(f'{person.display_name} is now banned from interacting with me.')
 
