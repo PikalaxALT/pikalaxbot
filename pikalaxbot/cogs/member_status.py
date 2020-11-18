@@ -62,6 +62,7 @@ class MemberStatus(BaseCog):
 
     def do_plot_status_history(self, buffer, history):
         times, *values = zip(*history)
+        times = [datetime.datetime.fromtimestamp(ts) for ts in times]
         plt.figure()
         counts = {key: value for key, value in zip(discord.Status, values)}
         ax: plt.Axes = plt.gca()
