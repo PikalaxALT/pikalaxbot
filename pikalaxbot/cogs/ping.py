@@ -68,17 +68,21 @@ class Ping(BaseCog):
         plt.close()
 
     @ping.command(name='history', aliases=['graph', 'plot'])
-    async def plot_ping(self, ctx, history: typing.Union[PastTime, int] = 60):
+    async def plot_ping(self, ctx, hstart: typing.Union[PastTime, int] = 60, hend: typing.Union[PastTime, int] = 0):
         """Plot the bot's ping history (measured as gateway heartbeat)
         for the indicated number of minutes (default: 60)"""
-        if isinstance(history, int):
-            history = ctx.message.created_at - datetime.timedelta(minutes=history)
+        if isinstance(hstart, int):
+            hstart = ctx.message.created_at - datetime.timedelta(minutes=hstart)
         else:
-            history = history.dt
+            hstart = hstart.dt
+        if isinstance(hend, int):
+            hend = ctx.message.created_at - datetime.timedelta(minutes=hend)
+        else:
+            hend = hend.dt
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                async with sql.execute('select * from ping_history where timestamp > ? order by timestamp', (history.timestamp(),)) as cur:
+                async with sql.execute('select * from ping_history where timestamp >= ? and timestamp < ? order by timestamp', (hstart.timestamp(), hend.timestamp())) as cur:
                     ping_history = {datetime.datetime.fromtimestamp(timestamp): latency async for timestamp, latency in cur}
             fetch_end = time.perf_counter()
             buffer = io.BytesIO()

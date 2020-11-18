@@ -81,16 +81,20 @@ class MemberStatus(BaseCog):
 
     @commands.guild_only()
     @commands.command(name='userstatus')
-    async def plot_status(self, ctx, history: typing.Union[PastTime, int] = 60):
+    async def plot_status(self, ctx, hstart: typing.Union[PastTime, int] = 60, hend: typing.Union[PastTime, int] = 0):
         """Plot history of user status counts in the current guild."""
-        if isinstance(history, int):
-            history = ctx.message.created_at - datetime.timedelta(minutes=history)
+        if isinstance(hstart, int):
+            hstart = ctx.message.created_at - datetime.timedelta(minutes=hstart)
         else:
-            history = history.dt
+            hstart = hstart.dt
+        if isinstance(hend, int):
+            hend = ctx.message.created_at - datetime.timedelta(minutes=hend)
+        else:
+            hend = hend.dt
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                async with sql.execute('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = ? and timestamp > ? order by timestamp', (ctx.guild.id, history.timestamp())) as cur:
+                async with sql.execute('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = ? and timestamp >= ? and timestamp < ? order by timestamp', (ctx.guild.id, hstart.timestamp(), hend.timestamp())) as cur:
                     counts = {datetime.datetime.fromtimestamp(row[0]): {name: count for name, count in zip(discord.Status, row[1:])} async for row in cur}
             fetch_end = time.perf_counter()
             buffer = io.BytesIO()
