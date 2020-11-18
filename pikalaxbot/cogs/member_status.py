@@ -97,16 +97,20 @@ class MemberStatus(BaseCog):
                 async with sql.execute('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = ? and timestamp >= ? and timestamp < ? order by timestamp', (ctx.guild.id, hstart.timestamp(), hend.timestamp())) as cur:
                     counts = {datetime.datetime.fromtimestamp(row[0]): {name: count for name, count in zip(discord.Status, row[1:])} async for row in cur}
             fetch_end = time.perf_counter()
-            buffer = io.BytesIO()
-            start = time.perf_counter()
-            await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, counts)
-            end = time.perf_counter()
-        buffer.seek(0)
-        await ctx.send(
-            f'Fetched records in {fetch_end - fetch_start:.3f}s\n'
-            f'Rendered image in {end - start:.3f}s',
-            file=discord.File(buffer, 'status.png')
-        )
+            if len(counts) > 1:
+                buffer = io.BytesIO()
+                start = time.perf_counter()
+                await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, counts)
+                end = time.perf_counter()
+                buffer.seek(0)
+                msg = f'Fetched {len(counts)} records in {fetch_end - fetch_start:.3f}s\n' \
+                      f'Rendered image in {end - start:.3f}s'
+                file = discord.File(buffer, 'status.png')
+            else:
+                msg = f'Fetched {len(counts)} records in {fetch_end - fetch_start:.3f}s\n' \
+                      f'Plotting failed'
+                file = None
+        await ctx.send(msg, file=file)
 
 
 def setup(bot):

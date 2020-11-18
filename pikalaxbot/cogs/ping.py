@@ -85,16 +85,20 @@ class Ping(BaseCog):
                 async with sql.execute('select * from ping_history where timestamp >= ? and timestamp < ? order by timestamp', (hstart.timestamp(), hend.timestamp())) as cur:
                     ping_history = {datetime.datetime.fromtimestamp(timestamp): latency async for timestamp, latency in cur}
             fetch_end = time.perf_counter()
-            buffer = io.BytesIO()
-            start = time.perf_counter()
-            await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, ping_history)
-            end = time.perf_counter()
-            buffer.seek(0)
-        await ctx.send(
-            f'Fetched records in {fetch_end - fetch_start:.3f}s\n'
-            f'Rendered image in {end - start:.3f}s',
-            file=discord.File(buffer, 'ping.png')
-        )
+            if len(ping_history) > 1:
+                buffer = io.BytesIO()
+                start = time.perf_counter()
+                await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, ping_history)
+                end = time.perf_counter()
+                buffer.seek(0)
+                msg = f'Fetched {len(ping_history)} records in {fetch_end - fetch_start:.3f}s\n' \
+                      f'Rendered image in {end - start:.3f}s'
+                file = discord.File(buffer, 'ping.png')
+            else:
+                msg = f'Fetched {len(ping_history)} records in {fetch_end - fetch_start:.3f}s\n' \
+                      f'Plotting failed'
+                file = None
+        await ctx.send(msg, file=file)
 
 
 def setup(bot):
