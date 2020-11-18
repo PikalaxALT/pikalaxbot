@@ -52,10 +52,8 @@ class Markov(BaseCog):
             if ctx.message.guild is not None and ctx.valid:
                 return True
             # Invoked from on_message without command.
-            if ctx.me.mentioned_in(ctx.message):
-                return True
             name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
-            return re.search(rf'\b({name_grp})\b', ctx.message.clean_content, re.I) is not None
+            return re.search(rf'\b({name_grp})|<@!?{self.bot.user.id}>\b', ctx.message.clean_content, re.I) is not None
 
         if not inner():
             return False
