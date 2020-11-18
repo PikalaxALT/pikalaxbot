@@ -61,10 +61,10 @@ class MemberStatus(BaseCog):
         await self.bot.send_tb(content)
 
     def do_plot_status_history(self, buffer, history):
-        times, *values = zip(*history)
-        times = [datetime.datetime.fromtimestamp(ts) for ts in times]
+        times = list(history.keys())
+        values = list(history.values())
         plt.figure()
-        counts = {key: value for key, value in zip(discord.Status, values)}
+        counts = {key: [v[key] for v in values] for key in self.colormap}
         ax: plt.Axes = plt.gca()
         idxs = thin_points(len(times), 1000)
         for key, value in counts.items():
@@ -95,7 +95,7 @@ class MemberStatus(BaseCog):
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
                 async with sql.execute('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = ? and timestamp >= ? and timestamp < ? order by timestamp', (ctx.guild.id, hstart.timestamp(), hend.timestamp())) as cur:
-                    counts = await cur.fetchall()
+                    counts = {datetime.datetime.fromtimestamp(row[0]): {name: count for name, count in zip(discord.Status, row[1:])} async for row in cur}
             fetch_end = time.perf_counter()
             buffer = io.BytesIO()
             start = time.perf_counter()
