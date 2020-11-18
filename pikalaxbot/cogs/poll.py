@@ -294,6 +294,7 @@ duration, prompt, and options."""
         self.polls.append(mgr)
         mgr.start()
 
+    @commands.max_concurrency(1, commands.BucketType.channel)
     @poll_cmd.command(name='new')
     async def interactive_poll_maker(self, ctx: commands.Context, timeout: typing.Optional[typing.Union[float, FutureTime]]):
         """Create a poll interactively"""
