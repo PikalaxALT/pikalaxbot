@@ -281,7 +281,7 @@ class Modtools(BaseCog):
         await self.git_pull(ctx)
         failures = {}
 
-        cooldown = commands.CooldownMapping.from_cooldown(1, 5, commands.BucketType.default)
+        cooldown = commands.CooldownMapping.from_cooldown(1, 1, commands.BucketType.default)
 
         if not cogs:
             cogs = [extn.replace('pikalaxbot.cogs.', '').replace('pikalaxbot.ext.', 'ext.') for extn in self.bot.extensions]
