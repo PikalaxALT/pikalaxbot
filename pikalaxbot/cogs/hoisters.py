@@ -72,10 +72,10 @@ class Hoisters(BaseCog):
         await menu.start(ctx, wait=True)
 
     @commands.command(name='is-hoisting', aliases=['hoisting'])
-    async def is_hoisting_cmd(self, ctx, member: discord.Member):
+    async def is_hoisting_cmd(self, ctx, *, member: discord.Member):
         """Returns whether the member in question is hoisting."""
 
-        await ctx.send(f'{member} {"is" if Hoisters.is_hoisting(member) and member.name >= "0" else "is not"} hoisting.')
+        await ctx.send(f'{member} {"**is**" if Hoisters.is_hoisting(member) and member.name >= "0" else "is not"} hoisting.')
 
 
 def setup(bot):
