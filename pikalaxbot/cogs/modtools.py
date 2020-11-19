@@ -28,11 +28,13 @@ from .utils.menus import NavMenuPages
 
 
 class SqlResponseEmbed(menus.ListPageSource):
-    async def format_page(self, menu, page):
+    async def format_page(self, menu: NavMenuPages, page):
         return discord.Embed(
             title=menu.sql_cmd,
             description=page,
             colour=0xf47fff
+        ).set_footer(
+            text=f'Page {menu.current_page}/{self.get_max_pages()}'
         )
 
 
