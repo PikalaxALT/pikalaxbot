@@ -75,7 +75,15 @@ class Hoisters(BaseCog):
     async def is_hoisting_cmd(self, ctx, *, member: discord.Member):
         """Returns whether the member in question is hoisting."""
 
-        await ctx.send(f'{member.display_name} ({member}) {"**is**" if Hoisters.is_hoisting(member) else "is not"} hoisting.')
+        embed = discord.Embed(
+            title='Hoisting report',
+            description=f'**Display Name:** {member.display_name}\n'
+                        f'**User ID:** {member.id}\n'
+                        f'**Is hoisting:** {Hoisters.is_hoisting(member)}',
+            colour=0xf47fff
+        ).set_author(name=str(member), icon_url=str(member.avatar_url))
+
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
