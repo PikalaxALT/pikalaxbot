@@ -336,7 +336,7 @@ class Modtools(BaseCog):
         """Update the bot's command prefix"""
 
         async with self.bot.sql as sql:
-            await sql.set_prefix(ctx.guild, prefix)
+            await sql.execute("replace into prefixes (guild, prefix) values (?, ?)", (ctx.guild.id, prefix))
         self.bot.guild_prefixes[ctx.guild.id] = prefix
         await ctx.message.add_reaction('✅')
 
