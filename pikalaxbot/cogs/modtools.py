@@ -198,7 +198,7 @@ class Modtools(BaseCog):
             await fut.wait()
         return fut.returncode == 0
     
-    async def cog_operation(self, ctx, mode, cog):
+    async def cog_operation(self, ctx, mode, cog, *, msg=None):
         def default_method(_):
             raise commands.ExtensionError
 
@@ -218,7 +218,11 @@ class Modtools(BaseCog):
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
-        await ctx.send(f'{mode.title()}ed cog "{real_cog}"')
+        if msg:
+            content = f'{msg.content}\n{mode.title()}ed cog "{real_cog}"'
+            await msg.edit(content=content)
+        else:
+            await ctx.send(f'{mode.title()}ed cog "{real_cog}"')
 
     @BaseCog.listener()
     async def on_cog_db_init(self, cog):
@@ -285,6 +289,8 @@ class Modtools(BaseCog):
         if not cogs:
             cogs = [extn.replace('pikalaxbot.cogs.', '').replace('pikalaxbot.ext.', 'ext.') for extn in self.bot.extensions]
 
+        msg = await ctx.send(f'Reloading {len(cogs)} extension(s)...')
+
         for cog in cogs:
             if cog == 'jishaku':
                 extn = cog
@@ -294,7 +300,7 @@ class Modtools(BaseCog):
                 extn = f'pikalaxbot.cogs.{cog}'
             if extn in self.bot.extensions:
                 try:
-                    await self.cog_operation(ctx, 'reload', cog)
+                    await self.cog_operation(ctx, 'reload', cog, msg=msg)
                 except Exception as e:
                     failures[cog] = e
             else:
