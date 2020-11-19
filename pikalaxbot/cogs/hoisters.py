@@ -77,9 +77,12 @@ class Hoisters(BaseCog):
 
         embed = discord.Embed(
             title='Hoisting report',
-            description=f'**Display Name:** {member.display_name}\n'
-                        f'**User ID:** {member.id}\n'
-                        f'**Is hoisting:** {Hoisters.is_hoisting(member)}',
+            description=f'```\n'
+                        f'Display Name: {member.display_name}\n'
+                        f'User ID:      {member.id}\n'
+                        f'Is bot:       {member.bot}\n'
+                        f'Is hoisting:  {Hoisters.is_hoisting(member)}\n'
+                        f'```',
             colour=0xf47fff
         ).set_author(name=str(member), icon_url=str(member.avatar_url))
 
