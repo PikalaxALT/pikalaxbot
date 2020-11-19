@@ -289,6 +289,7 @@ class Modtools(BaseCog):
         msg = await ctx.send(f'Reloading {len(cogs)} extension(s)...')
 
         succeeded = []
+        fresh = True
         for cog in cogs:
             if cog == 'jishaku':
                 extn = cog
@@ -302,11 +303,16 @@ class Modtools(BaseCog):
                 except Exception as e:
                     failures[cog] = e
                 else:
-                    succeeded.append(cog)
+                    succeeded.append(cog.title())
                     if not cooldown.update_rate_limit(msg):
                         await msg.edit(content='Reloaded ' + ', '.join(succeeded))
+                        fresh = True
+                    else:
+                        fresh = False
             else:
                 await ctx.send(f'Cog {cog} not loaded, use {self.load_cog.qualified_name} instead')
+        if not fresh:
+            await msg.edit(content='Reloaded ' + ', '.join(succeeded))
         if failures:
             raise CogOperationError('reload', **failures)
 
