@@ -131,6 +131,8 @@ class Modtools(BaseCog):
 
     @commands.command(name='sql')
     async def top_call_sql(self, ctx, *, script):
+        """Run arbitrary sql command"""
+
         await self.call_sql(ctx, script=script)
 
     @call_sql.error
