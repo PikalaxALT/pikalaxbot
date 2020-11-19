@@ -75,7 +75,7 @@ class Hoisters(BaseCog):
     async def is_hoisting_cmd(self, ctx, *, member: discord.Member):
         """Returns whether the member in question is hoisting."""
 
-        await ctx.send(f'{member} {"**is**" if Hoisters.is_hoisting(member) and member.name >= "0" else "is not"} hoisting.')
+        await ctx.send(f'{member.display_name} ({member}) {"**is**" if Hoisters.is_hoisting(member) else "is not"} hoisting.')
 
 
 def setup(bot):
