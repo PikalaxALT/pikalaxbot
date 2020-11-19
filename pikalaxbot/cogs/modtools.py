@@ -281,6 +281,10 @@ class Modtools(BaseCog):
 
         await self.git_pull(ctx)
         failures = {}
+
+        if not cogs:
+            cogs = [extn.replace('pikalaxbot.cogs.', '').replace('pikalaxbot.ext.', 'ext.') for extn in self.bot.extensions]
+
         for cog in cogs:
             if cog == 'jishaku':
                 extn = cog
