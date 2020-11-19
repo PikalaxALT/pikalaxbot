@@ -77,11 +77,16 @@ class PokeApi:
         return name
 
     def get_mon_name(self, mon, *, clean=True):
-        return self.get_name(mon, 'pokemon_species', clean=clean)
+        try:
+            return self.get_name(mon, 'pokemon_species', clean=clean)
+        except TypeError:
+            return 'Name not found'
 
     def random_species_name(self, *, clean=True):
-        mon = self.random_species()
-        return self.get_mon_name(mon, clean=clean)
+        name = random.choice(self.pokemon_species_names)['name']
+        if clean:
+            name = self.clean_name(name)
+        return name
 
     random_pokemon_name = random_species_name
 
@@ -89,8 +94,10 @@ class PokeApi:
         return random.choice(self.moves)
 
     def random_move_name(self, *, clean=True):
-        move = self.random_move()
-        return self.get_name(move, 'move', clean=clean)
+        name = random.choice(self.move_names)
+        if clean:
+            name = self.clean_name(name)
+        return name
 
     def get_mon_types(self, mon):
         """Returns a list of type names for that Pokemon"""

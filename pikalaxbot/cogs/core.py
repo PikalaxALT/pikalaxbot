@@ -258,6 +258,8 @@ class Core(BaseCog):
 
     @commands.command()
     async def userinfo(self, ctx, *, target: typing.Union[discord.Member, discord.User] = None):
+        """Show information about the given user"""
+
         def format_datetime(dt):
             strftime = dt.strftime('%Y-%m-%d %H:%M')
             human_time = precisedelta(dt, minimum_unit='minutes', format='%d')
@@ -331,6 +333,8 @@ class Core(BaseCog):
     @commands.guild_only()
     @commands.command(aliases=['guildinfo'])
     async def serverinfo(self, ctx: commands.Context):
+        """Shows information about the current server"""
+
         guild: discord.Guild = ctx.guild
         emojis = ''.join([str(e) for e in guild.emojis if e.is_usable()][:10])
         status_icons = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status if stat is not discord.Status.invisible}

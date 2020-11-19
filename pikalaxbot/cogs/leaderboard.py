@@ -32,21 +32,24 @@ class Leaderboard(BaseCog):
     @leaderboard.command()
     async def check(self, ctx, person: discord.Member = None):
         """Check your leaderboard score, or the leaderboard score of another user"""
-        if person is None:
-            person = ctx.author
+        person = person or ctx.author
+
         async with self.bot.sql as sql:
-            try:
-                score, rank = await sql.get_leaderboard_rank(person)
-                await ctx.send(f'{person.name} has {score:d} point(s) across all games '
-                               f'and is #{rank:d} on the leaderboard.')
-            except TypeError:
-                await ctx.send(f'{person.name} is not yet on the leaderboard.')
+            async with sql.execute('elect score, rank () over (order by score desc) ranking from game where id = ?', (person.author.id)) as cur:
+                async for score, rank in cur:
+                    msg = f'{person.name} has {score:d} point(s) across all games ' \
+                          f'and is #{rank:d} on the leaderboard.'
+                    break
+                else:
+                    msg = f'{person.name} is not yet on the leaderboard.'
+        await ctx.send(msg)
 
     @leaderboard.command()
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
         async with self.bot.sql as sql:
-            msgs = [f'{name}: {score:d}' async for _id, name, score in sql.get_all_scores()] or ['Wumpus: 0']
+            async with sql.execute('select * from game order by score desc limit 10') as cur:
+                msgs = [f'{name}: {score:d}' async for _id, name, score in cur] or ['Wumpus: 0']
         msg = '\n'.join(msgs)
         await ctx.send(f'Leaderboard:\n'
                        f'```\n'
@@ -58,7 +61,8 @@ class Leaderboard(BaseCog):
     async def clear_leaderboard(self, ctx):
         """Reset the leaderboard"""
         async with self.bot.sql as sql:
-            await sql.reset_leaderboard()
+            await sql.execute('delete from game')
+            await sql.execute('vacuum')
         await ctx.send('Leaderboard reset')
 
     @leaderboard.command(name='give')

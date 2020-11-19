@@ -165,6 +165,8 @@ class Meme(BaseCog):
 
     @commands.command()
     async def ascii(self, ctx, *, message):
+        """Prints the message in huge ugly block letters"""
+
         paginator = commands.Paginator()
         [paginator.add_line(line) for line in pyfiglet.figlet_format(message, width=37).splitlines()]
         for page in paginator.pages:
@@ -173,6 +175,8 @@ class Meme(BaseCog):
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.command(aliases=['cookie', 'c'])
     async def cookies(self, ctx: commands.Context):
+        """Reaction time game! Click the cookie as fast as you can!"""
+
         emoji, = random.choices(['🥠', '🍪'], k=1, weights=[0.05, 0.95])
         embed = discord.Embed(
             description=f'First one to eat the cookie {emoji} wins!',

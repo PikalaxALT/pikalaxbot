@@ -131,6 +131,8 @@ class Modtools(BaseCog):
 
     @commands.command(name='sql')
     async def top_call_sql(self, ctx, *, script):
+        """Run arbitrary sql command"""
+
         await self.call_sql(ctx, script=script)
 
     @call_sql.error
@@ -216,7 +218,6 @@ class Modtools(BaseCog):
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
-        await ctx.send(f'{mode.title()}ed cog "{real_cog}"')
 
     @BaseCog.listener()
     async def on_cog_db_init(self, cog):
@@ -279,6 +280,16 @@ class Modtools(BaseCog):
 
         await self.git_pull(ctx)
         failures = {}
+
+        cooldown = commands.CooldownMapping.from_cooldown(1, 1, commands.BucketType.default)
+
+        if not cogs:
+            cogs = [extn.replace('pikalaxbot.cogs.', '').replace('pikalaxbot.ext.', 'ext.') for extn in self.bot.extensions]
+
+        msg = await ctx.send(f'Reloading {len(cogs)} extension(s)...')
+
+        succeeded = []
+        fresh = True
         for cog in cogs:
             if cog == 'jishaku':
                 extn = cog
@@ -291,8 +302,17 @@ class Modtools(BaseCog):
                     await self.cog_operation(ctx, 'reload', cog)
                 except Exception as e:
                     failures[cog] = e
+                else:
+                    succeeded.append(cog.title())
+                    if not cooldown.update_rate_limit(msg):
+                        await msg.edit(content='Reloaded ' + ', '.join(succeeded))
+                        fresh = True
+                    else:
+                        fresh = False
             else:
                 await ctx.send(f'Cog {cog} not loaded, use {self.load_cog.qualified_name} instead')
+        if not fresh:
+            await msg.edit(content='Reloaded ' + ', '.join(succeeded))
         if failures:
             raise CogOperationError('reload', **failures)
 
@@ -336,7 +356,7 @@ class Modtools(BaseCog):
         """Update the bot's command prefix"""
 
         async with self.bot.sql as sql:
-            await sql.set_prefix(ctx.guild, prefix)
+            await sql.execute("replace into prefixes (guild, prefix) values (?, ?)", (ctx.guild.id, prefix))
         self.bot.guild_prefixes[ctx.guild.id] = prefix
         await ctx.message.add_reaction('✅')
 

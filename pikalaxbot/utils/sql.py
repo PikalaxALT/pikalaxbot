@@ -57,11 +57,6 @@ class Sql(aiosqlite.Connection):
     async def increment_score(self, player, by=1):
         await self.execute('insert into game values (?, ?, ?) on conflict(id) do update set score = score + ?', (player.id, player.name, by, by))
 
-    async def get_all_scores(self):
-        c = await self.execute("select * from game order by score desc limit 10")
-        for row in await c.fetchall():
-            yield row
-
     async def get_voltorb_level(self, channel):
         c = await self.execute("select level from voltorb where id = ?", (channel.id,))
         try:
@@ -72,26 +67,6 @@ class Sql(aiosqlite.Connection):
 
     async def set_voltorb_level(self, channel, new_level):
         await self.execute("replace into voltorb values (?, ?) on conflict (id) do update set level = ?", (channel.id, new_level, new_level))
-
-    async def get_leaderboard_rank(self, player):
-        c = await self.execute("select score, rank () over (order by score desc) ranking from game where id = ?", (player.id,))
-        record = await c.fetchone()
-        return record
-
-    async def reset_leaderboard(self):
-        await self.execute("delete from game")
-
-    async def get_prefix(self, bot, message):
-        c = await self.execute("select prefix from prefixes where guild = ?", (message.guild.id,))
-        try:
-            prefix, = await c.fetchone()
-        except TypeError:
-            await self.set_prefix(message.guild, prefix=bot.settings.prefix)
-            prefix = bot.settings.prefix
-        return prefix
-
-    async def set_prefix(self, guild, prefix='p!'):
-        await self.execute("replace into prefixes (guild, prefix) values (?, ?)", (guild.id, prefix))
 
 
 def connect(database, *, iter_chunk_size=64, loop=None, **kwargs):

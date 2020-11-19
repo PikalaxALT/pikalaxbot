@@ -36,7 +36,9 @@ async def _command_prefix(bot, message):
         return ''
     if message.guild.id not in bot.guild_prefixes:
         async with bot.sql as sql:
-            bot.guild_prefixes[message.guild.id] = await sql.get_prefix(bot, message)
+            await sql.execute('insert or ignore into prefixes values (?, ?)', (message.guild.id, bot.settings.prefix))
+            async with sql.execute('select prefix from prefixes where guild = ?', (message.guild.id,)) as cur:
+                bot.guild_prefixes[message.guild.id], = await cur.fetchone()
     return bot.guild_prefixes[message.guild.id]
 
 

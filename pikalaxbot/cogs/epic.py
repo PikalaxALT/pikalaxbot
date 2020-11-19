@@ -3,14 +3,19 @@ from discord.ext import commands
 from . import BaseCog
 
 
+EPIC_GUILD_ID = 471312957687463956
+
+
 class Epic(BaseCog):
     """Commands unique to the Epic guild. Hi Cyan o/"""
 
     def cog_check(self, ctx):
-        return ctx.guild.id == 471312957687463956
+        return ctx.guild.id == EPIC_GUILD_ID
 
     @commands.command()
     async def ripchat(self, ctx):
+        """Pays respects to the death of the chat."""
+
         await ctx.send(
             'And lo, the chat did die on this day. '
             'And lo, all discussion ceased. '
