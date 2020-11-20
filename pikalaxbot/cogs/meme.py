@@ -220,6 +220,13 @@ class Meme(BaseCog):
             await msg.remove_reaction(emoji, ctx.me)
         await msg.edit(embed=embed)
 
+    @commands.command(name='howgay')
+    async def show_how_gay(self, ctx, *, member: discord.Member = None):
+        """Reports how gay you are"""
+
+        member = member or ctx.author
+        await ctx.send(f'{member} is {random.Random(hash(member)).random() * 100:.1f}% gay.')
+
 
 def setup(bot):
     bot.add_cog(Meme(bot))
