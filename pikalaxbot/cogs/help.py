@@ -188,7 +188,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     @staticmethod
     def format_close_matches(word, bank, prefix):
-        similarity = difflib.get_close_matches(word, bank, n=3)
+        similarity = difflib.get_close_matches(word, bank, n=3, cutoff=0.5)
         if similarity:
             similarity = textwrap.indent('\n'.join(similarity), '> ')
             prefix = f'{prefix} Did you mean:\n{similarity}'
