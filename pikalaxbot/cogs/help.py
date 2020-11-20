@@ -25,6 +25,8 @@ from .utils.menus import NavMenuPages
 import typing
 import traceback
 import collections
+import difflib
+import textwrap
 
 
 class HelpMenu(NavMenuPages):
@@ -183,6 +185,27 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
         paginator = HelpMenu(page_source, delete_message_after=True)
         await paginator.start(ctx=self.context, wait=True)
+
+    @staticmethod
+    def format_close_matches(word, bank, prefix):
+        similarity = difflib.get_close_matches(word, bank, n=3)
+        if similarity:
+            similarity = textwrap.indent('\n'.join(similarity), '> ')
+            prefix = f'{prefix} Did you mean:\n{similarity}'
+        return prefix
+
+    def command_not_found(self, string):
+        result = super().command_not_found(string)
+        cmd_names = (cmd.name for cmd in self.context.bot.commands)
+        result = PaginatedHelpCommand.format_close_matches(string, cmd_names, result)
+        return result
+
+    def subcommand_not_found(self, command, string):
+        result = super().subcommand_not_found(command, string)
+        if isinstance(command, commands.Group):
+            cmd_names = (cmd.name for cmd in command.commands)
+            result = PaginatedHelpCommand.format_close_matches(string, cmd_names, result)
+        return result
 
 
 class Help(BaseCog):
