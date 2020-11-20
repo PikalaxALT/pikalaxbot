@@ -191,7 +191,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
         similarity = difflib.get_close_matches(word, bank, n=3, cutoff=0.5)
         if similarity:
             similarity = textwrap.indent('\n'.join(map(f'`{line_prefix}{{}}`'.format, similarity)), '> ')
-            prefix = f'{prefix} Did you mean:\n{similarity}'
+            prefix = f'{prefix}\nDid you mean:\n{similarity}'
         return prefix
 
     def command_not_found(self, string):
