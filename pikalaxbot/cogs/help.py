@@ -187,10 +187,10 @@ class PaginatedHelpCommand(commands.HelpCommand):
         await paginator.start(ctx=self.context, wait=True)
 
     @staticmethod
-    def format_close_matches(word, bank, prefix):
+    def format_close_matches(word, bank, prefix, line_prefix=''):
         similarity = difflib.get_close_matches(word, bank, n=3, cutoff=0.5)
         if similarity:
-            similarity = textwrap.indent('\n'.join(map('`{}`'.format, similarity)), '> ')
+            similarity = textwrap.indent('\n'.join(map(f'`{line_prefix}{{}}`'.format, similarity)), '> ')
             prefix = f'{prefix} Did you mean:\n{similarity}'
         return prefix
 
@@ -204,7 +204,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
         result = super().subcommand_not_found(command, string)
         if isinstance(command, commands.Group):
             cmd_names = (cmd.name for cmd in command.commands)
-            result = PaginatedHelpCommand.format_close_matches(string, cmd_names, result)
+            result = PaginatedHelpCommand.format_close_matches(string, cmd_names, result, line_prefix=f'{command} ')
         return result
 
 
