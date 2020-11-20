@@ -48,6 +48,12 @@ class Hoisters(BaseCog):
     """Commands for inspecting users who are elevating their names to the top
     of the user list. Restricted to the discord.py guild where this is regulated."""
 
+    @staticmethod
+    def is_hoisting(member: discord.Member):
+        return not any(role.hoist for role in member.roles) \
+            and not member.bot \
+            and member.display_name < '0'
+
     def cog_check(self, ctx):
         return ctx.guild.id == DPY_GUILD_ID
 
@@ -56,17 +62,31 @@ class Hoisters(BaseCog):
     async def get_hoisters(self, ctx):
         """Get a list of all people in the server whose names are hoisted"""
 
-        hoisters = [
-            member for member in ctx.guild.members
-            if not any(role.hoist for role in member.roles)
-            and not member.bot  # bots are exempt
-            and member.display_name < '0'
-        ]
+        hoisters = sorted(
+            filter(Hoisters.is_hoisting, ctx.guild.members),
+            key=lambda m: (m.nick is None, m.status is discord.Status.offline, m.display_name)
+        )
         if not hoisters:
             return await ctx.send('No hoisters found')
-        hoisters.sort(key=lambda m: (m.nick is None, m.status is discord.Status.offline, m.display_name))
         menu = HoistersMenu(HoisterPageSource(hoisters, per_page=9), delete_message_after=True)
         await menu.start(ctx, wait=True)
+
+    @commands.command(name='is-hoisting', aliases=['hoisting'])
+    async def is_hoisting_cmd(self, ctx, *, member: discord.Member):
+        """Returns whether the member in question is hoisting."""
+
+        embed = discord.Embed(
+            title='Hoisting report',
+            description=f'```\n'
+                        f'Display Name: {member.display_name}\n'
+                        f'User ID:      {member.id}\n'
+                        f'Is bot:       {member.bot}\n'
+                        f'Is hoisting:  {Hoisters.is_hoisting(member)}\n'
+                        f'```',
+            colour=0xf47fff
+        ).set_author(name=str(member), icon_url=str(member.avatar_url))
+
+        await ctx.send(embed=embed)
 
 
 def setup(bot):

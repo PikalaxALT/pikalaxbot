@@ -20,10 +20,22 @@ import traceback
 import sqlite3
 import logging
 import typing
-from discord.ext import commands
+from discord.ext import commands, menus
 from . import BaseCog
 from .utils.converters import CommandConverter
 from .utils.errors import CogOperationError
+from .utils.menus import NavMenuPages
+
+
+class SqlResponseEmbed(menus.ListPageSource):
+    async def format_page(self, menu: NavMenuPages, page):
+        return discord.Embed(
+            title=menu.sql_cmd,
+            description=page,
+            colour=0xf47fff
+        ).set_footer(
+            text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
+        )
 
 
 class lower(str):
@@ -121,13 +133,17 @@ class Modtools(BaseCog):
     async def call_sql(self, ctx, *, script):
         """Run arbitrary sql command"""
 
-        async with self.bot.sql as sql:
-            async with sql.execute(script) as cursor:
-                result = '\n'.join('|'.join(map(str, row)) for row in await cursor.fetchall())
+        pag = commands.Paginator(max_size=2048)
+        async with ctx.typing():
+            async with self.bot.sql as sql:
+                async with sql.execute(script) as cursor:
+                    async for row in cursor:
+                        pag.add_line('|'.join(map(str, row)))
+        if pag.pages:
+            menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
+            menu.sql_cmd = script
+            await menu.start(ctx)
         await ctx.message.add_reaction('\N{white heavy check mark}')
-        if result:
-            embed = discord.Embed(title=script, description=f'```\n{result}\n```', colour=0xf47fff)
-            await ctx.send(embed=embed)
 
     @commands.command(name='sql')
     async def top_call_sql(self, ctx, *, script):
