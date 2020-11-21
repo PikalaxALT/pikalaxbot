@@ -63,7 +63,7 @@ class ErrorHandling(BaseCog):
                     except commands.CommandError:
                         pass
                 return res
-            matches = difflib.get_close_matches(ctx.invoked_with, (cmd.qualified_name for cmd in await filter_commands(self.bot.walk_commands())), n=1, cutoff=0.5)
+            matches = difflib.get_close_matches(ctx.invoked_with, await filter_commands(self.bot.walk_commands()), n=1, cutoff=0.5)
             if not matches:
                 return
             msg = f'I don\'t have a command called `{ctx.invoked_with}`. Did you mean `{matches[0]}`?'
