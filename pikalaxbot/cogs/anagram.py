@@ -104,7 +104,7 @@ class AnagramGame(GameBase):
     async def show(self, ctx):
         if await super().show(ctx) is None:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '
-                           f'Start a game by saying `{ctx.prefix}hangman start`.',
+                           f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
 
