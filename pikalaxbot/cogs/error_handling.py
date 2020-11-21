@@ -3,14 +3,15 @@ from discord.ext import commands
 from . import BaseCog
 import traceback
 import sys
+import difflib
 from .utils.errors import *
 
 
 class ErrorHandling(BaseCog):
     """Error handling extension"""
 
-    filter_excs = commands.CommandNotFound, commands.CheckFailure, commands.MaxConcurrencyReached
-    handle_excs = commands.UserInputError, CogOperationError, commands.DisabledCommand
+    filter_excs = commands.CheckFailure, commands.MaxConcurrencyReached
+    handle_excs = commands.UserInputError, CogOperationError, commands.DisabledCommand, commands.CommandNotFound
 
     @BaseCog.listener()
     async def on_error(self, event, *args, **kwargs):
@@ -51,6 +52,21 @@ class ErrorHandling(BaseCog):
             return
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
+        elif isinstance(exc, commands.CommandNotFound):
+            async def filter_commands(iterable):
+                res = []
+                for command in iterable:
+                    try:
+                        flag = await command.can_run(ctx)
+                        if flag:
+                            res.append(command.qualified_name)
+                    except commands.CommandError:
+                        pass
+                return res
+            matches = difflib.get_close_matches(ctx.invoked_with, (cmd.qualified_name for cmd in await filter_commands(self.bot.walk_commands())), n=1, cutoff=0.5)
+            if not matches:
+                return
+            msg = f'I don\'t have a command called `{ctx.invoked_with}`. Did you mean `{matches[0]}`?'
         else:
             msg = f'An unhandled error {exc} has occurred'
         await ctx.send(f'{msg} {self.bot.command_error_emoji}', delete_after=10)
