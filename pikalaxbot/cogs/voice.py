@@ -24,6 +24,7 @@ import os
 import time
 import re
 from .utils.converters import EspeakParamsConverter
+import traceback
 
 
 class VoiceCommandError(commands.CheckFailure):
@@ -248,6 +249,14 @@ class Voice(BaseCog):
         task = self.timeout_tasks.get(ctx.guild.id)
         if task is not None:
             task.cancel()
+
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, VoiceCommandError):
+            await ctx.reply(f'Unable to execute voice command: {error}', delete_after=10)
+        else:
+            tb = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
+            msg = f'Ignoring exception in command "{ctx.command}"\n{tb}'
+            await self.bot.send_tb(msg)
 
 
 def setup(bot):
