@@ -44,7 +44,7 @@ class Ping(BaseCog):
     async def ping(self, ctx: commands.Context):
         """Quickly test the bot's ping"""
 
-        new = await ctx.send('Pong!')
+        new = await ctx.reply('Pong!', allowed_mentions=discord.AllowedMentions(replied_user=False))
         delta = new.created_at - ctx.message.created_at
         await new.edit(content=f'Pong!\n'
                                f'Round trip: {delta.total_seconds() * 1000:.0f} ms\n'
@@ -98,7 +98,7 @@ class Ping(BaseCog):
                 msg = f'Fetched {len(ping_history)} records in {fetch_end - fetch_start:.3f}s\n' \
                       f'Plotting failed'
                 file = None
-        await ctx.send(msg, file=file)
+        await ctx.reply(msg, file=file, allowed_mentions=discord.AllowedMentions(replied_user=False))
 
 
 def setup(bot):
