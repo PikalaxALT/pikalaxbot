@@ -48,7 +48,8 @@ class Ping(BaseCog):
         delta = new.created_at - ctx.message.created_at
         await new.edit(content=f'Pong!\n'
                                f'Round trip: {delta.total_seconds() * 1000:.0f} ms\n'
-                               f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms')
+                               f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms',
+                       allowed_mentions=discord.AllowedMentions(replied_user=False))
 
     def do_plot_ping(self, buffer, history):
         times = list(history.keys())
