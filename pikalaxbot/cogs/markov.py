@@ -66,7 +66,7 @@ class Markov(BaseCog):
     async def cog_command_error(self, ctx, error):
         if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
             embed = await self.get_prefix_help_embed(ctx)
-            await ctx.send('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
+            await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
 
     def gen_msg(self, len_max=64, n_attempts=5):
         longest = ''
@@ -132,31 +132,34 @@ class Markov(BaseCog):
         recipient = recipient or ctx.author
         chain = self.gen_msg(len_max=250, n_attempts=10) or 'An error has occurred.'
         embed = await self.get_prefix_help_embed(ctx)
-        await ctx.send(f'{recipient.mention}: {chain}', embed=embed)
+        if recipient == ctx.author:
+            await ctx.reply(chain, embed=embed)
+        else:
+            await ctx.send(f'{recipient.mention}: {chain}', embed=embed)
 
     @markov.command(name='add')
     @commands.is_owner()
     async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
         """Add a Markov channel by ID or mention"""
         if ch.id in self.markov_channels:
-            await ctx.send(f'Channel {ch} is already being tracked for Markov chains')
+            await ctx.reply(f'Channel {ch} is already being tracked for Markov chains')
         else:
             async with ctx.typing():
                 if await self.learn_markov_from_history(ch):
-                    await ctx.send(f'Successfully initialized {ch}')
+                    await ctx.reply(f'Successfully initialized {ch}')
                     self.markov_channels.add(ch.id)
                 else:
-                    await ctx.send(f'Missing permissions to load {ch}')
+                    await ctx.reply(f'Missing permissions to load {ch}')
 
     @markov.command(name='delete')
     @commands.is_owner()
     async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
         """Remove a Markov channel by ID or mention"""
         if ch.id in self.markov_channels:
-            await ctx.send(f'Channel {ch} will no longer be learned')
+            await ctx.reply(f'Channel {ch} will no longer be learned')
             self.markov_channels.discard(ch.id)
         else:
-            await ctx.send(f'Channel {ch} is not being learned')
+            await ctx.reply(f'Channel {ch} is not being learned')
 
     @BaseCog.listener()
     async def on_message(self, msg: discord.Message):
