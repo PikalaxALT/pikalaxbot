@@ -27,6 +27,7 @@ import sys
 import os
 import glob
 import traceback
+import logging
 
 from . import PikalaxBOT, __dirname__, __version__
 
@@ -90,6 +91,7 @@ def main():
     parser.add_argument('--logfile', default='bot.log')
     parser.add_argument('--sqlfile', default=f'{__dirname__}/data/db.sql')
     parser.add_argument('--version', action='store_true')
+    parser.add_argument('--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO)
     args = parser.parse_args()
     if args.version:
         print(f'{os.path.basename(os.path.dirname(__file__))} v{__version__}')
@@ -110,7 +112,8 @@ def main():
             reactions=True,
             voice_states=True,
             presences=True
-        )
+        ),
+        log_level=args.log_level
     )
     init_extensions(bot)
     bot.run()

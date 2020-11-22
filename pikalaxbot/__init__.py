@@ -38,6 +38,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     def __init__(self, settings_file, logfile, sqlfile, **kwargs):
         # Load settings
         loop = kwargs.pop('loop', None) or asyncio.get_event_loop()
+        log_level = kwargs.pop('log_level', logging.NOTSET)
         self.settings = Settings(settings_file, loop=loop)
         super().__init__(
             activity=discord.Game(self.settings.game),
@@ -48,7 +49,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self._sql = sqlfile
 
         # Set up logger
-        self.logger.setLevel(logging.DEBUG if self.settings.debug else logging.INFO)
+        self.logger.setLevel(log_level)
         handler = logging.FileHandler(logfile, mode='w')
         fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
         handler.setFormatter(fmt)
