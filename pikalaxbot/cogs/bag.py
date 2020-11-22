@@ -38,12 +38,13 @@ class Bag(BaseCog):
     async def bag(self, ctx):
         """Get in the bag, Nebby."""
         async with self.bot.sql as sql:
-            async for message, in sql.execute('select bag from meme order by random() limit 1'):
-                await ctx.send(f'*{message}*')
-                break
-            else:
-                emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
-                await ctx.send(f'*cannot find the bag {emoji}*')
+            async with sql.execute('select bag from meme order by random() limit 1') as cur:
+                async for message, in cur:
+                    await ctx.send(f'*{message}*')
+                    break
+                else:
+                    emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
+                    await ctx.send(f'*cannot find the bag {emoji}*')
 
     @bag.command()
     async def add(self, ctx, *, fmtstr):
