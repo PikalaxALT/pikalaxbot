@@ -60,15 +60,16 @@ class MemberStatus(BaseCog):
         content = f'Ignoring exception in MemberStatus.update_counters\n{s}'
         await self.bot.send_tb(content)
 
-    def do_plot_status_history(self, buffer, history):
+    @staticmethod
+    def do_plot_status_history(buffer, history):
         times = list(history.keys())
         values = list(history.values())
         plt.figure()
-        counts = {key: [v[key] for v in values] for key in self.colormap}
+        counts = {key: [v[key] for v in values] for key in MemberStatus.colormap}
         ax: plt.Axes = plt.gca()
         idxs = thin_points(len(times), 1000)
         for key, value in counts.items():
-            ax.plot(np.array(times)[idxs], np.array(value)[idxs], c=self.colormap[key], label=str(key).title())
+            ax.plot(np.array(times)[idxs], np.array(value)[idxs], c=MemberStatus.colormap[key], label=str(key).title())
         set_time_xlabs(ax, times)
         _, ymax = ax.get_ylim()
         ax.set_ylim(0, ymax)
@@ -100,7 +101,7 @@ class MemberStatus(BaseCog):
             if len(counts) > 1:
                 buffer = io.BytesIO()
                 start = time.perf_counter()
-                await self.bot.loop.run_in_executor(None, self.do_plot_status_history, buffer, counts)
+                await self.bot.loop.run_in_executor(None, MemberStatus.do_plot_status_history, buffer, counts)
                 end = time.perf_counter()
                 buffer.seek(0)
                 msg = f'Fetched {len(counts)} records in {fetch_end - fetch_start:.3f}s\n' \

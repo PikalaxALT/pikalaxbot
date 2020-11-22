@@ -51,7 +51,8 @@ class Ping(BaseCog):
                                f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms',
                        allowed_mentions=discord.AllowedMentions(replied_user=False))
 
-    def do_plot_ping(self, buffer, history):
+    @staticmethod
+    def do_plot_ping(buffer, history):
         times = list(history.keys())
         values = list(history.values())
         plt.figure()
@@ -89,7 +90,7 @@ class Ping(BaseCog):
             if len(ping_history) > 1:
                 buffer = io.BytesIO()
                 start = time.perf_counter()
-                await self.bot.loop.run_in_executor(None, self.do_plot_ping, buffer, ping_history)
+                await self.bot.loop.run_in_executor(None, Ping.do_plot_ping, buffer, ping_history)
                 end = time.perf_counter()
                 buffer.seek(0)
                 msg = f'Fetched {len(ping_history)} records in {fetch_end - fetch_start:.3f}s\n' \
