@@ -53,6 +53,9 @@ class ErrorHandling(BaseCog):
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
         elif isinstance(exc, commands.CommandNotFound):
+            if ctx.invoked_with.lower().startswith('fix') and self.bot.get_cog('Fix'):
+                return
+
             async def filter_commands(iterable):
                 res = []
                 for command in iterable:
