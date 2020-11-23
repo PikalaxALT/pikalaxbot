@@ -49,7 +49,7 @@ class Markov(BaseCog):
     def cog_check(self, ctx: commands.Context):
         def inner():
             # If a command was invoked directly, the check passes.
-            if ctx.message.guild is not None and (ctx.valid or ctx.prefix is not None):
+            if ctx.message.guild is not None and (ctx.valid or ctx.prefix):
                 return True
             # Invoked from on_message without command.
             name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
