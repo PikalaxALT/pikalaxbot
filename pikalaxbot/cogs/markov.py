@@ -166,7 +166,7 @@ class Markov(BaseCog):
         if msg.author.bot:
             return
         ctx: commands.Context = await self.bot.get_context(msg)
-        if ctx.prefix:
+        if ctx.prefix is not None:
             return
         self.learn_markov(msg)
         ctx.command = self.markov
