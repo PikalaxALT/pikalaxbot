@@ -49,7 +49,7 @@ class Markov(BaseCog):
     def cog_check(self, ctx: commands.Context):
         def inner():
             # If a command was invoked directly, the check passes.
-            if ctx.message.guild is not None and (ctx.valid or ctx.prefix):
+            if ctx.message.guild is not None and ctx.valid:
                 return True
             # Invoked from on_message without command.
             name_grp = '|'.join({ctx.me.name, ctx.me.display_name, 'doot'})
@@ -166,7 +166,7 @@ class Markov(BaseCog):
         if msg.author.bot:
             return
         ctx: commands.Context = await self.bot.get_context(msg)
-        if ctx.prefix:
+        if ctx.prefix is not None:
             return
         self.learn_markov(msg)
         ctx.command = self.markov
