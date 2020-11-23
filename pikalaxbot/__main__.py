@@ -31,6 +31,8 @@ import logging
 
 from . import PikalaxBOT, __dirname__, __version__
 
+DPY_GUILD_ID = 336642139381301249
+
 
 async def _command_prefix(bot, message):
     if message.guild is None:
@@ -40,7 +42,10 @@ async def _command_prefix(bot, message):
             await sql.execute('insert or ignore into prefixes values (?, ?)', (message.guild.id, bot.settings.prefix))
             async with sql.execute('select prefix from prefixes where guild = ?', (message.guild.id,)) as cur:
                 bot.guild_prefixes[message.guild.id], = await cur.fetchone()
-    return bot.guild_prefixes[message.guild.id]
+    ret = [bot.guild_prefixes[message.guild.id]]
+    if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author):
+        ret.append('')
+    return ret
 
 
 def filter_extensions(bot):

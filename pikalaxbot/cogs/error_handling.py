@@ -53,6 +53,8 @@ class ErrorHandling(BaseCog):
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
         elif isinstance(exc, commands.CommandNotFound):
+            if not ctx.prefix:
+                return
             if ctx.invoked_with.lower().startswith('fix') and self.bot.get_cog('Fix'):
                 return
 
