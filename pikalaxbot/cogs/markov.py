@@ -122,7 +122,7 @@ class Markov(BaseCog):
         if first_word in mentions \
                 and not ctx.prefix \
                 and not self.prefix_reminder_cooldown.update_rate_limit(ctx.message):
-            prefix = await self.bot.get_prefix(ctx.message)
+            prefix, *_ = await self.bot.get_prefix(ctx.message)
             return discord.Embed(description=f'Trying to get one of my commands? Type `{prefix}help`', colour=0xf47fff)
 
     @commands.check(lambda ctx: len(ctx.cog.markov_channels) != 0)
