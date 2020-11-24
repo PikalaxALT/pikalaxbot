@@ -71,13 +71,6 @@ class Meme(BaseCog):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
 
-    async def init_db(self, sql):
-        c = await sql.execute("select count(*) from sqlite_master where type='table' and name='meme'")
-        exists, = await c.fetchone()
-        await sql.execute("create table if not exists meme (bag text primary key)")
-        if not exists:
-            await sql.executemany("insert into meme(bag) values (?)", sql.default_bag)
-
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
             return

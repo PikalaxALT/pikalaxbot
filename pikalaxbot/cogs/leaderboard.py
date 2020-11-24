@@ -18,6 +18,7 @@ import discord
 from discord.ext import commands
 
 from . import BaseCog
+from .utils.game import increment_score
 
 
 class Leaderboard(BaseCog):
@@ -70,7 +71,7 @@ class Leaderboard(BaseCog):
     async def give_points(self, ctx, person: discord.Member, score: int):
         """Give points to a player"""
         async with self.bot.sql as sql:
-            await sql.increment_score(person, score)
+            await increment_score(sql, person, by=score)
         await ctx.send(f'Gave {score:d} points to {person.name}')
 
 

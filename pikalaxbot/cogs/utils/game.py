@@ -26,6 +26,7 @@ from .errors import BadGameArgument
 
 __all__ = (
     'find_emoji',
+    'increment_score',
     'GameBase',
     'GameCogBase'
 )
@@ -36,6 +37,10 @@ def find_emoji(guild, name, case_sensitive=True):
         return s if case_sensitive else s.lower()
 
     return discord.utils.find(lambda e: lower(name) == lower(e.name), guild.emojis)
+
+
+async def increment_score(sql, player, *, by=1):
+    await sql.execute('insert into game values (?, ?, ?) on conflict(id) do update set score = score + ?', (player.id, player.name, by, by))
 
 
 class GameBase:
@@ -126,7 +131,7 @@ class GameBase:
         score = max(math.ceil(self.score / len(self._players)), 1)
         async with self.bot.sql as sql:
             for player in self._players:
-                await sql.increment_score(player, by=score)
+                await increment_score(sql, player, by=score)
         return score
 
 

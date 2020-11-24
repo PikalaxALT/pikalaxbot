@@ -5,6 +5,7 @@ from . import BaseCog
 import asyncio
 import re
 import traceback
+from .utils.game import increment_score
 
 
 _emojis = '\u270a', '\u270b', '\u270c', '\u274c'
@@ -146,7 +147,7 @@ class RockPaperScissors(BaseCog):
             winner = [None, opponent, ctx.author][diff]
             if winner:
                 async with self.bot.sql as sql:
-                    await sql.increment_score(winner, by=69)
+                    await increment_score(sql, winner, by=69)
                 content += f'\n\n{winner.mention} earns 69 points for winning!'
             await ctx.send(content)
 

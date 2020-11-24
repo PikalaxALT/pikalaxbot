@@ -95,13 +95,17 @@ class VoltorbFlipGame(GameBase):
     
     async def get_level(self, channel):
         async with self.bot.sql as sql:
-            self._level = await sql.get_voltorb_level(channel)
+            async with sql.execute('select level from voltorb where id = ?', (channel.id,)) as cur:
+                async for self._level, in cur:
+                    break
+                else:
+                    self._level = 1
         return self._level
 
     async def update_level(self, channel, new_level):
         self._level = new_level
         async with self.bot.sql as sql:
-            await sql.set_voltorb_level(channel, new_level)
+            await sql.execute("replace into voltorb values (?, ?) on conflict (id) do update set level = ?", (channel.id, new_level, new_level))
 
     def build_board(self):
         minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
