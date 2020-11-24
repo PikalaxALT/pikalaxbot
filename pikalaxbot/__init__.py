@@ -105,11 +105,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     async def close(self):
         self.log_info('Logout request receeived')
-        for client in self.voice_clients:  # type: discord.VoiceClient
-            try:
-                await client.disconnect(force=True)
-            except:
-                pass
+        await asyncio.gather(*(client.disconnect(force=True) for client in self.voice_clients), return_exceptions=True)
         try:
             await super().close()
         finally:
