@@ -170,7 +170,7 @@ class Markov(BaseCog):
             return
         self.learn_markov(msg)
         ctx.command = self.markov
-        ctx.prefix = None
+        ctx.prefix = ctx.prefix or None
         try:
             if await self.markov.can_run(ctx):
                 await self.markov(ctx, recipient=None)
