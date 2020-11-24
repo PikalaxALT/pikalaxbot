@@ -39,9 +39,8 @@ async def _command_prefix(bot, message):
         return ''
     if message.guild.id not in bot.guild_prefixes:
         async with bot.sql as sql:
-            await sql.execute('insert or ignore into prefixes values (?, ?)', (message.guild.id, bot.settings.prefix))
-            async with sql.execute('select prefix from prefixes where guild = ?', (message.guild.id,)) as cur:
-                bot.guild_prefixes[message.guild.id], = await cur.fetchone()
+            await sql.execute('insert into prefixes values ($1, $2) on conflict (guild) do nothing', message.guild.id, bot.settings.prefix)
+            bot.guild_prefixes[message.guild.id], = await sql.fetchrow('select prefix from prefixes where guild = $1', message.guild.id)
     ret = [bot.guild_prefixes[message.guild.id]]
     if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author):
         ret.append('')
@@ -80,23 +79,22 @@ def init_extensions(bot):
 
 
 def main():
-    """The main function that runs the bot.
-
-    Syntax:
-        python3.6 bot.py [--version] [--settings SETTINGSFILE] [--logfile LOGFILE] [--sqlfile SQLFILE]
-
-    --version: Prints the version string and exits.
-    --settings SETTINGSFILE: a JSON file denoting the bot's settings.  See README.md for details.  Defaults to settings.json
-    --logfile LOGFILE: the file to which the logging module will output bot events.  This file will be overwritten.
-        Defaults to bot.log
-    --sqlfile SQLFILE: the database location. Defaults to data/db.sql
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--settings', default='settings.json')
-    parser.add_argument('--logfile', default='bot.log')
-    parser.add_argument('--sqlfile', default=f'{__dirname__}/data/db.sql')
-    parser.add_argument('--version', action='store_true')
-    parser.add_argument('--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO)
+    parser = argparse.ArgumentParser(prog="pikalaxbot", description="A Discord bot. Yeah.",
+                                     epilog="For more help, contact PikalaxALT#5823 on the discord.py server.")
+    parser.add_argument('--settings', default='settings.json',
+                        help="a JSON file denoting the bot's settings. "
+                             "See README.md for details. "
+                             "Defaults to %(default)s")
+    parser.add_argument('--logfile', default='bot.log',
+                        help="the file to which the logging module will output bot events. "
+                             "This file will be overwritten. "
+                             "Defaults to %(default)s")
+    parser.add_argument('--sql', default=f'{__dirname__}/data/db.sql',
+                        help="the database location. Defaults to %(default)s")
+    parser.add_argument('--version', action='store_true',
+                        help="Prints the version string and exits.")
+    parser.add_argument('--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO,
+                        help="set debug log level")
     args = parser.parse_args()
     if args.version:
         print(f'{os.path.basename(os.path.dirname(__file__))} v{__version__}')
@@ -105,7 +103,7 @@ def main():
     bot = PikalaxBOT(
         args.settings,
         args.logfile,
-        args.sqlfile,
+        args.sql,
         command_prefix=_command_prefix,
         case_insensitive=True,
         # d.py 1.5.0: Declare gateway intents

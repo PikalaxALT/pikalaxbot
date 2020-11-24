@@ -42,30 +42,39 @@ class Core(BaseCog):
     LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists commandstats (command text unique not null primary key, uses integer default 0)')
+        await sql.execute(
+            'create table if not exists '
+            'commandstats ('
+            'command text unique not null primary key, '
+            'uses integer default 0'
+            ')')
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx):
         async with self.bot.sql as sql:
-            await sql.execute('insert or ignore into commandstats(command) values (?)', (ctx.command.qualified_name,))
-            await sql.execute('update commandstats set uses = uses + 1 where command = ?', (ctx.command.qualified_name,))
+            await sql.execute(
+                'insert into commandstats '
+                'values ($1, 1) '
+                'on conflict (command) '
+                'do update '
+                'set uses = commandstats.uses + 1',
+                ctx.command.qualified_name)
 
     async def get_runnable_commands(self, ctx):
         cmds = []
         lost_cmds = []
         async with self.bot.sql as sql:
-            async with sql.execute('select * from commandstats order by uses desc') as cur:
-                async for name, uses in cur:
-                    cmd: commands.Command = self.bot.get_command(name)
-                    if cmd is None:
-                        lost_cmds.append((name,))
-                        continue
-                    try:
-                        valid = await cmd.can_run(ctx)
-                        if valid:
-                            cmds.append(f'{name} ({uses} uses)')
-                    except commands.CommandError:
-                        continue
+            for name, uses in await sql.fetch('select * from commandstats order by uses desc'):
+                cmd: commands.Command = self.bot.get_command(name)
+                if cmd is None:
+                    lost_cmds.append((name,))
+                    continue
+                try:
+                    valid = await cmd.can_run(ctx)
+                    if valid:
+                        cmds.append(f'{name} ({uses} uses)')
+                except commands.CommandError:
+                    continue
             if lost_cmds:
                 await sql.executemany('delete from commandstats where command = ?', lost_cmds)
         return cmds
