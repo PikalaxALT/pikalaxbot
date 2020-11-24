@@ -70,8 +70,8 @@ class PollManager:
         yield self.owner_id
         yield self.context_id
         yield self.message_id
-        yield self.start_time.timestamp()
-        yield self.stop_time.timestamp()
+        yield self.start_time
+        yield self.stop_time
 
     @classmethod
     async def from_command(cls, context, timeout, prompt, *options):
@@ -109,8 +109,8 @@ class PollManager:
             channel_id=channel_id,
             context_id=context_id,
             owner_id=owner_id,
-            start_time=datetime.datetime.fromtimestamp(start_time),
-            stop_time=datetime.datetime.fromtimestamp(stop_time),
+            start_time=start_time,
+            stop_time=stop_time,
             my_hash=my_hash,
             votes=dict(await sql.fetch('select voter, option from poll_options where code = $1', my_hash)),
             options=[option.split(' ', 1)[1] for option in message.embeds[0].description.splitlines()]
