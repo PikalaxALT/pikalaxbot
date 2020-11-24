@@ -36,7 +36,7 @@ class Leaderboard(BaseCog):
         person = person or ctx.author
 
         async with self.bot.sql as sql:
-            for score, rank in await sql.fetch('select score, rank () over (order by score desc) ranking from game where id = $1', person.id):
+            for score, rank in await sql.fetch('select score, ranking from (select id, score, rank () over (order by score desc) ranking from game) foo where id = $1', person.id):
                 msg = f'{person.name} has {score:d} point(s) across all games ' \
                       f'and is #{rank:d} on the leaderboard.'
                 break
