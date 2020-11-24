@@ -32,26 +32,25 @@ class Bag(BaseCog):
 
     async def init_db(self, sql):
         await sql.execute("create table if not exists meme (bag text unique)")
-        await sql.executemany("insert into meme values (?) on conflict (bag) do nothing", self.default_bag)
+        await sql.executemany("insert into meme values ($1) on conflict (bag) do nothing", self.default_bag)
 
     @commands.group(invoke_without_command=True)
     async def bag(self, ctx):
         """Get in the bag, Nebby."""
         async with self.bot.sql as sql:
-            async with sql.execute('select bag from meme order by random() limit 1') as cur:
-                async for message, in cur:
-                    await ctx.send(f'*{message}*')
-                    break
-                else:
-                    emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
-                    await ctx.send(f'*cannot find the bag {emoji}*')
+            try:
+                message, = await sql.fetchrow('select bag from meme order by random() limit 1')
+                await ctx.send(f'*{message}*')
+            except TypeError:
+                emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
+                await ctx.send(f'*cannot find the bag {emoji}*')
 
     @bag.command()
     async def add(self, ctx, *, fmtstr):
         """Add a message to the bag."""
         try:
             async with self.bot.sql as sql:
-                await sql.execute('insert into meme values (?)', (fmtstr,))
+                await sql.execute('insert into meme values ($1)', fmtstr)
         except aiosqlite.Error:
             await ctx.send('That message is already in the bag')
         else:
@@ -65,7 +64,7 @@ class Bag(BaseCog):
             return await ctx.send('Cannot remove default message from bag')
         try:
             async with self.bot.sql as sql:
-                await sql.execute('delete from meme where bag = ?', (msg,))
+                await sql.execute('delete from meme where bag = $1', msg)
         except aiosqlite.Error:
             await ctx.send('Cannot remove message from the bag')
         else:

@@ -95,17 +95,22 @@ class VoltorbFlipGame(GameBase):
     
     async def get_level(self, channel):
         async with self.bot.sql as sql:
-            async with sql.execute('select level from voltorb where id = ?', (channel.id,)) as cur:
-                async for self._level, in cur:
-                    break
-                else:
-                    self._level = 1
+            try:
+                self._level, = await sql.fetchrow('select level from voltorb where id = $1', channel.id)
+            except TypeError:
+                self._level = 1
         return self._level
 
     async def update_level(self, channel, new_level):
         self._level = new_level
         async with self.bot.sql as sql:
-            await sql.execute("replace into voltorb values (?, ?) on conflict (id) do update set level = ?", (channel.id, new_level, new_level))
+            await sql.execute(
+                "insert into voltorb "
+                "values ($1, $2) "
+                "on conflict (id) "
+                "do update "
+                "set level = $2",
+                channel.id, new_level)
 
     def build_board(self):
         minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
@@ -278,7 +283,7 @@ class VoltorbFlip(GameCogBase):
 
     async def init_db(self, sql):
         await super().init_db(sql)
-        await sql.execute("create table if not exists voltorb (id integer primary key, level integer default 1)")
+        await sql.execute("create table if not exists voltorb (id bigint primary key, level integer default 1)")
 
     def cog_check(self, ctx):
         return self._local_check(ctx)

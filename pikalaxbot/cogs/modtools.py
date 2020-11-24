@@ -17,7 +17,7 @@
 import asyncio
 import discord
 import traceback
-import sqlite3
+import asyncpg
 import logging
 import typing
 from discord.ext import commands, menus
@@ -77,7 +77,7 @@ class Modtools(BaseCog):
                 self.disabled_commands.discard(name)
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists prefixes (guild integer not null primary key, prefix text not null)")
+        await sql.execute("create table if not exists prefixes (guild bigint not null primary key, prefix text not null default $1)", self.bot.settings.prefix)
 
     def cog_unload(self):
         for name in list(self.disabled_commands):
@@ -136,9 +136,8 @@ class Modtools(BaseCog):
         pag = commands.Paginator(max_size=2048)
         async with ctx.typing():
             async with self.bot.sql as sql:
-                async with sql.execute(script) as cursor:
-                    async for row in cursor:
-                        pag.add_line('|'.join(map(str, row)))
+                for row in await sql.fetch(script):
+                    pag.add_line('|'.join(map(str, row)))
         if pag.pages:
             menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = script
@@ -158,7 +157,7 @@ class Modtools(BaseCog):
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, limit=3))
         embed = discord.Embed(color=discord.Color.red())
         embed.add_field(name='Traceback', value=f'```{tb}```')
-        if isinstance(exc, sqlite3.Error):
+        if isinstance(exc, asyncpg.PostgresError):
             msg = 'The script failed with an error (check your syntax?)'
         else:
             msg = 'An unexpected error has occurred, my husbando is on the case'
@@ -372,7 +371,7 @@ class Modtools(BaseCog):
         """Update the bot's command prefix"""
 
         async with self.bot.sql as sql:
-            await sql.execute("replace into prefixes (guild, prefix) values (?, ?)", (ctx.guild.id, prefix))
+            await sql.execute("insert into prefixes values ($1, $2) on conflict (guild) do update set prefix = $2", ctx.guild.id, prefix)
         self.bot.guild_prefixes[ctx.guild.id] = prefix
         await ctx.message.add_reaction('✅')
 

@@ -22,13 +22,11 @@ class ReactionRoles(BaseCog):
         return True
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists reaction_schema (guild integer unique not null primary key, channel integer, message integer)")
-        await sql.execute("create table if not exists reaction_roles (guild integer not null primary key, emoji text, role integer)")
-        c = await sql.execute("select * from reaction_schema")
-        for guild, channel, message in await c.fetchall():
+        await sql.execute("create table if not exists reaction_schema (guild bigint unique not null primary key, channel bigint, message bigint)")
+        await sql.execute("create table if not exists reaction_roles (guild bigint not null primary key, emoji text, role bigint)")
+        for guild, channel, message in await sql.fetch('select * from reaction_schema'):
             self.reaction_schema[guild] = (channel, message)
-        c = await sql.execute("select * from reaction_roles")
-        for guild, emoji, role in await c.fetchall():
+        for guild, emoji, role in await sql.fetch('select * from reaction_roles'):
             self.reaction_roles[guild][emoji] = role
 
     def validate_reaction(self, payload: discord.RawReactionActionEvent):
@@ -72,7 +70,7 @@ class ReactionRoles(BaseCog):
             message = await channel.send('React to the following emoji to get the associated roles:')
             self.reaction_schema[ctx.guild.id] = (channel.id, message.id)
             with self.bot.sql as sql:
-                await sql.execute("insert into reaction_schema values (?, ?, ?)", (ctx.guild.id, channel.id, message.id))
+                await sql.execute("insert into reaction_schema values ($1, $2, $3)", ctx.guild.id, channel.id, message.id)
             await ctx.message.add_reaction('✅')
 
     @commands.command(name='drop')
@@ -89,8 +87,8 @@ class ReactionRoles(BaseCog):
         self.reaction_schema.pop(ctx.guild.id)
         self.reaction_roles.pop(ctx.guild.id, None)
         with self.bot.sql as sql:
-            await sql.execute("delete from reaction_schema where guild = ?", (ctx.guild.id,))
-            await sql.execute("delete from reaction_roles where guild = ?", (ctx.guild.id,))
+            await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
+            await sql.execute("delete from reaction_roles where guild = $1", ctx.guild.id)
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='add-role')
@@ -111,7 +109,7 @@ class ReactionRoles(BaseCog):
             raise ReactionAlreadyRegistered
         await message.add_reaction(emoji)
         with self.bot.sql as sql:
-            await sql.execute("insert into reaction_roles values (?, ?, ?)", (ctx.guild.id, str(emoji), role.id))
+            await sql.execute("insert into reaction_roles values ($1, $2, $3)", ctx.guild.id, str(emoji), role.id)
         await ctx.message.add_reaction('✅')
     
     @commands.command('drop-role')
@@ -143,7 +141,7 @@ class ReactionRoles(BaseCog):
         self.reaction_roles[ctx.guild.id].pop(str(emoji))
         await message.remove_reaction(emoji)
         with self.bot.sql as sql:
-            await sql.execute("delete from reaction_roles where guild = ? and emoji = ?", (ctx.guild.id, str(emoji)))
+            await sql.execute("delete from reaction_roles where guild = $1 and emoji = $2", ctx.guild.id, str(emoji))
         await ctx.message.add_reaction('✅')
 
     async def cog_command_error(self, ctx, error):

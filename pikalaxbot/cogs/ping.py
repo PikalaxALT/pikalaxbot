@@ -19,7 +19,7 @@ class Ping(BaseCog):
         self.build_ping_history.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists ping_history (timestamp real, latency real)')
+        await sql.execute('create table if not exists ping_history (timestamp timestamp, latency real)')
         await sql.execute('create unique index if not exists ping_history_idx on ping_history (timestamp)')
         self.build_ping_history.start()
 
@@ -28,7 +28,7 @@ class Ping(BaseCog):
         now = self.build_ping_history._last_iteration.replace(tzinfo=None)
         ping = self.bot.latency * 1000
         async with self.bot.sql as sql:
-            await sql.execute_insert('insert or ignore into ping_history values (?, ?)', (now.timestamp(), ping))
+            await sql.execute('insert into ping_history values ($1, $2) on conflict (timestamp) do nothing', now, ping)
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
@@ -36,7 +36,7 @@ class Ping(BaseCog):
 
     @build_ping_history.error
     async def ping_history_error(self, error):
-        s = traceback.format_exception(error.__class__, error, error.__traceback__)
+        s = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
         content = f'Ignoring exception in Ping.build_ping_history\n{s}'
         await self.bot.send_tb(content)
 
@@ -84,8 +84,7 @@ class Ping(BaseCog):
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                async with sql.execute('select * from ping_history where timestamp >= ? and timestamp < ? order by timestamp', (hstart.timestamp(), hend.timestamp())) as cur:
-                    ping_history = {datetime.datetime.fromtimestamp(timestamp): latency async for timestamp, latency in cur}
+                ping_history = dict(await sql.fetch('select * from ping_history where timestamp >= $1 and timestamp < $2 order by timestamp', hstart, hend))
             fetch_end = time.perf_counter()
             if len(ping_history) > 1:
                 buffer = io.BytesIO()

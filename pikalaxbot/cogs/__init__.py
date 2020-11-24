@@ -16,6 +16,7 @@
 
 import typing
 import collections
+import asyncpg
 
 from discord.ext import commands
 from pikalaxbot.utils.logging_mixin import LoggingMixin
@@ -61,7 +62,7 @@ class BaseCog(LoggingMixin, commands.Cog):
             bot.loop.create_task(do_db_init())
 
     @_cog_special_method
-    async def init_db(self, sql):
+    async def init_db(self, sql: asyncpg.Connection):
         """Override this"""
         pass
 

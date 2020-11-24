@@ -36,21 +36,19 @@ class Leaderboard(BaseCog):
         person = person or ctx.author
 
         async with self.bot.sql as sql:
-            async with sql.execute('elect score, rank () over (order by score desc) ranking from game where id = ?', (person.author.id)) as cur:
-                async for score, rank in cur:
-                    msg = f'{person.name} has {score:d} point(s) across all games ' \
-                          f'and is #{rank:d} on the leaderboard.'
-                    break
-                else:
-                    msg = f'{person.name} is not yet on the leaderboard.'
+            for score, rank in await sql.fetch('select score, ranking from (select id, score, rank () over (order by score desc) ranking from game) foo where id = $1', person.id):
+                msg = f'{person.name} has {score:d} point(s) across all games ' \
+                      f'and is #{rank:d} on the leaderboard.'
+                break
+            else:
+                msg = f'{person.name} is not yet on the leaderboard.'
         await ctx.send(msg)
 
     @leaderboard.command()
     async def show(self, ctx):
         """Check the top 10 players on the leaderboard"""
         async with self.bot.sql as sql:
-            async with sql.execute('select * from game order by score desc limit 10') as cur:
-                msgs = [f'{name}: {score:d}' async for _id, name, score in cur] or ['Wumpus: 0']
+            msgs = [f'{name}: {score:d}' for _id, name, score in await sql.fetch('select * from game order by score desc limit 10')] or ['Wumpus: 0']
         msg = '\n'.join(msgs)
         await ctx.send(f'Leaderboard:\n'
                        f'```\n'

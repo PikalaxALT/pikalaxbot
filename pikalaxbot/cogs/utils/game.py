@@ -40,7 +40,13 @@ def find_emoji(guild, name, case_sensitive=True):
 
 
 async def increment_score(sql, player, *, by=1):
-    await sql.execute('insert into game values (?, ?, ?) on conflict(id) do update set score = score + ?', (player.id, player.name, by, by))
+    await sql.execute(
+        'insert into game '
+        'values ($1, $2, $3) '
+        'on conflict(id) '
+        'do update '
+        'set score = game.score + $3',
+        player.id, player.name, by)
 
 
 class GameBase:
@@ -139,7 +145,7 @@ class GameCogBase(BaseCog):
     gamecls = None
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists game (id integer unique primary key, name text, score integer default 0)")
+        await sql.execute("create table if not exists game (id bigint unique primary key, name text, score integer default 0)")
 
     def _local_check(self, ctx):
         if ctx.guild is None:

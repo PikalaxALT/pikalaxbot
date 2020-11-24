@@ -70,8 +70,8 @@ class PollManager:
         yield self.owner_id
         yield self.context_id
         yield self.message_id
-        yield self.start_time.timestamp()
-        yield self.stop_time.timestamp()
+        yield self.start_time
+        yield self.stop_time
 
     @classmethod
     async def from_command(cls, context, timeout, prompt, *options):
@@ -109,10 +109,10 @@ class PollManager:
             channel_id=channel_id,
             context_id=context_id,
             owner_id=owner_id,
-            start_time=datetime.datetime.fromtimestamp(start_time),
-            stop_time=datetime.datetime.fromtimestamp(stop_time),
+            start_time=start_time,
+            stop_time=stop_time,
             my_hash=my_hash,
-            votes=dict(await sql.execute_fetchall('select voter, option from poll_options where code = ?', (my_hash,))),
+            votes=dict(await sql.fetch('select voter, option from poll_options where code = $1', my_hash)),
             options=[option.split(' ', 1)[1] for option in message.embeds[0].description.splitlines()]
         )
         this.message = message
@@ -151,7 +151,7 @@ class PollManager:
         selection = self.emojis.index(payload.emoji.name)
         self.votes[payload.user_id] = selection
         async with self.bot.sql as sql:
-            await sql.execute('insert into poll_options (code, voter, option) values (?, ?, ?)', (self.hash, payload.user_id, selection))
+            await sql.execute('insert into poll_options (code, voter, option) values ($1, $2, $3)', self.hash, payload.user_id, selection)
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if payload.message_id != self.message_id:
@@ -165,7 +165,7 @@ class PollManager:
             return
         self.votes.pop(payload.user_id)
         async with self.bot.sql as sql:
-            await sql.execute('delete from poll_options where code = ? and voter = ?', (self.hash, payload.user_id))
+            await sql.execute('delete from poll_options where code = $1 and voter = $2', self.hash, payload.user_id)
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
         if payload.message_id == self.message_id:
@@ -221,8 +221,8 @@ class Poll(BaseCog):
             mgr.cancel(True)
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists polls (code text, channel integer, owner integer, context integer, message integer, started timestamp, closes timestamp)')
-        await sql.execute('create table if not exists poll_options (code text, voter integer, option integer)')
+        await sql.execute('create table if not exists polls (code text, channel bigint, owner bigint, context bigint, message bigint, started timestamp, closes timestamp)')
+        await sql.execute('create table if not exists poll_options (code text, voter bigint, option integer)')
         self.cleanup_polls.start()
 
     @tasks.loop(seconds=60)
@@ -240,7 +240,7 @@ class Poll(BaseCog):
         await self.bot.wait_until_ready()
         try:
             async with self.bot.sql as sql:
-                for row in await sql.execute_fetchall('select * from polls'):
+                for row in await sql.fetch('select * from polls'):
                     try:
                         mgr = await PollManager.from_sql(self.bot, sql, *row)
                         self.polls.append(mgr)
@@ -288,8 +288,8 @@ duration, prompt, and options."""
         async with ctx.bot.sql as sql:
             await sql.execute(
                 'insert into polls (code, channel, owner, context, message, started, closes) '
-                'values (?, ?, ?, ?, ?, ?, ?)',
-                tuple(mgr)
+                'values ($1, $2, $3, $4, $5, $6, $7)',
+                *mgr
             )
         self.polls.append(mgr)
         mgr.start()
@@ -372,8 +372,8 @@ duration, prompt, and options."""
         async with ctx.bot.sql as sql:
             await sql.execute(
                 'insert into polls (code, channel, owner, context, message, started, closes) '
-                'values (?, ?, ?, ?, ?, ?, ?)',
-                tuple(mgr)
+                'values ($1, $2, $3, $4, $5, $6, $7)',
+                *mgr
             )
         self.polls.append(mgr)
         mgr.start()
@@ -421,8 +421,8 @@ duration, prompt, and options."""
     async def on_poll_end(self, mgr: PollManager):
         now = datetime.datetime.utcnow()
         async with self.bot.sql as sql:
-            await sql.execute('delete from polls where code = ?', (mgr.hash,))
-            await sql.execute('delete from poll_options where code = ?', (mgr.hash,))
+            await sql.execute('delete from polls where code = $1', mgr.hash)
+            await sql.execute('delete from poll_options where code = $1', mgr.hash)
         if mgr in self.polls:
             self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)

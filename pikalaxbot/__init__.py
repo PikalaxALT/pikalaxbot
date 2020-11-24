@@ -21,6 +21,8 @@ import logging
 from io import StringIO
 import aiohttp
 import os
+import asyncpg
+import typing
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.sql import connect
@@ -57,9 +59,11 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
+            self._pool = await asyncpg.create_pool(self._sql)
 
         self.log_info('Creating aiohttp session')
-        self.client_session = None
+        self.client_session: typing.Optional[aiohttp.ClientSession] = None
+        self._pool: typing.Optional[asyncpg.pool.Pool] = None
         self.loop.run_until_complete(init_client_session())
 
         # Reboot handler
@@ -80,8 +84,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     @property
-    def sql(self):
-        return connect(self._sql, loop=self.loop)
+    def sql(self) -> asyncpg.Connection:
+        return self._pool.acquire()
 
     async def send_tb(self, tb, embed=None):
         channel = self.exc_channel
@@ -110,6 +114,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             await super().close()
         finally:
             await self.client_session.close()
+            await self._pool.close()
 
     async def on_ready(self):
         self.log_info(f'Logged in as {self.user}')

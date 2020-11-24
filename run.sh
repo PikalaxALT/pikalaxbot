@@ -9,4 +9,6 @@ if ! [ -d pokeapi ]; then
 fi
 git submodule update --remote
 python3 -m pip install -U -r requirements.txt  # update discord
-JISHAKU_NO_UNDERSCORE=true JISHAKU_NO_DM_TRACEBACK=true python3 -m pikalaxbot  # start the bot
+JISHAKU_NO_UNDERSCORE=true \
+JISHAKU_NO_DM_TRACEBACK=true \
+python3 -m pikalaxbot --sql "postgres://root:raspberrypi@localhost/pikalaxbot"  # start the bot

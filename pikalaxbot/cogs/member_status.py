@@ -28,27 +28,26 @@ class MemberStatus(BaseCog):
         self.update_counters.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists memberstatus (guild_id integer, timestamp real, online integer, offline integer, dnd integer, idle integer)')
+        await sql.execute('create table if not exists memberstatus (guild_id bigint, timestamp timestamp, online integer, offline integer, dnd integer, idle integer)')
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
         self.update_counters.start()
 
     @tasks.loop(seconds=30)
     async def update_counters(self):
         now = self.update_counters._last_iteration.replace(tzinfo=None)
-        sql_now = now.timestamp()
         to_insert = []
         for guild in self.bot.guilds:
             counts = Counter(m.status for m in guild.members)
             to_insert.append([
                 guild.id,
-                sql_now,
+                now,
                 counts[discord.Status.online],
                 counts[discord.Status.offline],
                 counts[discord.Status.dnd],
                 counts[discord.Status.idle]
             ])
         async with self.bot.sql as sql:
-            await sql.executemany('insert or ignore into memberstatus values (?, ?, ?, ?, ?, ?)', to_insert)
+            await sql.executemany('insert into memberstatus values ($1, $2, $3, $4, $5, $6) on conflict (guild_id, timestamp) do nothing', to_insert)
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
@@ -56,7 +55,7 @@ class MemberStatus(BaseCog):
 
     @update_counters.error
     async def update_counters_error(self, error):
-        s = traceback.format_exception(error.__class__, error, error.__traceback__)
+        s = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
         content = f'Ignoring exception in MemberStatus.update_counters\n{s}'
         await self.bot.send_tb(content)
 
@@ -95,8 +94,7 @@ class MemberStatus(BaseCog):
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                async with sql.execute('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = ? and timestamp >= ? and timestamp < ? order by timestamp', (ctx.guild.id, hstart.timestamp(), hend.timestamp())) as cur:
-                    counts = {datetime.datetime.fromtimestamp(row[0]): {name: count for name, count in zip(discord.Status, row[1:])} async for row in cur}
+                counts = {row[0]: {name: count for name, count in zip(discord.Status, row[1:])} for row in await sql.fetch('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = $1 and timestamp >= $2 and timestamp < $3 order by timestamp', ctx.guild.id, hstart, hend)}
             fetch_end = time.perf_counter()
             if len(counts) > 1:
                 buffer = io.BytesIO()

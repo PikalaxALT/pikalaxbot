@@ -43,14 +43,12 @@ class Fix(BaseCog):
 
     async def init_db(self, sql):
         await sql.execute('CREATE TABLE IF NOT EXISTS fix (name TEXT PRIMARY KEY, owner TEXT NOT NULL, altname TEXT)')
-        for key, value in self.initial_bot_owners.items():
-            altname = self.initial_bot_names.get(key)
-            await sql.execute('INSERT OR IGNORE INTO fix VALUES (?, ?, ?)', (key, value, altname))
-        async with sql.execute('SELECT * FROM fix') as cur:
-            async for name, owner, altname in cur:
-                self.bot_owners[name] = owner
-                if altname:
-                    self.bot_names[name] = altname
+        values = [(key, value, self.initial_bot_names.get(key)) for key, value in self.initial_bot_owners.items()]
+        await sql.executemany('INSERT INTO fix VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING', values)
+        for name, owner, altname in await sql.fetch('SELECT * FROM fix'):
+            self.bot_owners[name] = owner
+            if altname:
+                self.bot_names[name] = altname
 
     @staticmethod
     def get_fix_alias(ctx):
@@ -83,7 +81,7 @@ class Fix(BaseCog):
             elif key in self.bot_names:
                 del self.bot_names[key]
             async with self.bot.sql as sql:
-                await sql.execute('INSERT INTO fix VALUES (?, ?, ?) ON CONFLICT (name) DO UPDATE SET owner = ? AND altname = ?', (key, owner, altname, owner, altname))
+                await sql.execute('INSERT INTO fix VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET owner = $2 AND altname = $3', key, owner, altname)
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
@@ -96,7 +94,7 @@ class Fix(BaseCog):
             if key in self.bot_names:
                 del self.bot_names[key]
             async with self.bot.sql as sql:
-                await sql.execute('DELETE FROM fix WHERE name = ?', (key,))
+                await sql.execute('DELETE FROM fix WHERE name = $1', key)
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
