@@ -89,8 +89,6 @@ def main():
                         help="the file to which the logging module will output bot events. "
                              "This file will be overwritten. "
                              "Defaults to %(default)s")
-    parser.add_argument('--sql', default=f'{__dirname__}/data/db.sql',
-                        help="the database location. Defaults to %(default)s")
     parser.add_argument('--version', action='store_true',
                         help="Prints the version string and exits.")
     parser.add_argument('--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO,
@@ -103,7 +101,6 @@ def main():
     bot = PikalaxBOT(
         args.settings,
         args.logfile,
-        args.sql,
         command_prefix=_command_prefix,
         case_insensitive=True,
         # d.py 1.5.0: Declare gateway intents

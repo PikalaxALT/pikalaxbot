@@ -25,7 +25,6 @@ import asyncpg
 import typing
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
-from .utils.sql import connect
 from .utils.logging_mixin import LoggingMixin
 
 __dirname__ = os.path.dirname(__file__) or '.'
@@ -37,7 +36,7 @@ __all__ = ('PikalaxBOT',)
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
-    def __init__(self, settings_file, logfile, sqlfile, **kwargs):
+    def __init__(self, settings_file, logfile, **kwargs):
         # Load settings
         loop = kwargs.pop('loop', None) or asyncio.get_event_loop()
         log_level = kwargs.pop('log_level', logging.NOTSET)
@@ -48,7 +47,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             **kwargs
         )
         self.guild_prefixes = {}
-        self._sql = sqlfile
+        self._sql = 'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
 
         # Set up logger
         self.logger.setLevel(log_level)

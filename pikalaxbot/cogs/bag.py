@@ -17,7 +17,7 @@
 from discord.ext import commands
 from . import BaseCog
 from .utils.game import find_emoji
-import aiosqlite
+import asyncpg
 
 
 class Bag(BaseCog):
@@ -51,7 +51,7 @@ class Bag(BaseCog):
         try:
             async with self.bot.sql as sql:
                 await sql.execute('insert into meme values ($1)', fmtstr)
-        except aiosqlite.Error:
+        except asyncpg.PostgresError:
             await ctx.send('That message is already in the bag')
         else:
             await ctx.send('Message was successfully placed in the bag')
@@ -65,7 +65,7 @@ class Bag(BaseCog):
         try:
             async with self.bot.sql as sql:
                 await sql.execute('delete from meme where bag = $1', msg)
-        except aiosqlite.Error:
+        except asyncpg.PostgresError:
             await ctx.send('Cannot remove message from the bag')
         else:
             await ctx.send('Removed message from bag')

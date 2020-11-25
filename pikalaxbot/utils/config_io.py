@@ -47,6 +47,12 @@ _defaults = {
     'error_emoji': 'pikalaOwO',
     'exc_channel': 657960851193724960,
     'banned_guilds': [],
+    'database': {
+        'username': 'root',
+        'password': 'raspberrypi',
+        'host': 'localhost',
+        'dbname': 'pikalaxbot'
+    },
 }
 
 

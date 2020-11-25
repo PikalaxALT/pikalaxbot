@@ -6,16 +6,17 @@
 Combination Discord Bot and Twitch WIP Bot.
 
 ## Requirements
-Python >= 3.7 is required. FFMPEG and libsodium are required for voice. \
+Python >= 3.9 is required. FFMPEG and libsodium are required for voice. \
 Linux users may need to install their distributions' `python3-matplotlib` package as well, instead of using `pip`.
 
 ## Setup
 
 1) Clone this repository (duh).
-2) Create a settings.json using the following template.
-3) Install the requirements using `python3.7 -m pip install -U -r requirements.txt`.
+2) Create a `settings.json` using the following template.
+3) Install the requirements using `python -m pip install -U -r requirements.txt`.
 - See note above about matplotlib.
-4) Run bot.py using `python3.7 bot.py`.
+4) Set up a database in postgresql, and fill in your credentials in the `settings.json` file under "database".
+5) Run bot.py using `python bot.py`.
 ```json
 {
     "token": "My Discord Bot Token",
@@ -39,6 +40,12 @@ Linux users may need to install their distributions' `python3-matplotlib` packag
     "roles": {},
     "watches": {},
     "error_emoji": "pikalaOwO",
-    "exc_channel": 657960851193724960
+    "exc_channel": 657960851193724960,
+    "database": {
+        "username": "root", 
+        "password": "raspberrypi", 
+        "host": "localhost", 
+        "dbname": "pikalaxbot"
+    }
 }
 ```
