@@ -25,11 +25,30 @@ import datetime
 import traceback
 import typing
 import base64
+import math
 from collections import Counter
 
 from .utils.errors import *
 from pikalaxbot.utils.hastebin import mystbin
 from .utils.converters import FutureTime
+
+
+class BadPollTimeArgument(commands.BadArgument):
+    pass
+
+
+class PollTime(FutureTime, float):
+    @classmethod
+    async def convert(cls, ctx, argument):
+        try:
+            value = await FutureTime.convert(ctx, argument)
+        except commands.ConversionError:
+            value = float(argument)
+        else:
+            value = (value.dt - ctx.message.created_at).total_seconds()
+        if value <= 0 or not math.isfinite(value):
+            raise BadPollTimeArgument
+        return value
 
 
 class PollManager:
@@ -265,15 +284,12 @@ class Poll(BaseCog):
                     await channel.send(f'An error has occurred: {url}')
 
     @commands.group(name='poll', invoke_without_command=True)
-    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[typing.Union[float, FutureTime]], prompt, *opts):
+    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[PollTime], prompt, *opts):
         """Create a poll with up to 10 options.  Poll will last for 60.0 seconds (or as specified),
         with sudden death tiebreakers as needed.  Use quotes to enclose multi-word
 duration, prompt, and options."""
 
-        if timeout is None:
-            timeout = Poll.TIMEOUT
-        elif isinstance(timeout, FutureTime):
-            timeout = (timeout.dt - ctx.message.created_at).total_seconds()
+        timeout = timeout or Poll.TIMEOUT
         # Do it this way because `set` does weird things with ordering
         options = []
         for opt in opts:
@@ -296,13 +312,9 @@ duration, prompt, and options."""
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @poll_cmd.command(name='new')
-    async def interactive_poll_maker(self, ctx: commands.Context, timeout: typing.Optional[typing.Union[float, FutureTime]]):
+    async def interactive_poll_maker(self, ctx: commands.Context, timeout: PollTime = TIMEOUT):
         """Create a poll interactively"""
 
-        if timeout is None:
-            timeout = Poll.TIMEOUT
-        elif isinstance(timeout, FutureTime):
-            timeout = (timeout.dt - ctx.message.created_at).total_seconds()
         embed = discord.Embed(
             title='Interactive Poll Maker',
             description=f'Poll created by {ctx.author.mention}\n\n'
@@ -377,6 +389,12 @@ duration, prompt, and options."""
             )
         self.polls.append(mgr)
         mgr.start()
+
+    @poll_cmd.error
+    @interactive_poll_maker.error
+    async def poll_create_error(self, ctx, error):
+        if isinstance(error, BadPollTimeArgument):
+            await ctx.send('Invalid value for timeout. Try something like `300`, `60m`, `1w`, ...')
 
     @poll_cmd.command()
     async def cancel(self, ctx: commands.Context, mgr: PollManager):
