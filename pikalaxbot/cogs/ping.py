@@ -44,12 +44,16 @@ class Ping(BaseCog):
     async def ping(self, ctx: commands.Context):
         """Quickly test the bot's ping"""
 
-        new = await ctx.reply('Pong!', allowed_mentions=discord.AllowedMentions(replied_user=False))
-        delta = new.created_at - ctx.message.created_at
-        await new.edit(content=f'Pong!\n'
-                               f'Round trip: {delta.total_seconds() * 1000:.0f} ms\n'
-                               f'Heartbeat latency: {self.bot.latency * 1000:.0f} ms',
-                       allowed_mentions=discord.AllowedMentions(replied_user=False))
+        t = time.perf_counter()
+        async with ctx.typing():
+            t2 = time.perf_counter()
+        embed = discord.Embed(title='Pong!', colour=0xf47fff)
+        now = datetime.datetime.utcnow()
+        new = await ctx.reply(embed=embed, mention_author=False)
+        embed.add_field(name='Heartbeat latency', value=f'{self.bot.latency * 1000:.0f} ms')
+        embed.add_field(name='Typing delay', value=f'{(t2 - t) * 1000:.0f} ms')
+        embed.add_field(name='Message delay', value=f'{(new.created_at - now).total_seconds() * 1000:.0f} ms')
+        await new.edit(embed=embed, mention_author=False)
 
     @staticmethod
     def do_plot_ping(buffer, history):
