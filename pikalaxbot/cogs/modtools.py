@@ -77,7 +77,7 @@ class Modtools(BaseCog):
                 self.disabled_commands.discard(name)
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists prefixes (guild bigint not null primary key, prefix text not null default $1)", self.bot.settings.prefix)
+        await sql.execute(f"create table if not exists prefixes (guild bigint not null primary key, prefix text not null default '{self.bot.settings.prefix}')")
 
     def cog_unload(self):
         for name in list(self.disabled_commands):

@@ -74,7 +74,7 @@ class ErrorHandling(BaseCog):
             msg = f'I don\'t have a command called `{ctx.invoked_with}`. Did you mean `{matches[0]}`?'
         else:
             msg = f'An unhandled error {exc} has occurred'
-        await ctx.reply(f'{msg} {self.bot.command_error_emoji}', delete_after=10, allowed_mentions=discord.AllowedMentions(replied_user=False))
+        await ctx.reply(f'{msg} {self.bot.command_error_emoji}', delete_after=10, mention_author=False)
 
     @BaseCog.listener()
     async def on_command_error(self, ctx, exc):

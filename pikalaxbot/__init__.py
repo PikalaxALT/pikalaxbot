@@ -58,7 +58,11 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
-            self._pool = await asyncpg.create_pool(self._sql)
+            try:
+                self._pool = await asyncpg.create_pool(self._sql)
+            except Exception:
+                await self.client_session.close()
+                raise
 
         self.log_info('Creating aiohttp session')
         self.client_session: typing.Optional[aiohttp.ClientSession] = None

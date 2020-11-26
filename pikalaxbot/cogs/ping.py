@@ -99,7 +99,7 @@ class Ping(BaseCog):
                 msg = f'Fetched {len(ping_history)} records in {fetch_end - fetch_start:.3f}s\n' \
                       f'Plotting failed'
                 file = None
-        await ctx.reply(msg, file=file, allowed_mentions=discord.AllowedMentions(replied_user=False))
+        await ctx.reply(msg, file=file, mention_author=False)
 
 
 def setup(bot):
