@@ -17,7 +17,7 @@ class Lick(BaseCog):
         """
         https://m.youtube.com/watch?v=krDxhnaKD7Q
         """
-        start = random.randint(0, 11)
+        start = random.randrange(12)
         use_s = True
         for i, tongue in enumerate(self.lick[:-1]):
             if self.notes_s[(tongue + start) % 12][0] == self.notes_s[(self.lick[i + 1] + start) % 12][0]:

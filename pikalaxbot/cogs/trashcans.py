@@ -37,12 +37,12 @@ class TrashcansGame(GameBase):
 
     @staticmethod
     def is_valid(x, y):
-        return x in range(5) and y in range(3)
+        return 5 > x >= 0 and 3 > y >= 0
 
     def reset_locks(self):
         self._solution = [[False for j in range(5)] for i in range(3)]
-        x1 = random.randint(0, 4)
-        y1 = random.randint(0, 2)
+        x1 = random.randrange(5)
+        y1 = random.randrange(3)
         self._solution[y1][x1] = True
         options = [
             ( 0, -1),

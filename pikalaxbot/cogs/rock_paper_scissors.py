@@ -25,7 +25,7 @@ class RPSMenu(menus.Menu):
         self.player_move = 3
         self.player = player
         self.opponent = opponent
-        self.bot_move = 3 if opponent else random.randint(0, 2)
+        self.bot_move = 3 if opponent else random.randrange(3)
         self.timed_out = False
         for emoji in _emojis:
             self.add_button(menus.Button(emoji, self.my_action))
