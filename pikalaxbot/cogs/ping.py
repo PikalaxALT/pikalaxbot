@@ -44,15 +44,17 @@ class Ping(BaseCog):
     async def ping(self, ctx: commands.Context):
         """Quickly test the bot's ping"""
 
+        now = datetime.datetime.utcnow()
         t = time.perf_counter()
         async with ctx.typing():
             t2 = time.perf_counter()
         embed = discord.Embed(title='Pong!', colour=0xf47fff)
-        now = datetime.datetime.utcnow()
+        now2 = datetime.datetime.utcnow()
         new = await ctx.reply(embed=embed, mention_author=False)
         embed.add_field(name='Heartbeat latency', value=f'{self.bot.latency * 1000:.0f} ms')
         embed.add_field(name='Typing delay', value=f'{(t2 - t) * 1000:.0f} ms')
-        embed.add_field(name='Message delay', value=f'{(new.created_at - now).total_seconds() * 1000:.0f} ms')
+        embed.add_field(name='Message receive delay', value=f'{(now - ctx.message.created_at).total_seconds() * 1000:.0f} ms')
+        embed.add_field(name='Message send delay', value=f'{(new.created_at - now2).total_seconds() * 1000:.0f} ms')
         await new.edit(embed=embed, mention_author=False)
 
     @staticmethod
