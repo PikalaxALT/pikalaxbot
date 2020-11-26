@@ -7,7 +7,7 @@ git pull  # update the bot
 if ! [ -d pokeapi ]; then
   git submodule init
 fi
-git submodule update --remote
+git submodule update --recursive
 python3 -m pip install -U -r requirements.txt  # update discord
 JISHAKU_NO_UNDERSCORE=true \
 JISHAKU_NO_DM_TRACEBACK=true \
