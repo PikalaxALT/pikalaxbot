@@ -59,7 +59,7 @@ class RPSMenu(menus.Menu):
             # 1: bot wins
             # 2: player wins
             embed.description += f'\n\n{self.ctx.author}: {player_emoji}\n{self.bot.user}: {bot_emoji}\n\n'
-            embed.description += ('It\'s a draw!', 'The player loses...', 'The player wins!')[diff]
+            embed.description += '**' + ('It\'s a draw!', 'The player loses...', 'The player wins!')[diff] + '**'
             embed.colour = (discord.Colour.dark_gray, discord.Colour.red, discord.Colour.green)[diff]()
         await self.message.edit(embed=embed)
 
@@ -143,7 +143,7 @@ class RockPaperScissors(BaseCog):
             content = f'\n\n' \
                       f'{ctx.author.mention}\'s move: {player_emoji}\n' \
                       f'{opponent.mention}\'s move: {opponent_emoji}\n\n'
-            content += ['It\'s a draw!', f'{opponent.mention} wins!', f'{ctx.author.mention} wins!'][diff]
+            content += '**' + ('It\'s a draw!', f'{opponent.mention} wins!', f'{ctx.author.mention} wins!')[diff] + '**'
             winner = [None, opponent, ctx.author][diff]
             if winner:
                 async with self.bot.sql as sql:
