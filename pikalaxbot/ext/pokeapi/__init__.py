@@ -83,7 +83,7 @@ class PokeApi:
 
     async def get_mon_types(self, mon):
         """Returns a list of type names for that Pokemon"""
-        async with self.execute('SELECT name FROM pokemon_v2_typename WHERE language_id = ? AND type_id IN (SELECT type_id FROM pokemon_v2_pokemontype WHERE pokemon_id = ?)', (self.language, mon['id'])) as cur:  # type: aiosqlite.Cursor
+        async with self.execute('SELECT name FROM pokemon_v2_typename WHERE language_id = ? AND type_id IN (SELECT type_id FROM pokemon_v2_pokemontype WHERE pokemon_id = ?)', (self.language, mon[0])) as cur:  # type: aiosqlite.Cursor
             return [name async for name, in cur]
 
 
