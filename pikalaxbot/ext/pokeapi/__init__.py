@@ -55,8 +55,10 @@ class PokeApi:
             return 'Name not found'
 
     async def random_species_name(self, *, clean=True):
-        mon = await self.random_species()
-        name = await self.get_mon_name(mon, clean=clean)
+        async with self.execute('SELECT name FROM pokemon_v2_pokemonspeciesname WHERE language_id = ? ORDER BY random() LIMIT 1', (self.language,)) as cur:  # type: aiosqlite.Cursor
+            name, = await cur.fetchone()
+        if clean:
+            name = PokeApi.clean_name(name)
         return name
 
     random_pokemon_name = random_species_name
@@ -77,8 +79,11 @@ class PokeApi:
             return 'Name not found'
 
     async def random_move_name(self, *, clean=True):
-        move = await self.random_move()
-        name = await self.get_move_name(move, clean=clean)
+        async with self.execute('SELECT name FROM pokemon_v2_movename WHERE language_id = ? ORDER BY random() LIMIT 1',
+                                (self.language,)) as cur:  # type: aiosqlite.Cursor
+            name, = await cur.fetchone()
+        if clean:
+            name = PokeApi.clean_name(name)
         return name
 
     async def get_mon_types(self, mon):
