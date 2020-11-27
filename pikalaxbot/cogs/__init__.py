@@ -17,6 +17,7 @@
 import typing
 import collections
 import asyncpg
+import traceback
 
 from discord.ext import commands
 from pikalaxbot.utils.logging_mixin import LoggingMixin
@@ -88,7 +89,11 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(self, attr, val)
 
     async def cog_before_invoke(self, ctx):
-        await self.fetch()
+        try:
+            await self.fetch()
+        except Exception as e:
+            tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
+            await self.bot.send_tb(f'Ignoring exception in {self}.cog_before_invoke:\n{tb}')
 
     async def commit(self):
         """
@@ -103,4 +108,8 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(settings, attr, val)
 
     async def cog_after_invoke(self, ctx):
-        await self.commit()
+        try:
+            await self.commit()
+        except Exception as e:
+            tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
+            await self.bot.send_tb(f'Ignoring exception in {self}.cog_after_invoke:\n{tb}')

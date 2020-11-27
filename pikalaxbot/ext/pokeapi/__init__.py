@@ -1,59 +1,35 @@
-import random
 import re
-import csv
 import os
-import discord
+import aiosqlite
+import typing
 
 
 class PokeApi:
-    path = os.path.dirname(__file__) + '/../../../pokeapi/data/v2/csv'
-    language = '9'
-    __slots__ = (
-        'abilities',
-        'ability_names',
-        'egg_groups',
-        'evolution_chains',
-        'generation_names',
-        'generations',
-        'move_names',
-        'moves',
-        'pokemon',
-        'pokemon_abilities',
-        'pokemon_color_names',
-        'pokemon_colors',
-        'pokemon_dex_numbers',
-        'pokemon_egg_groups',
-        'pokemon_evolution',
-        'pokemon_form_names',
-        'pokemon_forms',
-        'pokemon_habitat_names',
-        'pokemon_habitats',
-        'pokemon_moves',
-        'pokemon_shapes',
-        'pokemon_species',
-        'pokemon_species_names',
-        'pokemon_stats',
-        'pokemon_types',
-        'stat_names',
-        'stats',
-        'type_efficacy',
-        'type_names',
-        'types'
-    )
+    db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
+    language = 9
 
-    def __init__(self):
-        for attrname in PokeApi.__slots__:
-            file = f'{PokeApi.path}/{attrname}.csv'
-            with open(file, encoding='utf-8') as fp:
-                reader = csv.DictReader(fp)
-                if attrname.endswith('_names'):
-                    data = [row for row in reader if row['local_language_id'] == PokeApi.language]
-                else:
-                    data = list(csv.DictReader(fp))
-                setattr(self, attrname, data)
+    def __init__(self, *args, **kwargs):
+        self._db: typing.Optional[aiosqlite.Connection] = None
+        self._args = args
+        self._kwargs = kwargs
 
     def __repr__(self):
         return f'<{self.__class__.__name__}>'
+
+    async def connect(self, *args, **kwargs):
+        if self._db is None:
+            self._db = await aiosqlite.connect(PokeApi.db_path, *args, **kwargs)
+        return self._db
+
+    async def __aenter__(self):
+        await self.connect(*self._args, **self._kwargs)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._db.close()
+    
+    def execute(self, *args, **kwargs):
+        return self._db.execute(*args, **kwargs)
 
     @staticmethod
     def clean_name(name):
@@ -61,52 +37,60 @@ class PokeApi:
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
-    def random_species(self):
-        mon = random.choice(self.pokemon_species)
+    async def random_species(self):
+        async with self.execute('SELECT * FROM pokemon_v2_pokemonspecies ORDER BY random() LIMIT 1') as cur:
+            mon = await cur.fetchone()
         return mon
 
     random_pokemon = random_species
-    
-    def get_name(self, item, from_, *, clean=True):
-        def find_cb(row):
-            return row[f'{from_}_id'] == item['id']
-        
-        name = discord.utils.find(find_cb, getattr(self, f'{from_}_names'))['name']
-        if clean:
-            name = self.clean_name(name)
-        return name
 
-    def get_mon_name(self, mon, *, clean=True):
+    async def get_mon_name(self, mon, *, clean=True):
         try:
-            return self.get_name(mon, 'pokemon_species', clean=clean)
+            async with self.execute('SELECT name FROM pokemon_v2_pokemonspeciesname WHERE language_id = ? AND pokemon_species_id = ? LIMIT 1', (self.language, mon[0])) as cur:  # type: aiosqlite.Cursor
+                name, = await cur.fetchone()
+            if clean:
+                name = PokeApi.clean_name(name)
+            return name
         except TypeError:
             return 'Name not found'
 
-    def random_species_name(self, *, clean=True):
-        name = random.choice(self.pokemon_species_names)['name']
-        if clean:
-            name = self.clean_name(name)
+    async def random_species_name(self, *, clean=True):
+        mon = await self.random_species()
+        name = await self.get_mon_name(mon, clean=clean)
         return name
 
     random_pokemon_name = random_species_name
 
-    def random_move(self):
-        return random.choice(self.moves)
+    async def random_move(self):
+        async with self.execute('SELECT * FROM pokemon_v2_move ORDER BY random() LIMIT 1') as cur:  # type: aiosqlite.Cursor
+            move = await cur.fetchone()
+        return move
 
-    def random_move_name(self, *, clean=True):
-        name = random.choice(self.move_names)
-        if clean:
-            name = self.clean_name(name)
+    async def get_move_name(self, move, *, clean=True):
+        try:
+            async with self.execute('SELECT name FROM pokemon_v2_movename WHERE language_id = ? AND move_id = ? LIMIT 1', (self.language, move[0])) as cur:  # type: aiosqlite.Cursor
+                name, = await cur.fetchone()
+            if clean:
+                name = PokeApi.clean_name(name)
+            return name
+        except TypeError:
+            return 'Name not found'
+
+    async def random_move_name(self, *, clean=True):
+        move = await self.random_move()
+        name = await self.get_move_name(move, clean=clean)
         return name
 
-    def get_mon_types(self, mon):
+    async def get_mon_types(self, mon):
         """Returns a list of type names for that Pokemon"""
-        types = set(row['type_id'] for row in self.pokemon_types if row['pokemon_id'] == mon['id'])
-        return [row['name'] for row in self.type_names if row['type_id'] in types]
+        async with self.execute('SELECT name FROM pokemon_v2_typename WHERE language_id = ? AND type_id IN (SELECT type_id FROM pokemon_v2_pokemontype WHERE pokemon_id = ?)', (self.language, mon['id'])) as cur:  # type: aiosqlite.Cursor
+            return [name async for name, in cur]
 
 
 def setup(bot):
-    bot.pokeapi = PokeApi()
+    def factory():
+        return PokeApi()
+    bot.pokeapi = factory
 
 
 def teardown(bot):

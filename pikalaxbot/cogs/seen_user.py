@@ -1,6 +1,6 @@
 import datetime
 import discord
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from discord.ext import commands
 import typing
 from . import BaseCog
@@ -9,12 +9,7 @@ import re
 
 
 def get_msg_reference(message):
-    return discord.MessageReference(
-        None,  # message._state
-        message_id=message.id,
-        channel_id=message.channel.id,
-        guild_id=message.guild.id
-    )
+    return namedtuple('MessageReference', 'message_id channel_id guild_id')(message.id, message.channel.id, message.guild.id)
 
 
 def get_jump_url(ref):

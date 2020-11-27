@@ -226,10 +226,7 @@ class Modtools(BaseCog):
             extension = f'pikalaxbot.cogs.{cog}'
         real_cog = cog.title().replace('_', '')
         try:
-            if cog == 'ext.pokeapi':
-                await self.bot.loop.run_in_executor(None, method, extension)
-            else:
-                method(extension)
+            method(extension)
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
