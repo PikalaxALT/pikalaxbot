@@ -1,5 +1,5 @@
 #discord.py[voice]>=1.5.1,<1.6.0
-git+https://github.com/PikalaxALT/discord.py@reply#egg=discord.py[voice]
+git+https://github.com/Rapptz/discord.py#egg=discord.py[voice]
 git+https://github.com/Rapptz/discord-ext-menus
 aiofile>=3.1.0
 python-dateutil>=2.8.0
