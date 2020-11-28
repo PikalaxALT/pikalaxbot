@@ -47,7 +47,19 @@ class PokeApi:
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
-    async def random_species(self):
+    async def get_species(self, id_) -> PokemonSpecies:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonspecies
+        WHERE id = ?
+        """
+        async with self.execute(statement, (id_,)) as cur:
+            mon = await cur.fetchone()
+        return mon and PokeApi.PokemonSpecies(*mon)
+
+    get_pokemon = get_species
+
+    async def random_species(self) -> PokemonSpecies:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonspecies
@@ -87,7 +99,7 @@ class PokeApi:
 
     random_pokemon_name = random_species_name
 
-    async def random_move(self):
+    async def random_move(self) -> Move:
         async with self.execute('SELECT * FROM pokemon_v2_move ORDER BY random() LIMIT 1') as cur:
             move = await cur.fetchone()
         return move and PokeApi.Move(*move)
