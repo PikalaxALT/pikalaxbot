@@ -23,7 +23,7 @@ class ReactionRoles(BaseCog):
 
     async def init_db(self, sql):
         await sql.execute("create table if not exists reaction_schema (guild bigint unique not null primary key, channel bigint, message bigint)")
-        await sql.execute("create table if not exists reaction_roles (guild bigint not null primary key, emoji text, role bigint)")
+        await sql.execute("create table if not exists reaction_roles (guild bigint not null references reaction_schema(guild), emoji text, role bigint)")
         for guild, channel, message in await sql.fetch('select * from reaction_schema'):
             self.reaction_schema[guild] = (channel, message)
         for guild, emoji, role in await sql.fetch('select * from reaction_roles'):
@@ -87,8 +87,8 @@ class ReactionRoles(BaseCog):
         self.reaction_schema.pop(ctx.guild.id)
         self.reaction_roles.pop(ctx.guild.id, None)
         with self.bot.sql as sql:
-            await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
             await sql.execute("delete from reaction_roles where guild = $1", ctx.guild.id)
+            await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='add-role')
