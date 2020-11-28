@@ -67,7 +67,7 @@ class Fix(BaseCog):
     @BaseCog.listener()
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
-        if ctx.prefix and not ctx.valid and Fix.get_fix_alias(ctx) \
+        if ctx.prefix is not None and not ctx.valid and Fix.get_fix_alias(ctx) \
                 and await self.fix.can_run(ctx):
             await self.fix(ctx)
 
