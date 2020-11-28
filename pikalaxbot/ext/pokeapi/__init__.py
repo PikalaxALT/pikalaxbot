@@ -86,9 +86,29 @@ class PokeApi:
             name = PokeApi.clean_name(name)
         return name
 
+    async def lookup_name(self, table, name):
+        actual_table = f'pokemon_v2_{table}name'
+        statement = f'SELECT name FROM {actual_table} WHERE language_id = ? AND name = ? COLLATE NOCASE'
+        try:
+            async with self.execute(statement, (self.language, name)) as cur:
+                name, = await cur.fetchone()
+        except TypeError:
+            name = None
+        return name
+
     async def get_mon_types(self, mon):
         """Returns a list of type names for that Pokemon"""
         async with self.execute('SELECT name FROM pokemon_v2_typename WHERE language_id = ? AND type_id IN (SELECT type_id FROM pokemon_v2_pokemontype WHERE pokemon_id = ?)', (self.language, mon[0])) as cur:  # type: aiosqlite.Cursor
+            return [name async for name, in cur]
+
+    async def get_mon_learnset(self, mon):
+        """Returns a list of move names for that Pokemon"""
+        async with self.execute('SELECT name FROM pokemon_v2_movename WHERE language_id = ? AND move_id IN (SELECT move_id FROM pokemon_v2_pokemonmove WHERE pokemon_id = ?)', (self.language, mon[0])) as cur:
+            return [name async for name, in cur]
+
+    async def get_mon_abilities(self, mon):
+        """Returns a list of ability names for that Pokemon"""
+        async with self.execute('SELECT name FROM pokemon_v2_abilityname WHERE language_id = ? AND ability_id IN (SELECT ability_id FROM pokemon_v2_pokemonability WHERE pokemon_id = ?)', (self.language, mon[0])) as cur:
             return [name async for name, in cur]
 
 
