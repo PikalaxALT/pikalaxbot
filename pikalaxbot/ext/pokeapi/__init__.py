@@ -3,6 +3,11 @@ import os
 import aiosqlite
 import typing
 import collections
+import discord
+from discord.ext import commands, tasks
+import asyncio
+import traceback
+import contextlib
 
 
 def prod(iterable):
@@ -267,6 +272,69 @@ class PokeApi:
         """
         async with self.execute(statement, (self.language, mon.id)) as cur:
             return [name async for name, in cur]
+
+
+class PokeApiCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self._lock = asyncio.Lock()
+
+    def cog_unload(self):
+        if not self._lock.locked():
+            raise AssertionError('cannot unload pokeapi while an update is in progress')
+
+    @contextlib.asynccontextmanager
+    async def acquire(self):
+        await self._lock.acquire()
+        factory = self.bot.pokeapi
+
+        class DummyPokeApi:
+            async def __aenter__(self):
+                return NotImplemented
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                return NotImplemented
+
+        self.bot.pokeapi = lambda: DummyPokeApi()
+        yield
+        self.bot.pokeapi = factory
+        self._lock.release()
+
+    @commands.group()
+    async def pokeapi(self, ctx):
+        """Commands for interfacing with pokeapi"""
+
+    @commands.max_concurrency(1)
+    @pokeapi.command(name='rebuild', aliases=['update'])
+    async def rebuild_pokeapi(self, ctx):
+        """Rebuild the pokeapi database"""
+        async with self.acquire():
+            shell = await asyncio.create_subprocess_shell('../../../setup_pokeapi.sh')
+            embed = discord.Embed(title='Updating PokeAPI', description='Started', colour=0xf47fff)
+            msg = await ctx.send(embed=embed)
+
+            @tasks.loop(seconds=10)
+            async def update_msg():
+                elapsed = (update_msg._next_iteration - msg.created_at).total_seconds()
+                embed.description = f'Still running... ({elapsed:.0f}s)'
+                await msg.edit(embed=embed)
+
+            done, pending = await asyncio.wait({update_msg.start(), self.bot.loop.create_task(shell.wait)}, return_when=asyncio.FIRST_COMPLETED)
+        [task.cancel() for task in pending]
+        try:
+            done.pop().result()
+        except Exception as e:
+            embed.colour = discord.Colour.red()
+            tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
+            if len(tb) > 2040:
+                tb = '...\n' + tb[-2036:]
+            embed.title = 'Update failed'
+            embed.description = f'```\n{tb}\n```'
+        else:
+            embed.colour = discord.Colour.green()
+            embed.title = 'Update succeeded!'
+            embed.description = 'You can now use pokeapi again'
+        await msg.edit(embed=embed)
 
 
 def setup(bot):
