@@ -38,7 +38,7 @@ class ErrorHandling(BaseCog):
         elif isinstance(exc, commands.TooManyArguments):
             msg = f'Too many arguments for `{ctx.command}`'
         elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
-            msg = f'Got a bad argument for `{ctx.command}` argument "{exc.param}"'
+            msg = f'Got a bad argument for `{ctx.command}`: {exc}'
         elif isinstance(exc, CogOperationError):
             for cog, original in exc.cog_errors.items():
                 if not original:
