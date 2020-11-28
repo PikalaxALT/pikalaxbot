@@ -240,8 +240,8 @@ class Poll(BaseCog):
             mgr.cancel(True)
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists polls (code text, channel bigint, owner bigint, context bigint, message bigint, started timestamp, closes timestamp)')
-        await sql.execute('create table if not exists poll_options (code text, voter bigint, option integer)')
+        await sql.execute('create table if not exists polls (code text unique primary key, channel bigint, owner bigint, context bigint, message bigint, started timestamp, closes timestamp)')
+        await sql.execute('create table if not exists poll_options (code text references polls(code), voter bigint, option integer)')
         self.cleanup_polls.start()
 
     @tasks.loop(seconds=60)
@@ -439,8 +439,8 @@ duration, prompt, and options."""
     async def on_poll_end(self, mgr: PollManager):
         now = datetime.datetime.utcnow()
         async with self.bot.sql as sql:
-            await sql.execute('delete from polls where code = $1', mgr.hash)
             await sql.execute('delete from poll_options where code = $1', mgr.hash)
+            await sql.execute('delete from polls where code = $1', mgr.hash)
         if mgr in self.polls:
             self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)
