@@ -81,7 +81,7 @@ class Fix(BaseCog):
             elif key in self.bot_names:
                 del self.bot_names[key]
             async with self.bot.sql as sql:
-                await sql.execute('INSERT INTO fix VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET owner = $2 AND altname = $3', key, owner, altname)
+                await sql.execute('INSERT INTO fix VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET owner = $2, altname = $3', key, owner, altname)
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
