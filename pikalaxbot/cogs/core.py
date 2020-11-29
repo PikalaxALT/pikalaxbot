@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 from humanize import naturaltime, precisedelta
 import resource
 import typing
@@ -25,6 +25,7 @@ import datetime
 import time
 import glob
 import collections
+import asyncio
 from jishaku.meta import __version__ as jsk_ver
 
 from . import BaseCog
@@ -137,13 +138,43 @@ class Core(BaseCog):
 
     @commands.command(aliases=['reboot', 'restart', 'shutdown'])
     @commands.is_owner()
+    @commands.max_concurrency(1)
     async def kill(self, ctx: commands.Context):
         """Shut down the bot (owner only, manual restart required)"""
 
-        mode = ctx.invoked_with in {'reboot', 'restart'}
-        self.bot.reboot_after = mode
-        await ctx.send('Rebooting to apply updates' if mode else 'Shutting down')
-        await self.bot.logout()
+        class ConfirmationMenu(menus.Menu):
+            def __init__(self, mode, **kwargs):
+                super().__init__(**kwargs)
+                self.mode = mode
+                self.reaction = None
+
+            async def send_initial_message(self, ctx, channel):
+                content = 'The bot will shutdown and apply updates. Okay to proceed?' if self.mode else 'The bot will shutdown and must be manually restarted. Okay to proceed?'
+                return await ctx.reply(content)
+
+            @menus.button('\N{CROSS MARK}')
+            async def abort(self, payload):
+                await self.message.edit(content='Reboot cancelled', delete_after=10)
+                self.stop()
+
+            @menus.button('\N{WHITE HEAVY CHECK MARK}')
+            async def confirm(self, payload):
+                self.bot.reboot_after = self.mode
+                await self.message.edit(content='Rebooting to apply updates' if self.mode else 'Shutting down')
+
+                async def do_logout():
+                    await asyncio.sleep(3)
+                    await self.bot.logout()
+
+                self.bot.loop.create_task(do_logout())
+                self.stop()
+
+            async def finalize(self, timed_out):
+                if timed_out:
+                    await self.message.edit(content='Request timed out', delete_after=10)
+
+        menu = ConfirmationMenu(ctx.invoked_with in {'reboot', 'restart'}, timeout=60.0, clear_reactions_after=True)
+        await menu.start(ctx, wait=True)
 
     @commands.command()
     @commands.is_owner()
