@@ -255,7 +255,7 @@ class PokeApi(aiosqlite.Connection):
             return [name async for name, in cur]
 
 
-class PokeApiCog(commands.Cog):
+class PokeApiCog(commands.Cog, command_attrs={'hidden': True}):
     def __init__(self, bot):
         self.bot = bot
         self._lock = asyncio.Lock()
@@ -286,6 +286,7 @@ class PokeApiCog(commands.Cog):
         """Commands for interfacing with pokeapi"""
 
     @commands.max_concurrency(1)
+    @commands.is_owner()
     @pokeapi.command(name='rebuild', aliases=['update'])
     async def rebuild_pokeapi(self, ctx):
         """Rebuild the pokeapi database"""
