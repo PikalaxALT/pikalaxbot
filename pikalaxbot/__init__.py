@@ -26,6 +26,7 @@ import typing
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.logging_mixin import LoggingMixin
+from .ext.pokeapi import PokeApi
 
 __dirname__ = os.path.dirname(__file__) or '.'
 with open(os.path.join(os.path.dirname(__dirname__), 'version.txt')) as fp:
@@ -73,7 +74,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.reboot_after = True
 
         self._alive_since = None
-        self.pokeapi = None
+        self.pokeapi: typing.Optional[typing.Callable[[], PokeApi]] = None
 
     @property
     def exc_channel(self):
