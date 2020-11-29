@@ -334,7 +334,7 @@ class PokeApiCog(BaseCog, name='PokeApi', command_attrs={'hidden': True}):
         class SqlPageSource(menus.ListPageSource):
             async def format_page(self, menu: NavMenuPages, page):
                 return discord.Embed(
-                    title=query,
+                    title=query if len(query) < 256 else f'{query[:253]}...',
                     description=page,
                     colour=0xF47FFF
                 ).set_footer(
