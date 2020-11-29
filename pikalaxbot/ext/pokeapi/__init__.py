@@ -1,13 +1,11 @@
 import re
 import os
 import aiosqlite
-import typing
 import collections
 import discord
 from discord.ext import commands, tasks
 import asyncio
 import traceback
-import contextlib
 import sqlite3
 
 
@@ -261,25 +259,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         self._lock = asyncio.Lock()
 
     def cog_unload(self):
-        if self._lock.locked():
-            raise AssertionError('cannot unload pokeapi while an update is in progress')
-
-    @contextlib.asynccontextmanager
-    async def acquire(self):
-        await self._lock.acquire()
-        factory = self.bot.pokeapi
-
-        class DummyPokeApi:
-            async def __aenter__(self):
-                return NotImplemented
-
-            async def __aexit__(self, exc_type, exc_val, exc_tb):
-                return NotImplemented
-
-        self.bot.pokeapi = lambda: DummyPokeApi()
-        yield
-        self.bot.pokeapi = factory
-        self._lock.release()
+        assert not self._lock.locked(), 'PokeApi is locked'
 
     @commands.group()
     async def pokeapi(self, ctx):
@@ -291,25 +271,25 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     async def rebuild_pokeapi(self, ctx):
         """Rebuild the pokeapi database"""
 
-        emojis = ['\N{WHITE HEAVY CHECK MARK}', '\N{CROSS MARK}']
-        conf_msg = await ctx.send('This can take up to 30 minutes. Are you sure?')
-        [self.bot.loop.create_task(conf_msg.add_reaction(emoji)) for emoji in emojis]
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == conf_msg and u == ctx.author and str(r) in emojis, timeout=60.0)
-        except asyncio.TimeoutError:
-            await conf_msg.edit(content='Request timed out.', delete_after=10)
-            return
-        finally:
+        async with self._lock:
+            emojis = ['\N{WHITE HEAVY CHECK MARK}', '\N{CROSS MARK}']
+            conf_msg = await ctx.send('This can take up to 30 minutes. Are you sure?')
+            [self.bot.loop.create_task(conf_msg.add_reaction(emoji)) for emoji in emojis]
             try:
-                await conf_msg.clear_reactions()
-            except discord.Forbidden:
-                [self.bot.loop.create_task(conf_msg.remove_reaction(emoji, self.bot.user)) for emoji in emojis]
-        if str(reaction) == '\N{CROSS MARK}':
-            await conf_msg.edit(content='Aborting.', delete_after=10)
-            return
-        await conf_msg.edit(content='Confirmed.', delete_after=10)
+                reaction, user = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == conf_msg and u == ctx.author and str(r) in emojis, timeout=60.0)
+            except asyncio.TimeoutError:
+                await conf_msg.edit(content='Request timed out.', delete_after=10)
+                return
+            finally:
+                try:
+                    await conf_msg.clear_reactions()
+                except discord.Forbidden:
+                    [self.bot.loop.create_task(conf_msg.remove_reaction(emoji, self.bot.user)) for emoji in emojis]
+            if str(reaction) == '\N{CROSS MARK}':
+                await conf_msg.edit(content='Aborting.', delete_after=10)
+                return
+            await conf_msg.edit(content='Confirmed.', delete_after=10)
 
-        async with self.acquire():
             shell = await asyncio.create_subprocess_shell('../../../setup_pokeapi.sh')
             embed = discord.Embed(title='Updating PokeAPI', description='Started', colour=0xf47fff)
             msg = await ctx.send(embed=embed)
@@ -339,10 +319,14 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
 
 
 def setup(bot):
+    cog = PokeApiCog(bot)
+
     def factory():
+        assert not cog._lock.locked(), 'PokeApi is locked'
         return PokeApi()
+
     bot.pokeapi = factory
-    bot.add_cog(PokeApiCog(bot))
+    bot.add_cog(cog)
 
 
 def teardown(bot):
