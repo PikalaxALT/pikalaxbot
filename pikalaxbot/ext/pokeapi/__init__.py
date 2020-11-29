@@ -261,7 +261,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         self._lock = asyncio.Lock()
 
     def cog_unload(self):
-        if not self._lock.locked():
+        if self._lock.locked():
             raise AssertionError('cannot unload pokeapi while an update is in progress')
 
     @contextlib.asynccontextmanager
@@ -290,6 +290,25 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     @pokeapi.command(name='rebuild', aliases=['update'])
     async def rebuild_pokeapi(self, ctx):
         """Rebuild the pokeapi database"""
+
+        emojis = ['\N{WHITE HEAVY CHECK MARK}', '\N{CROSS MARK}']
+        conf_msg = await ctx.send('This can take up to 30 minutes. Are you sure?')
+        [self.bot.loop.create_task(conf_msg.add_reaction(emoji)) for emoji in emojis]
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == conf_msg and u == ctx.author and str(r) in emojis, timeout=60.0)
+        except asyncio.TimeoutError:
+            await conf_msg.edit(content='Request timed out.', delete_after=10)
+            return
+        finally:
+            try:
+                await conf_msg.clear_reactions()
+            except discord.Forbidden:
+                [self.bot.loop.create_task(conf_msg.remove_reaction(emoji, self.bot.user)) for emoji in emojis]
+        if str(reaction) == '\N{CROSS MARK}':
+            await conf_msg.edit(content='Aborting.', delete_after=10)
+            return
+        await conf_msg.edit(content='Confirmed.', delete_after=10)
+
         async with self.acquire():
             shell = await asyncio.create_subprocess_shell('../../../setup_pokeapi.sh')
             embed = discord.Embed(title='Updating PokeAPI', description='Started', colour=0xf47fff)
