@@ -8,6 +8,7 @@ from discord.ext import commands, tasks
 import asyncio
 import traceback
 import contextlib
+import sqlite3
 
 
 def prod(iterable):
@@ -17,34 +18,14 @@ def prod(iterable):
     return res
 
 
-class PokeApi:
+class PokeApi(aiosqlite.Connection):
     db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
-    language = 9
+    language = 9  # English
     PokemonSpecies = collections.namedtuple('PokemonSpecies', 'id name order gender_rate capture_rate base_happiness is_baby hatch_counter has_gender_differences forms_switchable evolution_chain_id generation_id growth_rate_id pokemon_color_id pokemon_habitat_id pokemon_shape_id is_legendary is_mythical evolves_from_species_id')
     Move = collections.namedtuple('Move', 'id power pp accuracy priority move_effect_chance generation_id move_damage_class_id move_effect_id move_target_id type_id contest_effect_id contest_type_id super_contest_effect_id name')
 
-    def __init__(self, *args, **kwargs):
-        self._db: typing.Optional[aiosqlite.Connection] = None
-        self._args = args
-        self._kwargs = kwargs
-
-    def __repr__(self):
-        return f'<{self.__class__.__name__}>'
-
-    async def connect(self, *args, **kwargs):
-        if self._db is None:
-            self._db = await aiosqlite.connect(PokeApi.db_path, *args, **kwargs)
-        return self._db
-
-    async def __aenter__(self):
-        await self.connect(*self._args, **self._kwargs)
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._db.close()
-    
-    def execute(self, *args, **kwargs) -> typing.Coroutine[None, None, aiosqlite.Cursor]:
-        return self._db.execute(*args, **kwargs)
+    def __init__(self, *, iter_chunk_size=64, **kwargs):
+        super().__init__(lambda: sqlite3.connect(PokeApi.db_path, **kwargs), iter_chunk_size)
 
     @staticmethod
     def clean_name(name):
