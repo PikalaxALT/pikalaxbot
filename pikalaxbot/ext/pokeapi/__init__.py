@@ -2,12 +2,10 @@ import discord
 from discord.ext import commands, tasks, menus
 import asyncio
 import traceback
-from ...cogs import BaseCog
-from ...cogs.utils.menus import NavMenuPages
 from .database import PokeApi
 
 
-class PokeApiCog(BaseCog, name='PokeApi', command_attrs={'hidden': True}):
+class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     def __init__(self, bot):
         super().__init__(bot)
         self._lock = asyncio.Lock()
@@ -93,7 +91,7 @@ class PokeApiCog(BaseCog, name='PokeApi', command_attrs={'hidden': True}):
                     text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
                 )
 
-        menu = NavMenuPages(SqlPageSource(pag.pages, per_page=1), clear_reactions_after=True, delete_message_after=True)
+        menu = menus.MenuPages(SqlPageSource(pag.pages, per_page=1), clear_reactions_after=True, delete_message_after=True)
         await menu.start(ctx, wait=True)
 
 

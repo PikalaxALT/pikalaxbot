@@ -13,3 +13,4 @@ humanize>=3.1.0
 pyfiglet>=0.7
 asyncpg>=0.21.0
 aiosqlite>=0.16.0
+resource>=0.2.1

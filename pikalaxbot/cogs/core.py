@@ -17,7 +17,10 @@
 import discord
 from discord.ext import commands, menus
 from humanize import naturaltime, precisedelta
-import resource
+try:
+    import resource
+except ImportError:
+    resource = None
 import typing
 import inspect
 import os
@@ -29,7 +32,7 @@ import asyncio
 from jishaku.meta import __version__ as jsk_ver
 
 from . import BaseCog
-from .. import __dirname__
+from .. import __dirname__, __version__
 from .utils.errors import *
 from .utils.converters import CommandConverter
 
@@ -92,7 +95,7 @@ class Core(BaseCog):
         # Get source lines
         ctr = collections.Counter()
         for ctr['file'], f in enumerate(glob.glob(f'{__dirname__}/**/*.py', recursive=True)):
-            with open(f) as fp:
+            with open(f, encoding='utf-8') as fp:
                 for ctr['line'], line in enumerate(fp, ctr['line']):
                     line = line.lstrip()
                     ctr['class'] += line.startswith('class')
@@ -198,7 +201,7 @@ class Core(BaseCog):
     async def about(self, ctx):
         """Shows info about the bot in the current context"""
 
-        e = discord.Embed()
+        e = discord.Embed(title=f'PikalaxBOT v{__version__}')
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e.set_author(name=str(ctx.me))
         e.add_field(name='ID', value=ctx.me.id, inline=False)
@@ -279,23 +282,24 @@ class Core(BaseCog):
 
         await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
 
-    @commands.command()
-    async def memory(self, ctx):
-        """Show the bot's current memory usage"""
+    if resource:
+        @commands.command()
+        async def memory(self, ctx):
+            """Show the bot's current memory usage"""
 
-        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        units = [
-            (1 << 30, 'TiB'),
-            (1 << 20, 'GiB'),
-            (1 << 10, 'MiB')
-        ]
-        for size, unit in units:
-            if rss >= size:
-                rss /= size
-                break
-        else:
-            unit = 'KiB'
-        await ctx.send(f'Total resources used: {rss:.3f} {unit}')
+            rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            units = [
+                (1 << 30, 'TiB'),
+                (1 << 20, 'GiB'),
+                (1 << 10, 'MiB')
+            ]
+            for size, unit in units:
+                if rss >= size:
+                    rss /= size
+                    break
+            else:
+                unit = 'KiB'
+            await ctx.send(f'Total resources used: {rss:.3f} {unit}')
 
     @commands.command()
     async def userinfo(self, ctx, *, target: typing.Union[discord.Member, discord.User] = None):
