@@ -329,7 +329,7 @@ class PokeApiCog(BaseCog, name='PokeApi', command_attrs={'hidden': True}):
     async def execute_sql(self, ctx, *, query):
         pag = commands.Paginator(max_size=2048)
         async with self.bot.pokeapi() as pokeapi:
-            [pag.add_line('|'.join(row)) for row in await pokeapi.execute_fetchall(query)]
+            [pag.add_line('|'.join(map(str, row))) for row in await pokeapi.execute_fetchall(query)]
 
         class SqlPageSource(menus.ListPageSource):
             async def format_page(self, menu: NavMenuPages, page):
