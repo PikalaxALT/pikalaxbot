@@ -7,6 +7,8 @@ from discord.ext import commands, tasks, menus
 import asyncio
 import traceback
 import sqlite3
+from ...cogs import BaseCog
+from ...cogs.utils.menus import NavMenuPages
 
 
 def prod(iterable):
@@ -253,9 +255,9 @@ class PokeApi(aiosqlite.Connection):
             return [name async for name, in cur]
 
 
-class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
+class PokeApiCog(BaseCog, name='PokeApi', command_attrs={'hidden': True}):
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(bot)
         self._lock = asyncio.Lock()
 
     def cog_unload(self):
@@ -321,6 +323,26 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         async with self._lock:
             menu = ConfirmationMenu(timeout=60.0, clear_reactions_after=True)
             await menu.start(ctx, wait=True)
+
+    @pokeapi.command(name='sql')
+    @commands.is_owner()
+    async def execute_sql(self, ctx, *, query):
+        pag = commands.Paginator(max_size=2048)
+        async with self.bot.pokeapi() as pokeapi:
+            [pag.add_line('|'.join(row)) for row in await pokeapi.execute_fetchall(query)]
+
+        class SqlPageSource(menus.ListPageSource):
+            async def format_page(self, menu: NavMenuPages, page):
+                return discord.Embed(
+                    title=query,
+                    description=page,
+                    colour=0xF47FFF
+                ).set_footer(
+                    text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
+                )
+
+        menu = NavMenuPages(SqlPageSource(pag.pages, per_page=1), clear_reactions_after=True, delete_message_after=True)
+        await menu.start(ctx, wait=True)
 
 
 def setup(bot):
