@@ -255,7 +255,7 @@ class PokeApi(aiosqlite.Connection):
             return [name async for name, in cur]
 
 
-class PokeApiCog(commands.Cog, command_attrs={'hidden': True}):
+class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     def __init__(self, bot):
         self.bot = bot
         self._lock = asyncio.Lock()
@@ -323,6 +323,7 @@ def setup(bot):
     def factory():
         return PokeApi()
     bot.pokeapi = factory
+    bot.add_cog(PokeApiCog(bot))
 
 
 def teardown(bot):
