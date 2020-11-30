@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, tasks, menus
 import asyncio
 import traceback
+import sqlite3
 
 
 __all__ = 'PokeApiCog',
@@ -104,6 +105,21 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
 
         if pag.pages:
             menu = menus.MenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
-            menu.sql_cmd = query
+            menu.sql_cmd = query if len(query) < 256 else '...' + query[-253:]
             await menu.start(ctx)
         await ctx.message.add_reaction('\N{white heavy check mark}')
+
+    @execute_sql.error
+    async def pokeapi_sql_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, sqlite3.Error):
+            query = ctx.kwargs['query']
+            query = query if len(query) < 256 else '...' + query[-253:]
+            await ctx.message.add_reaction('\N{cross mark}')
+            embed = discord.Embed(
+                title=query,
+                description=f'**ERROR**: {error}',
+                colour=discord.Colour.red()
+            )
+            await ctx.send(embed=embed)
