@@ -10,7 +10,10 @@ git submodule update --recursive
 cd pokeapi
 # shellcheck disable=SC2039
 python3 -m pip install -U $(grep -v psycopg2 requirements.txt) psycopg2
+newfiles=$(find data/v2/csv -name "*.csv" -newer db.sqlite3 || ls data/v2/csv/*.csv)
 make setup
-python3 manage.py shell -c "from data.v2.build import build_all; build_all()" --settings=config.local
+if ! [ -z "$newfiles" ]; then
+  python3 manage.py shell -c "from data.v2.build import build_all; build_all()" --settings=config.local
+fi
 
 cd "$prevdir"
