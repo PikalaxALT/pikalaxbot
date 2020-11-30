@@ -136,8 +136,11 @@ class Modtools(BaseCog):
         pag = commands.Paginator(max_size=2048)
         async with ctx.typing():
             async with self.bot.sql as sql:
-                for row in await sql.fetch(script):
+                for i, row in enumerate(await sql.fetch(script), 1):
                     pag.add_line('|'.join(map(str, row)))
+                    if i % 20 == 0:
+                        pag.close_page()
+
         if pag.pages:
             menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = script
