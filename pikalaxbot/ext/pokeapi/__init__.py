@@ -12,12 +12,12 @@ from .database import *
 def setup(bot):
     cog = PokeApiCog(bot)
 
-    def factory():
+    def factory(**kwargs):
         assert not cog._lock.locked(), 'PokeApi is locked'
         db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
 
         def connector():
-            return sqlite3.connect(db_path)
+            return sqlite3.connect(db_path, **kwargs)
 
         return PokeApi(connector, 64)
 

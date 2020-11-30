@@ -31,9 +31,10 @@ class PokeApi(aiosqlite.Connection):
         FROM pokemon_v2_pokemonspecies
         WHERE id = ?
         """
+        self.row_factory = lambda c, r: PokemonSpecies(*r)
         async with self.execute(statement, (id_,)) as cur:
             mon = await cur.fetchone()
-        return mon and PokemonSpecies(*mon)
+        return mon
 
     get_pokemon = get_species
 
