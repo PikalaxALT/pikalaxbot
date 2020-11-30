@@ -9,8 +9,7 @@ fi
 git submodule update --recursive
 cd pokeapi
 # shellcheck disable=SC2039
-python3 -m pip install -U $(grep -v psycopg2 requirements.txt)
-python3 -m pip install -U psycopg2
+python3 -m pip install -U $(grep -v psycopg2 requirements.txt) psycopg2
 make setup
 python3 manage.py shell -c "from data.v2.build import build_all; build_all()" --settings=config.local
 
