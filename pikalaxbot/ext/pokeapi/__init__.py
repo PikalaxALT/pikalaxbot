@@ -82,7 +82,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             [pag.add_line('|'.join(map(str, row))) for row in await pokeapi.execute_fetchall(query)]
 
         class SqlPageSource(menus.ListPageSource):
-            async def format_page(self, menu: NavMenuPages, page):
+            async def format_page(self, menu: menus.MenuPages, page):
                 return discord.Embed(
                     title=query if len(query) < 256 else f'{query[:253]}...',
                     description=page,
