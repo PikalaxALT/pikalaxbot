@@ -6,7 +6,7 @@ import sqlite3
 import typing
 
 
-__all__ = 'PokeApi',
+__all__ = 'PokeApi', 'PokemonSpecies', 'Move', 'Ability', 'Type', 'PokemonColor'
 
 
 def prod(iterable):
@@ -16,20 +16,79 @@ def prod(iterable):
     return res
 
 
+PokemonSpecies = collections.namedtuple(
+    'PokemonSpecies', 
+    'id '
+    'name '
+    'order '
+    'gender_rate '
+    'capture_rate '
+    'base_happiness '
+    'is_baby '
+    'hatch_counter '
+    'has_gender_differences '
+    'forms_switchable '
+    'evolution_chain_id '
+    'generation_id '
+    'growth_rate_id '
+    'pokemon_color_id '
+    'pokemon_habitat_id '
+    'pokemon_shape_id '
+    'is_legendary '
+    'is_mythical '
+    'evolves_from_species_id'
+)
+
+Move = collections.namedtuple(
+    'Move',
+    'id '
+    'power '
+    'pp '
+    'accuracy '
+    'priority '
+    'move_effect_chance '
+    'generation_id '
+    'move_damage_class_id '
+    'move_effect_id '
+    'move_target_id '
+    'type_id '
+    'contest_effect_id '
+    'contest_type_id '
+    'super_contest_effect_id '
+    'name'
+)
+
+Ability = collections.namedtuple(
+    'Ability',
+    'id '
+    'is_main_series '
+    'generation_id name'
+)
+
+Type = collections.namedtuple(
+    'Type',
+    'id '
+    'generation_id '
+    'move_damage_class_id '
+    'name'
+)
+
+PokemonColor = collections.namedtuple(
+    'PokemonColor',
+    'id '
+    'name'
+)
+
+
 class PokeApi(aiosqlite.Connection):
-    db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
-    language = 9  # English
-    PokemonSpecies = collections.namedtuple('PokemonSpecies', 'id name order gender_rate capture_rate base_happiness is_baby hatch_counter has_gender_differences forms_switchable evolution_chain_id generation_id growth_rate_id pokemon_color_id pokemon_habitat_id pokemon_shape_id is_legendary is_mythical evolves_from_species_id')
-    Move = collections.namedtuple('Move', 'id power pp accuracy priority move_effect_chance generation_id move_damage_class_id move_effect_id move_target_id type_id contest_effect_id contest_type_id super_contest_effect_id name')
-    Ability = collections.namedtuple('Ability', 'id is_main_series generation_id name')
-    Type = collections.namedtuple('Type', 'id generation_id move_damage_class_id name')
-    PokemonColor = collections.namedtuple('PokemonColor', 'id name')
+    _db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
+    _language = 9  # English
 
     def __init__(self, *, iter_chunk_size=64, **kwargs):
-        super().__init__(lambda: sqlite3.connect(PokeApi.db_path, **kwargs), iter_chunk_size)
+        super().__init__(lambda: sqlite3.connect(PokeApi._db_path, **kwargs), iter_chunk_size)
 
     @staticmethod
-    def clean_name(name):
+    def _clean_name(name):
         name = name.replace('♀', '_F').replace('♂', '_m')
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
@@ -42,7 +101,7 @@ class PokeApi(aiosqlite.Connection):
         """
         async with self.execute(statement, (id_,)) as cur:
             mon = await cur.fetchone()
-        return mon and PokeApi.PokemonSpecies(*mon)
+        return mon and PokemonSpecies(*mon)
 
     get_pokemon = get_species
 
@@ -54,7 +113,7 @@ class PokeApi(aiosqlite.Connection):
         """
         async with self.execute(statement) as cur:
             mon = await cur.fetchone()
-        return mon and PokeApi.PokemonSpecies(*mon)
+        return mon and PokemonSpecies(*mon)
 
     random_pokemon = random_species
 
@@ -65,10 +124,10 @@ class PokeApi(aiosqlite.Connection):
         WHERE language_id = ?
         AND pokemon_species_id = ?
         """
-        async with self.execute(statement, (self.language, mon.id)) as cur:
+        async with self.execute(statement, (self._language, mon.id)) as cur:
             name, = await cur.fetchone()
         if clean:
-            name = PokeApi.clean_name(name)
+            name = PokeApi._clean_name(name)
         return name
 
     async def random_species_name(self, *, clean=True) -> str:
@@ -78,10 +137,10 @@ class PokeApi(aiosqlite.Connection):
         WHERE language_id = ?
         ORDER BY random()
         """
-        async with self.execute(statement, (self.language,)) as cur:
+        async with self.execute(statement, (self._language,)) as cur:
             name, = await cur.fetchone()
         if clean:
-            name = PokeApi.clean_name(name)
+            name = PokeApi._clean_name(name)
         return name
 
     random_pokemon_name = random_species_name
@@ -98,9 +157,9 @@ class PokeApi(aiosqlite.Connection):
             COLLATE NOCASE
         )
         """
-        async with self.execute(statement, (self.language, name)) as cur:
+        async with self.execute(statement, (self._language, name)) as cur:
             mon = await cur.fetchone()
-        return mon and PokeApi.PokemonSpecies(*mon)
+        return mon and PokemonSpecies(*mon)
     
     get_pokemon_by_name = get_species_by_name
 
@@ -112,7 +171,7 @@ class PokeApi(aiosqlite.Connection):
         """
         async with self.execute(statement) as cur:
             move = await cur.fetchone()
-        return move and PokeApi.Move(*move)
+        return move and Move(*move)
 
     async def get_move_name(self, move: Move, *, clean=True) -> str:
         statement = """
@@ -121,10 +180,10 @@ class PokeApi(aiosqlite.Connection):
         WHERE language_id = ?
         AND move_id = ?
         """
-        async with self.execute(statement, (self.language, move.id)) as cur:
+        async with self.execute(statement, (self._language, move.id)) as cur:
             name, = await cur.fetchone()
         if clean:
-            name = PokeApi.clean_name(name)
+            name = PokeApi._clean_name(name)
         return name
 
     async def random_move_name(self, *, clean=True) -> str:
@@ -134,10 +193,10 @@ class PokeApi(aiosqlite.Connection):
         WHERE language_id = ?
         ORDER BY random()
         """
-        async with self.execute(statement, (self.language,)) as cur:
+        async with self.execute(statement, (self._language,)) as cur:
             name, = await cur.fetchone()
         if clean:
-            name = PokeApi.clean_name(name)
+            name = PokeApi._clean_name(name)
         return name
     
     async def get_move_by_name(self, name: str) -> typing.Optional[Move]:
@@ -152,9 +211,9 @@ class PokeApi(aiosqlite.Connection):
             COLLATE NOCASE
         )
         """
-        async with self.execute(statement, (self.language, name)) as cur:
+        async with self.execute(statement, (self._language, name)) as cur:
             move = await cur.fetchone()
-        return move and PokeApi.Move(*move)
+        return move and Move(*move)
 
     async def get_mon_types(self, mon: PokemonSpecies) -> typing.List[Type]:
         """Returns a list of type names for that Pokemon"""
@@ -164,7 +223,7 @@ class PokeApi(aiosqlite.Connection):
         WHERE pokemon_id = ?
         """
         async with self.execute(statement, (mon.id,)) as cur:
-            result = [PokeApi.Type(*row) async for row in cur]
+            result = [Type(*row) async for row in cur]
         return result
 
     async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type_name: str) -> float:
@@ -184,7 +243,7 @@ class PokeApi(aiosqlite.Connection):
             WHERE pokemon_id = ?
         )
         """
-        async with self.execute(statement, (self.language, type_name, mon.id)) as cur:
+        async with self.execute(statement, (self._language, type_name, mon.id)) as cur:
             efficacy = prod([damage_factor / 100 async for damage_factor, in cur])
         return efficacy
 
@@ -236,7 +295,7 @@ class PokeApi(aiosqlite.Connection):
         """
         async with self.execute(statement, (mon.pokemon_color_id,)) as cur:
             color = await cur.fetchone()
-        return PokeApi.PokemonColor(*color)
+        return PokemonColor(*color)
 
     async def get_color_by_name(self, name: str) -> typing.Optional[PokemonColor]:
         statement = """
@@ -250,9 +309,9 @@ class PokeApi(aiosqlite.Connection):
             COLLATE NOCASE
         )
         """
-        async with self.execute(statement, (self.language, name)) as cur:
+        async with self.execute(statement, (self._language, name)) as cur:
             result = await cur.fetchone()
-        return result and PokeApi.PokemonColor(*result)
+        return result and PokemonColor(*result)
 
     async def get_preevo(self, mon: PokemonSpecies) -> PokemonSpecies:
         statement = """
@@ -262,7 +321,7 @@ class PokeApi(aiosqlite.Connection):
         """
         async with self.execute(statement, (mon.evolves_from_species_id,)) as cur:
             result = await cur.fetchone()
-        return result and PokeApi.PokemonSpecies(*result)
+        return result and PokemonSpecies(*result)
 
     async def get_evo(self, mon: PokemonSpecies) -> typing.List[PokemonSpecies]:
         statement = """
@@ -271,7 +330,7 @@ class PokeApi(aiosqlite.Connection):
         WHERE evolves_from_species_id = ?
         """
         async with self.execute(statement, (mon.id,)) as cur:
-            result = [PokeApi.PokemonSpecies(*mon) async for mon in cur]
+            result = [PokemonSpecies(*mon) async for mon in cur]
         return result
 
     async def get_mon_learnset(self, mon: PokemonSpecies) -> typing.List[Move]:
@@ -282,7 +341,7 @@ class PokeApi(aiosqlite.Connection):
         WHERE pokemon_id = ?
         """
         async with self.execute(statement, (mon.id,)) as cur:
-            result = [PokeApi.Move(*move) async for move in cur]
+            result = [Move(*move) async for move in cur]
         return result
     
     async def mon_can_learn_move(self, mon: PokemonSpecies, move: Move) -> bool:
@@ -306,7 +365,7 @@ class PokeApi(aiosqlite.Connection):
         WHERE pokemon_id = ?
         """
         async with self.execute(statement, (mon.id,)) as cur:
-            result = [PokeApi.Ability(*ability) async for ability in cur]
+            result = [Ability(*ability) async for ability in cur]
         return result
     
     async def get_ability_by_name(self, name: str) -> typing.Optional[Ability]:
@@ -321,9 +380,9 @@ class PokeApi(aiosqlite.Connection):
             COLLATE NOCASE
         )
         """
-        async with self.execute(statement, (self.language, name)) as cur:
+        async with self.execute(statement, (self._language, name)) as cur:
             ability = await cur.fetchone()
-        return ability and PokeApi.Ability(*ability)
+        return ability and Ability(*ability)
 
     async def mon_has_ability(self, mon: PokemonSpecies, ability: Ability) -> bool:
         statement = """
@@ -350,9 +409,9 @@ class PokeApi(aiosqlite.Connection):
             COLLATE NOCASE
         )
         """
-        async with self.execute(statement, (self.language, name)) as cur:
+        async with self.execute(statement, (self._language, name)) as cur:
             result = await cur.fetchone()
-        return result and PokeApi.Type(*result)
+        return result and Type(*result)
 
     async def mon_has_type(self, mon: PokemonSpecies, type_: Type) -> bool:
         statement = """
