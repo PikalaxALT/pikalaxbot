@@ -80,7 +80,7 @@ class Core(BaseCog):
                 except commands.CommandError:
                     continue
             if lost_cmds:
-                await sql.executemany('delete from commandstats where command = ?', lost_cmds)
+                await sql.executemany('delete from commandstats where command = $1', lost_cmds)
         return cmds
 
     @commands.command()
