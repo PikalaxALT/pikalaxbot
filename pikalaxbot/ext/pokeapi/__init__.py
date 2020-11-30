@@ -3,8 +3,19 @@ from discord.ext import commands, tasks, menus
 import asyncio
 import traceback
 from .database import PokeApi
-import sqlite3
+import aiosqlite
 import typing
+
+
+class SqlResponseEmbed(menus.ListPageSource):
+    async def format_page(self, menu: menus.MenuPages, page):
+        return discord.Embed(
+            title=menu.sql_cmd,
+            description=page,
+            colour=0xf47fff
+        ).set_footer(
+            text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
+        )
 
 
 class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
@@ -79,28 +90,23 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     @pokeapi.command(name='sql')
     @commands.is_owner()
     async def execute_sql(self, ctx, *, query):
-        pag = None
-        async with self.bot.pokeapi() as pokeapi:
-            for i, row in enumerate(await pokeapi.execute_fetchall(query), 1):  # type: [int, sqlite3.Row]
-                if i == 1:
-                    header = '|'.join(row.keys())
+        """Run arbitrary sql command"""
+
+        async with ctx.typing():
+            async with self.bot.pokeapi() as pokeapi:
+                async with pokeapi.execute(query) as cur:  # type: aiosqlite.Cursor
+                    header = '|'.join(col[0] for col in cur.description)
                     pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
-                pag.add_line('|'.join(map(str, row)))
-                if i % 20 == 0:
-                    pag.close_page()
+                    for i, row in enumerate(await cur.fetchall(), 1):  # type: [int, tuple]
+                        pag.add_line('|'.join(map(str, row)))
+                        if i % 20 == 0:
+                            pag.close_page()
 
-        class SqlPageSource(menus.ListPageSource):
-            async def format_page(self, menu: menus.MenuPages, page):
-                return discord.Embed(
-                    title=query if len(query) < 256 else f'{query[:253]}...',
-                    description=page,
-                    colour=0xF47FFF
-                ).set_footer(
-                    text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
-                )
-
-        menu = menus.MenuPages(SqlPageSource(pag.pages, per_page=1), clear_reactions_after=True, delete_message_after=True)
-        await menu.start(ctx, wait=True)
+        if pag.pages:
+            menu = menus.MenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
+            menu.sql_cmd = query
+            await menu.start(ctx)
+        await ctx.message.add_reaction('\N{white heavy check mark}')
 
 
 def setup(bot):
