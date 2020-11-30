@@ -3,6 +3,8 @@ from discord.ext import commands, tasks, menus
 import asyncio
 import traceback
 from .database import PokeApi
+import sqlite3
+import typing
 
 
 class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
@@ -79,7 +81,13 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     async def execute_sql(self, ctx, *, query):
         pag = commands.Paginator(max_size=2048)
         async with self.bot.pokeapi() as pokeapi:
-            [pag.add_line('|'.join(map(str, row))) for row in await pokeapi.execute_fetchall(query)]
+            for i, row in enumerate(await pokeapi.execute_fetchall(query), 1):  # type: [int, sqlite3.Row]
+                if i == 1:
+                    header = '|'.join(row.keys())
+                    pag.prefix = f'```\n{header}\n{"-" * len(header)}'
+                pag.add_line('|'.join(map(str, row)))
+                if i % 20 == 0:
+                    pag.close_page()
 
         class SqlPageSource(menus.ListPageSource):
             async def format_page(self, menu: menus.MenuPages, page):

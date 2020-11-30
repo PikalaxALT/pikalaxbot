@@ -136,7 +136,10 @@ class Modtools(BaseCog):
         pag = commands.Paginator(max_size=2048)
         async with ctx.typing():
             async with self.bot.sql as sql:
-                for i, row in enumerate(await sql.fetch(script), 1):
+                for i, row in enumerate(await sql.fetch(script), 1):  # type: [int, asyncpg.Record]
+                    if i == 1:
+                        header = '|'.join(row.keys())
+                        pag.prefix = f'```\n{header}\n{"-" * len(header)}'
                     pag.add_line('|'.join(map(str, row)))
                     if i % 20 == 0:
                         pag.close_page()
