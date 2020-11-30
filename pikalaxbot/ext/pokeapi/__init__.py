@@ -79,12 +79,12 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     @pokeapi.command(name='sql')
     @commands.is_owner()
     async def execute_sql(self, ctx, *, query):
-        pag = commands.Paginator(max_size=2048)
+        pag = None
         async with self.bot.pokeapi() as pokeapi:
             for i, row in enumerate(await pokeapi.execute_fetchall(query), 1):  # type: [int, sqlite3.Row]
                 if i == 1:
                     header = '|'.join(row.keys())
-                    pag.prefix = f'```\n{header}\n{"-" * len(header)}'
+                    pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
                 pag.add_line('|'.join(map(str, row)))
                 if i % 20 == 0:
                     pag.close_page()
