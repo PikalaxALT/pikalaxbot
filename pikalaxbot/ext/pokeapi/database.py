@@ -295,7 +295,7 @@ class PokeApi(aiosqlite.Connection):
         )
         """
         async with self.execute(statement, (mon.id, move.id)) as cur:
-            response = await cur.fetchone()
+            response, = await cur.fetchone()
         return bool(response)
 
     async def get_mon_abilities(self, mon: PokemonSpecies) -> typing.List[Ability]:
@@ -335,7 +335,7 @@ class PokeApi(aiosqlite.Connection):
         )
         """
         async with self.execute(statement, (mon.id, ability.id)) as cur:
-            result = await cur.fetchone()
+            result, = await cur.fetchone()
         return bool(result)
 
     async def get_type_by_name(self, name: str) -> typing.Optional[Type]:
@@ -364,6 +364,5 @@ class PokeApi(aiosqlite.Connection):
         )
         """
         async with self.execute(statement, (mon.id, type_.id)) as cur:
-            result = await cur.fetchone()
+            result, = await cur.fetchone()
         return bool(result)
-

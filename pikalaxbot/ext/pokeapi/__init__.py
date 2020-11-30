@@ -7,7 +7,7 @@ from .database import PokeApi
 
 class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     def __init__(self, bot):
-        super().__init__(bot)
+        self.bot = bot
         self._lock = asyncio.Lock()
 
     def cog_unload(self):
