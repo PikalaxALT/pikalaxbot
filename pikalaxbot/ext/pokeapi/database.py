@@ -130,6 +130,9 @@ class PokeApi(aiosqlite.Connection):
             name = PokeApi._clean_name(name)
         return name
 
+    get_pokemon_name = get_mon_name
+    get_species_name = get_mon_name
+
     async def random_species_name(self, *, clean=True) -> str:
         statement = """
         SELECT name
@@ -383,6 +386,19 @@ class PokeApi(aiosqlite.Connection):
         async with self.execute(statement, (self._language, name)) as cur:
             ability = await cur.fetchone()
         return ability and Ability(*ability)
+
+    async def get_ability_name(self, ability: Ability, *, clean=True) -> str:
+        statement = """
+        SELECT name
+        FROM pokemon_v2_abilityname
+        WHERE language_id = ?
+        AND ability_id = ?
+        """
+        async with self.execute(statement, (self._language, ability.id)) as cur:
+            name, = await cur.fetchone()
+        if clean:
+            name = self._clean_name(name)
+        return name
 
     async def mon_has_ability(self, mon: PokemonSpecies, ability: Ability) -> bool:
         statement = """
