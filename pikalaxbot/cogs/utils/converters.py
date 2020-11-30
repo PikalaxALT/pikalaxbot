@@ -70,7 +70,7 @@ class BoardCoords(commands.Converter):
                 y, x = map(int, argument.split())
             assert self.minx <= x <= self.maxx and self.miny <= y <= self.maxy
             return x - 1, y - 1
-        except (ValueError, AssertionError) as e:
+        except (ValueError, AssertionError, IndexError) as e:
             raise BadGameArgument from e
 
 
