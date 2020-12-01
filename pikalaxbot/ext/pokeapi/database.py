@@ -95,6 +95,14 @@ class PokeApi(aiosqlite.Connection):
         self.row_factory = lambda c, r: PokemonSpecies(*r)
         async with self.execute(statement, (self._language, name)) as cur:
             mon = await cur.fetchone()
+        if not mon:
+            statement = """
+            SELECT *
+            FROM pokemon_v2_pokemonspecies
+            WHERE name = ?
+            """
+            async with self.execute(statement, (self._language, name)) as cur:
+                mon = await cur.fetchone()
         return mon
 
     get_pokemon_by_name = get_species_by_name
@@ -163,17 +171,11 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchall()
         return result
 
-    async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type_name: str) -> float:
+    async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type: Type) -> float:
         statement = """
         SELECT damage_factor
         FROM pokemon_v2_typeefficacy
-        WHERE damage_type_id = (
-            SELECT type_id
-            FROM pokemon_v2_typename
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
+        WHERE damage_type_id = ?
         AND target_type_id IN (
             SELECT type_id
             FROM pokemon_v2_pokemontype
@@ -181,7 +183,7 @@ class PokeApi(aiosqlite.Connection):
         )
         """
         self.row_factory = lambda c, r: r[0] / 100
-        async with self.execute(statement, (self._language, type_name, mon.id)) as cur:
+        async with self.execute(statement, (type.id, mon.id)) as cur:
             efficacy = prod(await cur.fetchall())
         return efficacy
 
@@ -390,5 +392,29 @@ class PokeApi(aiosqlite.Connection):
         """
         self.row_factory = lambda c, r: bool(*r)
         async with self.execute(statement, (mon.id, type_.id)) as cur:
+            result = await cur.fetchone()
+        return result
+
+    async def get_type_name(self, type_: Type, *, clean=True) -> str:
+        statement = """
+        SELECT name
+        FROM pokemon_v2_typename
+        WHERE language_id = ?
+        AND type_id = ?
+        """
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, (self._language, type_.id)) as cur:
+            result = await cur.fetchone()
+        return result
+
+    async def get_color_name(self, color: PokemonColor, *, clean=True) -> str:
+        statement = """
+        SELECT name
+        FROM pokemon_v2_pokemoncolorname
+        WHERE language_id = ?
+        AND pokemon_color_id = ?
+        """
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, (self._language, color.id)) as cur:
             result = await cur.fetchone()
         return result
