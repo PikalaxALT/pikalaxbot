@@ -3,6 +3,8 @@ from discord.ext import commands, tasks, menus
 import asyncio
 import traceback
 import sqlite3
+import aiosqlite
+import contextlib
 
 
 __all__ = 'PokeApiCog',
@@ -23,6 +25,13 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     def __init__(self, bot):
         self.bot = bot
         self._lock = asyncio.Lock()
+
+    @contextlib.asynccontextmanager
+    async def disable_pokeapi(self):
+        factory = self.bot._pokeapi_factory
+        self.bot.pokeapi = None
+        yield
+        self.bot.pokeapi = factory
 
     def cog_unload(self):
         assert not self._lock.locked(), 'PokeApi is locked'
@@ -84,7 +93,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
                 if timed_out:
                     await self.message.edit(content='Request timed out', delete_after=10)
 
-        async with self._lock:
+        async with self._lock, self.disable_pokeapi():
             menu = ConfirmationMenu(timeout=60.0, clear_reactions_after=True)
             await menu.start(ctx, wait=True)
 
@@ -94,7 +103,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
-            async with self.bot.pokeapi() as pokeapi:
+            async with self.bot.pokeapi as pokeapi:
                 async with pokeapi.execute(query) as cur:  # type: aiosqlite.Cursor
                     header = '|'.join(col[0] for col in cur.description)
                     pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)

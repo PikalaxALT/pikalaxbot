@@ -118,7 +118,7 @@ class Meme(BaseCog):
     async def yolonome(self, ctx):
         """Happy birthday, Waggle!"""
 
-        async with self.bot.pokeapi() as pokeapi:
+        async with self.bot.pokeapi as pokeapi:
             move_name = await pokeapi.random_move_name(clean=False)
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {move_name}!')

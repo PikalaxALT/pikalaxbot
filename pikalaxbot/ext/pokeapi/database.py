@@ -19,6 +19,14 @@ def prod(iterable):
 class PokeApi(aiosqlite.Connection):
     _language = 9  # English
 
+    def __init__(self, cog, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cog = cog
+
+    async def __aenter__(self):
+        assert not self._cog._lock.locked(), 'PokeApi is locked'
+        return await super().__aenter__()
+
     @staticmethod
     def _clean_name(name):
         name = name.replace('♀', '_F').replace('♂', '_m')
@@ -274,7 +282,7 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_evo(self, mon: PokemonSpecies) -> typing.List[PokemonSpecies]:
+    async def get_evos(self, mon: PokemonSpecies) -> typing.List[PokemonSpecies]:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonspecies
@@ -449,4 +457,20 @@ class PokeApi(aiosqlite.Connection):
         self.row_factory = lambda c, r: bool(*r)
         async with self.execute(statement, (self._language, mon.id)) as cur:
             result = await cur.fetchone()
+        return result
+    
+    async def get_evo_line(self, mon: PokemonSpecies) -> typing.Set[PokemonSpecies]:
+        result = {mon}
+        while mon.evolves_from_species_id is not None:
+            mon = await self.get_preevo(mon)
+            result.add(mon)
+        new = set(result)
+        while True:
+            new_copy = list(new)
+            new = []
+            for _mon in new_copy:
+                new += self.get_evos(_mon)
+            if not new:
+                break
+            result += new
         return result

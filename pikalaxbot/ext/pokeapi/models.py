@@ -1,4 +1,6 @@
 import collections
+import aiosqlite
+import typing
 
 
 __all__ = 'PokemonSpecies', 'Move', 'Type', 'Ability', 'PokemonColor'
