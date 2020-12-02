@@ -74,8 +74,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         self.reboot_after = True
 
         self._alive_since = None
-        self._pokeapi_factory: typing.Optional[typing.Callable[[], PokeApi]] = None
-        self._pokeapi: typing.Optional[PokeApi] = None
+        self._pokeapi: typing.Optional[typing.Callable[[], PokeApi]] = None
 
     @property
     def exc_channel(self):
@@ -94,14 +93,11 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     @property
     def pokeapi(self) -> PokeApi:
-        if self._pokeapi is None and self._pokeapi_factory is not None:
-            self._pokeapi = self._pokeapi_factory()
-        return self._pokeapi
+        return self._pokeapi and self._pokeapi()
 
     @pokeapi.setter
     def pokeapi(self, value: typing.Callable[[], PokeApi]):
-        self._pokeapi = None
-        self._pokeapi_factory = value
+        self._pokeapi = value
 
     async def send_tb(self, tb, embed=None):
         channel = self.exc_channel

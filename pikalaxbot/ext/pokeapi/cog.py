@@ -28,7 +28,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
 
     @contextlib.asynccontextmanager
     async def disable_pokeapi(self):
-        factory = self.bot._pokeapi_factory
+        factory = self.bot._pokeapi
         self.bot.pokeapi = None
         yield
         self.bot.pokeapi = factory
