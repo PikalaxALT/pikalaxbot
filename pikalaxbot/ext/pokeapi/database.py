@@ -1,7 +1,6 @@
 import aiosqlite
 import re
 import collections
-import sqlite3
 import typing
 from .models import *
 
@@ -181,7 +180,7 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchall()
         return result
 
-    async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type: Type) -> float:
+    async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type_: Type) -> float:
         statement = """
         SELECT damage_factor
         FROM pokemon_v2_typeefficacy
@@ -193,7 +192,7 @@ class PokeApi(aiosqlite.Connection):
         )
         """
         self.row_factory = lambda c, r: r[0] / 100
-        async with self.execute(statement, (type.id, mon.id)) as cur:
+        async with self.execute(statement, (type_.id, mon.id)) as cur:
             efficacy = prod(await cur.fetchall())
         return efficacy
 
@@ -429,17 +428,6 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_names_from(self, table: str, *, clean=True) -> typing.List[str]:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_{}name
-        WHERE language_id = ?
-        """.format(table.replace('_', ''))
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language,)) as cur:
-            result = await cur.fetchall()
-        return result
-
     async def has_mega_evolution(self, mon: PokemonSpecies) -> bool:
         statement = """
         SELECT EXISTS(
@@ -469,7 +457,7 @@ class PokeApi(aiosqlite.Connection):
             new_copy = list(new)
             new = []
             for _mon in new_copy:
-                new += self.get_evos(_mon)
+                new += await self.get_evos(_mon)
             if not new:
                 break
             result += new
