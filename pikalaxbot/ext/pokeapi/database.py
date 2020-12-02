@@ -454,11 +454,11 @@ class PokeApi(aiosqlite.Connection):
             result.add(mon)
         new = set(result)
         while True:
-            new_copy = list(new)
-            new = []
+            new_copy = set(new)
+            new = {}
             for _mon in new_copy:
-                new += await self.get_evos(_mon)
+                new.update(await self.get_evos(_mon))
             if not new:
                 break
-            result += new
+            result.update(new)
         return result
