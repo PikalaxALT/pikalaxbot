@@ -51,15 +51,29 @@ class PokeApi(aiosqlite.Connection):
             raise TypeError('Object of type {} has no attribute "id"'.format(classname))
         statement = """
         SELECT name
-        FROM {tablename}
+        FROM {nametable}
         WHERE language_id = :language
         AND {idcol} = :id
         """.format(
-            tablename=f'pokemon_v2_{classname.lower()}name',
+            nametable=f'pokemon_v2_{classname.lower()}name',
             idcol=re.sub(r'([a-z])([A-Z])', r'\1_\2', classname).lower() + '_id'
         )
         self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
         async with self.execute(statement, {'id': item.id, 'language': self._language}) as cur:
+            name = await cur.fetchone()
+        return name
+
+    async def get_name_by_id(self, table: str, id_: id, *, clean=True):
+        nametable = 'pokemon_v2_' + table.replace('_', '') + 'name'
+        idcol = table + '_id'
+        statement = """
+        SELECT name
+        FROM {nametable}
+        WHERE language_id = :language
+        AND {idcol} = :id
+        """.format(nametable=nametable, idcol=idcol)
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, {'id': id_, 'language': self._language}) as cur:
             name = await cur.fetchone()
         return name
 
@@ -261,6 +275,9 @@ class PokeApi(aiosqlite.Connection):
         return self.get_name(color, clean=clean)
 
     get_color_name = get_pokemon_color_name
+
+    def get_name_of_mon_color(self, mon: PokemonSpecies, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_name_by_id('pokemon_color', mon.pokemon_color_id, clean=clean)
 
     async def get_preevo(self, mon: PokemonSpecies) -> PokemonSpecies:
         statement = """
