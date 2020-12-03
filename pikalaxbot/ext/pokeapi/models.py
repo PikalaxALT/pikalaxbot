@@ -1,70 +1,72 @@
 import collections
-import aiosqlite
 import typing
 
 
-__all__ = 'PokemonSpecies', 'Move', 'Type', 'Ability', 'PokemonColor'
+__all__ = 'PokeApiModel', 'PokemonSpecies', 'Move', 'Type', 'Ability', 'PokemonColor', 'Pokedex'
+PokeApiModel = typing.Union[__all__[1:]]
 
 
-PokemonSpecies = collections.namedtuple(
-    'PokemonSpecies',
-    'id '
-    'name '
-    'order '
-    'gender_rate '
-    'capture_rate '
-    'base_happiness '
-    'is_baby '
-    'hatch_counter '
-    'has_gender_differences '
-    'forms_switchable '
-    'evolution_chain_id '
-    'generation_id '
-    'growth_rate_id '
-    'pokemon_color_id '
-    'pokemon_habitat_id '
-    'pokemon_shape_id '
-    'is_legendary '
-    'is_mythical '
-    'evolves_from_species_id'
-)
+class PokemonSpecies(typing.NamedTuple):
+    id: int
+    name: str
+    order: int
+    gender_rate: int
+    capture_rate: int
+    base_happiness: int
+    is_baby: bool
+    hatch_counter: int
+    has_gender_differences: bool
+    forms_switchable: bool
+    evolution_chain_id: int
+    generation_id: int
+    growth_rate_id: int
+    pokemon_color_id: int
+    pokemon_habitat_id: int
+    pokemon_shape_id: int
+    is_legendary: bool
+    is_mythical: bool
+    evolves_from_species_id: int
 
-Move = collections.namedtuple(
-    'Move',
-    'id '
-    'power '
-    'pp '
-    'accuracy '
-    'priority '
-    'move_effect_chance '
-    'generation_id '
-    'move_damage_class_id '
-    'move_effect_id '
-    'move_target_id '
-    'type_id '
-    'contest_effect_id '
-    'contest_type_id '
-    'super_contest_effect_id '
-    'name'
-)
 
-Ability = collections.namedtuple(
-    'Ability',
-    'id '
-    'is_main_series '
-    'generation_id name'
-)
+class Move(typing.NamedTuple):
+    id: int
+    power: int
+    pp: int
+    accuracy: int
+    priority: int
+    move_effect_chance: int
+    generation_id: int
+    move_damage_class_id: int
+    move_effect_id: int
+    move_target_id: int
+    type_id: int
+    contest_effect_id: int
+    contest_type_id: int
+    super_contest_effect_id: int
+    name: str
 
-Type = collections.namedtuple(
-    'Type',
-    'id '
-    'generation_id '
-    'move_damage_class_id '
-    'name'
-)
 
-PokemonColor = collections.namedtuple(
-    'PokemonColor',
-    'id '
-    'name'
-)
+class Ability(typing.NamedTuple):
+    id: int
+    is_main_series: bool
+    generation_id: int
+    name: str
+
+
+class Type(typing.NamedTuple):
+    id: int
+    generation_id: int
+    move_damage_class_id: int
+    name: str
+
+
+class PokemonColor(typing.NamedTuple):
+    id: int
+    name: str
+
+
+class Pokedex(typing.NamedTuple):
+    id: int
+    is_main_series: bool
+    region_id: int
+    name: str

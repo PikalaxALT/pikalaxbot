@@ -476,7 +476,7 @@ class PokeApi(aiosqlite.Connection):
             names = await cur.fetchall()
         return names
 
-    async def get_name(self, item, *, clean=True) -> str:
+    async def get_name(self, item: PokeApiModel, *, clean=True) -> str:
         classname = item.__class__.__name__
         if not hasattr(item, 'id'):
             raise TypeError('Object of type {} has no attribute "id"'.format(classname))
@@ -493,3 +493,58 @@ class PokeApi(aiosqlite.Connection):
         async with self.execute(statement, {'id': item.id, 'language': self._language}) as cur:
             name = await cur.fetchone()
         return name
+
+    async def get_by_name(self, table: str, name: str) -> typing.Optional[PokeApiModel]:
+        cls = eval(table.title().replace('_', ''))
+        datatable = 'pokemon_v2_' + name.replace('_', '')
+        nametable = datatable + 'name'
+        idcol = name + '_id'
+        statement = """
+        SELECT *
+        FROM {datatable}
+        WHERE id = (
+            SELECT {idcol}
+            FROM {nametable}
+            WHERE language_id = :language
+            AND name = :name
+        )
+        """.format(
+            datatable=datatable,
+            nametable=nametable,
+            idcol=idcol
+        )
+        self.row_factory = lambda c, r: cls(*r)
+        async with self.execute(statement, {'language': self._language, 'name': name}) as cur:
+            result = await cur.fetchone()
+        return result
+
+    async def mon_is_in_dex(self, mon: PokemonSpecies, dex: Pokedex) -> bool:
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemondexnumber
+            WHERE pokemon_species_id = ?
+            AND pokedex_id = ?
+        )
+        """
+        self.row_factory = lambda c, r: bool(*r)
+        async with self.execute(statement, (mon.id, dex.id)) as cur:
+            result = await cur.fetchone()
+        return result
+
+    async def get_pokedex_by_name(self, name: str) -> typing.Optional[Pokedex]:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokedex
+        WHERE id = (
+            SELECT pokedex_id
+            FROM pokemon_v2_pokedexname
+            WHERE language_id = ?
+            AND name = ?
+            COLLATE NOCASE
+        )
+        """
+        self.row_factory = lambda c, r: Pokedex(*r)
+        async with self.execute(statement, (self._language, name)) as cur:
+            dex = await cur.fetchone()
+        return dex
