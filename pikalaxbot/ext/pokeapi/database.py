@@ -253,7 +253,7 @@ class PokeApi(aiosqlite.Connection):
             color = await cur.fetchone()
         return color
 
-    async def get_color_by_name(self, name: str) -> typing.Optional[PokemonColor]:
+    async def get_pokemon_color_by_name(self, name: str) -> typing.Optional[PokemonColor]:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemoncolor
@@ -416,7 +416,7 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_color_name(self, color: PokemonColor, *, clean=True) -> str:
+    async def get_pokemon_color_name(self, color: PokemonColor, *, clean=True) -> str:
         statement = """
         SELECT name
         FROM pokemon_v2_pokemoncolorname
