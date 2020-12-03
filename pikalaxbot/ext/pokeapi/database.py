@@ -67,7 +67,7 @@ class PokeApi(aiosqlite.Connection):
         cls = eval(table.title().replace('_', ''))
         datatable = 'pokemon_v2_' + table.replace('_', '')
         nametable = datatable + 'name'
-        idcol = name + '_id'
+        idcol = table + '_id'
         statement = """
         SELECT *
         FROM {datatable}
