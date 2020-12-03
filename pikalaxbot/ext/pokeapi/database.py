@@ -263,8 +263,12 @@ class PokeApi(aiosqlite.Connection):
     def get_pokemon_color_by_name(self, name: str) -> Coroutine[None, None, Optional[PokemonColor]]:
         return self.get_by_name('pokemon_color', name)
 
-    def get_color_name(self, color: PokemonColor, *, clean=True) -> Coroutine[None, None, str]:
+    get_color_by_name = get_pokemon_color_by_name
+
+    def get_pokemon_color_name(self, color: PokemonColor, *, clean=True) -> Coroutine[None, None, str]:
         return self.get_name(color, clean=clean)
+
+    get_color_name = get_pokemon_color_name
 
     async def get_preevo(self, mon: PokemonSpecies) -> PokemonSpecies:
         statement = """
