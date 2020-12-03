@@ -249,16 +249,8 @@ class PokeApi(aiosqlite.Connection):
             await cur.fetchall()
         return list(res.values())
 
-    async def get_mon_color(self, mon: PokemonSpecies) -> PokemonColor:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_pokemoncolorname
-        WHERE pokemon_color_id = ?
-        """
-        self.row_factory = lambda c, r: PokemonColor(*r)
-        async with self.execute(statement, (mon.pokemon_color_id,)) as cur:
-            color = await cur.fetchone()
-        return color
+    def get_mon_color(self, mon: PokemonSpecies) -> Coroutine[None, None, PokemonColor]:
+        return self.get('pokemon_color', mon.pokemon_color_id)
 
     def get_pokemon_color_by_name(self, name: str) -> Coroutine[None, None, Optional[PokemonColor]]:
         return self.get_by_name('pokemon_color', name)
