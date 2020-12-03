@@ -24,7 +24,7 @@ import time
 import functools
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands, tasks, menus
 
 from . import BaseCog
 
@@ -164,8 +164,13 @@ class Meme(BaseCog):
 
         paginator = commands.Paginator()
         [paginator.add_line(line) for line in pyfiglet.figlet_format(message, width=37).splitlines()]
-        for page in paginator.pages:
-            await ctx.send(page)
+
+        class SimpleNavMenuPages(menus.ListPageSource):
+            async def format_page(self, menu, page):
+                return page
+
+        menu = menus.MenuPages(SimpleNavMenuPages, delete_message_after=True, clear_reactions_after=True)
+        await menu.start(ctx)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.command(aliases=['cookie', 'c'])
