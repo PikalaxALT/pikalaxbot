@@ -1,12 +1,11 @@
-import collections
-import typing
+from typing import Union, NamedTuple
 
 
-__all__ = 'PokeApiModel', 'PokemonSpecies', 'Move', 'Type', 'Ability', 'PokemonColor', 'Pokedex'
-PokeApiModel = typing.Union[__all__[1:]]
+__all__ = 'PokeApiModel', 'PokemonSpecies', 'Move', 'Type', 'Ability', 'PokemonColor', 'Pokedex', 'Pokemon', 'PokemonHabitat', 'PokemonShape', 'EggGroup'
+PokeApiModel = Union[__all__[1:]]
 
 
-class PokemonSpecies(typing.NamedTuple):
+class PokemonSpecies(NamedTuple):
     id: int
     name: str
     order: int
@@ -28,7 +27,7 @@ class PokemonSpecies(typing.NamedTuple):
     evolves_from_species_id: int
 
 
-class Move(typing.NamedTuple):
+class Move(NamedTuple):
     id: int
     power: int
     pp: int
@@ -46,27 +45,53 @@ class Move(typing.NamedTuple):
     name: str
 
 
-class Ability(typing.NamedTuple):
+class Ability(NamedTuple):
     id: int
     is_main_series: bool
     generation_id: int
     name: str
 
 
-class Type(typing.NamedTuple):
+class Type(NamedTuple):
     id: int
     generation_id: int
     move_damage_class_id: int
     name: str
 
 
-class PokemonColor(typing.NamedTuple):
+class PokemonColor(NamedTuple):
     id: int
     name: str
 
 
-class Pokedex(typing.NamedTuple):
+class Pokedex(NamedTuple):
     id: int
     is_main_series: bool
     region_id: int
+    name: str
+
+
+class Pokemon(NamedTuple):
+    id: int
+    name: str
+    order: int
+    height: int
+    weight: int
+    is_default: bool
+    pokemon_species_id: int
+    base_experience: int
+
+
+class PokemonHabitat(NamedTuple):
+    id: int
+    name: str
+
+
+class PokemonShape(NamedTuple):
+    id: int
+    name: str
+
+
+class EggGroup(NamedTuple):
+    id: int
     name: str

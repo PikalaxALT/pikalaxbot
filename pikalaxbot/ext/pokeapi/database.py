@@ -179,6 +179,10 @@ class PokeApi(aiosqlite.Connection):
         """Get a Pokemon species given its name"""
         return self.get_by_name('pokemon_species', name)
 
+    def get_forme_name(self, mon: Pokemon, *, clean=True) -> Coroutine[None, None, str]:
+        """Get a Pokemon forme's name"""
+        return self.get_name(mon, clean=clean)
+
     def random_move(self) -> Coroutine[None, None, Optional[Move]]:
         """Get a random move"""
         return self.get_random('move')
@@ -469,5 +473,28 @@ class PokeApi(aiosqlite.Connection):
         """
         self.row_factory = lambda c, r: bool(*r)
         async with self.execute(statement, (mon.id, dex.id)) as cur:
+            result = await cur.fetchone()
+        return result
+
+    async def get_formes(self, mon: PokemonSpecies) -> List[Pokemon]:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemon
+        WHERE pokemon_species_id = ?
+        """
+        self.row_factory = lambda c, r: Pokemon(*r)
+        async with self.execute(statement, (mon.id,)) as cur:
+            result = await cur.fetchall()
+        return result
+
+    async def get_default_forme(self, mon: PokemonSpecies) -> Pokemon:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemon
+        WHERE pokemon_species_id = ?
+        AND is_default = TRUE
+        """
+        self.row_factory = lambda c, r: Pokemon(*r)
+        async with self.execute(statement, (mon.id,)) as cur:
             result = await cur.fetchone()
         return result
