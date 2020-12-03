@@ -1,7 +1,7 @@
 import aiosqlite
 import re
 import collections
-import typing
+from typing import Coroutine, Optional, List, Set
 from .models import *
 
 
@@ -32,7 +32,7 @@ class PokeApi(aiosqlite.Connection):
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
-    async def get_names_from(self, table: str, *, clean=True) -> typing.List[str]:
+    async def get_names_from(self, table: str, *, clean=True) -> List[str]:
         statement = """
         SELECT name
         FROM {tablename}
@@ -63,7 +63,7 @@ class PokeApi(aiosqlite.Connection):
             name = await cur.fetchone()
         return name
 
-    async def get_by_name(self, table: str, name: str) -> typing.Optional[PokeApiModel]:
+    async def get_by_name(self, table: str, name: str) -> Optional[PokeApiModel]:
         cls = eval(table.title().replace('_', ''))
         datatable = 'pokemon_v2_' + table.replace('_', '')
         nametable = datatable + 'name'
@@ -76,6 +76,7 @@ class PokeApi(aiosqlite.Connection):
             FROM {nametable}
             WHERE language_id = :language
             AND name = :name
+            COLLATE NOCASE
         )
         """.format(
             datatable=datatable,
@@ -85,9 +86,18 @@ class PokeApi(aiosqlite.Connection):
         self.row_factory = lambda c, r: cls(*r)
         async with self.execute(statement, {'language': self._language, 'name': name}) as cur:
             result = await cur.fetchone()
+        if result is None:
+            statement = """
+            SELECT *
+            FROM {datatable}
+            WHERE name = :name
+            COLLATE NOCASE
+            """.format(datatable=datatable)
+            async with self.execute(statement, {'name': name}) as cur:
+                result = await cur.fetchone()
         return result
 
-    async def get(self, table: str, _id: int) -> typing.Optional[PokeApiModel]:
+    async def get(self, table: str, _id: int) -> Optional[PokeApiModel]:
         cls = eval(table.title().replace('_', ''))
         datatable = 'pokemon_v2_' + table.replace('_', '')
         statement = """
@@ -100,7 +110,7 @@ class PokeApi(aiosqlite.Connection):
             row = await cur.fetchone()
         return row
 
-    async def get_random(self, table: str) -> typing.Optional[PokeApiModel]:
+    async def get_random(self, table: str) -> Optional[PokeApiModel]:
         cls = eval(table.title().replace('_', ''))
         datatable = 'pokemon_v2_' + table.replace('_', '')
         statement = """
@@ -112,144 +122,60 @@ class PokeApi(aiosqlite.Connection):
         async with self.execute(statement) as cur:
             row = await cur.fetchone()
         return row
-
-    async def get_species(self, id_) -> typing.Optional[PokemonSpecies]:
+    
+    async def get_random_name(self, table: str, *, clean=True) -> Optional[str]:
+        nametable = 'pokemon_v2_' + table.replace('_', '') + 'name'
         statement = """
-        SELECT *
-        FROM pokemon_v2_pokemonspecies
-        WHERE id = ?
-        """
-        self.row_factory = lambda c, r: PokemonSpecies(*r)
-        async with self.execute(statement, (id_,)) as cur:
-            mon = await cur.fetchone()
-        return mon
+        SELECT name
+        FROM {nametable}
+        ORDER BY random()
+        """.format(nametable=nametable)
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement) as cur:
+            row = await cur.fetchone()
+        return row
+
+    def get_species(self, id_) -> Coroutine[None, None, Optional[PokemonSpecies]]:
+        return self.get('pokemon_species', id_)
 
     get_pokemon = get_species
 
-    async def random_species(self) -> typing.Optional[PokemonSpecies]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_pokemonspecies
-        ORDER BY random()
-        """
-        self.row_factory = lambda c, r: PokemonSpecies(*r)
-        async with self.execute(statement) as cur:  # type: aiosqlite.Cursor
-            mon = await cur.fetchone()
-        return mon
+    def random_species(self) -> Coroutine[None, None, Optional[PokemonSpecies]]:
+        return self.get_random('pokemon_species')
 
     random_pokemon = random_species
 
-    async def get_mon_name(self, mon: PokemonSpecies, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_pokemonspeciesname
-        WHERE language_id = ?
-        AND pokemon_species_id = ?
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language, mon.id)) as cur:
-            name = await cur.fetchone()
-        return name
+    def get_mon_name(self, mon: PokemonSpecies, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_name(mon, clean=clean)
 
     get_pokemon_name = get_mon_name
     get_species_name = get_mon_name
     get_pokemon_species_name = get_mon_name
 
-    async def random_species_name(self, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_pokemonspeciesname
-        WHERE language_id = ?
-        ORDER BY random()
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language,)) as cur:
-            name = await cur.fetchone()
-        return name
+    def random_species_name(self, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_random_name('pokemon_species', clean=clean)
 
     random_pokemon_name = random_species_name
 
-    async def get_species_by_name(self, name: str) -> typing.Optional[PokemonSpecies]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_pokemonspecies
-        WHERE id = (
-            SELECT pokemon_species_id
-            FROM pokemon_v2_pokemonspeciesname
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
-        """
-        self.row_factory = lambda c, r: PokemonSpecies(*r)
-        async with self.execute(statement, (self._language, name)) as cur:
-            mon = await cur.fetchone()
-        if not mon:
-            statement = """
-            SELECT *
-            FROM pokemon_v2_pokemonspecies
-            WHERE name = ?
-            """
-            async with self.execute(statement, (self._language, name)) as cur:
-                mon = await cur.fetchone()
-        return mon
+    def get_species_by_name(self, name: str) -> Coroutine[None, None, Optional[PokemonSpecies]]:
+        return self.get_by_name('pokemon_species', name)
 
     get_pokemon_by_name = get_species_by_name
     get_pokemon_species_by_name = get_species_by_name
 
-    async def random_move(self) -> typing.Optional[Move]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_pokemonmove
-        ORDER BY random()
-        """
-        self.row_factory = lambda c, r: Move(*r)
-        async with self.execute(statement) as cur:
-            move = await cur.fetchone()
-        return move
+    def random_move(self) -> Coroutine[None, None, Optional[Move]]:
+        return self.get_random('move')
 
-    async def get_move_name(self, move: Move, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_movename
-        WHERE language_id = ?
-        AND move_id = ?
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language, move.id)) as cur:
-            name = await cur.fetchone()
-        return name
+    def get_move_name(self, move: Move, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_name(move, clean=clean)
 
-    async def random_move_name(self, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_movename
-        WHERE language_id = ?
-        ORDER BY random()
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language,)) as cur:
-            name = await cur.fetchone()
-        return name
+    def random_move_name(self, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_random_name('move', clean=clean)
 
-    async def get_move_by_name(self, name: str) -> typing.Optional[Move]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_move
-        WHERE id = (
-            SELECT move_id
-            FROM pokemon_v2_movename
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
-        """
-        self.row_factory = lambda c, r: Move(*r)
-        async with self.execute(statement, (self._language, name)) as cur:
-            move = await cur.fetchone()
-        return move
+    def get_move_by_name(self, name: str) -> Coroutine[None, None, Optional[Move]]:
+        return self.get_by_name('move', name)
 
-    async def get_mon_types(self, mon: PokemonSpecies) -> typing.List[Type]:
+    async def get_mon_types(self, mon: PokemonSpecies) -> List[Type]:
         """Returns a list of type names for that Pokemon"""
         statement = """
         SELECT * 
@@ -297,7 +223,7 @@ class PokeApi(aiosqlite.Connection):
             efficacy = prod(await cur.fetchall())
         return efficacy
 
-    async def get_mon_matchup_against_mon(self, mon: PokemonSpecies, mon2: PokemonSpecies) -> typing.List[float]:
+    async def get_mon_matchup_against_mon(self, mon: PokemonSpecies, mon2: PokemonSpecies) -> List[float]:
         statement = """
         SELECT damage_type_id, damage_factor
         FROM pokemon_v2_typeefficacy
@@ -334,22 +260,8 @@ class PokeApi(aiosqlite.Connection):
             color = await cur.fetchone()
         return color
 
-    async def get_pokemon_color_by_name(self, name: str) -> typing.Optional[PokemonColor]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_pokemoncolor
-        WHERE id = (
-            SELECT pokemon_color_id
-            FROM pokemon_v2_pokemoncolorname
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
-        """
-        self.row_factory = lambda c, r: PokemonColor(*r)
-        async with self.execute(statement, (self._language, name)) as cur:
-            result = await cur.fetchone()
-        return result
+    def get_pokemon_color_by_name(self, name: str) -> Coroutine[None, None, Optional[PokemonColor]]:
+        return self.get_by_name('pokemon_color', name)
 
     async def get_preevo(self, mon: PokemonSpecies) -> PokemonSpecies:
         statement = """
@@ -362,7 +274,7 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_evos(self, mon: PokemonSpecies) -> typing.List[PokemonSpecies]:
+    async def get_evos(self, mon: PokemonSpecies) -> List[PokemonSpecies]:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonspecies
@@ -373,7 +285,7 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchall()
         return result
 
-    async def get_mon_learnset(self, mon: PokemonSpecies) -> typing.List[Move]:
+    async def get_mon_learnset(self, mon: PokemonSpecies) -> List[Move]:
         """Returns a list of move names for that Pokemon"""
         statement = """
         SELECT *
@@ -399,7 +311,7 @@ class PokeApi(aiosqlite.Connection):
             response = await cur.fetchone()
         return response
 
-    async def get_mon_abilities(self, mon: PokemonSpecies) -> typing.List[Ability]:
+    async def get_mon_abilities(self, mon: PokemonSpecies) -> List[Ability]:
         """Returns a list of ability names for that Pokemon"""
         statement = """
         SELECT *
@@ -411,34 +323,11 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchall()
         return result
     
-    async def get_ability_by_name(self, name: str) -> typing.Optional[Ability]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_ability
-        WHERE id = (
-            SELECT ability_id
-            FROM pokemon_v2_abilityname
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
-        """
-        self.row_factory = lambda c, r: Ability(*r)
-        async with self.execute(statement, (self._language, name)) as cur:
-            ability = await cur.fetchone()
-        return ability
+    def get_ability_by_name(self, name: str) -> Coroutine[None, None, Optional[Ability]]:
+        return self.get_by_name('ability', name)
 
-    async def get_ability_name(self, ability: Ability, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_abilityname
-        WHERE language_id = ?
-        AND ability_id = ?
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language, ability.id)) as cur:
-            name = await cur.fetchone()
-        return name
+    def get_ability_name(self, ability: Ability, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_name(ability, clean=clean)
 
     async def mon_has_ability(self, mon: PokemonSpecies, ability: Ability) -> bool:
         statement = """
@@ -454,22 +343,8 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_type_by_name(self, name: str) -> typing.Optional[Type]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_type
-        WHERE id = (
-            SELECT type_id
-            FROM pokemon_v2_typename
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
-        """
-        self.row_factory = lambda c, r: Type(*r)
-        async with self.execute(statement, (self._language, name)) as cur:
-            result = await cur.fetchone()
-        return result
+    def get_type_by_name(self, name: str) -> Coroutine[None, None, Optional[Type]]:
+        return self.get_by_name('type', name)
 
     async def mon_has_type(self, mon: PokemonSpecies, type_: Type) -> bool:
         statement = """
@@ -485,29 +360,11 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_type_name(self, type_: Type, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_typename
-        WHERE language_id = ?
-        AND type_id = ?
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language, type_.id)) as cur:
-            result = await cur.fetchone()
-        return result
+    def get_type_name(self, type_: Type, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_name(type_, clean=clean)
 
-    async def get_pokemon_color_name(self, color: PokemonColor, *, clean=True) -> str:
-        statement = """
-        SELECT name
-        FROM pokemon_v2_pokemoncolorname
-        WHERE language_id = ?
-        AND pokemon_color_id = ?
-        """
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, (self._language, color.id)) as cur:
-            result = await cur.fetchone()
-        return result
+    def get_pokemon_color_name(self, color: PokemonColor, *, clean=True) -> Coroutine[None, None, str]:
+        return self.get_name(color, clean=clean)
 
     async def has_mega_evolution(self, mon: PokemonSpecies) -> bool:
         statement = """
@@ -528,7 +385,7 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
     
-    async def get_evo_line(self, mon: PokemonSpecies) -> typing.Set[PokemonSpecies]:
+    async def get_evo_line(self, mon: PokemonSpecies) -> Set[PokemonSpecies]:
         result = {mon}
         while mon.evolves_from_species_id is not None:
             mon = await self.get_preevo(mon)
@@ -558,19 +415,5 @@ class PokeApi(aiosqlite.Connection):
             result = await cur.fetchone()
         return result
 
-    async def get_pokedex_by_name(self, name: str) -> typing.Optional[Pokedex]:
-        statement = """
-        SELECT *
-        FROM pokemon_v2_pokedex
-        WHERE id = (
-            SELECT pokedex_id
-            FROM pokemon_v2_pokedexname
-            WHERE language_id = ?
-            AND name = ?
-            COLLATE NOCASE
-        )
-        """
-        self.row_factory = lambda c, r: Pokedex(*r)
-        async with self.execute(statement, (self._language, name)) as cur:
-            dex = await cur.fetchone()
-        return dex
+    def get_pokedex_by_name(self, name: str) -> Coroutine[None, None, Optional[Pokedex]]:
+        return self.get_by_name('pokedex', name)
