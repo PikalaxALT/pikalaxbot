@@ -205,7 +205,7 @@ class Meme(BaseCog):
 
         @countdown.before_loop
         async def before_countdown():
-            await asyncio.sleep(5)
+            await asyncio.sleep(random.random() * 5 + 3)
 
         @countdown.after_loop
         async def after_countdown():
