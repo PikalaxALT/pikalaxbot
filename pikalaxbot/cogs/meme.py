@@ -27,6 +27,7 @@ import discord
 from discord.ext import commands, tasks, menus
 
 from . import BaseCog
+from .utils.menus import NavMenuPages
 
 DPY_GUILD_ID = 336642139381301249
 MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
@@ -163,7 +164,9 @@ class Meme(BaseCog):
         """Prints the message in huge ugly block letters"""
 
         paginator = commands.Paginator()
-        for i, line in enumerate(pyfiglet.figlet_format(message, width=37).splitlines(), 1):
+        partial = functools.partial(pyfiglet.figlet_format, message, width=37)
+        block_text = await self.bot.loop.run_in_executor(None, partial)
+        for i, line in enumerate(block_text.splitlines(), 1):
             paginator.add_line(line)
             if i % 30 == 0:
                 paginator.close_page()
@@ -172,7 +175,7 @@ class Meme(BaseCog):
             async def format_page(self, menu, page):
                 return page
 
-        menu = menus.MenuPages(SimpleNavMenuPages(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
+        menu = NavMenuPages(SimpleNavMenuPages(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
