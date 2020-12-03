@@ -74,25 +74,29 @@ class Settings(dict):
             raise ValueError(f'Please set your bot\'s token in {fname}')
         self._mtime = os.path.getmtime(fname)
 
-    async def __aenter__(self):
-        await self._lock.acquire()
+    def __enter__(self):
         if os.path.getmtime(self._fname) > self._mtime:
-            async with aiofile.AIOFile(self._fname) as fp:
-                t = await fp.read()
-            data = await self._loop.run_in_executor(None, json.loads, t)
-            await self._loop.run_in_executor(None, self.update, data)
+            with(self._fname) as fp:
+                data = json.load(fp)
+            self.update(data)
             self._mtime = os.path.getmtime(self._fname)
         return self
 
+    async def __aenter__(self):
+        await self._lock.acquire()
+        await self._loop.run_in_executor(None, self.__enter__)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._changed:
+            with open(self._fname, 'w') as fp:
+                json.dump(self, fp, indent=4)
+            self._changed = False
+            self._mtime = os.path.getmtime(self._fname)
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
-            if self._changed:
-                partial = functools.partial(json.dumps, self, indent=4, separators=(', ', ': '))
-                s = await self._loop.run_in_executor(None, partial)
-                async with aiofile.AIOFile(self._fname, 'w') as fp:
-                    await fp.write(s)
-                self._changed = False
-                self._mtime = os.path.getmtime(self._fname)
+            self._loop.run_in_executor(None, self.__exit__, exc_type, exc_val, exc_tb)
         finally:
             self._lock.release()
 

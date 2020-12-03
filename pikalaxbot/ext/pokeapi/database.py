@@ -462,3 +462,34 @@ class PokeApi(aiosqlite.Connection):
                 break
             result.update(new)
         return result
+
+    async def get_names_from(self, table: str, *, clean=True) -> typing.List[str]:
+        statement = """
+        SELECT name
+        FROM {tablename}
+        WHERE language_id = :language
+        """.format(
+            tablename='pokemon_v2_' + table.replace('_', '') + 'name'
+        )
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, {'language': self._language}) as cur:
+            names = await cur.fetchall()
+        return names
+
+    async def get_name(self, item, *, clean=True) -> str:
+        classname = item.__class__.__name__
+        if not hasattr(item, 'id'):
+            raise TypeError('Object of type {} has no attribute "id"'.format(classname))
+        statement = """
+        SELECT name
+        FROM {tablename}
+        WHERE language_id = :language
+        AND {idcol} = :id
+        """.format(
+            tablename=f'pokemon_v2_{classname.lower()}name',
+            idcol=re.sub(r'([a-z])([A-Z])', r'\1_\2', classname).lower() + '_id'
+        )
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, {'id': item.id, 'language': self._language}) as cur:
+            name = await cur.fetchone()
+        return name
