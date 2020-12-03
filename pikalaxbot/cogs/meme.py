@@ -32,11 +32,6 @@ DPY_GUILD_ID = 336642139381301249
 MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
 
 
-class SimpleNavMenuPages(menus.ListPageSource):
-    async def format_page(self, menu, page):
-        return page
-
-
 class HMM:
     def __init__(self, transition, emission):
         self.transition = transition
@@ -170,7 +165,11 @@ class Meme(BaseCog):
         paginator = commands.Paginator()
         [paginator.add_line(line) for line in pyfiglet.figlet_format(message, width=37).splitlines()]
 
-        menu = menus.MenuPages(SimpleNavMenuPages, delete_message_after=True, clear_reactions_after=True)
+        class SimpleNavMenuPages(menus.ListPageSource):
+            async def format_page(self, menu, page):
+                return page
+
+        menu = menus.MenuPages(SimpleNavMenuPages(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
