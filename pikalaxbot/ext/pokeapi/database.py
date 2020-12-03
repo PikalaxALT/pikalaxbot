@@ -32,6 +32,87 @@ class PokeApi(aiosqlite.Connection):
         name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
         return name
 
+    async def get_names_from(self, table: str, *, clean=True) -> typing.List[str]:
+        statement = """
+        SELECT name
+        FROM {tablename}
+        WHERE language_id = :language
+        """.format(
+            tablename='pokemon_v2_' + table.replace('_', '') + 'name'
+        )
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, {'language': self._language}) as cur:
+            names = await cur.fetchall()
+        return names
+
+    async def get_name(self, item: PokeApiModel, *, clean=True) -> str:
+        classname = item.__class__.__name__
+        if not hasattr(item, 'id'):
+            raise TypeError('Object of type {} has no attribute "id"'.format(classname))
+        statement = """
+        SELECT name
+        FROM {tablename}
+        WHERE language_id = :language
+        AND {idcol} = :id
+        """.format(
+            tablename=f'pokemon_v2_{classname.lower()}name',
+            idcol=re.sub(r'([a-z])([A-Z])', r'\1_\2', classname).lower() + '_id'
+        )
+        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
+        async with self.execute(statement, {'id': item.id, 'language': self._language}) as cur:
+            name = await cur.fetchone()
+        return name
+
+    async def get_by_name(self, table: str, name: str) -> typing.Optional[PokeApiModel]:
+        cls = eval(table.title().replace('_', ''))
+        datatable = 'pokemon_v2_' + table.replace('_', '')
+        nametable = datatable + 'name'
+        idcol = name + '_id'
+        statement = """
+        SELECT *
+        FROM {datatable}
+        WHERE id = (
+            SELECT {idcol}
+            FROM {nametable}
+            WHERE language_id = :language
+            AND name = :name
+        )
+        """.format(
+            datatable=datatable,
+            nametable=nametable,
+            idcol=idcol
+        )
+        self.row_factory = lambda c, r: cls(*r)
+        async with self.execute(statement, {'language': self._language, 'name': name}) as cur:
+            result = await cur.fetchone()
+        return result
+
+    async def get(self, table: str, _id: int) -> typing.Optional[PokeApiModel]:
+        cls = eval(table.title().replace('_', ''))
+        datatable = 'pokemon_v2_' + table.replace('_', '')
+        statement = """
+        SELECT *
+        FROM {datatable}
+        WHERE id = :id
+        """.format(datatable=datatable)
+        self.row_factory = lambda c, r: cls(*r)
+        async with self.execute(statement, {'id': _id}) as cur:
+            row = await cur.fetchone()
+        return row
+
+    async def get_random(self, table: str) -> typing.Optional[PokeApiModel]:
+        cls = eval(table.title().replace('_', ''))
+        datatable = 'pokemon_v2_' + table.replace('_', '')
+        statement = """
+        SELECT *
+        FROM {datatable}
+        ORDER BY random()
+        """.format(datatable=datatable)
+        self.row_factory = lambda c, r: cls(*r)
+        async with self.execute(statement) as cur:
+            row = await cur.fetchone()
+        return row
+
     async def get_species(self, id_) -> typing.Optional[PokemonSpecies]:
         statement = """
         SELECT *
@@ -461,61 +542,6 @@ class PokeApi(aiosqlite.Connection):
             if not new:
                 break
             result.update(new)
-        return result
-
-    async def get_names_from(self, table: str, *, clean=True) -> typing.List[str]:
-        statement = """
-        SELECT name
-        FROM {tablename}
-        WHERE language_id = :language
-        """.format(
-            tablename='pokemon_v2_' + table.replace('_', '') + 'name'
-        )
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, {'language': self._language}) as cur:
-            names = await cur.fetchall()
-        return names
-
-    async def get_name(self, item: PokeApiModel, *, clean=True) -> str:
-        classname = item.__class__.__name__
-        if not hasattr(item, 'id'):
-            raise TypeError('Object of type {} has no attribute "id"'.format(classname))
-        statement = """
-        SELECT name
-        FROM {tablename}
-        WHERE language_id = :language
-        AND {idcol} = :id
-        """.format(
-            tablename=f'pokemon_v2_{classname.lower()}name',
-            idcol=re.sub(r'([a-z])([A-Z])', r'\1_\2', classname).lower() + '_id'
-        )
-        self.row_factory = lambda c, r: (PokeApi._clean_name if clean else str)(*r)
-        async with self.execute(statement, {'id': item.id, 'language': self._language}) as cur:
-            name = await cur.fetchone()
-        return name
-
-    async def get_by_name(self, table: str, name: str) -> typing.Optional[PokeApiModel]:
-        cls = eval(table.title().replace('_', ''))
-        datatable = 'pokemon_v2_' + name.replace('_', '')
-        nametable = datatable + 'name'
-        idcol = name + '_id'
-        statement = """
-        SELECT *
-        FROM {datatable}
-        WHERE id = (
-            SELECT {idcol}
-            FROM {nametable}
-            WHERE language_id = :language
-            AND name = :name
-        )
-        """.format(
-            datatable=datatable,
-            nametable=nametable,
-            idcol=idcol
-        )
-        self.row_factory = lambda c, r: cls(*r)
-        async with self.execute(statement, {'language': self._language, 'name': name}) as cur:
-            result = await cur.fetchone()
         return result
 
     async def mon_is_in_dex(self, mon: PokemonSpecies, dex: Pokedex) -> bool:
