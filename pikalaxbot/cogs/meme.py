@@ -163,7 +163,10 @@ class Meme(BaseCog):
         """Prints the message in huge ugly block letters"""
 
         paginator = commands.Paginator()
-        [paginator.add_line(line) for line in pyfiglet.figlet_format(message, width=37).splitlines()]
+        for i, line in enumerate(pyfiglet.figlet_format(message, width=37).splitlines(), 1):
+            paginator.add_line(line)
+            if i % 30 == 0:
+                paginator.close_page()
 
         class SimpleNavMenuPages(menus.ListPageSource):
             async def format_page(self, menu, page):
