@@ -10,6 +10,26 @@ import contextlib
 __all__ = 'PokeApiCog',
 
 
+class ConfirmationMenu(menus.Menu):
+    async def send_initial_message(self, ctx, channel):
+        return await ctx.reply('This can take up to 30 minutes. Are you sure?')
+
+    @menus.button('\N{CROSS MARK}')
+    async def abort(self, payload):
+        await self.message.edit(content='Aborting', delete_after=10)
+        self.stop()
+
+    @menus.button('\N{WHITE HEAVY CHECK MARK}')
+    async def confirm(self, payload):
+        await self.message.edit(content='Confirmed', delete_after=10)
+        await self.ctx.cog.do_rebuild_pokeapi(self.ctx)
+        self.stop()
+
+    async def finalize(self, timed_out):
+        if timed_out:
+            await self.message.edit(content='Request timed out', delete_after=10)
+
+
 class SqlResponseEmbed(menus.ListPageSource):
     async def format_page(self, menu: menus.MenuPages, page):
         return discord.Embed(
@@ -47,6 +67,10 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             embed.description = f'Still running... ({elapsed:.0f}s)'
             await msg.edit(embed=embed)
 
+        @update_msg.before_loop
+        async def update_before():
+            await asyncio.sleep(10)
+
         done, pending = await asyncio.wait({update_msg.start(), self.bot.loop.create_task(shell.wait)}, return_when=asyncio.FIRST_COMPLETED)
         [task.cancel() for task in pending]
         try:
@@ -73,25 +97,6 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     @pokeapi.command(name='rebuild', aliases=['update'])
     async def rebuild_pokeapi(self, ctx):
         """Rebuild the pokeapi database"""
-
-        class ConfirmationMenu(menus.Menu):
-            async def send_initial_message(self, ctx, channel):
-                return await ctx.reply('This can take up to 30 minutes. Are you sure?')
-
-            @menus.button('\N{CROSS MARK}')
-            async def abort(self, payload):
-                await self.message.edit(content='Aborting', delete_after=10)
-                self.stop()
-
-            @menus.button('\N{WHITE HEAVY CHECK MARK}')
-            async def confirm(self, payload):
-                await self.message.edit(content='Confirmed', delete_after=10)
-                await ctx.cog.do_rebuild_pokeapi(self.ctx)
-                self.stop()
-
-            async def finalize(self, timed_out):
-                if timed_out:
-                    await self.message.edit(content='Request timed out', delete_after=10)
 
         async with self._lock, self.disable_pokeapi():
             menu = ConfirmationMenu(timeout=60.0, clear_reactions_after=True)
