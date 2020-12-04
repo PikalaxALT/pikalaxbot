@@ -16,8 +16,6 @@ def prod(iterable):
 
 
 class PokeApi(aiosqlite.Connection):
-    _language = 9  # English
-
     def __init__(self, cog, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cog = cog
