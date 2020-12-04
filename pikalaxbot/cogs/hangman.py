@@ -53,7 +53,7 @@ class HangmanGame(GameBase):
                            delete_after=10)
         else:
             async with self.bot.pokeapi as pokeapi:
-                self._solution = (await pokeapi.random_pokemon_name()).upper()
+                self._solution = (await pokeapi.random_pokemon_name(clean=True)).upper()
             self._state = ['_' if c.isalnum() else c for c in self._solution]
             self.attempts = self._attempts
             self._incorrect = []

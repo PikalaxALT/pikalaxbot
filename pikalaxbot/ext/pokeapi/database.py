@@ -1,8 +1,7 @@
 import aiosqlite
 import re
 import collections
-from typing import Coroutine, Optional, List, Set, AsyncGenerator
-from discord.utils import get
+from typing import Coroutine, Optional, List, Set
 from .models import *
 
 
@@ -48,15 +47,15 @@ class PokeApi(aiosqlite.Connection):
     def get_model_named(self, model: type, name: str):
         return self._execute(self._conn.get_model_named, model, name)
 
-    async def get_names_from(self, table: type, *, clean=True) -> List[str]:
+    async def get_names_from(self, table: type, *, clean=False) -> List[str]:
         """Generic method to get a list of all names from a PokeApi table."""
         names = [await self.get_name(obj, clean=clean) for obj in await self.get_all_models(table)]
         return names
 
-    async def get_name(self, item: NamedPokeapiResource, *, clean=True) -> str:
+    async def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
         return self._clean_name(item.name) if clean else item.name
 
-    async def get_name_by_id(self, table: type, id_: id, *, clean=True):
+    async def get_name_by_id(self, table: type, id_: id, *, clean=False):
         """Generic method to get the name of a PokeApi object given only its ID."""
         obj = await self.get_model(table, id_)
         return obj and await self.get_name(obj, clean=clean)
@@ -71,7 +70,7 @@ class PokeApi(aiosqlite.Connection):
         obj = await self._execute(self._conn.get_random_model, table)
         return obj
     
-    async def get_random_name(self, table: type, *, clean=True) -> Optional[str]:
+    async def get_random_name(self, table: type, *, clean=False) -> Optional[str]:
         """Generic method to get a random PokeApi object name."""
         obj = await self.get_random(table)
         return obj and await self.get_name(obj, clean=clean)
@@ -86,11 +85,11 @@ class PokeApi(aiosqlite.Connection):
         """Get a random Pokemon species"""
         return self.get_random(PokemonSpecies)
 
-    def get_mon_name(self, mon: PokemonSpecies, *, clean=True) -> Coroutine[None, None, str]:
+    def get_mon_name(self, mon: PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a Pokemon species"""
         return self.get_name(mon, clean=clean)
 
-    def random_species_name(self, *, clean=True) -> Coroutine[None, None, str]:
+    def random_species_name(self, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a random Pokemon species"""
         return self.get_random_name(PokemonSpecies, clean=clean)
 
@@ -98,7 +97,7 @@ class PokeApi(aiosqlite.Connection):
         """Get a Pokemon species given its name"""
         return self.get_model_named(PokemonSpecies, name)
 
-    def get_forme_name(self, mon: PokemonForm, *, clean=True) -> Coroutine[None, None, str]:
+    def get_forme_name(self, mon: PokemonForm, *, clean=False) -> Coroutine[None, None, str]:
         """Get a Pokemon forme's name"""
         return self.get_name(mon, clean=clean)
 
@@ -106,11 +105,11 @@ class PokeApi(aiosqlite.Connection):
         """Get a random move"""
         return self.get_random(Move)
 
-    def get_move_name(self, move: Move, *, clean=True) -> Coroutine[None, None, str]:
+    def get_move_name(self, move: Move, *, clean=False) -> Coroutine[None, None, str]:
         """Get a move's name"""
         return self.get_name(move, clean=clean)
 
-    def random_move_name(self, *, clean=True) -> Coroutine[None, None, str]:
+    def random_move_name(self, *, clean=False) -> Coroutine[None, None, str]:
         """Get a random move's name"""
         return self.get_random_name(Move, clean=clean)
 
@@ -126,11 +125,11 @@ class PokeApi(aiosqlite.Connection):
         """Get a Pokemon color given its name"""
         return self.get_model_named(PokemonColor, name)
 
-    def get_pokemon_color_name(self, color: PokemonColor, *, clean=True) -> Coroutine[None, None, str]:
+    def get_pokemon_color_name(self, color: PokemonColor, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a Pokemon color"""
         return self.get_name(color, clean=clean)
 
-    def get_name_of_mon_color(self, mon: PokemonSpecies, *, clean=True) -> Coroutine[None, None, str]:
+    def get_name_of_mon_color(self, mon: PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a Pokemon species' color"""
         return self.get_name(mon.pokemon_color, clean=clean)
 
@@ -138,7 +137,7 @@ class PokeApi(aiosqlite.Connection):
         """Get an ability given its name"""
         return self.get_model_named(Ability, name)
 
-    def get_ability_name(self, ability: Ability, *, clean=True) -> Coroutine[None, None, str]:
+    def get_ability_name(self, ability: Ability, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of an ability"""
         return self.get_name(ability, clean=clean)
 
@@ -146,7 +145,7 @@ class PokeApi(aiosqlite.Connection):
         """Get a Pokemon type given its name"""
         return self.get_model_named(Type, name)
 
-    def get_type_name(self, type_: Type, *, clean=True) -> Coroutine[None, None, str]:
+    def get_type_name(self, type_: Type, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a type"""
         return self.get_name(type_, clean=clean)
 
@@ -154,7 +153,7 @@ class PokeApi(aiosqlite.Connection):
         """Get a Pokedex given its name"""
         return self.get_model_named(Pokedex, name)
 
-    def get_pokedex_name(self, dex: Pokedex, *, clean=True) -> Coroutine[None, None, str]:
+    def get_pokedex_name(self, dex: Pokedex, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a pokedex"""
         return self.get_name(dex, clean=clean)
 

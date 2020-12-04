@@ -48,7 +48,7 @@ class AnagramGame(GameBase):
                            delete_after=10)
         else:
             async with self.bot.pokeapi as pokeapi:
-                self._solution = (await pokeapi.random_pokemon_name()).upper()
+                self._solution = (await pokeapi.random_pokemon_name(clean=True)).upper()
             self._state = list(self._solution)
             while ''.join(self._state) == self._solution:
                 random.shuffle(self._state)

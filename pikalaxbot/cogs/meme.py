@@ -120,7 +120,7 @@ class Meme(BaseCog):
         """Happy birthday, Waggle!"""
 
         async with self.bot.pokeapi as pokeapi:
-            move_name = await pokeapi.random_move_name(clean=False)
+            move_name = await pokeapi.random_move_name()
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {move_name}!')
 
