@@ -16,7 +16,7 @@ def setup(bot):
         db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
 
         def connector():
-            return sqlite3.connect(db_path, **kwargs)
+            return sqlite3.connect(db_path, factory=PokeApiConnection, **kwargs)
 
         return PokeApi(cog, connector, iter_chunk_size)
 
