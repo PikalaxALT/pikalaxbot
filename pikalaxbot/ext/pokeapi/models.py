@@ -187,7 +187,7 @@ class NamedPokeapiResource(PokeapiResource):
         results = cur.fetchone()
 
     def __repr__(self):
-        return '<{0.__class__.__name__} id={0.id} name={0.name!r language={0.language.name}}>'.format(self)
+        return '<{0.__class__.__name__} id={0.id} name={0.name!r} language={0.language.name}>'.format(self)
 
     def __str__(self):
         return self.name
