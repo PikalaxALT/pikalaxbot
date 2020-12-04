@@ -28,8 +28,8 @@ class PokeApi(aiosqlite.Connection):
 
     @staticmethod
     def _clean_name(name):
-        name = name.replace('♀', '_F').replace('♂', '_m')
-        name = re.sub(r'\W+', '_', name).replace('é', 'e').title()
+        name = name.replace('♀', '_F').replace('♂', '_m').replace('é', 'e')
+        name = re.sub(r'\W+', '_', name).title()
         return name
 
     # Generic getters
