@@ -171,11 +171,11 @@ class Meme(BaseCog):
             if i % 30 == 0:
                 paginator.close_page()
 
-        class SimpleNavMenuPages(menus.ListPageSource):
-            async def format_page(self, menu, page):
-                return page
+        class SimplePageSource(menus.ListPageSource):
+            async def format_page(self, menu: NavMenuPages, page):
+                return f'{page}\n\nPage {menu.current_page + 1} of {self.get_max_pages()}'
 
-        menu = NavMenuPages(SimpleNavMenuPages(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
+        menu = NavMenuPages(SimplePageSource(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
