@@ -165,10 +165,7 @@ class NamedPokeapiResource(PokeapiResource):
 
     def __init__(self, cursor: Cursor, row: Tuple[Any], *, suffix='name', namecol='name'):
         super().__init__(cursor, row)
-        if isinstance(self, Language):
-            self.language = self
-        else:
-            self.language = self._connection.get_model(Language, self._language)
+        self.language = self._connection.get_model(Language, self._language)
         clsname = self.__class__.__name__
         idcol = sub(r'([a-z])([A-Z])', r'\1_\2', clsname).lower()
         statement = """
@@ -184,7 +181,6 @@ class NamedPokeapiResource(PokeapiResource):
             self.name = ' | '.join(row)
             for name, value in zip(columns, row):
                 setattr(self, name, value)
-        results = cur.fetchone()
 
     def __repr__(self):
         return '<{0.__class__.__name__} id={0.id} name={0.name!r} language={0.language.name}>'.format(self)
@@ -193,13 +189,22 @@ class NamedPokeapiResource(PokeapiResource):
         return self.name
 
 
-class Language(NamedPokeapiResource):
+class Language(PokeapiResource):
     def __init__(self, cursor: Cursor, row: Tuple[Any]):
         super().__init__(cursor, row)
+        statement = """
+        SELECT name
+        FROM pokemon_v2_languagename
+        WHERE language_id = :language
+        AND local_language_id = :language
+        """
         self.iso3166 = self._row['iso3166']
         self.official = bool(self._row['official'])
         self.order = self._row['order']
         self.iso639 = self._row['iso639']
+        with self._connection.replace_row_factory(None) as conn:
+            cur = conn.execute(statement, {'language': self.id})
+            self.name, = cur.fetchone()
 
 
 class ItemFlingEffect(NamedPokeapiResource):
