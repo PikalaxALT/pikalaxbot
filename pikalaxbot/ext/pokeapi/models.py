@@ -94,7 +94,8 @@ class PokeapiResource:
         return hash((self.__class__, self.id))
 
     def __repr__(self):
-        return '<{0.__class__.__name__} id={0.id}>'.format(self)
+        attrs = ', '.join(f'{key}={value!r}' for key, value in zip(self._row.keys(), self._row))
+        return '<{0.__class__.__name__} {1}>'.format(self, attrs)
 
     def get_submodel(self, model, field):
         return self._connection.get_model(model, self._row[field])
@@ -125,9 +126,6 @@ class NamedPokeapiResource(PokeapiResource):
         else:
             for name in columns:
                 setattr(self, name, None)
-
-    def __repr__(self):
-        return '<{0.__class__.__name__} id={0.id} name={0.name!r} language={0.language.name}>'.format(self)
 
     def __str__(self):
         return self.name
