@@ -164,7 +164,7 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\s+', ' ', q, re.I)
             name, color = await self.lookup_name(self.pokeapi.PokemonColor, q)
-            return name, 0, color and color == solution.pokemon_color, 1 / len(re.findall(r'\w+', q))
+            return name, 0, color and color == solution.pokemon_color, 1 / len(re.findall(r'\w+', q)) if q else 0
 
         async def evolution(q):
             nwords = len(re.findall(r'\w+', q))
