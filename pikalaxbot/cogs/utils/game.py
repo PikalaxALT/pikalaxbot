@@ -85,7 +85,7 @@ class GameBase:
     def score(self):
         end_time = time.time()
         if self._timeout is None:
-            time_factor = math.exp((self.start_time - end_time) / 300.0)
+            time_factor = 2 ** ((self.start_time - end_time) / 300.0)
         else:
             time_factor = (self._timeout - end_time + self.start_time) / self._timeout
         return max(int(math.ceil(self._max_score * time_factor)), 1)
