@@ -147,12 +147,11 @@ class Q20QuestionParser:
                         if 0 in testeffect:
                             confidence += 0x20000
                     else:
-                        move = await self.lookup_name(Move, q)
+                        name, move = await self.lookup_name(Move, q)
                         if move:
                             testeffect = await self.pokeapi.get_mon_matchup_against_move(solution, move)
                             message = 3 * typeeffect < 0
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
-                            name = await self.pokeapi.get_name(move, clean=False)
                             if testeffect == 0:
                                 confidence += 0x20000
             elif found:
