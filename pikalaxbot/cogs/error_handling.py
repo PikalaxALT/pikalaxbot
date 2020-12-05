@@ -57,6 +57,9 @@ class ErrorHandling(BaseCog):
                 return
             if ctx.invoked_with.lower().startswith('fix') and self.bot.get_cog('Fix'):
                 return
+            q20_cog = self.bot.get_cog('Q20Game')
+            if q20_cog and ctx.channel in q20_cog.channels:
+                return
 
             async def filter_commands(iterable):
                 res = []

@@ -538,8 +538,8 @@ class Q20GameObject(GameBase):
             self.attempts = self._attempts
             samples = random.sample(self._sample_questions, 3)
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
-                           f'Use `{ctx.prefix}qa <question>` to narrow it down.\n\n'
-                           f'**Examples:**\n' + '\n'.join(f'`{ctx.prefix}qa {q}`' for q in samples))
+                           f'Use `{ctx.prefix}<question>` to narrow it down.\n\n'
+                           f'**Examples:**\n' + '\n'.join(f'`{ctx.prefix}{q}`' for q in samples))
             await super().start(ctx)
 
     async def end(self, ctx: commands, failed=False, aborted=False):
@@ -610,7 +610,7 @@ class Q20Game(GameCogBase):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
-    @commands.command(name='q20start', aliases=['qst'])
+    @commands.command(name='q20start', aliases=['qst', 'start'])
     async def q20_start(self, ctx):
         """Start a game in the current channel"""
         await self.start(ctx)
@@ -649,10 +649,20 @@ class Q20Game(GameCogBase):
 
         await self.end(ctx)
 
-    @q20.error
-    async def q20_error(self, ctx, error):
-        if isinstance(error, commands.CommandInvokeError):
-            await ctx.send('Oopsie-woopsie, I\'ve encountered a fucky-wucky. My husbando is on the case owo')
+    @GameCogBase.listener()
+    async def on_message(self, message):
+        if message.author == self.bot.user:
+            return
+        if message.channel not in self.channels:
+            return
+        ctx = await self.bot.get_context(message)
+        if ctx.prefix and not ctx.valid:
+            return
+        content = message.content[len(ctx.prefix):]
+        await self.ask(question=content)
+
+    async def cog_command_error(self, ctx, error):
+        await self._error(ctx, error)
 
 
 def setup(bot):
