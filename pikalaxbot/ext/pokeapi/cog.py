@@ -104,7 +104,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
 
     @pokeapi.command(name='sql')
     @commands.is_owner()
-    async def execute_sql(self, ctx, *, query):
+    async def execute_sql(self, ctx: commands.Context, *, query):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
@@ -121,6 +121,8 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             menu = menus.MenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = query if len(query) < 256 else '...' + query[-253:]
             await menu.start(ctx)
+        else:
+            await ctx.send('Opration completed, no rows returned.')
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @execute_sql.error

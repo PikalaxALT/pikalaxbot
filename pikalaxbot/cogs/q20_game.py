@@ -4,6 +4,7 @@ from discord.ext import commands
 from .utils.game import GameBase, GameCogBase, increment_score
 import re
 import difflib
+import random
 import nltk
 
 
@@ -203,18 +204,18 @@ class Q20QuestionParser:
             return name, 0, res and any(mon.id == solution.id for mon in await self.pokeapi.get_evo_line(res)), name is not None
 
         async def pokedex(q):
-            is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex)\b', q, re.I) is not None
+            is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex|region)\b', q, re.I) is not None
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(generation|gen|poke(dex)?|dex|in)\b', '', q, re.I)
+            q = re.sub(r'\b(generation|gen|poke(dex)?|dex|in|region)\b', '', q, re.I)
             patterns = [
-                r'\b(1|1st|first)\b',
-                r'\b(2|2nd|second)\b',
-                r'\b(3|3rd|third)\b',
-                r'\b(4|4th|fourth)\b',
-                r'\b(5|5th|fifth)\b',
-                r'\b(6|6th|sixth)\b',
-                r'\b(7|7th|seventh)\b',
-                r'\b(8|8th|eighth)\b',
+                r'\b(1|1st|first|i)\b',
+                r'\b(2|2nd|second|ii)\b',
+                r'\b(3|3rd|third|iii)\b',
+                r'\b(4|4th|fourth|iv)\b',
+                r'\b(5|5th|fifth|v)\b',
+                r'\b(6|6th|sixth|vi)\b',
+                r'\b(7|7th|seventh|vii)\b',
+                r'\b(8|8th|eighth|viii)\b',
             ]
             generation, _ = discord.utils.find(lambda pat: re.search(pat[1], q, re.I) is not None, enumerate(patterns, 1)) or (-1, None)
             for pat in patterns:
@@ -232,7 +233,12 @@ class Q20QuestionParser:
                 message = 0
                 item = f'Generation {generation}'
             else:
-                return None, 0, False, 0
+                region_name, region = await self.lookup_name(Region, q)
+                if region_name is None:
+                    return None, 0, False, 0
+                result = solution.generation.id == region.id
+                message = 0
+                item = f'{region_name} region'
             return item, message, result, 10
 
         async def booleans(q):
@@ -450,25 +456,28 @@ class Q20QuestionParser:
                 match_t = 'Yes' if match else 'No'
                 if method == pokemon and match:
                     match_t = '**YES!!**'
-                if method == type_ and solution.id == 493:
-                    match_t = {
-                        'single': 'HAHAHAHAHAHAHAHAHA!!!',
-                        'dual': 'Nah'
-                    }.get(item, 'Sometimes')
-                if method == type_:
-                    if confidence >= 0x20000:
-                        confidence -= 0x20000
-                        match_t = 'It is immune'
-                    if confidence >= 0x10000:
-                        confidence -= 0x10000
-                        if match_t == 'It is immune':
-                            match_t = 'It is sometimes immune'
-                        else:
-                            match_t = 'Sometimes'
-                if method == pokedex and item == 'National':
+                elif method == type_:
+                    if solution.id == 493:
+                        match_t = {
+                            'single': 'HAHAHAHAHAHAHAHAHA!!!',
+                            'dual': 'Nah'
+                        }.get(item, 'Sometimes')
+                    else:
+                        if confidence >= 0x20000:
+                            confidence -= 0x20000
+                            match_t = 'It is immune'
+                        if confidence >= 0x10000:
+                            confidence -= 0x10000
+                            if match_t == 'It is immune':
+                                match_t = 'It is sometimes immune'
+                            else:
+                                match_t = 'Sometimes'
+                elif method == pokedex and item == 'National':
                     match_t = 'Duh.'
-                if method in (size, weight) and message == 4:
+                elif method in (size, weight) and message == 4:
                     valid = False
+                elif method == evolution and message == 3 and match:
+                    match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 if valid:
                     response_s = f'`{msgbank[message].format(item)}`: {match_t}'
                 else:
@@ -481,6 +490,20 @@ class Q20QuestionParser:
 
 
 class Q20GameObject(GameBase):
+    _sample_questions = (
+        "is it Magikarp?", "is it Lapras", "is it Dux?",
+        "can it have sturdy", "does it have the ability sand veil", "could it have the ability volt absorb?",
+        "is it a fire type", "is it weak to ice?", "does it resist water?", "is it dual typed",
+        "is it part of the eevee family?", "is it in the ralts evolutionary line",
+        "can it learn flamethrower", "can it learn Ice Beam?", "does it learn trick room",
+        "is it taller than 2 meters", "is it shorter than a house?", "is it smaller than pikachu?",
+        "is it bigger than 5m?",
+        "is it a legendary", "is it a fossil pokemon?",
+        "is it blue?", "is it red",
+        "can it evolve", "can it mega evolve?",
+        "is it in the kanto pokedex?", "is it in the national pokedex", "is it in the fifth gen?",
+    )
+
     def __init__(self, bot):
         super().__init__(bot, timeout=None)
         self._attempts = 20
@@ -510,14 +533,15 @@ class Q20GameObject(GameBase):
             pokeapi = self.bot.pokeapi
             self._solution: pokeapi.PokemonSpecies = await pokeapi.random_pokemon()
             self.attempts = self._attempts
+            samples = random.sample(self._sample_questions, 3)
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
-                           f'Use `{ctx.prefix}q20 ask <question>` to narrow it down.')
+                           f'Use `{ctx.prefix}qa <question>` to narrow it down.\n\n'
+                           f'**Examples:**\n' + '\n'.join(f'`{ctx.prefix}qa {q}`' for q in samples))
             await super().start(ctx)
 
     async def end(self, ctx: commands, failed=False, aborted=False):
         if self.running:
-            pokeapi = self.bot.pokeapi
-            name = await pokeapi.get_name(self._solution, clean=False)
+            name = self._solution.name
             if self._task and not self._task.done():
                 self._task.cancel()
                 self._task = None
