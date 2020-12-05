@@ -4,6 +4,7 @@ from discord.ext import commands
 from .utils.game import GameBase, GameCogBase, increment_score
 import re
 import difflib
+import random
 import nltk
 from ..ext.pokeapi.models import *
 
@@ -482,6 +483,20 @@ class Q20QuestionParser:
 
 
 class Q20GameObject(GameBase):
+    _sample_questions = (
+        "is it Magikarp?", "is it Lapras", "is it Dux?",
+        "can it have sturdy", "does it have the ability sand veil", "could it have the ability volt absorb?",
+        "is it a fire type", "is it weak to ice?", "does it resist water?", "is it dual typed",
+        "is it part of the eevee family?", "is it in the ralts evolutionary line",
+        "can it learn flamethrower", "can it learn Ice Beam?", "does it learn trick room",
+        "is it taller than 2 meters", "is it shorter than a house?", "is it smaller than pikachu?",
+        "is it bigger than 5m?",
+        "is it a legendary", "is it a fossil pokemon?",
+        "is it blue?", "is it red",
+        "can it evolve", "can it mega evolve?",
+        "is it in the kanto pokedex?", "is it in the national pokedex", "is it in the fifth gen?",
+    )
+
     def __init__(self, bot):
         super().__init__(bot, timeout=None)
         self._attempts = 20
@@ -511,8 +526,10 @@ class Q20GameObject(GameBase):
             pokeapi = self.bot.pokeapi
             self._solution: pokeapi.PokemonSpecies = await pokeapi.random_pokemon()
             self.attempts = self._attempts
+            samples = random.sample(self._sample_questions, 3)
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
-                           f'Use `{ctx.prefix}q20 ask <question>` to narrow it down.')
+                           f'Use `{ctx.prefix}qa <question>` to narrow it down.\n\n'
+                           f'**Examples:**\n' + '\n'.join(f'`{ctx.prefix}qa {q}`' for q in samples))
             await super().start(ctx)
 
     async def end(self, ctx: commands, failed=False, aborted=False):
