@@ -233,7 +233,7 @@ class Q20QuestionParser:
                 message = 0
                 item = f'Generation {generation}'
             else:
-                region_name, region = await self.lookup_name(Region, q)
+                region_name, region = await self.lookup_name(self.pokeapi.Region, q)
                 if region_name is None:
                     return None, 0, False, 0
                 result = solution.generation.id == region.id
