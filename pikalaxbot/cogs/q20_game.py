@@ -205,18 +205,18 @@ class Q20QuestionParser:
             return name, 0, res and any(mon.id == solution.id for mon in await self.pokeapi.get_evo_line(res)), name is not None
 
         async def pokedex(q):
-            is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex)\b', q, re.I) is not None
+            is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex|region)\b', q, re.I) is not None
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(generation|gen|poke(dex)?|dex|in)\b', '', q, re.I)
+            q = re.sub(r'\b(generation|gen|poke(dex)?|dex|in|region)\b', '', q, re.I)
             patterns = [
-                r'\b(1|1st|first)\b',
-                r'\b(2|2nd|second)\b',
-                r'\b(3|3rd|third)\b',
-                r'\b(4|4th|fourth)\b',
-                r'\b(5|5th|fifth)\b',
-                r'\b(6|6th|sixth)\b',
-                r'\b(7|7th|seventh)\b',
-                r'\b(8|8th|eighth)\b',
+                r'\b(1|1st|first|i)\b',
+                r'\b(2|2nd|second|ii)\b',
+                r'\b(3|3rd|third|iii)\b',
+                r'\b(4|4th|fourth|iv)\b',
+                r'\b(5|5th|fifth|v)\b',
+                r'\b(6|6th|sixth|vi)\b',
+                r'\b(7|7th|seventh|vii)\b',
+                r'\b(8|8th|eighth|viii)\b',
             ]
             generation, _ = discord.utils.find(lambda pat: re.search(pat[1], q, re.I) is not None, enumerate(patterns, 1)) or (-1, None)
             for pat in patterns:
@@ -234,7 +234,12 @@ class Q20QuestionParser:
                 message = 0
                 item = f'Generation {generation}'
             else:
-                return None, 0, False, 0
+                region_name, region = await self.lookup_name(Region, q)
+                if region_name is None:
+                    return None, 0, False, 0
+                result = solution.generation.id == region.id
+                message = 0
+                item = f'{region_name} region'
             return item, message, result, 10
 
         async def booleans(q):
@@ -534,8 +539,7 @@ class Q20GameObject(GameBase):
 
     async def end(self, ctx: commands, failed=False, aborted=False):
         if self.running:
-            pokeapi = self.bot.pokeapi
-            name = await pokeapi.get_name(self._solution, clean=False)
+            name = self._solution.name
             if self._task and not self._task.done():
                 self._task.cancel()
                 self._task = None
