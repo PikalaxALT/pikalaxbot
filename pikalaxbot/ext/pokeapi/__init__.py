@@ -1,6 +1,4 @@
 from .database import PokeApi
-import aiosqlite
-import asyncio
 import os
 import sqlite3
 

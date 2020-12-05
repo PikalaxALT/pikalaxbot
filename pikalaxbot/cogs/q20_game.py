@@ -478,8 +478,11 @@ class Q20QuestionParser:
                     valid = False
                 elif method == evolution and message == 3 and match:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
+                elif method == move and solution.id > 807:
+                    match_t = 'I have no clue'
                 if valid:
                     response_s = f'`{msgbank[message].format(item)}`: {match_t}'
+                    valid = match_t != 'I have no clue'
                 else:
                     response_s = msgbank[message].format(item)
                 responses.append((confidence, response_s, method == pokemon and match, valid))
