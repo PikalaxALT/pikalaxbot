@@ -83,7 +83,11 @@ class GameBase:
 
     @property
     def score(self):
-        time_factor = (self._timeout - time.time() + self.start_time) / self._timeout
+        end_time = time.time()
+        if self._timeout is None:
+            time_factor = math.exp((self.start_time - end_time) / 300.0)
+        else:
+            time_factor = (self._timeout - end_time + self.start_time) / self._timeout
         return max(int(math.ceil(self._max_score * time_factor)), 1)
 
     @property
@@ -115,7 +119,10 @@ class GameBase:
 
         self.running = True
         self._message = await ctx.send(self)
-        self._task = self.bot.loop.create_task(self.timeout(ctx))
+        if self._timeout is None:
+            self._task = self.bot.loop.create_future()
+        else:
+            self._task = self.bot.loop.create_task(self.timeout(ctx))
         self._task.add_done_callback(destroy_self)
         self.start_time = time.time()
 

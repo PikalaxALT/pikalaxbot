@@ -136,6 +136,7 @@ class Q20QuestionParser:
                     name, mon = await self.lookup_name(PokemonSpecies, q)
                     if mon:
                         testeffect = await self.pokeapi.get_mon_matchup_against_mon(solution, mon)
+                        assert len(testeffect) in (1, 2)
                         message = 3 + (typeeffect < 0)
                         if len(testeffect) == 2:
                             if (testeffect[0] < 1 and testeffect[1] > 1 or testeffect[0] > 1 and testeffect[1] < 1):
@@ -304,7 +305,7 @@ class Q20QuestionParser:
                     name, mon = await self.lookup_name(PokemonSpecies, conglom)
                     if mon:
                         mon = await self.pokeapi.get_default_forme(mon)
-                        size_literal = mon.height
+                        size_literal = mon.pokemon.height
             if size_literal > 0:
                 if wrong_scale_error:
                     return 'error', 4, False, 1
@@ -380,7 +381,7 @@ class Q20QuestionParser:
                     name, mon = await self.lookup_name(PokemonSpecies, conglom)
                     if mon:
                         mon = await self.pokeapi.get_default_forme(mon)
-                        size_literal = mon.weight
+                        size_literal = mon.pokemon.weight
             if size_literal > 0:
                 if wrong_scale_error:
                     return 'error', 4, False, 1
@@ -482,8 +483,9 @@ class Q20QuestionParser:
 
 class Q20GameObject(GameBase):
     def __init__(self, bot):
-        super().__init__(bot, timeout=300)
+        super().__init__(bot, timeout=None)
         self._attempts = 20
+        self._parser = Q20QuestionParser(self, bot.pokeapi)
 
     def reset(self):
         super().reset()
@@ -509,8 +511,7 @@ class Q20GameObject(GameBase):
             pokeapi = self.bot.pokeapi
             self._solution: pokeapi.PokemonSpecies = await pokeapi.random_pokemon()
             self.attempts = self._attempts
-            await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions and {self._timeout:d} '
-                           f'seconds to guess correctly.\n\n'
+            await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
                            f'Use `{ctx.prefix}q20 ask <question>` to narrow it down.')
             await super().start(ctx)
 
@@ -548,9 +549,8 @@ class Q20GameObject(GameBase):
             if ctx.command:
                 await ctx.send('Q20 is not running here.')
             return
-        pokeapi = self.bot.pokeapi
         async with ctx.typing():
-            message, res, valid = await Q20QuestionParser(self, pokeapi).parse(question)
+            message, res, valid = await self._parser.parse(question)
         if message in self._state:
             return await ctx.send('You\'ve already asked that!')
         await ctx.send(message)

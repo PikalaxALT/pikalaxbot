@@ -103,7 +103,6 @@ class PollManager:
             stop_time=context.message.created_at + datetime.timedelta(seconds=timeout),
             options=options
         )
-        end_time = this.stop_time.strftime('%d %b %Y at %H:%M:%S UTC')
         content = f'Vote using emoji reactions. ' \
                   f'Max one vote per user. ' \
                   f'To change your vote, clear your original selection first. ' \
@@ -114,7 +113,7 @@ class PollManager:
         description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(this.emojis, options))
         embed = discord.Embed(title=prompt, description=description, colour=0xf47fff)
         embed.set_footer(text='Poll ends at')
-        embed.timestamp = end_time
+        embed.timestamp = this.stop_time
         embed.set_author(name=context.author.display_name, icon_url=context.author.avatar_url)
         this.message = await context.send(content, embed=embed)
         for emoji in this.emojis:
