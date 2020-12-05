@@ -2,8 +2,6 @@ from sqlite3 import Connection, Row, Cursor
 from typing import Optional, Callable, Tuple, Any
 from contextlib import contextmanager
 from re import sub, split
-from discord.utils import find, get
-import random
 
 
 __all__ = (
@@ -71,73 +69,6 @@ class PokeApiConnection(Connection):
             cur = conn.execute(statement, {'id': id_})
             result = cur.fetchone()
         return result
-
-    def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str, *, suffix='name', namecol='name'):
-        result = find(lambda k: isinstance(k[1], model) and k[1].name == name, self.__global_cache__.items())
-        if result:
-            return result[1]
-        clsname = model.__name__
-        idcol = sub(r'([a-z])([A-Z])', r'\1_\2', clsname).lower()
-        statement = """
-        SELECT *
-        FROM pokemon_v2_{0}
-        WHERE id = (
-            SELECT {1}_id
-            FROM pokemon_v2_{0}{2}
-            WHERE {3}
-        )
-        """.format(
-            model.__name__.lower(),
-            idcol,
-            suffix,
-            ' OR '.join('{} = \'{}\''.format(field, name) for field in split(r'[, ]+', namecol))
-        )
-        with self.replace_row_factory(model) as conn:
-            cur = conn.execute(statement)
-            result = cur.fetchone()
-        return result
-
-    def get_random_model(self, model):
-        if model in self.__global_cache__:
-            return random.choice(self.__global_cache__[model])
-        statement = """
-        SELECT *
-        FROM pokemon_v2_{}
-        ORDER BY random()
-        """.format(model.__name__.lower())
-        with self.replace_row_factory(model) as conn:
-            cur = conn.execute(statement)
-            result = cur.fetchone()
-        return result
-
-    def get_all_models(self, model):
-        if model in self.__global_cache__:
-            return self.__global_cache__[model]
-        statement = """
-        SELECT *
-        FROM pokemon_v2_{}
-        """.format(model.__name__.lower())
-        with self.replace_row_factory(model) as conn:
-            self.__global_cache__[model] = result = list(conn.execute(statement))
-        return result
-
-    def get(self, model, **kwargs):
-        if model in self.__global_cache__:
-            return get(self.__global_cache__[model], **kwargs)
-        else:
-            statement = """
-            SELECT *
-            FROM pokemon_v2_{}
-            """.format(model.__name__.lower())
-            with self.replace_row_factory(model) as conn:
-                return get(conn.execute(statement), **kwargs)
-
-    def filter(self, model, **kwargs):
-        iterable = iter(self.get_all_models(model))
-        records = []
-        while (result := get(iterable, **kwargs)) is not None:
-            records.append(result)
-        return records
 
 
 class PokeapiResource:
