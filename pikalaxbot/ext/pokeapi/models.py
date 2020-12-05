@@ -8,38 +8,7 @@ __all__ = (
     'PokeApiConnection',
     'PokeapiResource',
     'NamedPokeapiResource',
-    'Pokemon',
-    'PokemonHabitat',
-    'PokemonShape',
-    'PokemonColor',
-    'PokemonSpecies',
-    'ItemPocket',
-    'ContestType',
-    'SuperContestEffect',
-    'Type',
-    'Item',
-    'ItemCategory',
-    'ItemFlingEffect',
-    'EvolutionChain',
-    'Generation',
-    'Region',
-    'GrowthRate',
-    'Move',
-    'MoveTarget',
-    'MoveEffect',
-    'MoveDamageClass',
-    'Language',
-    'ContestEffect',
-    'Pokedex',
-    'Ability',
-    'PokemonAbility',
-    'PokemonForm',
-    'VersionGroup',
-    'PokemonType',
-    'PokemonDexNumber',
-    'PokemonMove',
-    'MoveLearnMethod',
-    'TypeEfficacy',
+    'PokeapiModels',
 )
 
 
@@ -103,11 +72,11 @@ class NamedPokeapiResource(PokeapiResource):
         clsname = self.__class__.__name__
         idcol = sub(r'([a-z])([A-Z])', r'\1_\2', clsname).lower()
         statement = """
-        SELECT {}
-        FROM pokemon_v2_{}{}
-        WHERE language_id = {}
-        AND {}_id = :id
-        """.format(namecol, clsname.lower(), suffix, self._language, idcol)
+            SELECT {}
+            FROM pokemon_v2_{}{}
+            WHERE language_id = {}
+            AND {}_id = :id
+            """.format(namecol, clsname.lower(), suffix, self._language, idcol)
         self._columns = columns = split(r'[, ]+', namecol)
         with self._connection.replace_row_factory(None) as conn:
             cur = conn.execute(statement, {'id': self.id})
@@ -128,246 +97,247 @@ class NamedPokeapiResource(PokeapiResource):
         return self.name
 
 
-class Language(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        statement = """
-        SELECT name
-        FROM pokemon_v2_languagename
-        WHERE language_id = :language
-        AND local_language_id = :language
-        """
-        self.iso3166 = self._row['iso3166']
-        self.official = bool(self._row['official'])
-        self.order = self._row['order']
-        self.iso639 = self._row['iso639']
-        with self._connection.replace_row_factory(None) as conn:
-            cur = conn.execute(statement, {'language': self.id})
-            self.name, = cur.fetchone()
+class PokeapiModels:
+    class Language(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            statement = """
+            SELECT name
+            FROM pokemon_v2_languagename
+            WHERE language_id = :language
+            AND local_language_id = :language
+            """
+            self.iso3166 = self._row['iso3166']
+            self.official = bool(self._row['official'])
+            self.order = self._row['order']
+            self.iso639 = self._row['iso639']
+            with self._connection.replace_row_factory(None) as conn:
+                cur = conn.execute(statement, {'language': self.id})
+                self.name, = cur.fetchone()
 
 
-class ItemFlingEffect(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row, suffix='effecttext', namecol='effect')
+    class ItemFlingEffect(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row, suffix='effecttext', namecol='effect')
 
 
-class ItemPocket(NamedPokeapiResource):
-    pass
+    class ItemPocket(NamedPokeapiResource):
+        pass
 
 
-class ItemCategory(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.item_pocket = self.get_submodel(ItemPocket, 'item_pocket_id')
+    class ItemCategory(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.item_pocket = self.get_submodel(PokeapiModels.ItemPocket, 'item_pocket_id')
 
 
-class Item(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.cost = self._row['cost']
-        self.fling_power = self._row['fling_power']
-        self.item_category = self.get_submodel(ItemCategory, 'item_category_id')
-        self.item_fling_effect = self.get_submodel(ItemFlingEffect, 'item_fling_effect_id')
+    class Item(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.cost = self._row['cost']
+            self.fling_power = self._row['fling_power']
+            self.item_category = self.get_submodel(PokeapiModels.ItemCategory, 'item_category_id')
+            self.item_fling_effect = self.get_submodel(PokeapiModels.ItemFlingEffect, 'item_fling_effect_id')
 
 
-class EvolutionChain(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.baby_trigger_item = self.get_submodel(Item, 'baby_trigger_item_id')
+    class EvolutionChain(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.baby_trigger_item = self.get_submodel(PokeapiModels.Item, 'baby_trigger_item_id')
 
 
-class Region(NamedPokeapiResource):
-    pass
+    class Region(NamedPokeapiResource):
+        pass
 
 
-class Generation(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.region = self.get_submodel(Region, 'region_id')
+    class Generation(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.region = self.get_submodel(PokeapiModels.Region, 'region_id')
 
 
-class PokemonColor(NamedPokeapiResource):
-    pass
+    class PokemonColor(NamedPokeapiResource):
+        pass
 
 
-class PokemonHabitat(NamedPokeapiResource):
-    pass
+    class PokemonHabitat(NamedPokeapiResource):
+        pass
 
 
-class PokemonShape(NamedPokeapiResource):
-    pass
+    class PokemonShape(NamedPokeapiResource):
+        pass
 
 
-class GrowthRate(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row, suffix='description', namecol='description')
-        self.formula = self._row['formula']
+    class GrowthRate(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row, suffix='description', namecol='description')
+            self.formula = self._row['formula']
 
 
-class MoveDamageClass(NamedPokeapiResource):
-    pass
+    class MoveDamageClass(NamedPokeapiResource):
+        pass
 
 
-class MoveEffect(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row, suffix='effecttext', namecol='effect, short_effect')
+    class MoveEffect(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row, suffix='effecttext', namecol='effect, short_effect')
 
 
-class MoveTarget(NamedPokeapiResource):
-    pass
+    class MoveTarget(NamedPokeapiResource):
+        pass
 
 
-class Type(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.generation = self.get_submodel(Generation, 'generation_id')
-        self.damage_class = self.move_damage_class = self.get_submodel(MoveDamageClass, 'move_damage_class_id')
+    class Type(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
+            self.damage_class = self.move_damage_class = self.get_submodel(PokeapiModels.MoveDamageClass, 'move_damage_class_id')
 
 
-class ContestEffect(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row, suffix='effecttext', namecol='effect')
-        self.appeal = self._row['appeal']
-        self.jam = self._row['jam']
+    class ContestEffect(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row, suffix='effecttext', namecol='effect')
+            self.appeal = self._row['appeal']
+            self.jam = self._row['jam']
 
 
-class ContestType(NamedPokeapiResource):
-    pass
+    class ContestType(NamedPokeapiResource):
+        pass
 
 
-class SuperContestEffect(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row, suffix='flavortext', namecol='flavor_text')
-        self.appeal = self._row['appeal']
+    class SuperContestEffect(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row, suffix='flavortext', namecol='flavor_text')
+            self.appeal = self._row['appeal']
 
 
-class Move(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.power = self._row['power']
-        self.pp = self._row['pp']
-        self.accuracy = self._row['accuracy']
-        self.priority = self._row['priority']
-        self.effect_chance = self.move_effect_chance = self._row['move_effect_chance']
-        self.generation = self.get_submodel(Generation, 'generation_id')
-        self.damage_class = self.move_damage_class = self.get_submodel(MoveDamageClass, 'move_damage_class_id')
-        self.effect = self.move_effect = self.get_submodel(MoveEffect, 'move_effect_id')
-        self.target = self.move_target = self.get_submodel(MoveTarget, 'move_target_id')
-        self.type = self.get_submodel(Type, 'type_id')
-        self.contest_effect = self.get_submodel(ContestEffect, 'contest_effect_id')
-        self.contest_type = self.get_submodel(ContestType, 'contest_type_id')
-        self.super_contest_effect = self.get_submodel(SuperContestEffect, 'super_contest_effect_id')
+    class Move(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.power = self._row['power']
+            self.pp = self._row['pp']
+            self.accuracy = self._row['accuracy']
+            self.priority = self._row['priority']
+            self.effect_chance = self.move_effect_chance = self._row['move_effect_chance']
+            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
+            self.damage_class = self.move_damage_class = self.get_submodel(PokeapiModels.MoveDamageClass, 'move_damage_class_id')
+            self.effect = self.move_effect = self.get_submodel(PokeapiModels.MoveEffect, 'move_effect_id')
+            self.target = self.move_target = self.get_submodel(PokeapiModels.MoveTarget, 'move_target_id')
+            self.type = self.get_submodel(PokeapiModels.Type, 'type_id')
+            self.contest_effect = self.get_submodel(PokeapiModels.ContestEffect, 'contest_effect_id')
+            self.contest_type = self.get_submodel(PokeapiModels.ContestType, 'contest_type_id')
+            self.super_contest_effect = self.get_submodel(PokeapiModels.SuperContestEffect, 'super_contest_effect_id')
 
 
-class PokemonSpecies(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.order = self._row['order']
-        self.gender_rate = self._row['gender_rate']
-        self.capture_rate = self._row['capture_rate']
-        self.base_happiness = self._row['base_happiness']
-        self.is_baby = bool(self._row['is_baby'])
-        self.hatch_counter = self._row['hatch_counter']
-        self.has_gender_differences = bool(self._row['has_gender_differences'])
-        self.forms_switchable = bool(self._row['forms_switchable'])
-        self.evolution_chain = self.get_submodel(EvolutionChain, 'evolution_chain_id')
-        self.generation = self.get_submodel(Generation, 'generation_id')
-        self.growth_rate = self.get_submodel(GrowthRate, 'growth_rate_id')
-        self.color = self.pokemon_color = self.get_submodel(PokemonColor, 'pokemon_color_id')
-        self.habitat = self.pokemon_habitat = self.get_submodel(PokemonHabitat, 'pokemon_habitat_id')
-        self.shape = self.pokemon_shape = self.get_submodel(PokemonShape, 'pokemon_shape_id')
-        self.is_legendary = bool(self._row['is_legendary'])
-        self.is_mythical = bool(self._row['is_mythical'])
-        self.preevo = self.evolves_from_species = self.get_submodel(PokemonSpecies, 'evolves_from_species_id')
+    class PokemonSpecies(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.order = self._row['order']
+            self.gender_rate = self._row['gender_rate']
+            self.capture_rate = self._row['capture_rate']
+            self.base_happiness = self._row['base_happiness']
+            self.is_baby = bool(self._row['is_baby'])
+            self.hatch_counter = self._row['hatch_counter']
+            self.has_gender_differences = bool(self._row['has_gender_differences'])
+            self.forms_switchable = bool(self._row['forms_switchable'])
+            self.evolution_chain = self.get_submodel(PokeapiModels.EvolutionChain, 'evolution_chain_id')
+            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
+            self.growth_rate = self.get_submodel(PokeapiModels.GrowthRate, 'growth_rate_id')
+            self.color = self.pokemon_color = self.get_submodel(PokeapiModels.PokemonColor, 'pokemon_color_id')
+            self.habitat = self.pokemon_habitat = self.get_submodel(PokeapiModels.PokemonHabitat, 'pokemon_habitat_id')
+            self.shape = self.pokemon_shape = self.get_submodel(PokeapiModels.PokemonShape, 'pokemon_shape_id')
+            self.is_legendary = bool(self._row['is_legendary'])
+            self.is_mythical = bool(self._row['is_mythical'])
+            self.preevo = self.evolves_from_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'evolves_from_species_id')
 
 
-class Pokemon(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.order = self._row['order']
-        self.height = self._row['height']
-        self.weight = self._row['weight']
-        self.is_default = bool(self._row['is_default'])
-        self.species = self.pokemon_species = self.get_submodel(PokemonSpecies, 'pokemon_species_id')
+    class Pokemon(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.order = self._row['order']
+            self.height = self._row['height']
+            self.weight = self._row['weight']
+            self.is_default = bool(self._row['is_default'])
+            self.species = self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')
 
 
-class VersionGroup(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.order = self._row['order']
-        self.generation = self.get_submodel(Generation, 'generation_id')
+    class VersionGroup(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.order = self._row['order']
+            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
 
 
-class PokemonForm(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.order = self._row['order']
-        self.form_name = self._row['form_name']
-        self.is_default = bool(self._row['is_default'])
-        self.is_battle_only = bool(self._row['is_battle_only'])
-        self.is_mega = bool(self._row['is_mega'])
-        self.version_group = self.get_submodel(VersionGroup, 'version_group_id')
-        self.pokemon = self.get_submodel(Pokemon, 'pokemon_id')
-        self.form_order = self._row['form_order']
+    class PokemonForm(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.order = self._row['order']
+            self.form_name = self._row['form_name']
+            self.is_default = bool(self._row['is_default'])
+            self.is_battle_only = bool(self._row['is_battle_only'])
+            self.is_mega = bool(self._row['is_mega'])
+            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
+            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
+            self.form_order = self._row['form_order']
 
 
-class Pokedex(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.is_main_series = bool(self._row['is_main_series'])
-        self.region = self.get_submodel(Region, 'region_id')
+    class Pokedex(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.is_main_series = bool(self._row['is_main_series'])
+            self.region = self.get_submodel(PokeapiModels.Region, 'region_id')
 
 
-class Ability(NamedPokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.is_main_series = bool(self._row['is_main_series'])
-        self.generation = self.get_submodel(Generation, 'generation_id')
+    class Ability(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.is_main_series = bool(self._row['is_main_series'])
+            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
 
 
-class PokemonAbility(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.is_hidden = bool(self._row['is_hidden'])
-        self.slot = self._row['slot']
-        self.ability = self.get_submodel(Ability, 'ability_id')
-        self.pokemon = self.get_submodel(Pokemon, 'pokemon_id')
+    class PokemonAbility(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.is_hidden = bool(self._row['is_hidden'])
+            self.slot = self._row['slot']
+            self.ability = self.get_submodel(PokeapiModels.Ability, 'ability_id')
+            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
 
 
-class PokemonType(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.slot = self._row['slot']
-        self.pokemon = self.get_submodel(Pokemon, 'pokemon_id')
-        self.type = self.get_submodel(Type, 'type_id')
+    class PokemonType(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.slot = self._row['slot']
+            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
+            self.type = self.get_submodel(PokeapiModels.Type, 'type_id')
 
 
-class PokemonDexNumber(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.pokedex_number = self._row['pokedex_number']
-        self.pokemon = self.species = self.pokemon_species = self.get_submodel(PokemonSpecies, 'pokemon_species_id')
-        self.pokedex = self.get_submodel(Pokedex, 'pokedex_id')
+    class PokemonDexNumber(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.pokedex_number = self._row['pokedex_number']
+            self.pokemon = self.species = self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')
+            self.pokedex = self.get_submodel(PokeapiModels.Pokedex, 'pokedex_id')
 
 
-class MoveLearnMethod(NamedPokeapiResource):
-    pass
+    class MoveLearnMethod(NamedPokeapiResource):
+        pass
 
 
-class PokemonMove(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.order = self._row['order']
-        self.level = self._row['level']
-        self.move = self.get_submodel(Move, 'move_id')
-        self.pokemon = self.get_submodel(Pokemon, 'pokemon_id')
-        self.version_group = self.get_submodel(VersionGroup, 'version_group_id')
-        self.move_learn_method = self.get_submodel(MoveLearnMethod, 'move_learn_method_id')
+    class PokemonMove(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.order = self._row['order']
+            self.level = self._row['level']
+            self.move = self.get_submodel(PokeapiModels.Move, 'move_id')
+            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
+            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
+            self.move_learn_method = self.get_submodel(PokeapiModels.MoveLearnMethod, 'move_learn_method_id')
 
 
-class TypeEfficacy(PokeapiResource):
-    def __init__(self, cursor: Cursor, row: Tuple[Any]):
-        super().__init__(cursor, row)
-        self.damage_factor = self._row['damage_factor']
-        self.damage_type = self.get_submodel(Type, 'damage_type_id')
-        self.target_type = self.get_submodel(Type, 'target_type_id')
+    class TypeEfficacy(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.damage_factor = self._row['damage_factor']
+            self.damage_type = self.get_submodel(PokeapiModels.Type, 'damage_type_id')
+            self.target_type = self.get_submodel(PokeapiModels.Type, 'target_type_id')

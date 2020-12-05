@@ -13,7 +13,7 @@ __all__ = 'PokeApi',
 __global_cache__ = {}
 
 
-class PokeApi(aiosqlite.Connection):
+class PokeApi(aiosqlite.Connection, PokeapiModels):
     @staticmethod
     def _clean_name(name):
         name = name.replace('♀', '_F').replace('♂', '_m').replace('é', 'e')
@@ -109,83 +109,83 @@ class PokeApi(aiosqlite.Connection):
 
     # Specific getters, defined for type-hints
 
-    def get_species(self, id_) -> Coroutine[None, None, Optional[PokemonSpecies]]:
+    def get_species(self, id_) -> Coroutine[None, None, Optional[PokeapiModels.PokemonSpecies]]:
         """Get a Pokemon species by ID"""
-        return self.get_model(PokemonSpecies, id_)
+        return self.get_model(PokeapiModels.PokemonSpecies, id_)
 
-    def random_species(self) -> Coroutine[None, None, Optional[PokemonSpecies]]:
+    def random_species(self) -> Coroutine[None, None, Optional[PokeapiModels.PokemonSpecies]]:
         """Get a random Pokemon species"""
-        return self.get_random(PokemonSpecies)
+        return self.get_random(PokeapiModels.PokemonSpecies)
 
-    def get_mon_name(self, mon: PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
+    def get_mon_name(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a Pokemon species"""
         return self.get_name(mon, clean=clean)
 
     def random_species_name(self, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a random Pokemon species"""
-        return self.get_random_name(PokemonSpecies, clean=clean)
+        return self.get_random_name(PokeapiModels.PokemonSpecies, clean=clean)
 
-    def get_species_by_name(self, name: str) -> Coroutine[None, None, Optional[PokemonSpecies]]:
+    def get_species_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.PokemonSpecies]]:
         """Get a Pokemon species given its name"""
-        return self.get_model_named(PokemonSpecies, name)
+        return self.get_model_named(PokeapiModels.PokemonSpecies, name)
 
-    def get_forme_name(self, mon: PokemonForm, *, clean=False) -> Coroutine[None, None, str]:
+    def get_forme_name(self, mon: PokeapiModels.PokemonForm, *, clean=False) -> Coroutine[None, None, str]:
         """Get a Pokemon forme's name"""
         return self.get_name(mon, clean=clean)
 
-    def random_move(self) -> Coroutine[None, None, Optional[Move]]:
+    def random_move(self) -> Coroutine[None, None, Optional[PokeapiModels.Move]]:
         """Get a random move"""
-        return self.get_random(Move)
+        return self.get_random(PokeapiModels.Move)
 
-    def get_move_name(self, move: Move, *, clean=False) -> Coroutine[None, None, str]:
+    def get_move_name(self, move: PokeapiModels.Move, *, clean=False) -> Coroutine[None, None, str]:
         """Get a move's name"""
         return self.get_name(move, clean=clean)
 
     def random_move_name(self, *, clean=False) -> Coroutine[None, None, str]:
         """Get a random move's name"""
-        return self.get_random_name(Move, clean=clean)
+        return self.get_random_name(PokeapiModels.Move, clean=clean)
 
-    def get_move_by_name(self, name: str) -> Coroutine[None, None, Optional[Move]]:
+    def get_move_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Move]]:
         """Get a move given its name"""
-        return self.get_model_named(Move, name)
+        return self.get_model_named(PokeapiModels.Move, name)
 
-    def get_mon_color(self, mon: PokemonSpecies) -> PokemonColor:
+    def get_mon_color(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonColor:
         """Get the object representing the Pokemon species' color"""
         return mon.pokemon_color
 
-    def get_pokemon_color_by_name(self, name: str) -> Coroutine[None, None, Optional[PokemonColor]]:
+    def get_pokemon_color_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.PokemonColor]]:
         """Get a Pokemon color given its name"""
-        return self.get_model_named(PokemonColor, name)
+        return self.get_model_named(PokeapiModels.PokemonColor, name)
 
-    def get_pokemon_color_name(self, color: PokemonColor, *, clean=False) -> Coroutine[None, None, str]:
+    def get_pokemon_color_name(self, color: PokeapiModels.PokemonColor, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a Pokemon color"""
         return self.get_name(color, clean=clean)
 
-    def get_name_of_mon_color(self, mon: PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
+    def get_name_of_mon_color(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a Pokemon species' color"""
         return self.get_name(mon.pokemon_color, clean=clean)
 
-    def get_ability_by_name(self, name: str) -> Coroutine[None, None, Optional[Ability]]:
+    def get_ability_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Ability]]:
         """Get an ability given its name"""
-        return self.get_model_named(Ability, name)
+        return self.get_model_named(PokeapiModels.Ability, name)
 
-    def get_ability_name(self, ability: Ability, *, clean=False) -> Coroutine[None, None, str]:
+    def get_ability_name(self, ability: PokeapiModels.Ability, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of an ability"""
         return self.get_name(ability, clean=clean)
 
-    def get_type_by_name(self, name: str) -> Coroutine[None, None, Optional[Type]]:
+    def get_type_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Type]]:
         """Get a Pokemon type given its name"""
-        return self.get_model_named(Type, name)
+        return self.get_model_named(PokeapiModels.Type, name)
 
-    def get_type_name(self, type_: Type, *, clean=False) -> Coroutine[None, None, str]:
+    def get_type_name(self, type_: PokeapiModels.Type, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a type"""
         return self.get_name(type_, clean=clean)
 
-    def get_pokedex_by_name(self, name: str) -> Coroutine[None, None, Optional[Pokedex]]:
+    def get_pokedex_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Pokedex]]:
         """Get a Pokedex given its name"""
-        return self.get_model_named(Pokedex, name)
+        return self.get_model_named(PokeapiModels.Pokedex, name)
 
-    def get_pokedex_name(self, dex: Pokedex, *, clean=False) -> Coroutine[None, None, str]:
+    def get_pokedex_name(self, dex: PokeapiModels.Pokedex, *, clean=False) -> Coroutine[None, None, str]:
         """Get the name of a pokedex"""
         return self.get_name(dex, clean=clean)
 
@@ -204,89 +204,89 @@ class PokeApi(aiosqlite.Connection):
 
     # Nonstandard methods
 
-    async def get_mon_types(self, mon: PokemonSpecies) -> List[Type]:
+    async def get_mon_types(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Type]:
         """Returns a list of types for that Pokemon"""
-        result = [montype.type for montype in await self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        result = [montype.type for montype in await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
         return result
 
-    async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type_: Type) -> float:
+    async def get_mon_matchup_against_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
         result = 1
-        for target_type in await self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
-            efficacy = await self.get(TypeEfficacy, damage_type=type_, target_type=target_type.type)
+        for target_type in await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
+            efficacy = await self.get(PokeapiModels.TypeEfficacy, damage_type=type_, target_type=target_type.type)
             result *= efficacy.damage_factor / 100
         return result
 
-    async def get_mon_matchup_against_move(self, mon: PokemonSpecies, move: Move) -> float:
+    async def get_mon_matchup_against_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> float:
         """Calculates whether a move is effective or not against a mon"""
         return await self.get_mon_matchup_against_type(mon, move.type)
 
-    async def get_mon_matchup_against_mon(self, mon: PokemonSpecies, mon2: PokemonSpecies) -> List[float]:
+    async def get_mon_matchup_against_mon(self, mon: PokeapiModels.PokemonSpecies, mon2: PokeapiModels.PokemonSpecies) -> List[float]:
         """For each type mon2 has, determines its effectiveness against mon"""
         res = collections.defaultdict(lambda: 1)
-        damage_types = await self.filter(PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True)
-        target_types = await self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)
+        damage_types = await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True)
+        target_types = await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)
         print(damage_types)
         print(target_types)
         for damage_type in damage_types:
             for target_type in target_types:
-                efficacy = await self.get(TypeEfficacy, damage_type=damage_type.type, target_type=target_type.type)
+                efficacy = await self.get(PokeapiModels.TypeEfficacy, damage_type=damage_type.type, target_type=target_type.type)
                 res[damage_type.type] *= efficacy.damage_factor / 100
         return list(res.values())
 
-    async def get_preevo(self, mon: PokemonSpecies) -> PokemonSpecies:
+    async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
         """Get the species the given Pokemon evoles from"""
         return mon.evolves_from_species
 
-    async def get_evos(self, mon: PokemonSpecies) -> List[PokemonSpecies]:
+    async def get_evos(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
         """Get all species the given Pokemon evolves into"""
-        result = [mon2 for mon2 in await self.filter(PokemonSpecies, evolves_from_species=mon)]
+        result = [mon2 for mon2 in await self.filter(PokeapiModels.PokemonSpecies, evolves_from_species=mon)]
         return result
 
-    async def get_mon_learnset(self, mon: PokemonSpecies) -> Set[Move]:
+    async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> Set[PokeapiModels.Move]:
         """Returns a list of all the moves the Pokemon can learn"""
-        result = set(learn.move for learn in await self.filter(PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
+        result = set(learn.move for learn in await self.filter(PokeapiModels.PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
         return result
     
-    async def mon_can_learn_move(self, mon: PokemonSpecies, move: Move) -> bool:
+    async def mon_can_learn_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> bool:
         """Returns whether a move is in the Pokemon's learnset"""
-        result = await self.get(PokemonMove, move=move, pokemon__pokemon_species=mon, pokemon__is_default=True)
+        result = await self.get(PokeapiModels.PokemonMove, move=move, pokemon__pokemon_species=mon, pokemon__is_default=True)
         return result is not None
 
-    async def get_mon_abilities(self, mon: PokemonSpecies) -> List[Ability]:
+    async def get_mon_abilities(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Ability]:
         """Returns a list of abilities for that Pokemon"""
-        result = [ability.ability for ability in await self.filter(PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        result = [ability.ability for ability in await self.filter(PokeapiModels.PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
         return result
 
-    async def mon_has_ability(self, mon: PokemonSpecies, ability: Ability) -> bool:
+    async def mon_has_ability(self, mon: PokeapiModels.PokemonSpecies, ability: PokeapiModels.Ability) -> bool:
         """Returns whether a Pokemon can have a given ability"""
-        result = await self.get(PokemonAbility, ability=ability, pokemon__pokemon_species=mon, pokemon__is_default=True)
+        result = await self.get(PokeapiModels.PokemonAbility, ability=ability, pokemon__pokemon_species=mon, pokemon__is_default=True)
         return result is not None
 
-    async def mon_has_type(self, mon: PokemonSpecies, type_: Type) -> bool:
+    async def mon_has_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> bool:
         """Returns whether the Pokemon has the given type. Only accounts for base forms."""
-        result = await self.get(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True, type=type_)
+        result = await self.get(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True, type=type_)
         return result is not None
 
-    async def has_mega_evolution(self, mon: PokemonSpecies) -> bool:
+    async def has_mega_evolution(self, mon: PokeapiModels.PokemonSpecies) -> bool:
         """Returns whether the Pokemon can Mega Evolve"""
-        result = await self.get(PokemonForm, is_mega=True, pokemon__pokemon_species=mon)
+        result = await self.get(PokeapiModels.PokemonForm, is_mega=True, pokemon__pokemon_species=mon)
         return result is not None
     
-    async def get_evo_line(self, mon: PokemonSpecies) -> List[PokemonSpecies]:
+    async def get_evo_line(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
         """Returns the set of all Pokemon in the same evolution family as the given species."""
-        result = [mon2 for mon2 in await self.filter(PokemonSpecies, evolution_chain=mon.evolution_chain)]
+        result = [mon2 for mon2 in await self.filter(PokeapiModels.PokemonSpecies, evolution_chain=mon.evolution_chain)]
         return result
 
-    async def mon_is_in_dex(self, mon: PokemonSpecies, dex: Pokedex) -> bool:
+    async def mon_is_in_dex(self, mon: PokeapiModels.PokemonSpecies, dex: PokeapiModels.Pokedex) -> bool:
         """Returns whether a Pokemon is in the given pokedex."""
-        result = await self.get(PokemonDexNumber, pokemon_species=mon, pokedex=dex)
+        result = await self.get(PokeapiModels.PokemonDexNumber, pokemon_species=mon, pokedex=dex)
         return result is not None
 
-    async def get_formes(self, mon: PokemonSpecies) -> List[PokemonForm]:
-        result = [form for form in await self.filter(PokemonForm, pokemon__pokemon_species=mon)]
+    async def get_formes(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonForm]:
+        result = [form for form in await self.filter(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon)]
         return result
 
-    async def get_default_forme(self, mon: PokemonSpecies) -> PokemonForm:
-        result = await self.get(PokemonForm, pokemon__pokemon_species=mon, is_default=True)
+    async def get_default_forme(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonForm:
+        result = await self.get(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon, is_default=True)
         return result
