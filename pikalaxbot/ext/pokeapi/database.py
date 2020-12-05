@@ -16,14 +16,6 @@ def prod(iterable):
 
 
 class PokeApi(aiosqlite.Connection):
-    def __init__(self, cog, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._cog = cog
-
-    async def __aenter__(self):
-        assert not self._cog._lock.locked(), 'PokeApi is locked'
-        return await super().__aenter__()
-
     @staticmethod
     def _clean_name(name):
         name = name.replace('♀', '_F').replace('♂', '_m').replace('é', 'e')
@@ -38,9 +30,8 @@ class PokeApi(aiosqlite.Connection):
     def get(self, model: type, **kwargs):
         return self._execute(self._conn.get, model, **kwargs)
 
-    async def filter(self, model: type, **kwargs):
-        for result in await self._execute(self._conn.filter, model, **kwargs):
-            yield result
+    def filter(self, model: type, **kwargs):
+        return self._execute(self._conn.filter, model, **kwargs)
 
     def get_model_named(self, model: type, name: str):
         return self._execute(self._conn.get_model_named, model, name)
@@ -172,15 +163,15 @@ class PokeApi(aiosqlite.Connection):
 
     async def get_mon_types(self, mon: PokemonSpecies) -> List[Type]:
         """Returns a list of types for that Pokemon"""
-        result = [montype.type async for montype in self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        result = [montype.type for montype in await self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
         return result
 
     async def get_mon_matchup_against_type(self, mon: PokemonSpecies, type_: Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
         result = 1
-        async for target_type in self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
-            efficacy = await self.get(TypeEfficacy, damage_type=type_, target_type=target_type)
-            result *= efficacy.efficacy / 100
+        for target_type in await self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
+            efficacy = await self.get(TypeEfficacy, damage_type=type_, target_type=target_type.type)
+            result *= efficacy.damage_factor / 100
         return result
 
     async def get_mon_matchup_against_move(self, mon: PokemonSpecies, move: Move) -> float:
@@ -190,10 +181,12 @@ class PokeApi(aiosqlite.Connection):
     async def get_mon_matchup_against_mon(self, mon: PokemonSpecies, mon2: PokemonSpecies) -> List[float]:
         """For each type mon2 has, determines its effectiveness against mon"""
         res = collections.defaultdict(lambda: 1)
-        async for damage_type in self.filter(PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True):
-            async for target_type in self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
-                efficacy = await self.get(TypeEfficacy, damage_type=damage_type, target_type=target_type)
-                res[damage_type] *= efficacy.efficacy / 100
+        damage_types = await self.filter(PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True)
+        target_types = await self.filter(PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)
+        for damage_type in damage_types:
+            for target_type in target_types:
+                efficacy = await self.get(TypeEfficacy, damage_type=damage_type.type, target_type=target_type.type)
+                res[damage_type.type] *= efficacy.damage_factor / 100
         return list(res.values())
 
     async def get_preevo(self, mon: PokemonSpecies) -> PokemonSpecies:
@@ -202,12 +195,12 @@ class PokeApi(aiosqlite.Connection):
 
     async def get_evos(self, mon: PokemonSpecies) -> List[PokemonSpecies]:
         """Get all species the given Pokemon evolves into"""
-        result = [mon2 async for mon2 in self.filter(PokemonSpecies, evolves_from_species=mon)]
+        result = [mon2 for mon2 in await self.filter(PokemonSpecies, evolves_from_species=mon)]
         return result
 
     async def get_mon_learnset(self, mon: PokemonSpecies) -> Set[Move]:
         """Returns a list of all the moves the Pokemon can learn"""
-        result = set(learn.move async for learn in self.filter(PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
+        result = set(learn.move for learn in await self.filter(PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
         return result
     
     async def mon_can_learn_move(self, mon: PokemonSpecies, move: Move) -> bool:
@@ -217,7 +210,7 @@ class PokeApi(aiosqlite.Connection):
 
     async def get_mon_abilities(self, mon: PokemonSpecies) -> List[Ability]:
         """Returns a list of abilities for that Pokemon"""
-        result = [ability.ability async for ability in self.filter(PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        result = [ability.ability for ability in await self.filter(PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
         return result
 
     async def mon_has_ability(self, mon: PokemonSpecies, ability: Ability) -> bool:
@@ -237,7 +230,7 @@ class PokeApi(aiosqlite.Connection):
     
     async def get_evo_line(self, mon: PokemonSpecies) -> List[PokemonSpecies]:
         """Returns the set of all Pokemon in the same evolution family as the given species."""
-        result = [mon2 async for mon2 in self.filter(PokemonSpecies, evolution_chain=mon.evolution_chain)]
+        result = [mon2 for mon2 in await self.filter(PokemonSpecies, evolution_chain=mon.evolution_chain)]
         return result
 
     async def mon_is_in_dex(self, mon: PokemonSpecies, dex: Pokedex) -> bool:
@@ -246,7 +239,7 @@ class PokeApi(aiosqlite.Connection):
         return result is not None
 
     async def get_formes(self, mon: PokemonSpecies) -> List[PokemonForm]:
-        result = [form async for form in self.filter(PokemonForm, pokemon__pokemon_species=mon)]
+        result = [form for form in await self.filter(PokemonForm, pokemon__pokemon_species=mon)]
         return result
 
     async def get_default_forme(self, mon: PokemonSpecies) -> PokemonForm:

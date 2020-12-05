@@ -114,13 +114,12 @@ class Meme(BaseCog):
         emission = ''.join(self._nebby.get_chain(100, end=4)).title()
         await ctx.send(emission)
 
-    @commands.check(lambda ctx: ctx.bot.pokeapi)
+    @commands.check(lambda ctx: ctx.bot.pokeapi is not None)
     @commands.command()
     async def yolonome(self, ctx):
         """Happy birthday, Waggle!"""
 
-        async with self.bot.pokeapi as pokeapi:
-            move_name = await pokeapi.random_move_name()
+        move_name = await self.bot.pokeapi.random_move_name()
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {move_name}!')
 

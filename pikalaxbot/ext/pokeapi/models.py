@@ -45,10 +45,11 @@ __all__ = (
 )
 
 
-__global_cache__ = {}
-
-
 class PokeApiConnection(Connection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__global_cache__ = {}
+
     @contextmanager
     def replace_row_factory(self, factory: Optional[Callable[[Cursor, Tuple[Any]], Any]]):
         old_factory = self.row_factory
@@ -59,8 +60,8 @@ class PokeApiConnection(Connection):
     def get_model(self, model: Callable[[Cursor, Tuple[Any]], Any], id_: Optional[int]):
         if id_ is None:
             return
-        if (model, id_) in __global_cache__:
-            return __global_cache__[(model, id_)]
+        if (model, id_) in self.__global_cache__:
+            return self.__global_cache__[(model, id_)]
         statement = """
         SELECT *
         FROM pokemon_v2_{}
@@ -72,7 +73,7 @@ class PokeApiConnection(Connection):
         return result
 
     def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str, *, suffix='name', namecol='name'):
-        result = find(lambda k: k[1].name == name, __global_cache__.items())
+        result = find(lambda k: isinstance(k[1], model) and k[1].name == name, self.__global_cache__.items())
         if result:
             return result[1]
         clsname = model.__name__
@@ -97,8 +98,8 @@ class PokeApiConnection(Connection):
         return result
 
     def get_random_model(self, model):
-        if model in __global_cache__:
-            return random.choice(__global_cache__[model])
+        if model in self.__global_cache__:
+            return random.choice(self.__global_cache__[model])
         statement = """
         SELECT *
         FROM pokemon_v2_{}
@@ -110,19 +111,19 @@ class PokeApiConnection(Connection):
         return result
 
     def get_all_models(self, model):
-        if model in __global_cache__:
-            return __global_cache__[model]
+        if model in self.__global_cache__:
+            return self.__global_cache__[model]
         statement = """
         SELECT *
         FROM pokemon_v2_{}
         """.format(model.__name__.lower())
         with self.replace_row_factory(model) as conn:
-            __global_cache__[model] = result = list(conn.execute(statement))
+            self.__global_cache__[model] = result = list(conn.execute(statement))
         return result
 
     def get(self, model, **kwargs):
-        if model in __global_cache__:
-            return get(__global_cache__[model], **kwargs)
+        if model in self.__global_cache__:
+            return get(self.__global_cache__[model], **kwargs)
         else:
             statement = """
             SELECT *
@@ -133,8 +134,10 @@ class PokeApiConnection(Connection):
 
     def filter(self, model, **kwargs):
         iterable = iter(self.get_all_models(model))
+        records = []
         while (result := get(iterable, **kwargs)) is not None:
-            yield result
+            records.append(result)
+        return records
 
 
 class PokeapiResource:
@@ -145,7 +148,7 @@ class PokeapiResource:
         self.id = self._row['id']
         if 'name' in self._row:
             self._name = self._row['name']
-        __global_cache__[(self.__class__, self.id)] = self
+        self._connection.__global_cache__[(self.__class__, self.id)] = self
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and other.id == self.id
@@ -178,9 +181,14 @@ class NamedPokeapiResource(PokeapiResource):
         with self._connection.replace_row_factory(None) as conn:
             cur = conn.execute(statement, {'id': self.id})
             row = cur.fetchone()
+        if row:
             self.name = ' | '.join(row)
             for name, value in zip(columns, row):
                 setattr(self, name, value)
+        else:
+            self.name = None
+            for name in columns:
+                setattr(self, name, None)
 
     def __repr__(self):
         return '<{0.__class__.__name__} id={0.id} name={0.name!r} language={0.language.name}>'.format(self)

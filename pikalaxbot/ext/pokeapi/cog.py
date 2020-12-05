@@ -108,14 +108,14 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
-            async with self.bot.pokeapi as pokeapi:
-                async with pokeapi.execute(query) as cur:  # type: aiosqlite.Cursor
-                    header = '|'.join(col[0] for col in cur.description)
-                    pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
-                    for i, row in enumerate(await cur.fetchall(), 1):  # type: [int, tuple]
-                        pag.add_line('|'.join(map(str, row)))
-                        if i % 20 == 0:
-                            pag.close_page()
+            pokeapi = self.bot.pokeapi
+            async with pokeapi.execute(query) as cur:  # type: aiosqlite.Cursor
+                header = '|'.join(col[0] for col in cur.description)
+                pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
+                for i, row in enumerate(await cur.fetchall(), 1):  # type: [int, tuple]
+                    pag.add_line('|'.join(map(str, row)))
+                    if i % 20 == 0:
+                        pag.close_page()
 
         if pag.pages:
             menu = menus.MenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)

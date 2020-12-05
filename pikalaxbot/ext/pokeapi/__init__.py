@@ -1,5 +1,6 @@
 from .database import PokeApi
 import aiosqlite
+import asyncio
 import os
 import sqlite3
 
@@ -12,15 +13,14 @@ from .database import *
 def setup(bot):
     cog = PokeApiCog(bot)
 
-    def factory(*, iter_chunk_size=64, **kwargs):
-        db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
+    db_path = os.path.dirname(__file__) + '/../../../pokeapi/db.sqlite3'
 
-        def connector():
-            return sqlite3.connect(db_path, factory=PokeApiConnection, **kwargs)
+    def connector():
+        return sqlite3.connect(db_path, factory=PokeApiConnection)
 
-        return PokeApi(cog, connector, iter_chunk_size)
+    conn = PokeApi(connector, 64)
 
-    bot.pokeapi = factory
+    bot.pokeapi = conn
     bot.add_cog(cog)
 
 
