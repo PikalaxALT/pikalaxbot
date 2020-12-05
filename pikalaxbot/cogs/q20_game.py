@@ -649,6 +649,11 @@ class Q20Game(GameCogBase):
 
         await self.end(ctx)
 
+    @q20.error
+    async def q20_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            await ctx.send('Oopsie-woopsie, I\'ve encountered a fucky-wucky. My husbando is on the case owo')
+
 
 def setup(bot):
     bot.add_cog(Q20Game(bot))
