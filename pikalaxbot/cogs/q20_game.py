@@ -130,8 +130,10 @@ class Q20QuestionParser:
                     testeffect = await self.pokeapi.get_mon_matchup_against_type(solution, found)
                     message = 1 + (typeeffect < 0)
                     result = testeffect > 1 and typeeffect > 0 or testeffect < 1 and typeeffect < 0
+                    if testeffect == 0:
+                        confidence += 0x2000
                 else:
-                    _, mon = await self.lookup_name(PokemonSpecies, q)
+                    name, mon = await self.lookup_name(PokemonSpecies, q)
                     if mon:
                         testeffect = await self.pokeapi.get_mon_matchup_against_mon(solution, mon)
                         message = 3 + (typeeffect < 0)
@@ -143,15 +145,13 @@ class Q20QuestionParser:
                                 result = testeffect[0] < 1 and typeeffect < 0 or testeffect[0] > 1 and typeeffect > 0 or testeffect[1] < 1 and typeeffect < 0 or testeffect[1] > 1 and typeeffect > 0
                         else:
                             result = testeffect[0] < 1 and typeeffect < 0 or testeffect[0] > 1 and typeeffect > 0
-                        name = await self.pokeapi.get_name(mon, clean=False)
                         if 0 in testeffect:
                             confidence += 0x20000
                     else:
-                        message = 1 + (typeeffect < 0)
                         name, move = await self.lookup_name(Move, q)
                         if move:
                             testeffect = await self.pokeapi.get_mon_matchup_against_move(solution, move)
-                            message = 3 * typeeffect < 0
+                            message = 3 + (typeeffect < 0)
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
                                 confidence += 0x20000
