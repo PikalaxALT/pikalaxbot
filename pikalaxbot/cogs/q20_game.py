@@ -495,7 +495,7 @@ class Q20GameObject(GameBase):
 
     @property
     def state(self):
-        return '\n'.join(self._state)
+        return '\n'.join(f'{i:>2d}: {q}' for i, q in enumerate(self._state, 1))
 
     def __str__(self):
         return f'```Players: {self.get_player_names()}\n' \
