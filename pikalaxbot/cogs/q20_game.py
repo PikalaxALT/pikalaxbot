@@ -457,25 +457,28 @@ class Q20QuestionParser:
                 match_t = 'Yes' if match else 'No'
                 if method == pokemon and match:
                     match_t = '**YES!!**'
-                if method == type_ and solution.id == 493:
-                    match_t = {
-                        'single': 'HAHAHAHAHAHAHAHAHA!!!',
-                        'dual': 'Nah'
-                    }.get(item, 'Sometimes')
-                if method == type_:
-                    if confidence >= 0x20000:
-                        confidence -= 0x20000
-                        match_t = 'It is immune'
-                    if confidence >= 0x10000:
-                        confidence -= 0x10000
-                        if match_t == 'It is immune':
-                            match_t = 'It is sometimes immune'
-                        else:
-                            match_t = 'Sometimes'
-                if method == pokedex and item == 'National':
+                elif method == type_:
+                    if solution.id == 493:
+                        match_t = {
+                            'single': 'HAHAHAHAHAHAHAHAHA!!!',
+                            'dual': 'Nah'
+                        }.get(item, 'Sometimes')
+                    else:
+                        if confidence >= 0x20000:
+                            confidence -= 0x20000
+                            match_t = 'It is immune'
+                        if confidence >= 0x10000:
+                            confidence -= 0x10000
+                            if match_t == 'It is immune':
+                                match_t = 'It is sometimes immune'
+                            else:
+                                match_t = 'Sometimes'
+                elif method == pokedex and item == 'National':
                     match_t = 'Duh.'
-                if method in (size, weight) and message == 4:
+                elif method in (size, weight) and message == 4:
                     valid = False
+                elif method == evolution and message == 3 and match:
+                    match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 if valid:
                     response_s = f'`{msgbank[message].format(item)}`: {match_t}'
                 else:

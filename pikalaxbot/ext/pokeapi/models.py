@@ -40,6 +40,10 @@ __all__ = (
     'PokemonMove',
     'MoveLearnMethod',
     'TypeEfficacy',
+    'EvolutionTrigger',
+    'Gender',
+    'Location',
+    'PokemonEvolution',
 )
 
 
@@ -79,6 +83,8 @@ class PokeapiResource:
         self.id = self._row['id']
         if 'name' in self._row:
             self._name = self._row['name']
+        else:
+            self._name = None
         self._connection.__global_cache__[(self.__class__, self.id)] = self
 
     def __eq__(self, other):
@@ -117,7 +123,6 @@ class NamedPokeapiResource(PokeapiResource):
             for name, value in zip(columns, row):
                 setattr(self, name, value)
         else:
-            self.name = None
             for name in columns:
                 setattr(self, name, None)
 
@@ -352,6 +357,44 @@ class PokemonDexNumber(PokeapiResource):
 
 class MoveLearnMethod(NamedPokeapiResource):
     pass
+
+
+class EvolutionTrigger(NamedPokeapiResource):
+    pass
+
+
+class Gender(PokeapiResource):
+    pass
+
+
+class Location(NamedPokeapiResource):
+    def __init__(self, cursor: Cursor, row: Tuple[Any]):
+        super().__init__(cursor, row)
+        self.region = self.get_submodel(Region, 'region_id')
+
+
+class PokemonEvolution(PokeapiResource):
+    def __init__(self, cursor: Cursor, row: Tuple[Any]):
+        super().__init__(cursor, row)
+        self.min_level = self._row['min_level']
+        self.time_of_day = self._row['time_of_day']
+        self.min_happiness = self._row['min_happiness']
+        self.min_beauty = self._row['min_beauty']
+        self.min_affection = self._row['min_affection']
+        self.relative_physical_stats = self._row['relative_physical_stats']
+        self.needs_overworld_rain = bool(self._row['needs_overworld_rain'])
+        self.turn_upside_down = bool(self._row['turn_upside_down'])
+        self.evolution_trigger = self.get_submodel(EvolutionTrigger, 'evolution_trigger_id')
+        self.evolved_species = self.get_submodel(PokemonSpecies, 'evolved_species_id')
+        self.gender = self.get_submodel(Gender, 'gender_id')
+        self.known_move = self.get_submodel(Move, 'known_move_id')
+        self.known_move_type = self.get_submodel(Type, 'known_move_type_id')
+        self.party_species = self.get_submodel(PokemonSpecies, 'party_species_id')
+        self.party_type = self.get_submodel(Type, 'party_type_id')
+        self.trade_species = self.get_submodel(PokemonSpecies, 'trade_species_id')
+        self.evolution_item = self.get_submodel(Item, 'evolution_item_id')
+        self.held_item = self.get_submodel(Item, 'held_item_id')
+        self.location = self.get_submodel(Location, 'location_id')
 
 
 class PokemonMove(PokeapiResource):
