@@ -61,7 +61,7 @@ class PokeApi(aiosqlite.Connection):
     async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> Optional[Any]:
         return get(await self.get_all_models(model), **kwargs)
 
-    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> AsyncGenerator[Any]:
+    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> AsyncGenerator[Any, None]:
         iterable = iter(await self.get_all_models(model))
         while (record := get(iterable, **kwargs)) is not None:
             yield record
