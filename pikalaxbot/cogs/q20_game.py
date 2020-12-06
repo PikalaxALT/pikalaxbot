@@ -62,7 +62,7 @@ class Q20QuestionParser:
                 for word in q.split():
                     yield difflib.get_close_matches(word, bank, cutoff=cutoff), word
 
-            return next((bank[r[0]] for r in innermost() if r), None)
+            return next(((bank[r[0]], s) for r, s in innermost() if r), None)
 
         name = r = await inner()
         confidence = 0
