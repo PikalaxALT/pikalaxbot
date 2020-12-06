@@ -41,35 +41,131 @@ class Q20QuestionParser:
         883
     )
 
+    mon_search = {
+        re.compile(r'^(nidoran (female|girl)|(female|girl) nidoran)$', re.I): 29,
+        re.compile(r'^(nidorina|nidorina (female|girl)|(female|girl) nidorina)$', re.I): 30,
+        re.compile(r'^(nidoran (male|boy)|(male|boy) nidoran)$', re.I): 32,
+        re.compile(r'^(nidorino|nidorino (female|girl)|(female|girl) nidorino)$', re.I): 33,
+        re.compile(r'farfetch[e\']?d|dux', re.I): 83,
+        re.compile(r'^(gh?astle?y)$', re.I): 92,
+        re.compile(r'mr\.? ?mime', re.I): 122,
+        re.compile(r'^dragonair$', re.I): 148,
+        re.compile(r'^dragonite$', re.I): 149,
+        re.compile(r'porygon[ -]?(2|two)', re.I): 223,
+        re.compile(r'ho[ -]?oh', re.I): 250,
+        re.compile(r'mime ?jr\.?', re.I): 439,
+        re.compile(r'porygon[ -]?z', re.I): 474,
+        re.compile(r'flabebe', re.I): 669, # accents!
+        re.compile(r'starly', re.I): 396,
+
+        # TPP Mon
+        re.compile(r'^(abby)$', re.I): 5,
+        re.compile(r'^(tiger)$', re.I): 6,
+        re.compile(r'^(bird jesus|jesus)$', re.I): 18,
+        re.compile(r'^(jay leno)$', re.I): 19,
+        re.compile(r'^(digrat|ace)$', re.I): 20,
+        re.compile(r'^(atv)$', re.I): 49,
+        re.compile(r'^(rick gh?astly)$', re.I): 92,
+        re.compile(r'^(c3ko)$', re.I): 106,
+        re.compile(r'^(air)$', re.I): 131,
+        re.compile(r'^(lord )?helix$', re.I): 139,
+        re.compile(r'^(lord )?dome$', re.I): 141,
+        re.compile(r'^(archang(el|le) of justice|battery jesus, re.I)$'): 145,
+        re.compile(r'^(laz[oe]rgat[oe]r)$', re.I): 160,
+        re.compile(r'^(admiral|adi)$', re.I): 161,
+        re.compile(r'^m4$', re.I): 184,
+        re.compile(r'^(mighty ?doge)$', re.I): 262,
+        re.compile(r'^(lotid)$', re.I): 270,
+        re.compile(r'^(bird ?cop)$', re.I): 278,
+        re.compile(r'^(c3|ccc)$', re.I): 312,
+        re.compile(r'^((lord )?root|potato)$', re.I): 346,
+        re.compile(r'^kenya+$', re.I): 383,
+        re.compile(r'^de(le){1,} ?wo{2,}p$', re.I): 402,
+        re.compile(r'^(sunshine)$', re.I): 403,
+        re.compile(r'^(sunbrella)$', re.I): 407,
+        re.compile(r'^(dairy queen)$', re.I): 483,
+        re.compile(r'^(nonon)$', re.I): 535,
+        # re.compile(r'^(5|five)$', re.I): 585,
+        re.compile(r'^(peter sparker|sparky)$', re.I): 595,
+        re.compile(r'^(deer god)$', re.I): 716,
+    }
+
+    move_search = {
+        re.compile(r'whirl ?wind', re.I): 18,
+        re.compile(r'double[ -]?edge', re.I): 38,
+        re.compile(r'twin( ?n)?ee?dle', re.I): 41,
+        re.compile(r'flame ?thrower', re.I): 53,
+        re.compile(r'smoke ?scree?n', re.I): 108,
+        re.compile(r'self[ -]?d[ie]struct', re.I): 120,
+        re.compile(r'soft[ -]?boile?d?', re.I): 135,
+        re.compile(r'mud[ -]?slap', re.I): 189,
+        re.compile(r'lock[ -]?on', re.I): 199,
+        re.compile(r'will?[ -]?o[ -]?wh?isp', re.I): 261,
+        re.compile(r'super ?power', re.I): 276,
+        re.compile(r'wake[ -]?up ?slap', re.I): 358,
+        re.compile(r'tail ?wind', re.I): 366,
+        re.compile(r'u[ -]?turn', re.I): 369,
+        re.compile(r'x[ -]?(scis?sor|sicc?ors)', re.I): 404,
+        re.compile(r'v[ -]?create', re.I): 557,
+        re.compile(r'trick[ -]?or[ -]?treat', re.I): 567,
+        re.compile(r'freeze[ -]?dry', re.I): 573,
+        re.compile(r'topse?y[ -]?turve?y', re.I): 576,
+        re.compile(r'king\'?s ?sh(ie|ei)ld', re.I): 588,
+        re.compile(r'baby[ -]?doll ?eyes', re.I): 608,
+        re.compile(r'power[ -]?up ?punch', re.I): 612,
+        re.compile(r'land\'?s ?wrath', re.I): 616,
+    }
+
     def __init__(self, game, pokeapi):
         self.game: Q20GameObject = game
         self.bot = game.bot
         self.pokeapi = pokeapi
         self.differ = difflib.SequenceMatcher()
+        self.tokenizer = nltk.WordPunctTokenizer()
 
     async def lookup_name(self, table, q) -> Tuple[Optional[str], 'Optional[NamedPokeapiResource]', float]:
         q = q.lower()
+        bank = {
+            name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name
+            for name in await self.pokeapi.get_names_from(table)
+        }
 
         def get_ratio(w1, w2):
             self.differ.set_seq1(w1)
             self.differ.set_seq2(w2)
             return min(self.differ.real_quick_ratio(), self.differ.quick_ratio(), self.differ.ratio())
 
-        async def inner():
-            bank = {name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name for name in await self.pokeapi.get_names_from(table)}
+        def iter_matches(*, cutoff=0.85):
+            yield difflib.get_close_matches(q, bank, cutoff=cutoff), q
+            for bigram in re.findall(r'(?=(\S+\s+\S+))', q):
+                yield difflib.get_close_matches(bigram, bank, cutoff=cutoff), bigram
+            for word in q.split():
+                yield difflib.get_close_matches(word, bank, cutoff=cutoff), word
 
-            def innermost(*, cutoff=0.85):
-                yield difflib.get_close_matches(q, bank, cutoff=cutoff), q
-                for bigram in re.findall(r'(?=(\S+\s+\S+))', q):
-                    yield difflib.get_close_matches(bigram, bank, cutoff=cutoff), bigram
-                for word in q.split():
-                    yield difflib.get_close_matches(word, bank, cutoff=cutoff), word
-
-            return next(((bank[r[0]], s) for r, s in innermost() if r), None)
-
-        name = r = await inner()
+        name = r = next(((bank[r[0]], s) for r, s in iter_matches() if r), None)
         confidence = 0
-        if name:
+        if not name:
+            def iter_matches(pattern):
+                yield pattern.match(q)
+                for bigram in re.findall(r'(?=(\S+\s+\S))', q):
+                    yield pattern.match(bigram)
+                for word in q.split():
+                    yield pattern.match(word)
+
+            def get_first_match(lut):
+                return discord.utils.find(lambda t: next((m for m in iter_matches(t[0]) if m is not None), None) is not None, lut.items())
+
+            if table in (self.pokeapi.Pokemon, self.pokeapi.PokemonSpecies):
+                pat, id_ = get_first_match(Q20QuestionParser.mon_search)
+            elif table is self.pokeapi.Move:
+                pat, id_ = get_first_match(Q20QuestionParser.move_search)
+            else:
+                id_ = None
+            if id_:
+                r = await self.pokeapi.get_model(table, id_)
+                name = await self.pokeapi.get_name(r)
+                confidence = 1
+        else:
             name, orig = name
             r = await self.pokeapi.get_model_named(table, name)
             confidence = get_ratio(name, orig)
