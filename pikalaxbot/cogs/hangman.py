@@ -80,7 +80,7 @@ class HangmanGame(GameBase):
                                embed=embed)
             elif failed:
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
-                               f'Solution: {self._solution_name}_name',
+                               f'Solution: {self._solution_name}',
                                embed=embed)
             else:
                 bonus = math.ceil(self._max_score / 10)
@@ -88,7 +88,7 @@ class HangmanGame(GameBase):
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
-                               f'Solution: {self._solution_name}_name\n'
+                               f'Solution: {self._solution_name}\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
                                f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!',
