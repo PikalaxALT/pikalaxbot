@@ -713,11 +713,11 @@ class Q20GameObject(GameBase):
                 await ctx.send(f'You did not guess what I was thinking of.\n'
                                f'Solution: {name}')
             else:
-                bonus = math.ceil(self._max_score / 200 * (21 - self._attempts))
+                bonus = math.ceil(self._max_score / 200 * (21 - self.attempts))
                 async with self.bot.sql as sql:
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
-                tries = f'{20 - self._attempts} tries' if self._attempts < 19 else 'a single try'
+                tries = f'{20 - self.attempts} tries' if self.attempts < 19 else 'a single try'
                 await ctx.send(f'{ctx.author.mention} has guessed the solution! It was {name}!\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
