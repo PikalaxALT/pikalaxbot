@@ -435,7 +435,19 @@ class Q20QuestionParser:
             return None, 0, False, 0
 
         async def body(q):
-            return None, 0, False, 0
+            if not re.search(r'\b(shaped?|form(ed)?)\b', q, re.I):
+                return None, 0, False, 0
+            q = self.IGNORE_WORDS_1.sub('', q)
+            q = re.sub(r'\b(shaped?|form(ed)?|like)', '', q, re.I)
+            name, shape, confidence = await self.lookup_name(self.pokeapi.PokemonShape, q)
+            message = 0
+            if not name:
+                name, mon, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+                if not name:
+                    return None, 0, False, 0
+                message = 1
+                shape = mon.shape
+            return name, message, shape == solution.shape, confidence
 
         async def egg(q):
             return None, 0, False, 0
@@ -458,7 +470,7 @@ class Q20QuestionParser:
             weight: ['Does it weigh less than {}?', 'Does it weigh more than {}?', 'Does it weigh {}?', 'Does it weigh the same as {}', ],
             habitat: ['Does it live in the {} habitat?'],
             stats: [''],
-            body: [''],
+            body: ['Is it {}-shaped?', 'Is it the same shape as {}?'],
             egg: [''],
             mating: ['']
         }
@@ -536,6 +548,7 @@ class Q20GameObject(GameBase):
         "is it in the kanto pokedex?",
         "is it in the national pokedex",
         "is it in the fifth gen?",
+        "is it human shaped?",
     )
 
     def __init__(self, bot):
