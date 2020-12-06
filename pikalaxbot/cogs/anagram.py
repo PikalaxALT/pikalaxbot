@@ -30,7 +30,8 @@ class AnagramGame(GameBase):
     def reset(self):
         super().reset()
         self._state = ''
-        self._solution = ''
+        self._solution = None
+        self._solution_name = ''
         self._incorrect = []
         self.attempts = 0
 
@@ -48,9 +49,10 @@ class AnagramGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Anagram is already running here.',
                            delete_after=10)
         else:
-            self._solution = (await self.bot.pokeapi.random_pokemon_name(clean=True)).upper()
-            self._state = list(self._solution)
-            while ''.join(self._state) == self._solution:
+            self._solution = await self.bot.pokeapi.random_pokemon()
+            self._solution_name = (await self.bot.pokeapi.get_name(self._solution, clean=True)).upper()
+            self._state = list(self._solution_name)
+            while ''.join(self._state) == self._solution_name:
                 random.shuffle(self._state)
             self._state = ''.join(self._state)
             self.attempts = self._attempts
@@ -69,17 +71,17 @@ class AnagramGame(GameBase):
             ).set_thumbnail(url=await self.bot.pokeapi.get_sprite_url(base_forme.pokemon, 'versions/generation-viii/icons/front_default'))
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
-                               f'Solution: {self._solution}',
+                               f'Solution: {self._solution_name}',
                                embed=embed)
             elif failed:
                 await ctx.send(f'You were too late, welcome to Glitch Purgatory.\n'
-                               f'Solution: {self._solution}',
+                               f'Solution: {self._solution_name}',
                                embed=embed)
             else:
                 self.add_player(ctx.author)
                 score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
-                               f'Solution: {self._solution}\n'
+                               f'Solution: {self._solution_name}\n'
                                f'{ctx.author.mention} earned {score} points for winning!',
                                embed=embed)
             self.reset()
@@ -95,8 +97,8 @@ class AnagramGame(GameBase):
                 await ctx.send(f'{ctx.author.mention}: Solution already guessed: {guess}',
                                delete_after=10)
             else:
-                if self._solution == guess:
-                    self._state = self._solution
+                if self._solution_name == guess:
+                    self._state = self._solution_name
                     await self.end(ctx)
                 else:
                     self._incorrect.append(guess)

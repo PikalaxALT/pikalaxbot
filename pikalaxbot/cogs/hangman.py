@@ -30,7 +30,8 @@ class HangmanGame(GameBase):
     def reset(self):
         super().reset()
         self._state = ''
-        self._solution = ''
+        self._solution = None
+        self._solution_name = ''
         self._incorrect = []
         self.attempts = 0
 
@@ -53,8 +54,9 @@ class HangmanGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Hangman is already running here.',
                            delete_after=10)
         else:
-            self._solution = (await self.bot.pokeapi.random_pokemon_name(clean=True)).upper()
-            self._state = ['_' if c.isalnum() else c for c in self._solution]
+            self._solution = await self.bot.pokeapi.random_pokemon()
+            self._solution_name = (await self.bot.pokeapi.get_name(self._solution, clean=True)).upper()
+            self._state = ['_' if c.isalnum() else c for c in self._solution_name]
             self.attempts = self._attempts
             self._incorrect = []
             await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
@@ -74,11 +76,11 @@ class HangmanGame(GameBase):
             ).set_thumbnail(url=await self.bot.pokeapi.get_sprite_url(base_forme.pokemon, 'versions/generation-viii/icons/front_default'))
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
-                               f'Solution: {self._solution}',
+                               f'Solution: {self._solution_name}',
                                embed=embed)
             elif failed:
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
-                               f'Solution: {self._solution}',
+                               f'Solution: {self._solution_name}_name',
                                embed=embed)
             else:
                 bonus = math.ceil(self._max_score / 10)
@@ -86,7 +88,7 @@ class HangmanGame(GameBase):
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
-                               f'Solution: {self._solution}\n'
+                               f'Solution: {self._solution_name}_name\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
                                f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!',
@@ -105,21 +107,21 @@ class HangmanGame(GameBase):
                                delete_after=10)
             elif len(guess) == 1:
                 found = False
-                for i, c in enumerate(self._solution):
+                for i, c in enumerate(self._solution_name):
                     if c == guess:
                         self._state[i] = guess
                         found = True
                 if found:
                     self.add_player(ctx.author)
-                    if ''.join(self._state) == self._solution:
+                    if ''.join(self._state) == self._solution_name:
                         await self.end(ctx)
                 else:
                     self._incorrect.append(guess)
                     self.attempts -= 1
             else:
-                if self._solution == guess:
+                if self._solution_name == guess:
                     self.add_player(ctx.author)
-                    self._state = list(self._solution)
+                    self._state = list(self._solution_name)
                     await self.end(ctx)
                 else:
                     self._incorrect.append(guess)
