@@ -741,7 +741,7 @@ class Q20GameObject(GameBase):
                 await ctx.message.add_reaction('\N{CROSS MARK}')
                 await ctx.send('Something fucked up, imma tell pika daddy')
                 tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
-                await self.bot.send_tb(f'```Ignoring exception in q20 ask:\n{tb}\n```')
+                await self.bot.send_tb(f'Ignoring exception in q20 ask:\n{tb}\n')
         if message in self._state:
             return await ctx.send('You\'ve already asked that!')
         await ctx.send(message)
