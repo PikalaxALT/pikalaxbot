@@ -42,6 +42,19 @@ class Q20QuestionParser:
         883
     )
 
+    starters = (
+        # Kanto
+        1, 4, 7, 25, 133,
+        # Johto
+        152, 155, 158,
+        # Hoenn
+        252, 255, 258,
+        # Sinnoh
+        387, 390, 393,
+        # Unova
+        495
+    )
+
     mon_search = {
         re.compile(r'^(nidoran (female|girl)|(female|girl) nidoran)$', re.I): 29,
         re.compile(r'^(nidorina|nidorina (female|girl)|(female|girl) nidorina)$', re.I): 30,
@@ -714,7 +727,7 @@ class Q20GameObject(GameBase):
                 await ctx.send(f'You did not guess what I was thinking of.\n'
                                f'Solution: {name}')
             else:
-                bonus = math.ceil(self._max_score / 200 * (21 - self.attempts))
+                bonus = math.ceil(self._max_score / 200 * self.attempts)
                 async with self.bot.sql as sql:
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
