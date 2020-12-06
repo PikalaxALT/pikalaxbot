@@ -162,7 +162,7 @@ class Q20QuestionParser:
                 self.differ.set_seq2(w2)
                 return min(self.differ.real_quick_ratio(), self.differ.quick_ratio(), self.differ.ratio())
 
-            name = r = next(((bank[r[0]], s) for r, s in iter_matches(lambda c: difflib.get_close_matches(c, bank, cutoff=0.85)) if r), None)
+            name = r = next(((bank[r[0]], s) for r, s in iter_matches(lambda c: (difflib.get_close_matches(c, bank, cutoff=0.85), c)) if r), None)
             confidence = 0
             if name:
                 name, orig = name
