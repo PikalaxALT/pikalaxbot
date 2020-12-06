@@ -49,7 +49,7 @@ class Q20QuestionParser:
         async def inner():
             bank = {name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name for name in await self.pokeapi.get_names_from(table)}
 
-            def innermost(cutoff=0.9):
+            def innermost(*, cutoff=0.85):
                 yield difflib.get_close_matches(q, bank, cutoff=cutoff)
                 for bigram in re.findall(r'(?=(\S+\s+\S+))', q):
                     yield difflib.get_close_matches(bigram, bank, cutoff=cutoff)
