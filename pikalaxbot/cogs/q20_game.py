@@ -15,44 +15,41 @@ if TYPE_CHECKING:
 class Q20QuestionParser:
     IGNORE_WORDS_1 = re.compile(r'\b(an?|the|i[stn]|(in)?to|can|does|could|are)\b', re.IGNORECASE)
     FOSSILS = (
-        138,
-        139,
-        140,
-        141,
-        142,
-        345,
-        346,
-        347,
-        348,
-        408,
-        409,
-        410,
-        411,
-        564,
-        565,
-        566,
-        567,
-        696,
-        697,
-        698,
-        699,
-        880,
-        881,
-        882,
-        883
+        # Kanto
+        138, 139, 140, 141, 142,
+        # Hoenn
+        345, 346, 347, 348,
+        # Sinnoh
+        408, 409, 410, 411,
+        # Unova
+        564, 565, 566, 567,
+        # Sinnoh
+        696, 697, 698, 699,
+        # Galar
+        880, 881, 882, 883
     )
 
-    starters = (
+    STARTERS = (
         # Kanto
-        1, 4, 7, 25, 133,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 172,
+        # Yellow, Let's Go Pikachu
+        25, 26,
+        # Let's Go Eevee
+        133, 134, 135, 136, 196, 197, 470, 471, 700,
         # Johto
-        152, 155, 158,
+        152, 153, 154, 155, 156, 157, 158, 159, 160,
         # Hoenn
-        252, 255, 258,
+        252, 253, 254, 255, 256, 257, 258, 259, 260,
         # Sinnoh
-        387, 390, 393,
+        387, 388, 389, 390, 391, 392, 393, 394, 395,
         # Unova
-        495
+        495, 496, 497, 498, 499, 500, 501, 502, 503,
+        # Kalos
+        650, 651, 652, 653, 654, 655, 656, 657, 658,
+        # Alola
+        722, 723, 724, 725, 726, 727, 728, 729, 730,
+        # Galar
+        810, 811, 812, 813, 814, 815, 816, 817, 818,
     )
 
     mon_search = {
@@ -376,12 +373,15 @@ class Q20QuestionParser:
             fossil = re.search(r'\b(revived|fossil)\b', q, re.I) is not None
             legendary = re.search(r'\blegendary\b', q, re.I) is not None
             mythical = re.search(r'\bmythical\b', q, re.I) is not None
+            starter = re.search(r'\bstarter\b', q, re.I) is not None
             if mythical:
                 return 'Mythical', 0, solution.is_mythical, 10
             if legendary:
                 return 'Legendary', 0, solution.is_legendary, 10
             if fossil:
                 return 'Fossil', 0, solution.id in self.FOSSILS, 10
+            if starter:
+                return 'Starter', 0, solution.id in self.STARTERS, 10
             return None, 0, False, 0
 
         async def size(q):
