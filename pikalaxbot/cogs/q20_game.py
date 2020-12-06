@@ -6,6 +6,7 @@ import re
 import difflib
 import random
 import nltk
+import traceback
 from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List, Any
 if TYPE_CHECKING:
     from ..ext.pokeapi import PokeApi, NamedPokeapiResource
@@ -734,7 +735,13 @@ class Q20GameObject(GameBase):
                 await ctx.send('Q20 is not running here.')
             return
         async with ctx.typing():
-            message, res, valid = await self._parser.parse(question)
+            try:
+                message, res, valid = await self._parser.parse(question)
+            except Exception as e:
+                await ctx.message.add_reaction('\N{CROSS MARK}')
+                await ctx.send('Something fucked up, imma tell pika daddy')
+                tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
+                await self.bot.send_tb(f'```Ignoring exception in q20 ask:\n{tb}\n```')
         if message in self._state:
             return await ctx.send('You\'ve already asked that!')
         await ctx.send(message)
