@@ -715,14 +715,15 @@ class Q20GameObject(GameBase):
                 await ctx.send(f'You did not guess what I was thinking of.\n'
                                f'Solution: {name}')
             else:
-                bonus = math.ceil(self._max_score / 10)
+                bonus = math.ceil(self._max_score / 200 * (21 - self._attempts))
                 async with self.bot.sql as sql:
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
+                tries = f'{20 - self._attempts} tries' if self._attempts < 19 else 'a single try'
                 await ctx.send(f'{ctx.author.mention} has guessed the solution! It was {name}!\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
-                               f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
+                               f'{ctx.author.mention} gets an extra {bonus} points for getting it right in {tries}!')
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: The Q20 game is not running here. '
@@ -742,13 +743,12 @@ class Q20GameObject(GameBase):
         if not valid:
             return
         self._state.append(message)
+        self.attempts -= 1
+        self.add_player(ctx.author)
         if res:
-            self.add_player(ctx.author)
             return await self.end(ctx)
-        else:
-            self.attempts -= 1
-            if self.attempts == 0:
-                return await self.end(ctx, failed=True)
+        elif self.attempts == 0:
+            return await self.end(ctx, failed=True)
         await self._message.edit(content=self)
 
 
