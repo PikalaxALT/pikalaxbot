@@ -6,6 +6,9 @@ import re
 import difflib
 import random
 import nltk
+from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List
+if TYPE_CHECKING:
+    from ..ext.pokeapi import PokeApi, NamedPokeapiResource
 
 
 class Q20QuestionParser:
@@ -44,7 +47,7 @@ class Q20QuestionParser:
         self.pokeapi = pokeapi
         self.differ = difflib.SequenceMatcher()
 
-    async def lookup_name(self, table, q):
+    async def lookup_name(self, table, q) -> Tuple[Optional[str], 'Optional[NamedPokeapiResource]', float]:
         q = q.lower()
 
         def get_ratio(w1, w2):
@@ -78,6 +81,7 @@ class Q20QuestionParser:
         async def pokemon(q):
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\s+', ' ', q, re.I)
+            found: 'Optional[PokeApi.PokemonSpecies]'
             name, found, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
             won = found and found.id == solution.id
             return name, 0, won, (name is not None) * (1000 if won else 0.5 * confidence)
@@ -87,6 +91,7 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(learn|know|move|tm)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
+            found: 'Optional[PokeApi.Move]'
             name, found, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
             return name, 0, found and await self.pokeapi.mon_can_learn_move(solution, found), confidence * confidence_f
 
@@ -95,6 +100,7 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(have|ability)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
+            found: 'Optional[PokeApi.Ability]'
             name, found, confidence_f = await self.lookup_name(self.pokeapi.Ability, q)
             return name, 0, found and await self.pokeapi.mon_has_ability(solution, found), confidence * confidence_f
 
@@ -123,6 +129,7 @@ class Q20QuestionParser:
             q = re.sub(r'\s+', ' ', q, re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
+            found: 'Optional[PokeApi.Type]'
             name, found, confidence_f = await self.lookup_name(self.pokeapi.Type, q)
             message = 0
             result = False
@@ -143,6 +150,7 @@ class Q20QuestionParser:
                     if testeffect == 0:
                         flags |= 0x2000
                 else:
+                    mon: 'Optional[PokeApi.PokemonSpecies]'
                     name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
                     if mon:
                         testeffect = await self.pokeapi.get_mon_matchup_against_mon(solution, mon)
@@ -159,6 +167,7 @@ class Q20QuestionParser:
                         if 0 in testeffect:
                             flags |= 0x20000
                     else:
+                        _move: 'Optional[PokeApi.Move]'
                         name, _move, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
                         if _move:
                             testeffect = await self.pokeapi.get_mon_matchup_against_move(solution, _move)
@@ -173,6 +182,7 @@ class Q20QuestionParser:
         async def color(q):
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\s+', ' ', q, re.I)
+            _color: 'Optional[PokeApi.PokemonColor]'
             name, _color, confidence = await self.lookup_name(self.pokeapi.PokemonColor, q)
             return name, 0, _color and _color == solution.pokemon_color, confidence / len(re.findall(r'\w+', q)) if q else 0
 
@@ -210,6 +220,7 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(family|evolution(ary)?|tree|line|part|of)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q)
+            res: 'Optional[PokeApi.PokemonSpecies]'
             name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
             return name, 0, res and any(mon.id == solution.id for mon in await self.pokeapi.get_evo_line(res)), confidence
 
@@ -231,6 +242,7 @@ class Q20QuestionParser:
             for pat in patterns:
                 q = re.sub(pat, '', q, re.I)
             q = re.sub(r'\s+', '', q)
+            dex: 'Optional[PokeApi.Pokedex]'
             dex_name, dex, confidence = await self.lookup_name(self.pokeapi.Pokedex, q)
             if dex_name is None and not is_mine:
                 return None, 0, False, 0
@@ -243,6 +255,7 @@ class Q20QuestionParser:
                 message = 0
                 item = f'Generation {generation}'
             else:
+                region: 'Optional[PokeApi.Region]'
                 region_name, region, confidence = await self.lookup_name(self.pokeapi.Region, q)
                 if region_name is None:
                     return None, 0, False, 0
@@ -318,9 +331,10 @@ class Q20QuestionParser:
                     size_literal = 0.1
                     name = 'your penis'
                 else:
+                    mon: 'Optional[PokeApi.PokemonSpecies]'
                     name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon = await self.pokeapi.get_default_forme(mon)
+                        mon: 'Optional[PokeApi.PokemonForm]' = await self.pokeapi.get_default_forme(mon)
                         size_literal = mon.pokemon.height / 10
                         confidence = confidence_f
             if size_literal > 0:
@@ -396,9 +410,10 @@ class Q20QuestionParser:
                     size_literal = 3
                     name = 'a breadbox'
                 else:
+                    mon: 'Optional[PokeApi.PokemonSpecies]'
                     name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon = await self.pokeapi.get_default_forme(mon)
+                        mon: 'Optional[PokeApi.PokemonForm]' = await self.pokeapi.get_default_forme(mon)
                         size_literal = mon.pokemon.weight / 10
                         confidence = confidence_f
             if size_literal > 0:
@@ -428,6 +443,7 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, re.I)
             q = re.sub('\s+', '', q)
+            _habitat: 'Optional[PokeApi.PokemonHabitat]'
             name, _habitat, confidence = await self.lookup_name(self.pokeapi.PokemonHabitat, q)
             return name, 0, _habitat == solution.habitat, confidence
 
@@ -439,9 +455,11 @@ class Q20QuestionParser:
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(shaped?|form(ed)?|like)', '', q, re.I)
+            shape: 'Optional[PokeApi.PokemonShape]'
             name, shape, confidence = await self.lookup_name(self.pokeapi.PokemonShape, q)
             message = 0
             if not name:
+                mon: 'Optional[PokeApi.PokemonSpecies]'
                 name, mon, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
                 if not name:
                     return None, 0, False, 0
@@ -456,7 +474,7 @@ class Q20QuestionParser:
             # owo
             return None, 0, False, 0
 
-        methods = {
+        methods: Mapping[Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]], List[str]] = {
             pokemon: ['Is it {}?'],
             move: ['Can it learn {}?'],
             ability: ['Can it have the ability {}?'],
@@ -474,7 +492,7 @@ class Q20QuestionParser:
             egg: [''],
             mating: ['']
         }
-        responses = []
+        responses: List[Tuple[float, str, bool, bool]] = []
         for i, (method, msgbank) in enumerate(methods.items()):
             _item, _message, match, _confidence = await method(question)
             valid = True
