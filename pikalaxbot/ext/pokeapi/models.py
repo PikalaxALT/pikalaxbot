@@ -156,7 +156,7 @@ class PokeapiModels:
 
     class PokemonShape(NamedPokeapiResource):
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, suffix='description', namecol='name, awesome_name')
+            super().__init__(cursor, row, namecol='name, awesome_name')
 
     class GrowthRate(NamedPokeapiResource):
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
