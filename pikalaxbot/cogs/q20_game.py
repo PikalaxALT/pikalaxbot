@@ -662,7 +662,7 @@ class Q20GameObject(GameBase):
         "is it in the kanto pokedex?",
         "is it in the national pokedex",
         "is it in the fifth gen?",
-        "is it human shaped?",
+        "is it humanoid shaped?",
     )
 
     def __init__(self, bot):

@@ -85,7 +85,6 @@ class NamedPokeapiResource(PokeapiResource):
             cur = conn.execute(statement, {'id': self.id})
             row = cur.fetchone()
         if row:
-            self.name = ' | '.join(row)
             for name, value in zip(columns, row):
                 setattr(self, name, value)
         else:
@@ -93,7 +92,9 @@ class NamedPokeapiResource(PokeapiResource):
                 setattr(self, name, None)
 
     def __str__(self):
-        return self.name
+        if hasattr(self, 'name'):
+            return self.name
+        return super().__repr__()
 
 
 class PokeapiModels:
@@ -154,7 +155,8 @@ class PokeapiModels:
         pass
 
     class PokemonShape(NamedPokeapiResource):
-        pass
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row, suffix='description', namecol='name, awesome_name')
 
     class GrowthRate(NamedPokeapiResource):
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
