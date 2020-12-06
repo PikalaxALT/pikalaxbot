@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import math
+import discord
 
 from discord.ext import commands
 
@@ -66,12 +67,19 @@ class HangmanGame(GameBase):
                 self._task.cancel()
                 self._task = None
             await self._message.edit(content=self)
+            base_forme = await self.bot.pokeapi.get_default_forme(self._solution)
+            embed = discord.Embed(
+                title=self._solution.name,
+                colour=discord.Colour.red() if failed or aborted else discord.Colour.green()
+            ).set_thumbnail(url=await self.bot.pokeapi.get_sprite_url(base_forme.pokemon, 'versions/generation-viii/icons/front_default'))
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
-                               f'Solution: {self._solution}')
+                               f'Solution: {self._solution}',
+                               embed=embed)
             elif failed:
                 await ctx.send(f'You were too late, the man has hanged to death.\n'
-                               f'Solution: {self._solution}')
+                               f'Solution: {self._solution}',
+                               embed=embed)
             else:
                 bonus = math.ceil(self._max_score / 10)
                 async with self.bot.sql as sql:
@@ -81,7 +89,8 @@ class HangmanGame(GameBase):
                                f'Solution: {self._solution}\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
-                               f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!')
+                               f'{ctx.author.mention} gets an extra {bonus} points for solving the puzzle!',
+                               embed=embed)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Hangman is not running here. '

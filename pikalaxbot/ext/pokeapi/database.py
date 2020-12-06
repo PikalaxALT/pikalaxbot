@@ -7,6 +7,7 @@ from .models import *
 from contextlib import asynccontextmanager as acm
 from discord.utils import get
 import random
+from ... import __dirname__
 
 
 __all__ = 'PokeApi',
@@ -290,3 +291,27 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_default_forme(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonForm:
         result = await self.get(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon, is_default=True)
         return result
+
+    async def get_sprite_path(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
+        sprites: PokeapiModels.PokemonSprites = await self.get(PokeapiModels.PokemonSprites, pokemon=mon)
+        path = sprites.sprites
+        for entry in name.split('/'):
+            try:
+                path = path[entry]
+            except (KeyError, TypeError):
+                return None
+        if isinstance(path, (dict, list)):
+            path = None
+        return path
+
+    async def get_sprite_local_path(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
+        path = await self.get_sprite_path(mon, name)
+        if path:
+            path = re.sub(r'^/media/', f'{__dirname__}/../pokeapi/data/v2/sprites/', path)
+        return path
+
+    async def get_sprite_url(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
+        path = await self.get_sprite_path(mon, name)
+        if path:
+            path = re.sub(r'^/media/', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/', path)
+        return path

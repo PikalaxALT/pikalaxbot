@@ -2,6 +2,7 @@ from sqlite3 import Connection, Row, Cursor
 from typing import Optional, Callable, Tuple, Any
 from contextlib import contextmanager
 from re import sub, split
+import json
 
 
 __all__ = (
@@ -345,3 +346,9 @@ class PokeapiModels:
             self.damage_factor = self._row['damage_factor']
             self.damage_type = self.get_submodel(PokeapiModels.Type, 'damage_type_id')
             self.target_type = self.get_submodel(PokeapiModels.Type, 'target_type_id')
+
+    class PokemonSprites(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
+            self.sprites = json.loads(self._row['sprites'])

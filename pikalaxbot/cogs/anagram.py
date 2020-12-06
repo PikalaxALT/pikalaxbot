@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import random
+import discord
 
 from discord.ext import commands
 
@@ -61,18 +62,26 @@ class AnagramGame(GameBase):
     async def end(self, ctx: commands.Context, failed=False, aborted=False):
         if await super().end(ctx, failed=failed, aborted=aborted):
             await self._message.edit(content=self)
+            base_forme = await self.bot.pokeapi.get_default_forme(self._solution)
+            embed = discord.Embed(
+                title=self._solution.name,
+                colour=discord.Colour.red() if failed or aborted else discord.Colour.green()
+            ).set_thumbnail(url=await self.bot.pokeapi.get_sprite_url(base_forme.pokemon, 'versions/generation-viii/icons/front_default'))
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}.\n'
-                               f'Solution: {self._solution}')
+                               f'Solution: {self._solution}',
+                               embed=embed)
             elif failed:
                 await ctx.send(f'You were too late, welcome to Glitch Purgatory.\n'
-                               f'Solution: {self._solution}')
+                               f'Solution: {self._solution}',
+                               embed=embed)
             else:
                 self.add_player(ctx.author)
                 score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution}\n'
-                               f'{ctx.author.mention} earned {score} points for winning!')
+                               f'{ctx.author.mention} earned {score} points for winning!',
+                               embed=embed)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: Anagram is not running here. '

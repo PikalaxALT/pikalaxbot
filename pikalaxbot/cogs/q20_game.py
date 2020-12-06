@@ -720,12 +720,17 @@ class Q20GameObject(GameBase):
                 self._task.cancel()
                 self._task = None
             await self._message.edit(content=self)
+            base_forme = await self.bot.pokeapi.get_default_forme(self._solution)
+            embed = discord.Embed(
+                title=self._solution.name,
+                colour=discord.Colour.red() if failed or aborted else discord.Colour.green()
+            ).set_thumbnail(url=await self.bot.pokeapi.get_sprite_url(base_forme.pokemon, 'versions/generation-viii/icons/front_default'))
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}\n'
-                               f'Solution: {name}')
+                               f'Solution: {name}', embed=embed)
             elif failed:
                 await ctx.send(f'You did not guess what I was thinking of.\n'
-                               f'Solution: {name}')
+                               f'Solution: {name}', embed=embed)
             else:
                 bonus = math.ceil(self._max_score / 200 * (self.attempts + 1))
                 async with self.bot.sql as sql:
@@ -735,7 +740,7 @@ class Q20GameObject(GameBase):
                 await ctx.send(f'{ctx.author.mention} has guessed the solution! It was {name}!\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
-                               f'{ctx.author.mention} gets an extra {bonus} points for getting it right in {tries}!')
+                               f'{ctx.author.mention} gets an extra {bonus} points for getting it right in {tries}!', embed=embed)
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: The Q20 game is not running here. '
