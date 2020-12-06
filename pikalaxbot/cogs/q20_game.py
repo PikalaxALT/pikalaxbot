@@ -153,7 +153,7 @@ class Q20QuestionParser:
                     yield pattern.match(word)
 
             def get_first_match(lut):
-                return discord.utils.find(lambda t: next((m for m in iter_matches(t[0]) if m is not None), None) is not None, lut.items())
+                return discord.utils.find(lambda t: next((m for m in iter_matches(t[0]) if m is not None), None) is not None, lut.items()) or (None, None)
 
             if table in (self.pokeapi.Pokemon, self.pokeapi.PokemonSpecies):
                 pat, id_ = get_first_match(Q20QuestionParser.mon_search)
