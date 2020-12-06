@@ -636,8 +636,8 @@ class Q20Game(GameCogBase):
         """Play Q20
 
         **Known issues**
-        `[Steel is interpreted as Seel](https://github.com/PikalaxALT/pikalaxbot/issues/7)`
-        `[Some height comparisons are incorrect](https://github.com/PikalaxALT/pikalaxbot/issues/8)`
+        [`Steel is interpreted as Seel`](https://github.com/PikalaxALT/pikalaxbot/issues/7)
+        [`Some height comparisons are incorrect`](https://github.com/PikalaxALT/pikalaxbot/issues/8)
         """
         if ctx.invoked_subcommand is None:
             await ctx.send_help(self.q20)
