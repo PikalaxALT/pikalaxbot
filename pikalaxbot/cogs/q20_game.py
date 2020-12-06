@@ -671,7 +671,7 @@ class Q20Game(GameCogBase):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
-        if not self[message.channel].running:
+        if not self[message.channel.id].running:
             return
         ctx = await self.bot.get_context(message)
         if not ctx.prefix or ctx.valid:
