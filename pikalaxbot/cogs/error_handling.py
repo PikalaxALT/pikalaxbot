@@ -84,11 +84,11 @@ class ErrorHandling(BaseCog):
         if isinstance(exc, self.filter_excs):
             return
 
-        if isinstance(exc, self.handle_excs):
-            return await self.handle_command_error(ctx, exc)
-
         if ctx.cog and BaseCog._get_overridden_method(ctx.cog.cog_command_error) is not None:
             return
+
+        if isinstance(exc, self.handle_excs):
+            return await self.handle_command_error(ctx, exc)
 
         self.bot.log_tb(ctx, exc)
         exc = getattr(exc, 'original', exc)

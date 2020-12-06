@@ -660,7 +660,7 @@ class Q20Game(GameCogBase):
 
         await self.game_cmd('end', ctx, aborted=True)
 
-    @commands.command(name='q20end', aliases=['qe', 'qend'])
+    @commands.command(name='q20end', aliases=['qe', 'qend', 'end'])
     async def q20_end(self, ctx):
         """Abort the Q20 game early"""
 
@@ -673,7 +673,7 @@ class Q20Game(GameCogBase):
         if message.channel not in self.channels:
             return
         ctx = await self.bot.get_context(message)
-        if ctx.prefix and not ctx.valid:
+        if ctx.prefix and ctx.valid:
             return
         content = message.content[len(ctx.prefix):]
         await self.ask(question=content)
