@@ -321,12 +321,12 @@ class Q20QuestionParser:
                     name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
                     if mon:
                         mon = await self.pokeapi.get_default_forme(mon)
-                        size_literal = mon.pokemon.height
+                        size_literal = mon.pokemon.height / 10
                         confidence = confidence_f
             if size_literal > 0:
                 if wrong_scale_error:
                     return 'error', 4, False, 1
-                compare_size_literal = size_literal * 10
+                compare_size_literal = round(size_literal * 10)
                 if size_compare < 0:
                     message = 0
                     result = height < compare_size_literal
@@ -399,12 +399,12 @@ class Q20QuestionParser:
                     name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
                     if mon:
                         mon = await self.pokeapi.get_default_forme(mon)
-                        size_literal = mon.pokemon.weight
+                        size_literal = mon.pokemon.weight / 10
                         confidence = confidence_f
             if size_literal > 0:
                 if wrong_scale_error:
                     return 'error', 4, False, 1
-                compare_size_literal = size_literal * 10
+                compare_size_literal = round(size_literal * 10)
                 if size_compare < 0:
                     message = 0
                     result = _weight < compare_size_literal
@@ -637,7 +637,6 @@ class Q20Game(GameCogBase):
 
         **Known issues**
         [`Steel is interpreted as Seel`](https://github.com/PikalaxALT/pikalaxbot/issues/7)
-        [`Some height comparisons are incorrect`](https://github.com/PikalaxALT/pikalaxbot/issues/8)
         """
         if ctx.invoked_subcommand is None:
             await ctx.send_help(self.q20)
