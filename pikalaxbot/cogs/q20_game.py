@@ -6,7 +6,7 @@ import re
 import difflib
 import random
 import nltk
-from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List
+from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List, Any
 if TYPE_CHECKING:
     from ..ext.pokeapi import PokeApi, NamedPokeapiResource
 
@@ -88,6 +88,9 @@ class Q20QuestionParser:
         # re.compile(r'^(5|five)$', re.I): 585,
         re.compile(r'^(peter sparker|sparky)$', re.I): 595,
         re.compile(r'^(deer god)$', re.I): 716,
+        re.compile(r'^(joh?ann?ah?)$', re.I): 562,
+        re.compile(r'^(dea?d(insky(66)?)?)$', re.I): 196,
+        re.compile(r'^(red(d?o|0?310{,3}))$', re.I): 134,
     }
 
     move_search = {
@@ -124,51 +127,46 @@ class Q20QuestionParser:
         self.tokenizer = nltk.WordPunctTokenizer()
 
     async def lookup_name(self, table, q) -> Tuple[Optional[str], 'Optional[NamedPokeapiResource]', float]:
-        q = q.lower()
-        bank = {
-            name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name
-            for name in await self.pokeapi.get_names_from(table)
-        }
-
-        def get_ratio(w1, w2):
-            self.differ.set_seq1(w1)
-            self.differ.set_seq2(w2)
-            return min(self.differ.real_quick_ratio(), self.differ.quick_ratio(), self.differ.ratio())
-
-        def iter_matches(*, cutoff=0.85):
-            yield difflib.get_close_matches(q, bank, cutoff=cutoff), q
-            for bigram in re.findall(r'(?=(\S+\s+\S+))', q):
-                yield difflib.get_close_matches(bigram, bank, cutoff=cutoff), bigram
+        def iter_matches(callable: Callable[[str], Any]):
+            yield callable(q)
+            for bigram in re.findall(r'(?=(\S+\s+\S))', q):
+                yield callable(bigram)
             for word in q.split():
-                yield difflib.get_close_matches(word, bank, cutoff=cutoff), word
+                yield callable(word)
 
-        name = r = next(((bank[r[0]], s) for r, s in iter_matches() if r), None)
-        confidence = 0
-        if not name:
-            def iter_matches(pattern):
-                yield pattern.match(q)
-                for bigram in re.findall(r'(?=(\S+\s+\S))', q):
-                    yield pattern.match(bigram)
-                for word in q.split():
-                    yield pattern.match(word)
+        def get_first_match(lut):
+            return discord.utils.find(
+                lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None, lut.items()) or (
+                   None, None)
 
-            def get_first_match(lut):
-                return discord.utils.find(lambda t: next((m for m in iter_matches(t[0]) if m is not None), None) is not None, lut.items()) or (None, None)
-
-            if table in (self.pokeapi.Pokemon, self.pokeapi.PokemonSpecies):
-                pat, id_ = get_first_match(Q20QuestionParser.mon_search)
-            elif table is self.pokeapi.Move:
-                pat, id_ = get_first_match(Q20QuestionParser.move_search)
-            else:
-                id_ = None
-            if id_:
-                r = await self.pokeapi.get_model(table, id_)
-                name = await self.pokeapi.get_name(r)
-                confidence = 1
+        if table in (self.pokeapi.Pokemon, self.pokeapi.PokemonSpecies):
+            _, id_ = get_first_match(Q20QuestionParser.mon_search)
+        elif table is self.pokeapi.Move:
+            _, id_ = get_first_match(Q20QuestionParser.move_search)
         else:
-            name, orig = name
-            r = await self.pokeapi.get_model_named(table, name)
-            confidence = get_ratio(name, orig)
+            id_ = None
+        if id_:
+            r = await self.pokeapi.get_model(table, id_)
+            name = await self.pokeapi.get_name(r)
+            confidence = 1
+        else:
+            q = q.lower()
+            bank = {
+                name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name
+                for name in await self.pokeapi.get_names_from(table)
+            }
+
+            def get_ratio(w1, w2):
+                self.differ.set_seq1(w1)
+                self.differ.set_seq2(w2)
+                return min(self.differ.real_quick_ratio(), self.differ.quick_ratio(), self.differ.ratio())
+
+            name = r = next(((bank[r[0]], s) for r, s in iter_matches(lambda c: difflib.get_close_matches(c, bank, cutoff=0.85)) if r), None)
+            confidence = 0
+            if name:
+                name, orig = name
+                r = await self.pokeapi.get_model_named(table, name)
+                confidence = get_ratio(name, orig)
         return name, r, confidence
 
     async def parse(self, question):
