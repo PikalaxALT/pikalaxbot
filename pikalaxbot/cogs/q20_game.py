@@ -636,7 +636,7 @@ class Q20GameObject(GameBase):
     _sample_questions = (
         "is it Magikarp?",
         "is it Lapras",
-        # "is it Dux?",
+        "is it Dux?",
         "can it have sturdy",
         "does it have the ability sand veil",
         "could it have the ability volt absorb?",
