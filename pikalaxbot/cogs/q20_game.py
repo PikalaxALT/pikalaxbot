@@ -554,9 +554,10 @@ class Q20GameObject(GameBase):
             self._solution: pokeapi.PokemonSpecies = await pokeapi.random_pokemon()
             self.attempts = self._attempts
             samples = random.sample(self._sample_questions, 3)
+            prefix, *_ = await self.bot.get_prefix(ctx.message)
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
-                           f'Use `{ctx.prefix}<question>` to narrow it down.\n\n'
-                           f'**Examples:**\n' + '\n'.join(f'`{ctx.prefix}{q}`' for q in samples))
+                           f'Use `{prefix}<question>` to narrow it down.\n\n'
+                           f'**Examples:**\n' + '\n'.join(f'`{prefix}{q}`' for q in samples))
             await super().start(ctx)
 
     async def end(self, ctx: commands, failed=False, aborted=False):
@@ -670,10 +671,10 @@ class Q20Game(GameCogBase):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
-        if message.channel.id not in self.channels:
+        if not self[message.channel].running:
             return
         ctx = await self.bot.get_context(message)
-        if ctx.prefix and ctx.valid:
+        if not ctx.prefix or ctx.valid:
             return
         content = message.content[len(ctx.prefix):]
         await self.ask(ctx, question=content)
