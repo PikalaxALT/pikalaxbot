@@ -159,9 +159,9 @@ class Q20QuestionParser:
                         if 0 in testeffect:
                             flags |= 0x20000
                     else:
-                        name, move, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
-                        if move:
-                            testeffect = await self.pokeapi.get_mon_matchup_against_move(solution, move)
+                        name, _move, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
+                        if _move:
+                            testeffect = await self.pokeapi.get_mon_matchup_against_move(solution, _move)
                             message = 3 + (typeeffect < 0)
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
@@ -173,8 +173,8 @@ class Q20QuestionParser:
         async def color(q):
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\s+', ' ', q, re.I)
-            name, color, confidence = await self.lookup_name(self.pokeapi.PokemonColor, q)
-            return name, 0, color and color == solution.pokemon_color, confidence / len(re.findall(r'\w+', q)) if q else 0
+            name, _color, confidence = await self.lookup_name(self.pokeapi.PokemonColor, q)
+            return name, 0, _color and _color == solution.pokemon_color, confidence / len(re.findall(r'\w+', q)) if q else 0
 
         async def evolution(q):
             nwords = len(re.findall(r'\w+', q))
@@ -292,7 +292,7 @@ class Q20QuestionParser:
                 elif re.match(r'[\'"]|\b(inch|inches|feet|foot|centimeters|cm)\b', word, re.I):
                     wrong_scale_error = True
                     size_literal = 999999
-                elif (m := re.match(r'^([><=]?)([0-9]+(?:\.[0-9]+)?)(m|meters?)?$', word, re.I)):
+                elif m := re.match(r'^([><=]?)([0-9]+(?:\.[0-9]+)?)(m|meters?)?$', word, re.I):
                     size_literal = float(m[2])
                     is_this_question |= bool(m[3])
                     size_compare = (size_compare + (m[1] == '>') - (m[1] == '<')) * (m[1] != '=')
@@ -373,7 +373,7 @@ class Q20QuestionParser:
                 elif re.match(r'\b(lbs?|pound|grams?)\b', word, re.I):
                     wrong_scale_error = True
                     size_literal = 999999
-                elif (m := re.match(r'^([><=]?)([0-9]+(?:\.[0-9]+)?)(kg|kilo(gram)?s?)?$', word, re.I)):
+                elif m := re.match(r'^([><=]?)([0-9]+(?:\.[0-9]+)?)(kg|kilo(gram)?s?)?$', word, re.I):
                     size_literal = float(m[2])
                     is_this_question |= bool(m[3])
                     size_compare = (size_compare + (m[1] == '>') - (m[1] == '<')) * (m[1] != '=')
@@ -382,7 +382,7 @@ class Q20QuestionParser:
             if not is_this_question:
                 return None, 0, False, 0
             solution_forme = await self.pokeapi.get_default_forme(solution)
-            weight = solution_forme.pokemon.weight
+            _weight = solution_forme.pokemon.weight
             if size_literal <= 0:
                 equal_message = 3
                 conglom = ' '.join(unknown_tokens)
@@ -407,13 +407,13 @@ class Q20QuestionParser:
                 compare_size_literal = size_literal * 10
                 if size_compare < 0:
                     message = 0
-                    result = weight < compare_size_literal
+                    result = _weight < compare_size_literal
                 elif size_compare > 0:
                     message = 1
-                    result = weight > compare_size_literal
+                    result = _weight > compare_size_literal
                 else:
                     message = equal_message
-                    result = weight == compare_size_literal
+                    result = _weight == compare_size_literal
                 if name == 'kilograms':
                     item = f'{size_literal}m'
                 else:
@@ -428,8 +428,8 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, re.I)
             q = re.sub('\s+', '', q)
-            name, habitat, confidence = await self.lookup_name(self.pokeapi.PokemonHabitat, q)
-            return name, 0, habitat == solution.habitat, confidence
+            name, _habitat, confidence = await self.lookup_name(self.pokeapi.PokemonHabitat, q)
+            return name, 0, _habitat == solution.habitat, confidence
 
         async def stats(q):
             return None, 0, False, 0
@@ -464,9 +464,9 @@ class Q20QuestionParser:
         }
         responses = []
         for i, (method, msgbank) in enumerate(methods.items()):
-            item, message, match, confidence = await method(question)
+            _item, _message, match, _confidence = await method(question)
             valid = True
-            if item:
+            if _item:
                 match_t = 'Yes' if match else 'No'
                 if method == pokemon and match:
                     match_t = '**YES!!**'
@@ -475,31 +475,31 @@ class Q20QuestionParser:
                         match_t = {
                             'single': 'HAHAHAHAHAHAHAHAHA!!!',
                             'dual': 'Nah'
-                        }.get(item, 'Sometimes')
+                        }.get(_item, 'Sometimes')
                     else:
-                        if confidence >= 0x20000:
-                            confidence -= 0x20000
+                        if _confidence >= 0x20000:
+                            _confidence -= 0x20000
                             match_t = 'It is immune'
-                        if confidence >= 0x10000:
-                            confidence -= 0x10000
+                        if _confidence >= 0x10000:
+                            _confidence -= 0x10000
                             if match_t == 'It is immune':
                                 match_t = 'It is sometimes immune'
                             else:
                                 match_t = 'Sometimes'
-                elif method == pokedex and item == 'National':
+                elif method == pokedex and _item == 'National':
                     match_t = 'Duh.'
-                elif method in (size, weight) and message == 4:
+                elif method in (size, weight) and _message == 4:
                     valid = False
-                elif method == evolution and message == 3 and match:
+                elif method == evolution and _message == 3 and match:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 elif method == move and solution.id > 807:
                     match_t = 'I have no clue'
                 if valid:
-                    response_s = f'`{msgbank[message].format(item)}`: {match_t}'
+                    response_s = f'`{msgbank[_message].format(_item)}`: {match_t}'
                     valid = match_t != 'I have no clue'
                 else:
-                    response_s = msgbank[message].format(item)
-                responses.append((confidence, response_s, method == pokemon and match, valid))
+                    response_s = msgbank[_message].format(_item)
+                responses.append((_confidence, response_s, method == pokemon and match, valid))
         if not responses:
             return 'Huh? I didn\'t understand that', False, False
         responses.sort(reverse=True)
