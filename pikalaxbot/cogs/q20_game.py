@@ -83,6 +83,7 @@ class Q20QuestionParser:
         re.compile(r'flabebe', re.I): 669, # accents!
         re.compile(r'starly', re.I): 396,
         re.compile(r'[ao]b[oa]ma(snow)?', re.I): 460,
+        re.compile(r'sta(ka|ta){3,}', re.I): 805,
 
         # TPP Mon
         re.compile(r'^(abby)$', re.I): 5,
