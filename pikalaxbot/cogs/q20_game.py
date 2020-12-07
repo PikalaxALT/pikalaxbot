@@ -621,9 +621,8 @@ class Q20QuestionParser:
                 elif re.match(r'\b(lbs?|pound|grams?)\b', word, re.I):
                     wrong_scale_error = True
                     stat_literal = 999999
-                elif m := re.match(r'^([><=]?)([0-9]+(?:\.[0-9]+)?)(kg|kilo(gram)?s?)?$', word, re.I):
-                    stat_literal = float(m[2])
-                    is_this_question |= bool(m[3])
+                elif m := re.match(r'^([><=]?)([0-9]+)$', word, re.I):
+                    stat_literal = int(m[2])
                     stat_compare = (stat_compare + (m[1] == '>') - (m[1] == '<')) * (m[1] != '=')
                 elif re.match(r'^fast(er)?$', word, re.I):
                     is_this_question = True
