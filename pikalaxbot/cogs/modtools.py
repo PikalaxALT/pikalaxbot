@@ -149,7 +149,7 @@ class Modtools(BaseCog):
             menu.sql_cmd = script
             await menu.start(ctx)
         else:
-            await ctx.send('Opration completed, no rows returned.', delete_after=10)
+            await ctx.send('Operation completed, no rows returned.', delete_after=10)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.command(name='sql')
