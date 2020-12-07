@@ -83,7 +83,7 @@ class Q20QuestionParser:
         re.compile(r'flabebe', re.I): 669, # accents!
         re.compile(r'starly', re.I): 396,
         re.compile(r'[ao]b[oa]ma(snow)?', re.I): 460,
-        re.compile(r'sta(ka|ta){3,}', re.I): 805,
+        re.compile(r's(ka|ta){4,}', re.I): 805,
 
         # TPP Mon
         re.compile(r'^(abby)$', re.I): 5,
@@ -575,6 +575,98 @@ class Q20QuestionParser:
             return name, 0, _habitat == solution.habitat, confidence
 
         async def stats(q):
+            stat_name = None
+            special = False
+            stat_compare = 0
+            stat_literal = -1
+            is_this_question = False
+            unknown_tokens = []
+            confidence = 1
+            equal_message = 3
+            name = None
+            for word in nltk.TreebankWordTokenizer().tokenize(q):
+                if not word or self.IGNORE_WORDS_1.match(word):
+                    pass
+                elif re.match(r'^as$', word, re.I):
+                    stat_compare *= 0
+                elif re.match(r'^th[ae]n$', word, re.I):
+                    stat_compare *= 2
+                elif m := re.match(r'^(base|stats?|total|bst|hp|at(tac)?k|sp(ecial|e?c)?\.?(at(tac)?k|def(en[cs]e)?)?|def(en[cs]e)?|sp(eed|e|d))$', word, re.I):
+                    is_this_question = True
+                    if re.match(r'^(total|bst)$', word, re.I):
+                        stat_name = 'Stat Total'
+                    elif m[1].lower() == 'hp':
+                        stat_name = 'HP'
+                    elif re.match(r'^at(tac)?k$', word, re.I):
+                        stat_name = 'Attack'
+                    elif re.match(r'^def(en[cs]e)?$', word, re.I):
+                        stat_name = 'Defense'
+                    elif re.match(r'^sp(eed|e|d)$', word, re.I):
+                        stat_name = 'Speed'
+                    elif m2 := re.match(r'^sp(ecial|e?c)?\.?(at(tac)?k|def(en[cs]e)?)?$', word, re.I):
+                        special = True
+                        if m2[2]:
+                            if re.match(r'^at(tac)?k$', m2[2], re.I):
+                                stat_name = 'Attack'
+                            else:
+                                stat_name = 'Defense'
+                elif re.match(r'^same$', word, re.I):
+                    size_compare = 0
+                elif re.match(r'^((high|great)(er)?|more|>)$', word, re.I):
+                    is_this_question = True
+                    stat_compare += 1
+                elif re.match(r'^(low(er)?|less|<)$', word, re.I):
+                    is_this_question = True
+                    stat_compare -= 1
+                elif re.match(r'\b(lbs?|pound|grams?)\b', word, re.I):
+                    wrong_scale_error = True
+                    stat_literal = 999999
+                elif m := re.match(r'^([><=]?)([0-9]+(?:\.[0-9]+)?)(kg|kilo(gram)?s?)?$', word, re.I):
+                    stat_literal = float(m[2])
+                    is_this_question |= bool(m[3])
+                    stat_compare = (stat_compare + (m[1] == '>') - (m[1] == '<')) * (m[1] != '=')
+                elif re.match(r'^fast(er)?$', word, re.I):
+                    is_this_question = True
+                    stat_name = 'Speed'
+                else:
+                    unknown_tokens.append(word)
+            if not is_this_question or not stat_name:
+                return None, 0, False, 0
+
+            if special:
+                stat_name = f'Special {stat_name}'
+
+            async def get_stat_value(mon: 'PokeApi.PokemonSpecies'):
+                base_stats = await self.pokeapi.get_base_stats(mon)
+                if stat_name == 'Stat Total':
+                    return sum(base_stats.values())
+                return base_stats.get(stat_name, 0)
+
+            compare_value = await get_stat_value(solution)
+            if stat_literal <= 0:
+                equal_message = 4
+                conglom = ' '.join(unknown_tokens)
+                mon: 'Optional[PokeApi.PokemonSpecies]'
+                name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
+                if mon:
+                    stat_literal = await get_stat_value(mon)
+                    confidence = confidence_f
+            if stat_literal > 0:
+                if stat_compare < 0:
+                    message = 0
+                    result = compare_value < stat_literal
+                elif stat_compare > 0:
+                    message = 1
+                    result = compare_value > stat_literal
+                else:
+                    message = equal_message
+                    result = compare_value == stat_literal
+                if name is None:
+                    item = f'{stat_literal}'
+                else:
+                    item = f'{name} ({stat_literal})'
+                return (stat_name, item), message, result, 10 * confidence
+
             return None, 0, False, 0
 
         async def body(q):
@@ -616,7 +708,7 @@ class Q20QuestionParser:
             size: ['Is it smaller than {}?', 'Is it taller than {}?', 'Is it {} tall?', 'Is it as tall as {}?', 'I can only understand height measurements in meters.'],
             weight: ['Does it weigh less than {}?', 'Does it weigh more than {}?', 'Does it weigh {}?', 'Does it weigh the same as {}', ],
             habitat: ['Does it live in the {} habitat?'],
-            stats: [''],
+            stats: ['Is its Base {} less than {}?', 'Is its Base {} greater than {}?', 'Is its Base {} {}?', 'Is its Base {} the same as {}?'],
             body: ['Is it {}-shaped?', 'Is it the same shape as {}?'],
             egg: [''],
             mating: ['']
@@ -653,11 +745,13 @@ class Q20QuestionParser:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 elif method == move and solution.id > 807:
                     match_t = 'I have no clue'
+                if isinstance(_item, str):
+                    _item = (_item,)
                 if valid:
-                    response_s = f'`{msgbank[_message].format(_item)}`: {match_t}'
+                    response_s = f'`{msgbank[_message].format(*_item)}`: {match_t}'
                     valid = match_t != 'I have no clue'
                 else:
-                    response_s = msgbank[_message].format(_item)
+                    response_s = msgbank[_message].format(*_item)
                 return _confidence, response_s, method == pokemon and match, valid
 
         responses = await asyncio.gather(*[work(*x) for x in methods.items()])
@@ -699,6 +793,7 @@ class Q20GameObject(GameBase):
         "is it in the national pokedex",
         "is it in the fifth gen?",
         "is it humanoid shaped?",
+        "is it faster than lord helix",
     )
 
     def __init__(self, bot):

@@ -1,7 +1,7 @@
 import aiosqlite
 import re
 import collections
-from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union
+from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
@@ -344,3 +344,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         for name in attempts:
             if path := await self.get_sprite_url(poke, name):
                 return path
+
+    async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
+        return {pstat.stat.name: pstat.base_stat for pstat in await self.filter(PokeapiModels.PokemonStat, pokemon__pokemon_species=mon, pokemon__is_default=True)}

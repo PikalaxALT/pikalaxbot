@@ -360,3 +360,18 @@ class PokeapiModels:
             super().__init__(cursor, row)
             self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
             self.sprites = json.loads(self._row['sprites'])
+
+    class Stat(NamedPokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.is_battle_only = self._row['is_battle_only']
+            self.game_index = self._row['game_index']
+            self.move_damage_class = self.get_submodel(PokeapiModels.MoveDamageClass, 'move_damage_class_id')
+
+    class PokemonStat(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.base_stat = self._row['base_stat']
+            self.effort = self._row['effort']
+            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
+            self.stat = self.get_submodel(PokeapiModels.Stat, 'stat_id')
