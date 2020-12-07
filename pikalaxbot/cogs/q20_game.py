@@ -473,7 +473,7 @@ class Q20QuestionParser:
                 if name == 'meters':
                     item = f'{size_literal}m'
                 else:
-                    item = name
+                    item = f'{name} ({size_literal}m)'
                 return item, message, result, 10 * confidence
 
             return None, 0, False, 0
@@ -550,9 +550,9 @@ class Q20QuestionParser:
                     message = equal_message
                     result = _weight == compare_size_literal
                 if name == 'kilograms':
-                    item = f'{size_literal}m'
+                    item = f'{size_literal}kg'
                 else:
-                    item = name
+                    item = f'{name} ({size_literal}kg)'
                 return item, message, result, 10 * confidence
 
             return None, 0, False, 0
