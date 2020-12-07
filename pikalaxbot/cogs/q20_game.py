@@ -654,7 +654,7 @@ class Q20QuestionParser:
                     response_s = msgbank[_message].format(_item)
                 return _confidence, response_s, method == pokemon and match, valid
 
-        responses = [await work(*x) for x in methods.items()]
+        responses = await asyncio.gather(*[work(*x) for x in methods.items()])
         responses = [x for x in responses if x is not None]
         if not responses:
             return 'Huh? I didn\'t understand that', False, False
