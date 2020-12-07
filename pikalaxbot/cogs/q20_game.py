@@ -776,7 +776,7 @@ class Q20GameObject(GameBase):
             await self.bot.send_tb(f'Ignoring exception in q20 ask:\n{tb}\n')
             raise
         if message in self._state:
-            return await ctx.send('You\'ve already asked that!')
+            return await ctx.send('You\'ve already asked that!', delete_after=10)
         await ctx.send(message)
         if not valid:
             return
