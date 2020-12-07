@@ -440,16 +440,16 @@ class Q20QuestionParser:
                 equal_message = 3
                 conglom = ' '.join(unknown_tokens)
                 if re.search(r'(hum[ao]n|person|trainer|man|woman|boy|girl)', conglom, re.I):
-                    size_literal = 16
+                    size_literal = 1.6
                     name = 'an average person'
                 elif re.search(r'(house|home)', conglom, re.I):
-                    size_literal = 76
+                    size_literal = 7.6
                     name = 'a 2-story house'
                 elif re.search(r'(bread(box)?|loaf)', conglom, re.I):
-                    size_literal = 3
+                    size_literal = 0.3
                     name = 'a breadbox'
                 elif re.search(r'penis', conglom, re.I):
-                    size_literal = 0.1
+                    size_literal = 0.01
                     name = 'your penis'
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
