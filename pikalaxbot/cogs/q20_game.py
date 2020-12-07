@@ -717,7 +717,7 @@ class Q20QuestionParser:
             q = re.sub(r'\b(mate|breed|with|fuck)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             res: 'Optional[PokeApi.PokemonSpecies]'
-            name, res, confidence = await self.lookup_name(self.pokeapi.EggGroup, q)
+            name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
             return name, 0, res and await self.pokeapi.mon_can_mate_with(solution, res), confidence
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
