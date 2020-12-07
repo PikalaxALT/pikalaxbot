@@ -1,7 +1,7 @@
 import aiosqlite
 import re
 import collections
-from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any
+from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
@@ -30,7 +30,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         yield self
         self.row_factory = old_factory
 
+    def resolve_model(self, model: Union[str, Callable[[Cursor, Tuple[Any]], Any]]) -> Callable[[Cursor, Tuple[Any]], Any]:
+        if isinstance(model, str):
+            model = getattr(self, model)
+        assert issubclass(model, PokeapiResource)
+        return model
+
     async def get_model(self, model: Callable[[Cursor, Tuple[Any]], Any], id_: int) -> Optional[Any]:
+        model = self.resolve_model(model)
         if id_ is None:
             return
         if (model, id_) in __global_cache__:
@@ -47,6 +54,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         return result
 
     async def get_all_models(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> List[Any]:
+        model = self.resolve_model(model)
         if model in __global_cache__:
             return __global_cache__[model]
         statement = """
@@ -90,6 +98,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_random(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[Any]:
         """Generic method to get a random PokeApi object."""
+        model = self.resolve_model(model)
         if model in __global_cache__:
             return random.choice(__global_cache__[model])
         statement = """

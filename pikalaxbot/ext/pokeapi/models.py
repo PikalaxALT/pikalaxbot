@@ -53,6 +53,14 @@ class PokeapiResource:
             self._name = None
         self._connection.__global_cache__[(self.__class__, self.id)] = self
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
     def __eq__(self, other):
         return isinstance(other, self.__class__) and other.id == self.id
 
