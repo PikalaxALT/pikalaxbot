@@ -721,10 +721,10 @@ class Q20QuestionParser:
             name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
             if not res:
                 return None, 0, False, 0
-            if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=solution, egg_group__name='Undiscovered'):
-                return name, 0, False, confidence
             if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=res, egg_group__name='Undiscovered'):
                 return name, 0, False, confidence + 0x20000 + 0x40000 * (res.id in self.BABIES)
+            if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=solution, egg_group__name='Undiscovered'):
+                return name, 0, False, confidence
             if 132 in (solution.id, res.id):
                 ditto = solution if solution.id == 132 else res
                 not_ditto = solution if solution.id != 132 else res
