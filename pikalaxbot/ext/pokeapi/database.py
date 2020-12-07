@@ -324,3 +324,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         if path:
             path = re.sub(r'^/media/', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/', path)
         return path
+
+    async def get_species_sprite_url(self, mon: PokeapiModels.PokemonSpecies) -> Optional[str]:
+        forme = await self.get_default_forme(mon)
+        poke = forme.pokemon
+        attempts = [
+            'versions/generation-vii/ultra-sun-ultra-moon/front_default',
+            'versions/generation-vi/icons/front_default'
+        ]
+        for name in attempts:
+            if path := await self.get_sprite_url(poke, name):
+                return path

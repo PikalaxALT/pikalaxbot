@@ -22,7 +22,9 @@ import traceback
 from .. import BaseCog
 from discord.ext import commands
 from .errors import BadGameArgument
-
+import typing
+if typing.TYPE_CHECKING:
+    from ...ext.pokeapi import PokeApi
 
 __all__ = (
     'find_emoji',
@@ -52,7 +54,7 @@ async def increment_score(sql, player, *, by=1):
 class GameBase:
     __slots__ = (
         'bot', '_timeout', '_lock', '_max_score', '_state', '_running', '_message', '_task',
-        'start_time', '_players'
+        'start_time', '_players', '_solution'
     )
 
     def __init__(self, bot, timeout=90, max_score=1000):
@@ -76,6 +78,7 @@ class GameBase:
         self._task = None
         self.start_time = -1
         self._players = set()
+        self._solution: 'PokeApi.PokemonSpecies' = None
 
     @property
     def state(self):
@@ -146,6 +149,12 @@ class GameBase:
             for player in self._players:
                 await increment_score(sql, player, by=score)
         return score
+
+    async def get_solution_embed(self, *, failed=False, aborted=False):
+        return discord.Embed(
+                title=self._solution.name,
+                colour=discord.Colour.red() if failed or aborted else discord.Colour.green()
+            ).set_thumbnail(url=await self.bot.pokeapi.get_species_sprite_url(self._solution))
 
 
 class GameCogBase(BaseCog):
