@@ -148,6 +148,8 @@ class Modtools(BaseCog):
             menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = script
             await menu.start(ctx)
+        else:
+            await ctx.send('Opration completed, no rows returned.')
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.command(name='sql')
