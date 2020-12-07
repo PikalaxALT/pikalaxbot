@@ -7,10 +7,22 @@ import difflib
 import random
 import nltk
 import traceback
+import asyncio
+from contextlib import asynccontextmanager as acm
 from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List, Any
 if TYPE_CHECKING:
     from ..ext.pokeapi import PokeApi, NamedPokeapiResource
 
+
+@acm
+async def thinking(ctx):
+    async def inner():
+        await asyncio.sleep(10)
+        await ctx.message.add_reaction('🤔')
+
+    task = ctx.bot.loop.create_task(inner())
+    yield
+    task.cancel()
 
 class Q20QuestionParser:
     IGNORE_WORDS_1 = re.compile(r'\b(an?|the|i[stn]|(in)?to|can|does|could|are)\b', re.IGNORECASE)
@@ -752,14 +764,15 @@ class Q20GameObject(GameBase):
             if ctx.command:
                 await ctx.send('Q20 is not running here.')
             return
-        async with ctx.typing():
-            try:
+        try:
+            async with ctx.typing(), thinking(ctx):
                 message, res, valid = await self._parser.parse(question)
-            except Exception as e:
-                await ctx.message.add_reaction('\N{CROSS MARK}')
-                await ctx.send('Something fucked up, imma tell pika daddy')
-                tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
-                await self.bot.send_tb(f'Ignoring exception in q20 ask:\n{tb}\n')
+        except Exception as e:
+            await ctx.message.add_reaction('\N{CROSS MARK}')
+            await ctx.send('Something fucked up, imma tell pika daddy')
+            tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
+            await self.bot.send_tb(f'Ignoring exception in q20 ask:\n{tb}\n')
+            raise
         if message in self._state:
             return await ctx.send('You\'ve already asked that!')
         await ctx.send(message)
