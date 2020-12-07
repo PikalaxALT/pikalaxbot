@@ -144,7 +144,7 @@ class Modtools(BaseCog):
                     if i % 20 == 0:
                         pag.close_page()
 
-        if pag.pages:
+        if pag and pag.pages:
             menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = script
             await menu.start(ctx)
