@@ -791,7 +791,8 @@ class Q20QuestionParser:
                         match_t = 'Of course not, you sicko'
                     if _confidence >= 0x20000:
                         _confidence -= 0x20000
-                        match_t = 'Of course not'
+                        if match_t != 'Of course not, you sicko':
+                            match_t = 'Of course not'
                     if _confidence >= 0x10000:
                         _confidence -= 0x10000
                         match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
