@@ -122,7 +122,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             menu.sql_cmd = query if len(query) < 256 else '...' + query[-253:]
             await menu.start(ctx)
         else:
-            await ctx.send('Opration completed, no rows returned.')
+            await ctx.send('Opration completed, no rows returned.', delete_after=10)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @execute_sql.error
