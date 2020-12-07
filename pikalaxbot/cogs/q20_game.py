@@ -594,7 +594,9 @@ class Q20QuestionParser:
             # owo
             return None, 0, False, 0
 
-        methods: Mapping[Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]], List[str]] = {
+        ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
+
+        methods: Mapping[ParseMethod, List[str]] = {
             pokemon: ['Is it {}?'],
             move: ['Can it learn {}?'],
             ability: ['Can it have the ability {}?'],
@@ -612,8 +614,8 @@ class Q20QuestionParser:
             egg: [''],
             mating: ['']
         }
-        responses: List[Tuple[float, str, bool, bool]] = []
-        for i, (method, msgbank) in enumerate(methods.items()):
+
+        async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
             _item, _message, match, _confidence = await method(question)
             valid = True
             if _item:
@@ -649,7 +651,10 @@ class Q20QuestionParser:
                     valid = match_t != 'I have no clue'
                 else:
                     response_s = msgbank[_message].format(_item)
-                responses.append((_confidence, response_s, method == pokemon and match, valid))
+                return _confidence, response_s, method == pokemon and match, valid
+
+        responses = await asyncio.gather(work(*x) for x in methods.items())
+        responses = [x for x in responses if x is not None]
         if not responses:
             return 'Huh? I didn\'t understand that', False, False
         responses.sort(reverse=True)
