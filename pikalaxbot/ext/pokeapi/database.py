@@ -347,3 +347,17 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
         return {pstat.stat.name: pstat.base_stat for pstat in await self.filter(PokeapiModels.PokemonStat, pokemon__pokemon_species=mon, pokemon__is_default=True)}
+
+    async def mon_is_in_egg_group(self, mon: PokeapiModels.PokemonSpecies, egg_group: PokeapiModels.EggGroup) -> bool:
+        result = await self.get(PokeapiModels.PokemonEggGroup, pokemon_species=mon, egg_group=egg_group)
+        return result is not None
+
+    async def mon_can_mate_with(self, mon: PokeapiModels.PokemonSpecies, mate: PokeapiModels.PokemonSpecies) -> bool:
+        eg1 = set()
+        eg2 = set()
+        for peg in await self.get_all_models(PokeapiModels.PokemonEggGroup):  # type: PokeapiModels.PokemonEggGroup
+            if peg.pokemon_species == mon:
+                eg1.add(peg.egg_group)
+            elif peg.pokemon_species == mate:
+                eg2.add(peg.egg_group)
+        return bool(eg1 & eg2)

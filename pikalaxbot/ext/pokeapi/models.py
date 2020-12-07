@@ -375,3 +375,12 @@ class PokeapiModels:
             self.effort = self._row['effort']
             self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
             self.stat = self.get_submodel(PokeapiModels.Stat, 'stat_id')
+
+    class EggGroup(NamedPokeapiResource):
+        pass
+
+    class PokemonEggGroup(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.species = self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')
+            self.egg_group = self.get_submodel(PokeapiModels.EggGroup, 'egg_group_id')

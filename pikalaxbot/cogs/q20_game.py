@@ -686,11 +686,25 @@ class Q20QuestionParser:
             return name, message, shape == solution.shape, confidence
 
         async def egg(q):
-            return None, 0, False, 0
+            if not re.search(r'\b(egg|group|breeding)\b', q, re.I):
+                return None, 0, False, 0
+            q = self.IGNORE_WORDS_1.sub('', q)
+            q = re.sub(r'\b(part|of|egg|group|breeding)\b', '', q, re.I)
+            q = re.sub(r'\s+', ' ', q, re.I)
+            res: 'Optional[PokeApi.EggGroup]'
+            name, res, confidence = await self.lookup_name(self.pokeapi.EggGroup, q)
+            return name, 0, res and await self.pokeapi.mon_is_in_egg_group(solution, res), confidence
 
         async def mating(q):
             # owo
-            return None, 0, False, 0
+            if not re.search(r'\b(mate|breed|fuck)\b', q, re.I):
+                return None, 0, False, 0
+            q = self.IGNORE_WORDS_1.sub('', q)
+            q = re.sub(r'\b(mate|breed|with|fuck)\b', '', q, re.I)
+            q = re.sub(r'\s+', ' ', q, re.I)
+            res: 'Optional[PokeApi.PokemonSpecies]'
+            name, res, confidence = await self.lookup_name(self.pokeapi.EggGroup, q)
+            return name, 0, res and await self.pokeapi.mon_can_mate_with(solution, res), confidence
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
 
@@ -709,8 +723,8 @@ class Q20QuestionParser:
             habitat: ['Does it live in the {} habitat?'],
             stats: ['Is its Base {} less than {}?', 'Is its Base {} greater than {}?', 'Is its Base {} {}?', 'Is its Base {} the same as {}?'],
             body: ['Is it {}-shaped?', 'Is it the same shape as {}?'],
-            egg: [''],
-            mating: ['']
+            egg: ['Is it in the {} egg group?'],
+            mating: ['Can it mate with {}?']
         }
 
         async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
