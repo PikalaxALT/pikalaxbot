@@ -66,6 +66,17 @@ class Q20QuestionParser:
 
     ULTRA_BEASTS = (793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806)
 
+    BABIES = (
+        # Johto
+        172, 173, 174, 175, 236, 238, 239, 240,
+        # Hoenn
+        298, 260,
+        # Sinnoh
+        406, 433, 438, 439, 440, 446, 447, 458,
+        # Galar
+        848
+    )
+
     mon_search = {
         re.compile(r'^(nidoran (female|girl)|(female|girl) nidoran)$', re.I): 29,
         re.compile(r'^(nidorina|nidorina (female|girl)|(female|girl) nidorina)$', re.I): 30,
@@ -391,6 +402,7 @@ class Q20QuestionParser:
             mythical = re.search(r'\bmythical\b', q, re.I) is not None
             starter = re.search(r'\bstarter\b', q, re.I) is not None
             ultra = re.search(r'\bultra( br?easts?)?\b', q, re.I) is not None
+            baby = re.search(r'\bbaby\b', q, re.I) is not None
             if mythical:
                 return 'Mythical', 0, solution.is_mythical, 10
             if legendary:
@@ -401,6 +413,8 @@ class Q20QuestionParser:
                 return 'Starter', 0, solution.id in self.STARTERS, 10
             if ultra:
                 return 'Ultra Beast', 0, solution.id in self.ULTRA_BEASTS, 10
+            if baby:
+                return 'Baby Pokémon', 0, solution.id in self.BABIES, 10
             return None, 0, False, 0
 
         async def size(q):
