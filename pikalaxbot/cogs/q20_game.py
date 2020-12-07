@@ -95,6 +95,7 @@ class Q20QuestionParser:
         re.compile(r'starly', re.I): 396,
         re.compile(r'[ao]b[oa]ma(snow)?', re.I): 460,
         re.compile(r's(ka|ta){4,}', re.I): 805,
+        re.compile(r'wigglywoo', re.I): 114,
 
         # TPP Mon
         re.compile(r'^(abby)$', re.I): 5,
@@ -718,6 +719,18 @@ class Q20QuestionParser:
             q = re.sub(r'\s+', ' ', q, re.I)
             res: 'Optional[PokeApi.PokemonSpecies]'
             name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+            if not res:
+                return None, 0, False, 0
+            if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=solution, egg_group__name='Undiscovered'):
+                return name, 0, False, confidence
+            if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=res, egg_group__name='Undiscovered'):
+                return name, 0, False, confidence + 0x20000 + 0x40000 * (res.id in self.BABIES)
+            if 132 in (solution.id, res.id):
+                ditto = solution if solution.id == 132 else res
+                not_ditto = solution if solution.id != 132 else res
+                if not_ditto.id == 132:
+                    return name, 0, False, confidence + 0x10000
+                return name, 0, True, confidence + 0x10000
             return name, 0, res and await self.pokeapi.mon_can_mate_with(solution, res), confidence
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
@@ -772,6 +785,16 @@ class Q20QuestionParser:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 elif method == move and solution.id > 807:
                     match_t = 'I have no clue'
+                elif method == mating and _confidence >= 0x10000:
+                    if _confidence >= 0x40000:
+                        _confidence -= 0x40000
+                        match_t = 'Of course not, you sicko'
+                    if _confidence >= 0x20000:
+                        _confidence -= 0x20000
+                        match_t = 'Of course not'
+                    if _confidence >= 0x10000:
+                        _confidence -= 0x10000
+                        match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
                 if isinstance(_item, str):
                     _item = (_item,)
                 if valid:
