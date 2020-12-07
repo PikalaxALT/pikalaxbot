@@ -839,12 +839,14 @@ class Q20Game(GameCogBase):
         await self.show(ctx)
 
     @q20.command()
+    @commands.is_owner()
     async def end(self, ctx):
         """Abort the Q20 game early"""
 
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='q20end', aliases=['qe', 'qend', 'end'])
+    @commands.is_owner()
     async def q20_end(self, ctx):
         """Abort the Q20 game early"""
 
