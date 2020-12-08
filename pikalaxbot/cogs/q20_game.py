@@ -762,7 +762,7 @@ class Q20QuestionParser:
 
         async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
             _item, _message, match, _confidence = await method(question)
-            self.bot.log_info(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence}')
+            self.bot.log_debug(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence}')
             valid = True
             if _item:
                 match_t = 'Yes' if match else 'No'
