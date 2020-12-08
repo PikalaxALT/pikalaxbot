@@ -1013,7 +1013,7 @@ class Q20Game(GameCogBase):
         try:
             while True:
                 msg = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.guild is None, timeout=60.0)
-                solution = await self[ctx.channel.id]._parser.lookup_name('PokemonSpecies', msg.content)
+                _, solution, _ = await self[ctx.channel.id]._parser.lookup_name('PokemonSpecies', msg.content)
                 if solution:
                     break
                 await ctx.author.send('Umm, what? That ain\'t a Pokémon I recognize...', delete_after=10)
