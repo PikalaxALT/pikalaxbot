@@ -34,6 +34,7 @@ async def thinking(ctx):
     yield
     task.cancel()
 
+
 class Q20QuestionParser:
     IGNORE_WORDS_1 = re.compile(r'\b(an?|the|i[stn]|(in)?to|can|does|could|are)\b', re.IGNORECASE)
     FOSSILS = (
@@ -998,6 +999,27 @@ class Q20Game(GameCogBase):
 
         self[ctx.channel.id]._solution = mon
         await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+
+    @q20.command(name='plando')
+    @commands.guild_only()
+    async def q20_plando(self, ctx: commands.Context):
+        try:
+            msg = await ctx.author.send(f'Welcome to the Q20 Plando Maker! Please give the name of a Pokémon to use as the solution for the game starting in {ctx.channel.mention}.')
+        except discord.Forbidden:
+            return await ctx.reply('Hmm... I can\'t make a plando if I can\'t contact you privately. Check your DM permissions?')
+        await ctx.reply('Check your DMs!')
+        try:
+            while True:
+                msg = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.guild is None, timeout=60.0)
+                solution = await self[ctx.channel.id]._parser.lookup_name(msg.content)
+                if solution:
+                    break
+                await ctx.author.send('Umm, what? That ain\'t a Pokémon I recognize...', delete_after=10)
+        except asyncio.TimeoutError:
+            return await msg.edit(content='You took too long!')
+        await self.game_cmd('start', ctx)
+        self[ctx.channel.id]._solution = solution
+        await msg.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     @GameCogBase.listener()
     async def on_message(self, message):
