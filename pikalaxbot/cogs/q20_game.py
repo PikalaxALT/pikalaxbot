@@ -1002,6 +1002,8 @@ class Q20Game(GameCogBase):
 
     @q20.command(name='plando')
     @commands.guild_only()
+    @commands.max_concurrency(1, commands.BucketType.channel)
+    @commands.check(lambda ctx: not ctx.cog[ctx.channel.id].running)
     async def q20_plando(self, ctx: commands.Context):
         try:
             msg = await ctx.author.send(f'Welcome to the Q20 Plando Maker! Please give the name of a Pokémon to use as the solution for the game starting in {ctx.channel.mention}.')
@@ -1011,7 +1013,7 @@ class Q20Game(GameCogBase):
         try:
             while True:
                 msg = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.guild is None, timeout=60.0)
-                solution = await self[ctx.channel.id]._parser.lookup_name(msg.content)
+                solution = await self[ctx.channel.id]._parser.lookup_name('PokemonSpecies', msg.content)
                 if solution:
                     break
                 await ctx.author.send('Umm, what? That ain\'t a Pokémon I recognize...', delete_after=10)
