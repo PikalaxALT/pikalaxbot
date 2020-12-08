@@ -164,7 +164,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             )
             await ctx.send(embed=embed)
 
-    @pokeapi.command()
+    @pokeapi.command(name='info')
     async def mon_info(self, ctx: commands.Context, pokemon: PokeapiModels.PokemonSpecies):
         """Gets information about a Pokémon species"""
 
