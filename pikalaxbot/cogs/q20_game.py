@@ -762,7 +762,9 @@ class Q20QuestionParser:
 
         async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
             _item, _message, match, _confidence = await method(question)
-            self.bot.log_debug(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence}')
+            _flags, _confidence = divmod(_confidence, 0x10000)
+            _flags = int(_flags)
+            self.bot.log_debug(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence} | {_flags}')
             valid = True
             if _item:
                 match_t = 'Yes' if match else 'No'
@@ -774,16 +776,8 @@ class Q20QuestionParser:
                             'single': 'HAHAHAHAHAHAHAHAHA!!!',
                             'dual': 'Nah'
                         }.get(_item, 'Sometimes')
-                    else:
-                        if _confidence >= 0x20000:
-                            _confidence -= 0x20000
-                            match_t = 'It is immune'
-                        if _confidence >= 0x10000:
-                            _confidence -= 0x10000
-                            if match_t == 'It is immune':
-                                match_t = 'It is sometimes immune'
-                            else:
-                                match_t = 'Sometimes'
+                    elif _flags & 3:
+                        match_t = ['Sometimes', 'It is immune', 'It is sometimes immune'][(_flags & 3) - 1]
                 elif method == pokedex and _item == 'National':
                     match_t = 'Duh.'
                 elif method in (size, weight) and _message == 4:
@@ -792,17 +786,13 @@ class Q20QuestionParser:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 elif method == move and solution.id > 807:
                     match_t = 'I have no clue'
-                elif method == mating and _confidence >= 0x10000:
-                    if _confidence >= 0x40000:
-                        _confidence -= 0x40000
-                        match_t = 'Of course not, you sicko'
-                    if _confidence >= 0x20000:
-                        _confidence -= 0x20000
-                        if match_t != 'Of course not, you sicko':
-                            match_t = 'Of course not'
-                    if _confidence >= 0x10000:
-                        _confidence -= 0x10000
+                elif method == mating and _flags:
+                    if _flags & 1:
                         match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
+                    elif _flags & 4:
+                        match_t = 'Of course not, you sicko'
+                    elif _flags & 2:
+                        match_t = 'Of course not'
                 if isinstance(_item, str):
                     _item = (_item,)
                 if valid:
