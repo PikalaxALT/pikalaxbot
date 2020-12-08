@@ -18,6 +18,8 @@ __all__ = (
 
 
 class PokeApiConnection(Connection):
+    _default_language = 9
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__global_cache__ = {}
@@ -129,15 +131,18 @@ class PokeapiModels:
             SELECT name
             FROM pokemon_v2_languagename
             WHERE language_id = :language
-            AND local_language_id = :language
+            AND local_language_id = :default_language
             """
             self.iso3166 = self._row['iso3166']
             self.official = bool(self._row['official'])
             self.order = self._row['order']
             self.iso639 = self._row['iso639']
             with self._connection.replace_row_factory(None) as conn:
-                cur = conn.execute(statement, {'language': self.id})
-                self.name, = cur.fetchone()
+                cur = conn.execute(statement, {'language': self.id, 'default_language': self._connection._default_language})
+                try:
+                    self.name, = cur.fetchone()
+                except TypeError:
+                    self.name = None
 
     class ItemFlingEffect(NamedPokeapiResource):
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
