@@ -291,7 +291,7 @@ class Q20QuestionParser:
                     message = 1 + (typeeffect < 0)
                     result = testeffect > 1 and typeeffect > 0 or testeffect < 1 and typeeffect < 0
                     if testeffect == 0:
-                        flags |= 0x2000
+                        flags |= 0x20000
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
                     name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
@@ -762,7 +762,7 @@ class Q20QuestionParser:
 
         async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
             _item, _message, match, _confidence = await method(question)
-            self.bot.log_info(f'Q20: {method}({question}) --> {_item}, {_message}, {match}, {_confidence}')
+            self.bot.log_info(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence}')
             valid = True
             if _item:
                 match_t = 'Yes' if match else 'No'
