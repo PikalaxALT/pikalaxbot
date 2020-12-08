@@ -339,7 +339,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         poke = forme.pokemon
         attempts = [
             'versions/generation-vii/ultra-sun-ultra-moon/front_default',
-            'versions/generation-vi/icons/front_default'
+            'versions/generation-viii/icons/front_default'
         ]
         for name in attempts:
             if path := await self.get_sprite_url(poke, name):
@@ -347,6 +347,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
         return {pstat.stat.name: pstat.base_stat for pstat in await self.filter(PokeapiModels.PokemonStat, pokemon__pokemon_species=mon, pokemon__is_default=True)}
+
+    async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.EggGroup]:
+        result = [peg.egg_group for peg in await self.filter(PokeapiModels.PokemonEggGroup, pokemon_species=mon)]
+        return result
 
     async def mon_is_in_egg_group(self, mon: PokeapiModels.PokemonSpecies, egg_group: PokeapiModels.EggGroup) -> bool:
         result = await self.get(PokeapiModels.PokemonEggGroup, pokemon_species=mon, egg_group=egg_group)
@@ -361,3 +365,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             elif peg.pokemon_species == mate:
                 eg2.add(peg.egg_group)
         return bool(eg1 & eg2)
+
+    async def get_mon_flavor_text(self, mon: PokeapiModels.PokemonSpecies, version: Optional[PokeapiModels.Version] = None) -> PokeapiModels.PokemonSpeciesFlavorText:
+        if version is None:
+            return random.choice(await self.filter(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language))
+        await self.get(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language, version=version)

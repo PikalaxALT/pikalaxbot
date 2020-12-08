@@ -5,9 +5,33 @@ import traceback
 import sqlite3
 import aiosqlite
 import contextlib
+import typing
+from .models import PokeapiModels
 
 
 __all__ = 'PokeApiCog',
+
+
+TYPE_COLORS = {
+    'Normal': 0xA8A77A,
+    'Fire': 0xEE8130,
+    'Water': 0x6390F0,
+    'Electric': 0xF7D02C,
+    'Grass': 0x7AC74C,
+    'Ice': 0x96D9D6,
+    'Fighting': 0xC22E28,
+    'Poison': 0xA33EA1,
+    'Ground': 0xE2BF65,
+    'Flying': 0xA98FF3,
+    'Psychic': 0xF95587,
+    'Bug': 0xA6B91A,
+    'Rock': 0xB6A136,
+    'Ghost': 0x735797,
+    'Dragon': 0x6F35FC,
+    'Dark': 0x705746,
+    'Steel': 0xB7B7CE,
+    'Fairy': 0xD685AD,
+}
 
 
 class ConfirmationMenu(menus.Menu):
@@ -139,3 +163,35 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
                 colour=discord.Colour.red()
             )
             await ctx.send(embed=embed)
+
+    @pokeapi.command()
+    async def mon_info(self, ctx: commands.Context, pokemon: PokeapiModels.PokemonSpecies):
+        """Gets information about a Pokémon species"""
+
+        async with ctx.typing():
+            base_stats: typing.Mapping[str, int] = await self.bot.pokeapi.get_base_stats(pokemon)
+            types: typing.List[PokeapiModels.Type] = await self.bot.pokeapi.get_mon_types(pokemon)
+            egg_groups: typing.List[PokeapiModels.EggGroup] = await self.bot.pokeapi.get_egg_groups(pokemon)
+            image_url: str = await self.bot.pokeapi.get_species_sprite_url(pokemon)
+            flavor_text: PokeapiModels.PokemonSpeciesFlavorText = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
+        embed = discord.Embed(
+            title=f'{pokemon.name} (#{pokemon.id})',
+            description=flavor_text.flavor_text,
+            colour=TYPE_COLORS[types[0].name]
+        ).add_field(
+            name='Generation',
+            value=pokemon.generation.name
+        ).add_field(
+            name='Types',
+            value='/'.join(type_.name for type_ in types)
+        ).add_field(
+            name='Base Stats',
+            value='\n'.join(f'{stat}: {value}' for stat, value in base_stats.items()) + f'\n**Total:** {sum(base_stats.values())}'
+        ).add_field(
+            name='Egg Groups',
+            value='/'.join(grp.name for grp in egg_groups)
+        ).add_field(
+            name='Gender Ratio',
+            value=f'{12.5 * pokemon.gender_rate}% Female' if pokemon.gender_rate >= 0 else 'Gender Unknown'
+        ).set_image(url=image_url or discord.Embed.Empty)
+        await ctx.send(embed=embed)
