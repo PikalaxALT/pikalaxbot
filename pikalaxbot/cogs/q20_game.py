@@ -636,16 +636,13 @@ class Q20QuestionParser:
                             else:
                                 stat_name = 'Defense'
                 elif re.match(r'^same$', word, re.I):
-                    size_compare = 0
+                    stat_compare = 0
                 elif re.match(r'^((high|great)(er)?|more|>)$', word, re.I):
                     is_this_question = True
                     stat_compare += 1
                 elif re.match(r'^(low(er)?|less|<)$', word, re.I):
                     is_this_question = True
                     stat_compare -= 1
-                elif re.match(r'\b(lbs?|pound|grams?)\b', word, re.I):
-                    wrong_scale_error = True
-                    stat_literal = 999999
                 elif m := re.match(r'^([><=]?)([0-9]+)$', word, re.I):
                     stat_literal = int(m[2])
                     stat_compare = (stat_compare + (m[1] == '>') - (m[1] == '<')) * (m[1] != '=')
@@ -765,6 +762,7 @@ class Q20QuestionParser:
 
         async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
             _item, _message, match, _confidence = await method(question)
+            self.bot.log_debug(f'{method}({question}) --> {_item}, {_message}, {match}, {_confidence}')
             valid = True
             if _item:
                 match_t = 'Yes' if match else 'No'
