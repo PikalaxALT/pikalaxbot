@@ -668,7 +668,7 @@ class Q20QuestionParser:
 
             compare_value = await get_stat_value(solution)
             if stat_literal <= 0:
-                equal_message = 4
+                equal_message = 3
                 conglom = ' '.join(unknown_tokens)
                 mon: 'Optional[PokeApi.PokemonSpecies]'
                 name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
