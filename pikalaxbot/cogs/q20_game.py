@@ -14,6 +14,16 @@ if TYPE_CHECKING:
     from ..ext.pokeapi import PokeApi, NamedPokeapiResource
 
 
+# Temporary workaround
+class PokemonSpeciesConverter(commands.Converter):
+    async def convert(self, ctx: commands.Context, argument: str):
+        pokeapi: 'PokeApi' = ctx.bot.pokeapi
+        obj = await pokeapi.get_model_named(pokeapi.PokemonSpecies, argument)
+        if obj is None:
+            raise commands.BadArgument
+        return obj
+
+
 @acm
 async def thinking(ctx):
     async def inner():
@@ -721,17 +731,16 @@ class Q20QuestionParser:
             name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
             if not res:
                 return None, 0, False, 0
-            if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=res, egg_group__name='Undiscovered'):
-                return name, 0, False, confidence + 0x20000 + 0x40000 * (res.id in self.BABIES)
+            if res.id in self.BABIES:
+                return name, 0, False, confidence + 0x40000
+            res_is_undiscovered = await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=res, egg_group__name='Undiscovered')
+            if 132 in (solution.id, res.id):
+                return name, 0, solution.id != res.id and not res_is_undiscovered, confidence + 0x10000
+            if res_is_undiscovered:
+                return name, 0, False, confidence + 0x20000
             if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=solution, egg_group__name='Undiscovered'):
                 return name, 0, False, confidence
-            if 132 in (solution.id, res.id):
-                ditto = solution if solution.id == 132 else res
-                not_ditto = solution if solution.id != 132 else res
-                if not_ditto.id == 132:
-                    return name, 0, False, confidence + 0x10000
-                return name, 0, True, confidence + 0x10000
-            return name, 0, res and await self.pokeapi.mon_can_mate_with(solution, res), confidence
+            return name, 0, await self.pokeapi.mon_can_mate_with(solution, res), confidence
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
 
@@ -1003,6 +1012,15 @@ class Q20Game(GameCogBase):
         """Abort the Q20 game early"""
 
         await self.end(ctx)
+
+    @q20.command(name='debug')
+    @commands.is_owner()
+    @commands.check(lambda ctx: ctx.cog[ctx.channel.id].running)
+    async def q20_debug(self, ctx, mon: PokemonSpeciesConverter):
+        """Set the solution of the running game to the specified mon."""
+
+        self[ctx.channel.id]._solution = mon
+        await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     @GameCogBase.listener()
     async def on_message(self, message):
