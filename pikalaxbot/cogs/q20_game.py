@@ -76,17 +76,6 @@ class Q20QuestionParser:
 
     ULTRA_BEASTS = (793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806)
 
-    BABIES = (
-        # Johto
-        172, 173, 174, 175, 236, 238, 239, 240,
-        # Hoenn
-        298, 260,
-        # Sinnoh
-        406, 433, 438, 439, 440, 446, 447, 458,
-        # Galar
-        848
-    )
-
     mon_search = {
         re.compile(r'^(nidoran (female|girl)|(female|girl) nidoran)$', re.I): 29,
         re.compile(r'^(nidorina|nidorina (female|girl)|(female|girl) nidorina)$', re.I): 30,
@@ -425,7 +414,7 @@ class Q20QuestionParser:
             if ultra:
                 return 'Ultra Beast', 0, solution.id in self.ULTRA_BEASTS, 10
             if baby:
-                return 'Baby Pokémon', 0, solution.id in self.BABIES, 10
+                return 'Baby Pokémon', 0, solution.is_baby, 10
             return None, 0, False, 0
 
         async def size(q):
@@ -728,7 +717,7 @@ class Q20QuestionParser:
             name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
             if not res:
                 return None, 0, False, 0
-            if res.id in self.BABIES:
+            if res.is_baby:
                 return name, 0, False, confidence + 0x40000
             res_is_undiscovered = await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=res, egg_group__name='Undiscovered')
             if 132 in (solution.id, res.id):
