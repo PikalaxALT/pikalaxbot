@@ -22,7 +22,6 @@ class PokeApiConnection(Connection):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__global_cache__ = {}
 
     @contextmanager
     def replace_row_factory(self, factory: Optional[Callable[[Cursor, Tuple[Any]], Any]]):
@@ -34,8 +33,6 @@ class PokeApiConnection(Connection):
     def get_model(self, model: Callable[[Cursor, Tuple[Any]], Any], id_: Optional[int]):
         if id_ is None:
             return
-        if (model, id_) in self.__global_cache__:
-            return self.__global_cache__[(model, id_)]
         statement = """
         SELECT *
         FROM pokemon_v2_{}
@@ -57,7 +54,6 @@ class PokeapiResource:
             self._name = self._row['name']
         else:
             self._name = None
-        self._connection.__global_cache__[(self.__class__, self.id)] = self
 
     @property
     def name(self):
