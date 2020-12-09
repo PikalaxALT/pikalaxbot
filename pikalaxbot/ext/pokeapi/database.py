@@ -1,19 +1,22 @@
 import aiosqlite
 import re
-import collections
-from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping
+from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping, AsyncGenerator
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
-from discord.utils import get, find
 import random
 import difflib
 from ... import __dirname__
 import asyncio
+from operator import attrgetter
 
 
 __all__ = 'PokeApi',
 __global_cache__ = {}
+
+
+async def flatten(iterable: AsyncGenerator):
+    return [x async for x in iterable]
 
 
 class PokeApi(aiosqlite.Connection, PokeapiModels):
@@ -63,32 +66,76 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         __global_cache__[(model, id_)] = result
         return result
 
-    async def get_all_models(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> List[Any]:
+    @acm
+    async def all_models_cursor(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> aiosqlite.Cursor:
         model = self.resolve_model(model)
-        if model in __global_cache__:
-            return __global_cache__[model]
         statement = """
         SELECT *
         FROM pokemon_v2_{}
         """.format(model.__name__.lower())
         async with self.replace_row_factory(model) as conn:
             async with conn.execute(statement) as cur:
-                result = await cur.fetchall()
+                yield cur
+
+    async def get_all_models(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> List[Any]:
+        model = self.resolve_model(model)
+        if model in __global_cache__:
+            return __global_cache__[model]
+        async with self.all_models_cursor(model) as cur:
+            result = await cur.fetchall()
         __global_cache__[model] = result
         return result
 
-    async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> Optional[Any]:
-        return get(await self.get_all_models(model), **kwargs)
+    async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> Optional[Any]:
+        _all = all
+        attrget = attrgetter
+        iterable = self.all_models_cursor(model)
 
-    async def find(self, predicate: Callable[[PokeapiResource], bool], model: Callable[[Cursor, Tuple[Any]], Any]):
-        return find(predicate, await self.get_all_models(model))
+        if len(attrs) == 1:
+            k, v = attrs.popitem()
+            pred = attrget(k.replace('__', '.'))
+            async for elem in iterable:
+                if pred(elem) == v:
+                    return elem
+            return None
 
-    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> List[Any]:
-        iterable = iter(await self.get_all_models(model))
-        results = []
-        while (record := get(iterable, **kwargs)) is not None:
-            results.append(record)
-        return results
+        converted = [
+            (attrget(attr.replace('__', '.')), value)
+            for attr, value in attrs.items()
+        ]
+
+        async for elem in iterable:
+            if _all(pred(elem) == value for pred, value in converted):
+                return elem
+        return None
+
+    async def find(self, predicate: Callable[[Any], bool], model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[PokeapiResource]:
+        seq = self.all_models_cursor(model)
+        async for element in seq:  # type: PokeapiResource
+            if predicate(element):
+                return element
+        return None
+
+    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> AsyncGenerator[Any, None, None]:
+        _all = all
+        attrget = attrgetter
+        iterable = self.all_models_cursor(model)
+
+        if len(attrs) == 1:
+            k, v = attrs.popitem()
+            pred = attrget(k.replace('__', '.'))
+            async for elem in iterable:
+                if pred(elem) == v:
+                    yield elem
+
+        converted = [
+            (attrget(attr.replace('__', '.')), value)
+            for attr, value in attrs.items()
+        ]
+
+        async for elem in iterable:
+            if _all(pred(elem) == value for pred, value in converted):
+                yield elem
 
     async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str) -> Optional[Any]:
         differ = difflib.SequenceMatcher()
@@ -98,14 +145,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             differ.set_seq1(x.name.lower())
             return differ.real_quick_ratio() > 0.9 and differ.quick_ratio() > 0.9 and differ.ratio() > 0.9
 
-        obj = await self.find(predicate, model)
+        obj = await self.find(predicate, model)  # type: PokeapiResource
         if obj:
             __global_cache__[(model, obj.id)] = obj
         return obj
 
     async def get_names_from(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> List[str]:
         """Generic method to get a list of all names from a PokeApi table."""
-        names = [await self.get_name(obj, clean=clean) for obj in await self.get_all_models(table)]
+        names = [await self.get_name(obj, clean=clean) async for obj in self.all_models_cursor(table)]
         return names
 
     async def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
@@ -236,13 +283,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_types(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Type]:
         """Returns a list of types for that Pokemon"""
-        result = [montype.type for montype in await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        result = [montype.type async for montype in self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
         return result
 
     async def get_mon_matchup_against_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
         result = 1
-        for target_type in await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
+        async for target_type in self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
             efficacy = await self.get(PokeapiModels.TypeEfficacy, damage_type=type_, target_type=target_type.type)
             result *= efficacy.damage_factor / 100
         return result
@@ -253,16 +300,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_matchup_against_mon(self, mon: PokeapiModels.PokemonSpecies, mon2: PokeapiModels.PokemonSpecies) -> List[float]:
         """For each type mon2 has, determines its effectiveness against mon"""
-        res = collections.defaultdict(lambda: 1)
-        damage_types = await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True)
-        target_types = await self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)
-        print(damage_types)
-        print(target_types)
-        for damage_type in damage_types:
-            for target_type in target_types:
-                efficacy = await self.get(PokeapiModels.TypeEfficacy, damage_type=damage_type.type, target_type=target_type.type)
-                res[damage_type.type] *= efficacy.damage_factor / 100
-        return list(res.values())
+        return [await self.get_mon_matchup_against_type(mon, dt.type) async for dt in self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True)]
 
     async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
         """Get the species the given Pokemon evoles from"""
@@ -270,12 +308,12 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_evos(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
         """Get all species the given Pokemon evolves into"""
-        result = [mon2 for mon2 in await self.filter(PokeapiModels.PokemonSpecies, evolves_from_species=mon)]
+        result = await flatten(self.filter(PokeapiModels.PokemonSpecies, evolves_from_species=mon))
         return result
 
     async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> Set[PokeapiModels.Move]:
         """Returns a list of all the moves the Pokemon can learn"""
-        result = set(learn.move for learn in await self.filter(PokeapiModels.PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
+        result = set(learn.move async for learn in self.filter(PokeapiModels.PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
         return result
     
     async def mon_can_learn_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> bool:
@@ -285,7 +323,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_abilities(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Ability]:
         """Returns a list of abilities for that Pokemon"""
-        result = [ability.ability for ability in await self.filter(PokeapiModels.PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        result = [ability.ability async for ability in self.filter(PokeapiModels.PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
         return result
 
     async def mon_has_ability(self, mon: PokeapiModels.PokemonSpecies, ability: PokeapiModels.Ability) -> bool:
@@ -305,7 +343,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     
     async def get_evo_line(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
         """Returns the set of all Pokemon in the same evolution family as the given species."""
-        result = [mon2 for mon2 in await self.filter(PokeapiModels.PokemonSpecies, evolution_chain=mon.evolution_chain)]
+        result = await flatten(self.filter(PokeapiModels.PokemonSpecies, evolution_chain=mon.evolution_chain))
         return result
 
     async def mon_is_in_dex(self, mon: PokeapiModels.PokemonSpecies, dex: PokeapiModels.Pokedex) -> bool:
@@ -314,7 +352,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         return result is not None
 
     async def get_formes(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonForm]:
-        result = [form for form in await self.filter(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon)]
+        result = await flatten(self.filter(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon))
         return result
 
     async def get_default_forme(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonForm:
@@ -357,10 +395,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
                 return path
 
     async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
-        return {pstat.stat.name: pstat.base_stat for pstat in await self.filter(PokeapiModels.PokemonStat, pokemon__pokemon_species=mon, pokemon__is_default=True)}
+        return {pstat.stat.name: pstat.base_stat async for pstat in self.filter(PokeapiModels.PokemonStat, pokemon__pokemon_species=mon, pokemon__is_default=True)}
 
     async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.EggGroup]:
-        result = [peg.egg_group for peg in await self.filter(PokeapiModels.PokemonEggGroup, pokemon_species=mon)]
+        result = [peg.egg_group async for peg in self.filter(PokeapiModels.PokemonEggGroup, pokemon_species=mon)]
         return result
 
     async def mon_is_in_egg_group(self, mon: PokeapiModels.PokemonSpecies, egg_group: PokeapiModels.EggGroup) -> bool:
@@ -370,7 +408,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def mon_can_mate_with(self, mon: PokeapiModels.PokemonSpecies, mate: PokeapiModels.PokemonSpecies) -> bool:
         eg1 = set()
         eg2 = set()
-        for peg in await self.get_all_models(PokeapiModels.PokemonEggGroup):  # type: PokeapiModels.PokemonEggGroup
+        async for peg in self.all_models_cursor(PokeapiModels.PokemonEggGroup):  # type: PokeapiModels.PokemonEggGroup
             if peg.pokemon_species == mon:
                 eg1.add(peg.egg_group)
             elif peg.pokemon_species == mate:
@@ -379,8 +417,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_flavor_text(self, mon: PokeapiModels.PokemonSpecies, version: Optional[PokeapiModels.Version] = None) -> PokeapiModels.PokemonSpeciesFlavorText:
         if version is None:
-            return random.choice(await self.filter(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language))
+            return random.choice(await flatten(self.filter(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language)))
         return await self.get(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language, version=version)
 
     async def get_mon_evolution_methods(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonEvolution]:
-        return await self.filter(PokeapiModels.PokemonEvolution, evolved_species__evolves_from_species=mon)
+        return await flatten(self.filter(PokeapiModels.PokemonEvolution, evolved_species__evolves_from_species=mon))
