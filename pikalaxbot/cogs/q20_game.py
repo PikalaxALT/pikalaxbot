@@ -914,9 +914,10 @@ class Q20GameObject(GameBase):
             self.challenge_mode = challenge_mode
             samples = random.sample(self._sample_questions, 3)
             prefix, *_ = await self.bot.get_prefix(ctx.message)
+            challenge_message = '\n\n**This is a challenge mode where type-related questions are disabled. Also points are worth double.**' if challenge_mode else ''
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
                            f'Use `{prefix}<question>` to narrow it down.\n\n'
-                           f'**Examples:**\n' + '\n'.join(f'`{prefix}{q}`' for q in samples))
+                           f'**Examples:**\n' + '\n'.join(f'`{prefix}{q}`' for q in samples) + challenge_message)
             await super().start(ctx)
 
     async def end(self, ctx: commands, failed=False, aborted=False):
@@ -934,6 +935,7 @@ class Q20GameObject(GameBase):
                 await ctx.send(f'You did not guess what I was thinking of.\n'
                                f'Solution: {name}', embed=embed)
             else:
+                self._max_score *= self.challenge_mode + 1
                 bonus = math.ceil(self._max_score / 200 * (self.attempts + 1))
                 async with self.bot.sql as sql:
                     await increment_score(sql, ctx.author, by=bonus)
@@ -943,6 +945,7 @@ class Q20GameObject(GameBase):
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
                                f'{ctx.author.mention} gets an extra {bonus} points for getting it right in {tries}!', embed=embed)
+                self._max_score //= self.challenge_mode + 1
             self.reset()
         else:
             await ctx.send(f'{ctx.author.mention}: The Q20 game is not running here. '
