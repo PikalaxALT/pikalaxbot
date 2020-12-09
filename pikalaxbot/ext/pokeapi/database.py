@@ -1,6 +1,8 @@
 import aiosqlite
 import re
 from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping, AsyncGenerator
+import collections
+import json
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
@@ -33,15 +35,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     # Generic getters
 
     @acm
-    async def replace_row_factory(self, factory: Callable[[Cursor, Tuple[Any]], Any]):
+    async def replace_row_factory(self, factory: Optional[Callable[[Cursor, Tuple[Any]], Any]]) -> 'PokeApi':
         if self._connection is None:
             await self._connect()
-        await self._lock.acquire()
-        old_factory = self.row_factory
-        self.row_factory = factory
-        yield self
-        self.row_factory = old_factory
-        self._lock.release()
+        async with self._lock:
+            old_factory = self.row_factory
+            self.row_factory = factory
+            yield self
+            self.row_factory = old_factory
 
     def resolve_model(self, model: Union[str, Callable[[Cursor, Tuple[Any]], Any]]) -> Callable[[Cursor, Tuple[Any]], Any]:
         if isinstance(model, str):
@@ -86,56 +87,37 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         __global_cache__[model] = result
         return result
 
-    async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> Optional[Any]:
-        _all = all
-        attrget = attrgetter
-        iterable = self.all_models_cursor(model)
-
-        if len(attrs) == 1:
-            k, v = attrs.popitem()
-            pred = attrget(k.replace('__', '.'))
-            async for elem in iterable:
-                if pred(elem) == v:
-                    return elem
+    async def find(self, predicate: Callable[[Any], bool], model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[PokeapiResource]:
+        async with self.all_models_cursor(model) as seq:
+            async for element in seq:  # type: PokeapiResource
+                if predicate(element):
+                    return element
             return None
 
-        converted = [
-            (attrget(attr.replace('__', '.')), value)
-            for attr, value in attrs.items()
-        ]
-
-        async for elem in iterable:
-            if _all(pred(elem) == value for pred, value in converted):
-                return elem
-        return None
-
-    async def find(self, predicate: Callable[[Any], bool], model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[PokeapiResource]:
-        seq = self.all_models_cursor(model)
-        async for element in seq:  # type: PokeapiResource
-            if predicate(element):
-                return element
-        return None
-
-    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> AsyncGenerator[Any, None, None]:
+    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> AsyncGenerator[Any, None]:
         _all = all
         attrget = attrgetter
-        iterable = self.all_models_cursor(model)
+        async with self.all_models_cursor(model) as iterable:
 
-        if len(attrs) == 1:
-            k, v = attrs.popitem()
-            pred = attrget(k.replace('__', '.'))
+            if len(attrs) == 1:
+                k, v = attrs.popitem()
+                pred = attrget(k.replace('__', '.'))
+                async for elem in iterable:
+                    if pred(elem) == v:
+                        yield elem
+
+            converted = [
+                (attrget(attr.replace('__', '.')), value)
+                for attr, value in attrs.items()
+            ]
+
             async for elem in iterable:
-                if pred(elem) == v:
+                if _all(pred(elem) == value for pred, value in converted):
                     yield elem
 
-        converted = [
-            (attrget(attr.replace('__', '.')), value)
-            for attr, value in attrs.items()
-        ]
-
-        async for elem in iterable:
-            if _all(pred(elem) == value for pred, value in converted):
-                yield elem
+    async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> Optional[Any]:
+        async for item in self.filter(model, **attrs):
+            return item
 
     async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str) -> Optional[Any]:
         differ = difflib.SequenceMatcher()
@@ -152,7 +134,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_names_from(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> List[str]:
         """Generic method to get a list of all names from a PokeApi table."""
-        names = [await self.get_name(obj, clean=clean) async for obj in self.all_models_cursor(table)]
+        async with self.all_models_cursor(table) as cur:
+            names = [await self.get_name(obj, clean=clean) async for obj in cur]
         return names
 
     async def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
@@ -283,15 +266,46 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_types(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Type]:
         """Returns a list of types for that Pokemon"""
-        result = [montype.type async for montype in self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        statement = """
+        SELECT *
+        FROM pokemon_v2_type
+        WHERE id IN (
+            SELECT type_id
+            FROM pokemon_v2_pokemontype
+            WHERE pokemon_id IN (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :id
+                AND is_default = TRUE
+            )
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.Type) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
     async def get_mon_matchup_against_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
         result = 1
-        async for target_type in self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True):
-            efficacy = await self.get(PokeapiModels.TypeEfficacy, damage_type=type_, target_type=target_type.type)
-            result *= efficacy.damage_factor / 100
+        statement = """
+        SELECT damage_factor
+        FROM pokemon_v2_typeefficacy
+        WHERE damage_type_id = :damage_type
+        AND target_type_id IN (
+            SELECT type_id
+            FROM pokemon_v2_pokemontype
+            WHERE pokemon_id IN (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :mon_id
+                AND is_default = TRUE
+            )
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'damage_type': type_.id, 'mon_id': mon.id}) as cur:
+                async for damage_factor, in cur:
+                    result *= damage_factor / 100
         return result
 
     async def get_mon_matchup_against_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> float:
@@ -300,7 +314,37 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_matchup_against_mon(self, mon: PokeapiModels.PokemonSpecies, mon2: PokeapiModels.PokemonSpecies) -> List[float]:
         """For each type mon2 has, determines its effectiveness against mon"""
-        return [await self.get_mon_matchup_against_type(mon, dt.type) async for dt in self.filter(PokeapiModels.PokemonType, pokemon__pokemon_species=mon2, pokemon__is_default=True)]
+
+        statement = """
+        SELECT damage_factor, damage_type_id
+        FROM pokemon_v2_typeefficacy
+        WHERE damage_type_id IN (
+            SELECT type_id
+            FROM pokemon_v2_pokemontype
+            WHERE pokemon_id = (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :mon2_id
+                AND is_default = TRUE
+            )
+        )
+        AND target_type_id IN (
+            SELECT type_id
+            FROM pokemon_v2_pokemontype
+            WHERE pokemon_id = (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :mon_id
+                AND is_default = TRUE
+            )
+        )
+        """
+        result = collections.defaultdict(lambda: 1)
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'mon2_id': mon2.id, 'mon_id': mon.id}) as cur:
+                async for damage_factor, damage_type_id in cur:
+                    result[damage_type_id] *= damage_factor / 100
+        return list(result.values())
 
     async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
         """Get the species the given Pokemon evoles from"""
@@ -308,60 +352,210 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_evos(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
         """Get all species the given Pokemon evolves into"""
-        result = await flatten(self.filter(PokeapiModels.PokemonSpecies, evolves_from_species=mon))
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonspecies
+        WHERE evolves_from_species_id IN (
+            SELECT id
+            FROM pokemon_v2_pokemonspecies
+            WHERE evolves_from_species_id = :id
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.PokemonSpecies) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
     async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> Set[PokeapiModels.Move]:
         """Returns a list of all the moves the Pokemon can learn"""
-        result = set(learn.move async for learn in self.filter(PokeapiModels.PokemonMove, pokemon__pokemon_species=mon, pokemon__is_default=True))
-        return result
+        statement = """
+        SELECT *
+        FROM pokemon_v2_move
+        WHERE id IN (
+            SELECT move_id
+            FROM pokemon_v2_pokemonmove
+            WHERE pokemon_id = (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :id
+                AND is_default = TRUE
+            )
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.Move) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
+        return set(result)
     
     async def mon_can_learn_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> bool:
         """Returns whether a move is in the Pokemon's learnset"""
-        result = await self.get(PokeapiModels.PokemonMove, move=move, pokemon__pokemon_species=mon, pokemon__is_default=True)
-        return result is not None
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonmove
+            WHERE move_id = :move_id
+            AND pokemon_id = (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :mon_id
+                AND is_default = TRUE
+            )
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'mon_id': mon.id, 'move_id': move.id}) as cur:
+                result, = await cur.fetchone()
+        return bool(result)
 
     async def get_mon_abilities(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Ability]:
         """Returns a list of abilities for that Pokemon"""
-        result = [ability.ability async for ability in self.filter(PokeapiModels.PokemonAbility, pokemon__pokemon_species=mon, pokemon__is_default=True)]
+        statement = """
+        SELECT *
+        FROM pokemon_v2_ability
+        WHERE id IN (
+            SELECT ability_id
+            FROM pokemon_v2_pokemonability
+            WHERE pokemon_id = (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :id
+                AND is_default = TRUE
+            )
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.Ability) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
     async def mon_has_ability(self, mon: PokeapiModels.PokemonSpecies, ability: PokeapiModels.Ability) -> bool:
         """Returns whether a Pokemon can have a given ability"""
-        result = await self.get(PokeapiModels.PokemonAbility, ability=ability, pokemon__pokemon_species=mon, pokemon__is_default=True)
-        return result is not None
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_ability
+            WHERE id IN (
+                SELECT ability_id
+                FROM pokemon_v2_pokemonability
+                WHERE pokemon_id = (
+                    SELECT id
+                    FROM pokemon_v2_pokemon
+                    WHERE pokemon_species_id = :id
+                    AND is_default = TRUE
+                )
+            )
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                result = await cur.fetchone()
+        return bool(result)
 
     async def mon_has_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> bool:
         """Returns whether the Pokemon has the given type. Only accounts for base forms."""
-        result = await self.get(PokeapiModels.PokemonType, pokemon__pokemon_species=mon, pokemon__is_default=True, type=type_)
-        return result is not None
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_type
+            WHERE id IN (
+                SELECT type_id
+                FROM pokemon_v2_pokemontype
+                WHERE pokemon_id = (
+                    SELECT id
+                    FROM pokemon_v2_pokemon
+                    WHERE pokemon_species_id = :id
+                    AND is_default = TRUE
+                )
+            )
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                result = await cur.fetchone()
+        return bool(result)
 
     async def has_mega_evolution(self, mon: PokeapiModels.PokemonSpecies) -> bool:
         """Returns whether the Pokemon can Mega Evolve"""
-        result = await self.get(PokeapiModels.PokemonForm, is_mega=True, pokemon__pokemon_species=mon)
-        return result is not None
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonform
+            WHERE pokemon_id IN (
+                SELECT id
+                FROM pokemon_v2_pokemon
+                WHERE pokemon_species_id = :id
+            )
+            AND is_mega = TRUE
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                result = await cur.fetchone()
+        return bool(result)
     
     async def get_evo_line(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
         """Returns the set of all Pokemon in the same evolution family as the given species."""
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonspecies
+        WHERE evolution_chain_id = :evo_chain
+        """
+        async with self.replace_row_factory(PokeapiModels.PokemonSpecies) as conn:
+            result = await conn.execute_fetchall(statement, {'evo_chain': mon.evolution_chain.id})
         result = await flatten(self.filter(PokeapiModels.PokemonSpecies, evolution_chain=mon.evolution_chain))
         return result
 
     async def mon_is_in_dex(self, mon: PokeapiModels.PokemonSpecies, dex: PokeapiModels.Pokedex) -> bool:
         """Returns whether a Pokemon is in the given pokedex."""
-        result = await self.get(PokeapiModels.PokemonDexNumber, pokemon_species=mon, pokedex=dex)
-        return result is not None
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemondexnumber
+            WHERE pokemon_species_id = :mon_id
+            AND pokedex_id = :dex_id
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'mon_id': mon.id, 'dex_id': dex.id}) as cur:
+                result = await cur.fetchone()
+        return bool(result)
 
     async def get_formes(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonForm]:
-        result = await flatten(self.filter(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon))
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonform
+        WHERE pokemon_id IN (
+            SELECT id
+            FROM pokemon_v2_pokemon
+            WHERE pokemon_species_id = :id
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.PokemonForm) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
     async def get_default_forme(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonForm:
-        result = await self.get(PokeapiModels.PokemonForm, pokemon__pokemon_species=mon, is_default=True)
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonform
+        WHERE pokemon_id = (
+            SELECT id
+            FROM pokemon_v2_pokemon
+            WHERE pokemon_species_id = :id
+            AND is_default = TRUE
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.PokemonForm) as conn:
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                result = await cur.fetchone()
         return result
 
     async def get_sprite_path(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
-        sprites: PokeapiModels.PokemonSprites = await self.get(PokeapiModels.PokemonSprites, pokemon=mon)
-        path = sprites.sprites
+        statement = """
+        SELECT sprites
+        FROM pokemon_v2_pokemonsprites
+        WHERE pokemon_id = :id
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                path = json.loads(*(await cur.fetchone()))
         for entry in name.split('/'):
             try:
                 path = path[entry]
@@ -387,38 +581,132 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         forme = await self.get_default_forme(mon)
         poke = forme.pokemon
         attempts = [
+            'front_default',
             'versions/generation-vii/ultra-sun-ultra-moon/front_default',
-            'versions/generation-viii/icons/front_default'
+            'versions/generation-viii/icons/front_default',
         ]
         for name in attempts:
             if path := await self.get_sprite_url(poke, name):
                 return path
 
     async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
-        return {pstat.stat.name: pstat.base_stat async for pstat in self.filter(PokeapiModels.PokemonStat, pokemon__pokemon_species=mon, pokemon__is_default=True)}
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonstat
+        WHERE pokemon_id = (
+            SELECT id
+            FROM pokemon_v2_pokemon
+            WHERE pokemon_species_id = :id
+            AND is_default = TRUE
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.PokemonStat) as conn:
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                return {pstat.stat.name: pstat.base_stat async for pstat in cur}
 
     async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.EggGroup]:
-        result = [peg.egg_group async for peg in self.filter(PokeapiModels.PokemonEggGroup, pokemon_species=mon)]
+        statement = """
+        SELECT *
+        FROM pokemon_v2_egggroup
+        WHERE id IN (
+            SELECT egg_group_id
+            FROM pokemon_v2_pokemonegggroup
+            WHERE pokemon_species_id = :id
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.EggGroup) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
     async def mon_is_in_egg_group(self, mon: PokeapiModels.PokemonSpecies, egg_group: PokeapiModels.EggGroup) -> bool:
-        result = await self.get(PokeapiModels.PokemonEggGroup, pokemon_species=mon, egg_group=egg_group)
-        return result is not None
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonegggroup
+            WHERE pokemon_species_id = :id
+            AND egg_group_id = :egg_id
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id, 'egg_id': egg_group.id}) as cur:
+                result, = await cur.fetchone()
+        return bool(result)
 
     async def mon_can_mate_with(self, mon: PokeapiModels.PokemonSpecies, mate: PokeapiModels.PokemonSpecies) -> bool:
-        eg1 = set()
-        eg2 = set()
-        async for peg in self.all_models_cursor(PokeapiModels.PokemonEggGroup):  # type: PokeapiModels.PokemonEggGroup
-            if peg.pokemon_species == mon:
-                eg1.add(peg.egg_group)
-            elif peg.pokemon_species == mate:
-                eg2.add(peg.egg_group)
-        return bool(eg1 & eg2)
+        if mon.is_baby or mate.is_baby:
+            return False
+        if mon.id == mate.id:
+            if mon.id == 132:
+                return False
+            statement = """
+            SELECT EXISTS (
+                SELECT *
+                FROM pokemon_v2_pokemonegggroup
+                WHERE pokemon_species_id = :id
+                AND egg_group_id = 15
+            )
+            """
+            async with self.replace_row_factory(None) as conn:
+                async with conn.execute(statement, {'id': mon.id}) as cur:
+                    result, = await cur.fetchone()
+            return not result
+        if mon.id == 132 or mate.id == 132:
+            if mon.id == 132:
+                mon = mate
+            statement = """
+            SELECT EXISTS (
+                SELECT *
+                FROM pokemon_v2_pokemonegggroup
+                WHERE pokemon_species_id = :id
+                AND egg_group_id = 15
+            )
+            """
+            async with self.replace_row_factory(None) as conn:
+                async with conn.execute(statement, {'id': mon.id}) as cur:
+                    result, = await cur.fetchone()
+            return not result
+
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonegggroup
+            WHERE pokemon_species_id IN (:id, :id2)
+            AND egg_group_id != 15
+            GROUP BY egg_group_id
+            HAVING COUNT(*) = 2
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id, 'id2':  mate.id}) as cur:
+                result, = await cur.fetchone()
+        return bool(result)
 
     async def get_mon_flavor_text(self, mon: PokeapiModels.PokemonSpecies, version: Optional[PokeapiModels.Version] = None) -> PokeapiModels.PokemonSpeciesFlavorText:
+        statement = """
+        SELECT flavor_text
+        FROM pokemon_v2_pokemonspeciesflavortext
+        WHERE pokemon_species_id = :id
+        AND language_id = :lang
+        """
         if version is None:
-            return random.choice(await flatten(self.filter(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language)))
-        return await self.get(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language, version=version)
+            statement += ' ORDER BY random()'
+        else:
+            statement += ' AND version_id = :version'
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'id': mon.id, 'lang': mon.language.id, 'version': version.id}) as cur:
+                result, = await cur.fetchone()
+        return result
 
     async def get_mon_evolution_methods(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonEvolution]:
-        return await flatten(self.filter(PokeapiModels.PokemonEvolution, evolved_species__evolves_from_species=mon))
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonevolution
+        WHERE evolved_species_id IN (
+            SELECT id
+            FROM pokemon_v2_pokemonspecies
+            WHERE evolves_from_species_id = :id
+        )
+        """
+        async with self.replace_row_factory(PokeapiModels.PokemonEvolution) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
+        return result

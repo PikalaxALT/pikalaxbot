@@ -794,7 +794,7 @@ class Q20QuestionParser:
             color: ['Is its colour {}?'],
             evolution: ['Does it evolve into {}?', 'Does it evolve from {}?', 'Does it have a mega evolution?', 'Does it evolve?', 'Does it evolve via {}?', 'Is it in a branching evolution line?'],
             family: ['Is it part of the {} family?'],
-            pokedex: ['Is it a {} generation Pokemon?', 'Is it in the {} Pokedex?'],
+            pokedex: ['Is it a {} Pokemon?', 'Is it in the {} Pokedex?'],
             booleans: ['Is it a {}?'],
             size: ['Is it smaller than {}?', 'Is it taller than {}?', 'Is it {} tall?', 'Is it as tall as {}?', 'I can only understand height measurements in meters.'],
             weight: ['Does it weigh less than {}?', 'Does it weigh more than {}?', 'Does it weigh {}?', 'Does it weigh the same as {}', ],
@@ -849,7 +849,10 @@ class Q20QuestionParser:
                     response_s = msgbank[_message].format(*_item)
                 return _confidence, response_s, method == pokemon and match, valid
 
-        responses = await asyncio.gather(*[work(*x) for x in methods.items()])
+        try:
+            responses = await asyncio.wait_for(asyncio.gather(*[work(*x) for x in methods.items()]), timeout=60.0)
+        except asyncio.TimeoutError:
+            return 'Hmm... I actually have no idea. Try again later, perhaps?', False, False
         responses = [x for x in responses if x is not None]
         if not responses:
             return 'Huh? I didn\'t understand that', False, False
