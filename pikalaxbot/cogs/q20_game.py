@@ -389,10 +389,17 @@ class Q20QuestionParser:
             elif has:
                 item = 'found'
                 message = 3
-                result = solution.evolves_from_species is not None or len(await self.pokeapi.get_evos(solution)) > 0
-            elif branch or stone or trade:
+                result = bool(solution.evolves_from_species or await self.pokeapi.get_evos(solution))
+            elif branch:
+                message = 5
+                evos = await self.pokeapi.get_evo_line(solution)
+                result = len(set(evo.evolves_from_species for evo in evos)) < len(evos)
+                item = 'found'
+            elif stone or trade:
                 message = 4
-                result = False
+                methods = await self.pokeapi.get_mon_evolution_methods(solution)
+                result = any(meth.evolution_trigger.id == 2 + stone for meth in methods)
+                item = 'stone' if stone else 'trade'
             return item, message, result, confidence
 
         async def family(q):
@@ -785,7 +792,7 @@ class Q20QuestionParser:
             ability: ['Can it have the ability {}?'],
             (type_challenge if self.game.challenge_mode else type_): ['Is it {} type?', 'Is it weak to {} type?', 'Does it resist {} type?', 'Is it weak against {}?', 'Does it resist {}?'],
             color: ['Is its colour {}?'],
-            evolution: ['Does it evolve into {}?', 'Does it evolve from {}?', 'Does it have a mega evolution?', 'Does it evolve?', 'I don\'t know anything about evolution methods lol'],
+            evolution: ['Does it evolve into {}?', 'Does it evolve from {}?', 'Does it have a mega evolution?', 'Does it evolve?', 'Does it evolve via {}?', 'Is it in a branching evolution line?'],
             family: ['Is it part of the {} family?'],
             pokedex: ['Is it a {} generation Pokemon?', 'Is it in the {} Pokedex?'],
             booleans: ['Is it a {}?'],

@@ -380,4 +380,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_mon_flavor_text(self, mon: PokeapiModels.PokemonSpecies, version: Optional[PokeapiModels.Version] = None) -> PokeapiModels.PokemonSpeciesFlavorText:
         if version is None:
             return random.choice(await self.filter(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language))
-        await self.get(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language, version=version)
+        return await self.get(PokeapiModels.PokemonSpeciesFlavorText, pokemon_species=mon, language=mon.language, version=version)
+
+    async def get_mon_evolution_methods(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonEvolution]:
+        return await self.filter(PokeapiModels.PokemonEvolution, evolved_species__evolves_from_species=mon)
