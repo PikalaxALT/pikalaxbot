@@ -5,8 +5,9 @@ from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, 
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
-from discord.utils import get
+from discord.utils import get, find
 import random
+import difflib
 from ... import __dirname__
 import asyncio
 
@@ -79,6 +80,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> Optional[Any]:
         return get(await self.get_all_models(model), **kwargs)
 
+    async def find(self, predicate: Callable[[PokeapiResource], bool], model: Callable[[Cursor, Tuple[Any]], Any]):
+        return find(predicate, await self.get_all_models(model))
+
     async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **kwargs) -> List[Any]:
         iterable = iter(await self.get_all_models(model))
         results = []
@@ -87,7 +91,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         return results
 
     async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str) -> Optional[Any]:
-        obj = await self.get(model, name=name)
+        differ = difflib.SequenceMatcher()
+        differ.set_seq2(name)
+
+        def predicate(x: NamedPokeapiResource):
+            differ.set_seq1(x.name)
+            return differ.real_quick_ratio() > 0.9 and differ.quick_ratio() > 0.9 and differ.ratio() > 0.9
+
+        obj = await self.find(predicate, model)
         if obj:
             __global_cache__[(model, obj.id)] = obj
         return obj
