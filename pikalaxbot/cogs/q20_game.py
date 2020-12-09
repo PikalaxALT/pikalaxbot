@@ -237,6 +237,51 @@ class Q20QuestionParser:
             name, found, confidence_f = await self.lookup_name(self.pokeapi.Ability, q)
             return name, 0, found and await self.pokeapi.mon_has_ability(solution, found), confidence * confidence_f
 
+        async def type_challenge(q):
+            # fuck you tustin
+            typeeffect = 0
+            singletype = 0
+            dualtype = 0
+            nwords = len(re.findall(r'\w+', q))
+            if re.search(r'\begg\b', q):
+                return None, 0, False, 0
+            q = re.sub(r'\s+', ' ', q, re.I)
+            typeeffect -= len(re.findall(r'\b(resist|strong)\b', q, re.I))
+            typeeffect += len(re.findall(r'\bweak\b', q, re.I))
+            for match in re.findall(r'\b(((not )?very|super) )?effect[ia]ve\b', q, re.I):
+                if 'not very' in match:
+                    typeeffect -= 4
+                elif 'super' in match:
+                    typeeffect += 2
+                else:
+                    typeeffect += 1
+            singletype += len(re.findall(r'\b(pure|single|one)\b', q, re.I))
+            dualtype += len(re.findall(r'\b(du[ea]l|duo|two)\b', q, re.I))
+            q = self.IGNORE_WORDS_1.sub('', q)
+            q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b', '', q, re.I)
+            q = re.sub(r'\s+', ' ', q, re.I)
+            nunkwords = len(re.findall(r'\w+', q))
+            confidence = (nwords - nunkwords) / nwords * 5
+            found: 'Optional[PokeApi.Type]'
+            name, found, confidence_f = await self.lookup_name(self.pokeapi.Type, q)
+            message = 0
+            if singletype and not found:
+                name = 'single'
+            elif dualtype and not found:
+                name = 'dual'
+            elif typeeffect:
+                if found:
+                    message = 1 + (typeeffect < 0)
+                else:
+                    mon: 'Optional[PokeApi.PokemonSpecies]'
+                    name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+                    if mon:
+                        message = 3 + (typeeffect < 0)
+                    else:
+                        _move: 'Optional[PokeApi.Move]'
+                        name, _move, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
+            return name, message, False, confidence * confidence_f
+
         async def type_(q):
             # fuck you tustin
             typeeffect = 0
@@ -735,7 +780,7 @@ class Q20QuestionParser:
             pokemon: ['Is it {}?'],
             move: ['Can it learn {}?'],
             ability: ['Can it have the ability {}?'],
-            type_: ['Is it {} type?', 'Is it weak to {} type?', 'Does it resist {} type?', 'Is it weak against {}?', 'Does it resist {}?'],
+            (type_challenge if self.game.challenge_mode else type_): ['Is it {} type?', 'Is it weak to {} type?', 'Does it resist {} type?', 'Is it weak against {}?', 'Does it resist {}?'],
             color: ['Is its colour {}?'],
             evolution: ['Does it evolve into {}?', 'Does it evolve from {}?', 'Does it have a mega evolution?', 'Does it evolve?', 'I don\'t know anything about evolution methods lol'],
             family: ['Is it part of the {} family?'],
@@ -776,6 +821,8 @@ class Q20QuestionParser:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 elif method == move and solution.id > 807:
                     match_t = 'I have no clue'
+                elif method == type_challenge:
+                    match_t = 'Type-related questions are disabled in this challenge mode'
                 elif method == mating and _flags:
                     if _flags & 1:
                         match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
@@ -787,7 +834,7 @@ class Q20QuestionParser:
                     _item = (_item,)
                 if valid:
                     response_s = f'`{msgbank[_message].format(*_item)}`: {match_t}'
-                    valid = match_t != 'I have no clue'
+                    valid = match_t not in {'I have no clue', 'Type-related questions are disabled in this challenge mode'}
                 else:
                     response_s = msgbank[_message].format(*_item)
                 return _confidence, response_s, method == pokemon and match, valid
@@ -844,6 +891,7 @@ class Q20GameObject(GameBase):
         self._solution = ''
         self._state = []
         self.attempts = 0
+        self.challenge_mode = False
 
     @property
     def state(self):
@@ -856,13 +904,14 @@ class Q20GameObject(GameBase):
                f'{self.state}\n' \
                f'```'
 
-    async def start(self, ctx: commands.Context):
+    async def start(self, ctx: commands.Context, *, challenge_mode=False):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Q20 is already running here.', delete_after=10)
         else:
             pokeapi = self.bot.pokeapi
             self._solution: pokeapi.PokemonSpecies = await pokeapi.random_pokemon()
             self.attempts = self._attempts
+            self.challenge_mode = challenge_mode
             samples = random.sample(self._sample_questions, 3)
             prefix, *_ = await self.bot.get_prefix(ctx.message)
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
@@ -946,14 +995,14 @@ class Q20Game(GameCogBase):
             await ctx.send_help(self.q20)
 
     @q20.command()
-    async def start(self, ctx):
+    async def start(self, ctx, *, challenge_mode=False):
         """Start a game in the current channel"""
-        await self.game_cmd('start', ctx)
+        await self.game_cmd('start', ctx, challenge_mode=challenge_mode)
 
     @commands.command(name='q20start', aliases=['qst', 'start'])
-    async def q20_start(self, ctx):
+    async def q20_start(self, ctx, *, challenge_mode=False):
         """Start a game in the current channel"""
-        await self.start(ctx)
+        await self.start(ctx, challenge_mode=challenge_mode)
 
     @q20.command()
     async def ask(self, ctx, *, question):
@@ -1004,7 +1053,7 @@ class Q20Game(GameCogBase):
     @commands.guild_only()
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.check(lambda ctx: not ctx.cog[ctx.channel.id].running)
-    async def q20_plando(self, ctx: commands.Context):
+    async def q20_plando(self, ctx: commands.Context, *, challenge_mode=False):
         try:
             msg = await ctx.author.send(f'Welcome to the Q20 Plando Maker! Please give the name of a Pokémon to use as the solution for the game starting in {ctx.channel.mention}.')
         except discord.Forbidden:
@@ -1019,7 +1068,7 @@ class Q20Game(GameCogBase):
                 await ctx.author.send('Umm, what? That ain\'t a Pokémon I recognize...', delete_after=10)
         except asyncio.TimeoutError:
             return await msg.edit(content='You took too long!')
-        await self.game_cmd('start', ctx)
+        await self.game_cmd('start', ctx, challenge_mode=challenge_mode)
         self[ctx.channel.id]._solution = solution
         await msg.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
