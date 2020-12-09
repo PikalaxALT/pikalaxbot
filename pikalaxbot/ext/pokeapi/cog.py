@@ -174,6 +174,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             egg_groups: typing.List[PokeapiModels.EggGroup] = await self.bot.pokeapi.get_egg_groups(pokemon)
             image_url: str = await self.bot.pokeapi.get_species_sprite_url(pokemon)
             flavor_text: PokeapiModels.PokemonSpeciesFlavorText = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
+            evos: typing.List[PokeapiModels.PokemonSpecies] = await self.bot.pokeapi.get_evos(pokemon)
         embed = discord.Embed(
             title=f'{pokemon.name} (#{pokemon.id})',
             description=flavor_text.flavor_text or 'No flavor text',
@@ -194,4 +195,14 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             name='Gender Ratio',
             value=f'{12.5 * pokemon.gender_rate}% Female' if pokemon.gender_rate >= 0 else 'Gender Unknown' or 'Unknown'
         ).set_image(url=image_url or discord.Embed.Empty)
+        if pokemon.evolves_from_species:
+            preevo_str = f'Evolves from {pokemon.evolves_from_species.name} (#{pokemon.evolves_from_species.id})\n'
+        else:
+            preevo_str = ''
+        if evos:
+            preevo_str += 'Evolves into ' + ', '.join(f'{mon.name} (#{mon.id})' for mon in evos)
+        embed.add_field(
+            name='Evolution',
+            value=preevo_str or 'No evolutions'
+        )
         await ctx.send(embed=embed)
