@@ -92,10 +92,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str) -> Optional[Any]:
         differ = difflib.SequenceMatcher()
-        differ.set_seq2(name)
+        differ.set_seq2(name.lower())
 
         def predicate(x: NamedPokeapiResource):
-            differ.set_seq1(x.name)
+            differ.set_seq1(x.name.lower())
             return differ.real_quick_ratio() > 0.9 and differ.quick_ratio() > 0.9 and differ.ratio() > 0.9
 
         obj = await self.find(predicate, model)

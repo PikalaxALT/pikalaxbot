@@ -88,7 +88,7 @@ class PokeapiResource:
         except ValueError:
             obj = await ctx.bot.pokeapi.get_model_named(cls, argument)
         if obj is None:
-            raise commands.BadArgument
+            raise commands.BadArgument(argument)
         return obj
 
 
