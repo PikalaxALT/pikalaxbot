@@ -173,11 +173,11 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             types: typing.List[PokeapiModels.Type] = await self.bot.pokeapi.get_mon_types(pokemon)
             egg_groups: typing.List[PokeapiModels.EggGroup] = await self.bot.pokeapi.get_egg_groups(pokemon)
             image_url: str = await self.bot.pokeapi.get_species_sprite_url(pokemon)
-            flavor_text: PokeapiModels.PokemonSpeciesFlavorText = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
+            flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
             evos: typing.List[PokeapiModels.PokemonSpecies] = await self.bot.pokeapi.get_evos(pokemon)
         embed = discord.Embed(
             title=f'{pokemon.name} (#{pokemon.id})',
-            description=flavor_text.flavor_text or 'No flavor text',
+            description=flavor_text or 'No flavor text',
             colour=TYPE_COLORS[types[0].name]
         ).add_field(
             name='Generation',
