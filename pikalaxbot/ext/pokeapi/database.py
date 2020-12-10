@@ -383,6 +383,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             SELECT *
             FROM pokemon_v2_pokemonmove
             INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pokemon_v2_pokemonmove.pokemon_id
+            WHERE move_id = :move_id
             AND pokemon_species_id = :mon_id
             AND is_default = TRUE
         )
@@ -414,12 +415,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             FROM pokemon_v2_pokemonability
             INNER JOIN pokemon_v2_ability pv2a ON pokemon_v2_pokemonability.ability_id = pv2a.id
             INNER JOIN pokemon_v2_pokemon ON pokemon_v2_pokemonability.pokemon_id = pokemon_v2_pokemon.id
-            WHERE pokemon_species_id = :id
+            WHERE ability_id = :ability_id
+            AND pokemon_species_id = :id
             AND is_default = TRUE
         )
         """
         async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'id': mon.id}) as cur:
+            async with conn.execute(statement, {'id': mon.id, 'ability_id': ability.id}) as cur:
                 result, = await cur.fetchone()
         return bool(result)
 
