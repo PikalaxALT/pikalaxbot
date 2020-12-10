@@ -102,8 +102,9 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         old_value = self._pokeapi
         if old_value and old_value._running:
             self.loop.create_task(old_value.close())
-        value.start()
-        self.loop.create_task(value._connect())
+        if value is not None:
+            value.start()
+            self.loop.create_task(value._connect())
         self._pokeapi = value
 
     async def send_tb(self, tb, embed=None):
