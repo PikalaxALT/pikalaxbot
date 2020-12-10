@@ -189,22 +189,19 @@ class Q20QuestionParser:
             confidence = 1
         else:
             q = q.lower()
-            bank = {
-                name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name
-                async for name in self.pokeapi.get_names_from(table)
-            }
-
-            def get_ratio(w1, w2):
-                self.differ.set_seq1(w1)
-                self.differ.set_seq2(w2)
-                return min(self.differ.real_quick_ratio(), self.differ.quick_ratio(), self.differ.ratio())
-
-            name = r = next(((bank[r[0]], s) for r, s in iter_matches(lambda c: (difflib.get_close_matches(c, bank, cutoff=0.85), c)) if r), None)
+            r = None
+            orig = None
+            name = None
+            for coro, orig in iter_matches(lambda s: (self.pokeapi.get_model_named(table, s), s)):
+                r = await coro
+                if r:
+                    break
             confidence = 0
-            if name:
-                name, orig = name
-                r = await self.pokeapi.get_model_named(table, name)
-                confidence = get_ratio(name, orig)
+            if r:
+                name = r.name
+                self.differ.set_seq1(name)
+                self.differ.set_seq2(orig)
+                confidence = min(self.differ.real_quick_ratio(), self.differ.quick_ratio(), self.differ.ratio())
         return name, r, confidence
 
     async def parse(self, question):
