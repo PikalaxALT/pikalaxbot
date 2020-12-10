@@ -142,7 +142,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_{0} pv2t
-        LEFT JOIN pokemon_v2_{0}name pv2n on pv2t.id = pv2n.{1}_id
+        INNER JOIN pokemon_v2_{0}name pv2n on pv2t.id = pv2n.{1}_id
         WHERE IS_FUZZY_MATCH(:name, pv2n.name, :cutoff)
         AND pv2n.language_id = :language
         ORDER BY FUZZY_RATIO(:name, pv2n.name) DESC
@@ -291,8 +291,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_type
-        LEFT JOIN pokemon_v2_pokemontype ON pokemon_v2_type.id = pokemon_v2_pokemontype.type_id
-        LEFT JOIN pokemon_v2_pokemon ON pokemon_v2_pokemontype.pokemon_id = pokemon_v2_pokemon.id
+        INNER JOIN pokemon_v2_pokemontype ON pokemon_v2_type.id = pokemon_v2_pokemontype.type_id
+        INNER JOIN pokemon_v2_pokemon ON pokemon_v2_pokemontype.pokemon_id = pokemon_v2_pokemon.id
         WHERE pokemon_species_id = :id
         AND is_default = TRUE
         """
@@ -306,8 +306,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT damage_factor
         FROM pokemon_v2_typeefficacy
-        LEFT JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
-        LEFT JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
+        INNER JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
+        INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
         WHERE pokemon_species_id = :mon_id
         AND damage_type_id = :damage_type
         AND is_default = TRUE
@@ -328,10 +328,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT damage_factor, damage_type_id
         FROM pokemon_v2_typeefficacy
-        LEFT JOIN pokemon_v2_pokemontype pv2t ON pokemon_v2_typeefficacy.damage_type_id = pv2t.type_id
-        LEFT JOIN pokemon_v2_pokemontype pv2t2 ON pokemon_v2_typeefficacy.target_type_id = pv2t2.type_id
-        LEFT JOIN pokemon_v2_pokemon p ON p.id = pv2t.pokemon_id
-        LEFT JOIN pokemon_v2_pokemon p2 ON p2.id = pv2t2.pokemon_id
+        INNER JOIN pokemon_v2_pokemontype pv2t ON pokemon_v2_typeefficacy.damage_type_id = pv2t.type_id
+        INNER JOIN pokemon_v2_pokemontype pv2t2 ON pokemon_v2_typeefficacy.target_type_id = pv2t2.type_id
+        INNER JOIN pokemon_v2_pokemon p ON p.id = pv2t.pokemon_id
+        INNER JOIN pokemon_v2_pokemon p2 ON p2.id = pv2t2.pokemon_id
         WHERE p.pokemon_species_id = :mon2_id
         AND p.is_default = TRUE
         AND p2.pokemon_species_id = :mon_id
@@ -364,8 +364,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_move
-        LEFT JOIN pokemon_v2_pokemonmove pv2p ON pokemon_v2_move.id = pv2p.move_id
-        LEFT JOIN pokemon_v2_pokemon pv2p2 ON pv2p.pokemon_id = pv2p2.id
+        INNER JOIN pokemon_v2_pokemonmove pv2p ON pokemon_v2_move.id = pv2p.move_id
+        INNER JOIN pokemon_v2_pokemon pv2p2 ON pv2p.pokemon_id = pv2p2.id
         WHERE pokemon_species_id = :id
         AND is_default = TRUE
         """
@@ -486,7 +486,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonform
-        LEFT JOIN pokemon_v2_pokemon pv2p ON pokemon_v2_pokemonform.pokemon_id = pv2p.id
+        INNER JOIN pokemon_v2_pokemon pv2p ON pokemon_v2_pokemonform.pokemon_id = pv2p.id
         WHERE pokemon_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.PokemonForm) as conn:
@@ -497,7 +497,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonform
-        LEFT JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pokemon_v2_pokemonform.pokemon_id
+        INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pokemon_v2_pokemonform.pokemon_id
         WHERE pokemon_species_id = :id
         AND pv2p.is_default = TRUE
         """
@@ -552,7 +552,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonstat
-        LEFT JOIN pokemon_v2_pokemon pv2p on pokemon_v2_pokemonstat.pokemon_id = pv2p.id
+        INNER JOIN pokemon_v2_pokemon pv2p on pokemon_v2_pokemonstat.pokemon_id = pv2p.id
         WHERE pokemon_species_id = :id
         AND is_default = TRUE
         """
@@ -564,7 +564,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_egggroup
-        LEFT JOIN pokemon_v2_pokemonegggroup pv2p ON pokemon_v2_egggroup.id = pv2p.egg_group_id
+        INNER JOIN pokemon_v2_pokemonegggroup pv2p ON pokemon_v2_egggroup.id = pv2p.egg_group_id
         WHERE pokemon_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.EggGroup) as conn:
@@ -643,7 +643,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonevolution
-        LEFT JOIN pokemon_v2_pokemonspecies pv2p ON pokemon_v2_pokemonevolution.evolved_species_id = pv2p.id
+        INNER JOIN pokemon_v2_pokemonspecies pv2p ON pokemon_v2_pokemonevolution.evolved_species_id = pv2p.id
         WHERE evolves_from_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.PokemonEvolution) as conn:
