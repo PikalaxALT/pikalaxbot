@@ -6,6 +6,7 @@ import sqlite3
 import aiosqlite
 import contextlib
 import typing
+import time
 from .models import PokeapiModels
 
 
@@ -61,7 +62,7 @@ class SqlResponseEmbed(menus.ListPageSource):
             description=page,
             colour=0xf47fff
         ).set_footer(
-            text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
+            text=f'Page {menu.current_page + 1}/{self.get_max_pages()} | {menu.row_count} records fetched in {menu.duration * 1000:.1f} ms'
         )
 
 
@@ -133,6 +134,7 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
 
         async with ctx.typing():
             pokeapi = self.bot.pokeapi
+            start = time.perf_counter()
             async with pokeapi.execute(query) as cur:  # type: aiosqlite.Cursor
                 header = '|'.join(col[0] for col in cur.description)
                 pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
@@ -140,10 +142,13 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
                     pag.add_line('|'.join(map(str, row)))
                     if i % 20 == 0:
                         pag.close_page()
+            end = time.perf_counter()
 
         if pag.pages:
             menu = menus.MenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = query if len(query) < 256 else '...' + query[-253:]
+            menu.duration = end - start
+            menu.row_count = i
             await menu.start(ctx)
         else:
             await ctx.send('Operation completed, no rows returned.', delete_after=10)
