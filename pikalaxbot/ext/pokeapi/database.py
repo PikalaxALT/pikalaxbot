@@ -312,6 +312,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         INNER JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
         INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
         WHERE pokemon_species_id = :mon_id
+        AND damage_type_id = :damage_type
         AND is_default = TRUE
         """
         async with self.replace_row_factory(None) as conn:
