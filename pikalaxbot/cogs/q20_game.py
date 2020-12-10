@@ -87,10 +87,10 @@ class Q20QuestionParser:
         re.compile(r'mr\.? ?mime', re.I): 122,
         re.compile(r'^dragonair$', re.I): 148,
         re.compile(r'^dragonite$', re.I): 149,
-        re.compile(r'porygon[ -]?(2|two)', re.I): 223,
+        re.compile(r'porygon[ -]?(2|two)', re.I): 233,
         re.compile(r'ho[ -]?oh', re.I): 250,
         re.compile(r'mime ?jr\.?', re.I): 439,
-        re.compile(r'porygon[ -]?z', re.I): 474,
+        re.compile(r'(porygon[ -]?z|sim(bot)?)', re.I): 474,
         re.compile(r'flabebe', re.I): 669, # accents!
         re.compile(r'starly', re.I): 396,
         re.compile(r'[ao]b[oa]ma(snow)?', re.I): 460,
