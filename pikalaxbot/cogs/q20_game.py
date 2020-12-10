@@ -54,11 +54,11 @@ class Q20QuestionParser:
 
     STARTERS = (
         # Kanto
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 172,
+        1, 2, 3, 4, 5, 6, 7, 8, 9,
         # Yellow, Let's Go Pikachu
-        25, 26,
+        25,
         # Let's Go Eevee
-        133, 134, 135, 136, 196, 197, 470, 471, 700,
+        133,
         # Johto
         152, 153, 154, 155, 156, 157, 158, 159, 160,
         # Hoenn
