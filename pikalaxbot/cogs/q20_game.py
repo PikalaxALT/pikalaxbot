@@ -968,7 +968,7 @@ class Q20GameObject(GameBase):
                 async with self.bot.sql as sql:
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
-                tries = f'{20 - self.attempts} tries' if self.attempts < 19 else 'a single try'
+                tries = f'{self._attempts - self.attempts} tries' if self.attempts < 19 else 'a single try'
                 await ctx.send(f'{ctx.author.mention} has guessed the solution! It was {name}!\n'
                                f'The following players each earn {score:d} points:\n'
                                f'```{self.get_player_names()}```\n'
@@ -996,7 +996,8 @@ class Q20GameObject(GameBase):
             raise
         if message in self._state:
             return await ctx.send('You\'ve already asked that!', delete_after=10)
-        await ctx.send(message)
+        index = f'{self._attempts - self.attempts + 1}) ' if valid else ''
+        await ctx.send(f'{index}{message}')
         if not valid:
             return
         self._state.append(message)
