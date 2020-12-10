@@ -175,8 +175,7 @@ class Q20QuestionParser:
 
         def get_first_match(lut):
             return discord.utils.find(
-                lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None, lut.items()) or (
-                   None, None)
+                lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None, lut.items()) or (None, None)
 
         if table in (self.pokeapi.Pokemon, self.pokeapi.PokemonSpecies):
             _, id_ = get_first_match(Q20QuestionParser.mon_search)
@@ -186,13 +185,13 @@ class Q20QuestionParser:
             id_ = None
         if id_:
             r = await self.pokeapi.get_model(table, id_)
-            name = await self.pokeapi.get_name(r)
+            name = self.pokeapi.get_name(r)
             confidence = 1
         else:
             q = q.lower()
             bank = {
                 name.lower().replace('♀', '_F').replace('♂', '_m').replace('é', 'e'): name
-                for name in await self.pokeapi.get_names_from(table)
+                async for name in self.pokeapi.get_names_from(table)
             }
 
             def get_ratio(w1, w2):
@@ -775,12 +774,12 @@ class Q20QuestionParser:
                 return None, 0, False, 0
             if res.is_baby:
                 return name, 0, False, confidence + 0x40000
-            res_is_undiscovered = await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=res, egg_group__name='Undiscovered')
+            res_is_undiscovered = await self.pokeapi.mon_is_in_undiscovered_egg_group(res)
             if 132 in (solution.id, res.id):
                 return name, 0, solution.id != res.id and not res_is_undiscovered, confidence + 0x10000
             if res_is_undiscovered:
                 return name, 0, False, confidence + 0x20000
-            if await self.pokeapi.get(self.pokeapi.PokemonEggGroup, pokemon_species=solution, egg_group__name='Undiscovered'):
+            if await self.pokeapi.mon_is_in_undiscovered_egg_group(solution):
                 return name, 0, False, confidence
             return name, 0, await self.pokeapi.mon_can_mate_with(solution, res), confidence
 
@@ -849,11 +848,14 @@ class Q20QuestionParser:
                     response_s = msgbank[_message].format(*_item)
                 return _confidence, response_s, method == pokemon and match, valid
 
+        tasks = [asyncio.create_task(work(*x)) for x in methods.items()]
         try:
-            responses = await asyncio.wait_for(asyncio.gather(*[work(*x) for x in methods.items()]), timeout=60.0)
+            done, pending = await asyncio.wait(tasks, timeout=60.0, return_when=asyncio.ALL_COMPLETED)
         except asyncio.TimeoutError:
             return 'Hmm... I actually have no idea. Try again later, perhaps?', False, False
-        responses = [x for x in responses if x is not None]
+        finally:
+            [task.cancel() for task in tasks]
+        responses = list(filter(None, (x.result() for x in done)))
         if not responses:
             return 'Huh? I didn\'t understand that', False, False
         responses.sort(reverse=True)

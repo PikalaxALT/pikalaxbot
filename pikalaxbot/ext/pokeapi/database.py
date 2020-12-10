@@ -26,6 +26,24 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
 
+    async def _connect(self) -> "PokeApi":
+        differ = difflib.SequenceMatcher()
+
+        def is_fuzzy_match(s1, s2, cutoff):
+            differ.set_seq1(s1.lower())
+            differ.set_seq2(s2.lower())
+            return differ.real_quick_ratio() > cutoff and differ.quick_ratio() > cutoff and differ.ratio() > cutoff
+
+        def fuzzy_ratio(s1, s2):
+            differ.set_seq1(s1.lower())
+            differ.set_seq2(s2.lower())
+            return min(differ.real_quick_ratio(), differ.quick_ratio(), differ.ratio())
+
+        await super()._connect()
+        await self.create_function('IS_FUZZY_MATCH', 3, is_fuzzy_match, deterministic=True)
+        await self.create_function('FUZZY_RATIO', 2, fuzzy_ratio, deterministic=True)
+        return self
+
     @staticmethod
     def _clean_name(name):
         name = name.replace('♀', '_F').replace('♂', '_m').replace('é', 'e')
@@ -119,32 +137,39 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         async for item in self.filter(model, **attrs):
             return item
 
-    async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str) -> Optional[Any]:
-        differ = difflib.SequenceMatcher()
-        differ.set_seq2(name.lower())
-
-        def predicate(x: NamedPokeapiResource):
-            differ.set_seq1(x.name.lower())
-            return differ.real_quick_ratio() > 0.9 and differ.quick_ratio() > 0.9 and differ.ratio() > 0.9
-
-        obj = await self.find(predicate, model)  # type: PokeapiResource
+    async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str, *, cutoff=0.9) -> Optional[Any]:
+        model = self.resolve_model(model)
+        statement = """
+        SELECT *
+        FROM pokemon_v2_{0}
+        WHERE id = (
+            SELECT {1}_id
+            FROM pokemon_v2_{0}name
+            WHERE IS_FUZZY_MATCH(:name, name, :cutoff)
+            AND language_id = :language
+            ORDER BY FUZZY_RATIO(:name, name) DESC
+        )
+        """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
+        async with self.replace_row_factory(model) as conn:
+            async with conn.execute(statement, {'name': name, 'cutoff': cutoff, 'language': model._language}) as cur:
+                obj = await cur.fetchone()
         if obj:
             __global_cache__[(model, obj.id)] = obj
         return obj
 
-    async def get_names_from(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> List[str]:
+    async def get_names_from(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> AsyncGenerator[str, None]:
         """Generic method to get a list of all names from a PokeApi table."""
         async with self.all_models_cursor(table) as cur:
-            names = [await self.get_name(obj, clean=clean) async for obj in cur]
-        return names
+            async for obj in cur:
+                yield self.get_name(obj, clean=clean)
 
-    async def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
+    def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
         return self._clean_name(item.name) if clean else item.name
 
     async def get_name_by_id(self, model: Callable[[Cursor, Tuple[Any]], Any], id_: int, *, clean=False):
         """Generic method to get the name of a PokeApi object given only its ID."""
         obj = await self.get_model(model, id_)
-        return obj and await self.get_name(obj, clean=clean)
+        return obj and self.get_name(obj, clean=clean)
 
     async def get_random(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[Any]:
         """Generic method to get a random PokeApi object."""
@@ -165,7 +190,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_random_name(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> Optional[str]:
         """Generic method to get a random PokeApi object name."""
         obj = await self.get_random(table)
-        return obj and await self.get_name(obj, clean=clean)
+        return obj and self.get_name(obj, clean=clean)
 
     # Specific getters, defined for type-hints
 
@@ -177,7 +202,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get a random Pokemon species"""
         return self.get_random(PokeapiModels.PokemonSpecies)
 
-    def get_mon_name(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
+    def get_mon_name(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> str:
         """Get the name of a Pokemon species"""
         return self.get_name(mon, clean=clean)
 
@@ -189,7 +214,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get a Pokemon species given its name"""
         return self.get_model_named(PokeapiModels.PokemonSpecies, name)
 
-    def get_forme_name(self, mon: PokeapiModels.PokemonForm, *, clean=False) -> Coroutine[None, None, str]:
+    def get_forme_name(self, mon: PokeapiModels.PokemonForm, *, clean=False) -> str:
         """Get a Pokemon forme's name"""
         return self.get_name(mon, clean=clean)
 
@@ -197,7 +222,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get a random move"""
         return self.get_random(PokeapiModels.Move)
 
-    def get_move_name(self, move: PokeapiModels.Move, *, clean=False) -> Coroutine[None, None, str]:
+    def get_move_name(self, move: PokeapiModels.Move, *, clean=False) -> str:
         """Get a move's name"""
         return self.get_name(move, clean=clean)
 
@@ -217,11 +242,11 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get a Pokemon color given its name"""
         return self.get_model_named(PokeapiModels.PokemonColor, name)
 
-    def get_pokemon_color_name(self, color: PokeapiModels.PokemonColor, *, clean=False) -> Coroutine[None, None, str]:
+    def get_pokemon_color_name(self, color: PokeapiModels.PokemonColor, *, clean=False) -> str:
         """Get the name of a Pokemon color"""
         return self.get_name(color, clean=clean)
 
-    def get_name_of_mon_color(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> Coroutine[None, None, str]:
+    def get_name_of_mon_color(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> str:
         """Get the name of a Pokemon species' color"""
         return self.get_name(mon.pokemon_color, clean=clean)
 
@@ -229,7 +254,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get an ability given its name"""
         return self.get_model_named(PokeapiModels.Ability, name)
 
-    def get_ability_name(self, ability: PokeapiModels.Ability, *, clean=False) -> Coroutine[None, None, str]:
+    def get_ability_name(self, ability: PokeapiModels.Ability, *, clean=False) -> str:
         """Get the name of an ability"""
         return self.get_name(ability, clean=clean)
 
@@ -237,7 +262,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get a Pokemon type given its name"""
         return self.get_model_named(PokeapiModels.Type, name)
 
-    def get_type_name(self, type_: PokeapiModels.Type, *, clean=False) -> Coroutine[None, None, str]:
+    def get_type_name(self, type_: PokeapiModels.Type, *, clean=False) -> str:
         """Get the name of a type"""
         return self.get_name(type_, clean=clean)
 
@@ -245,7 +270,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """Get a Pokedex given its name"""
         return self.get_model_named(PokeapiModels.Pokedex, name)
 
-    def get_pokedex_name(self, dex: PokeapiModels.Pokedex, *, clean=False) -> Coroutine[None, None, str]:
+    def get_pokedex_name(self, dex: PokeapiModels.Pokedex, *, clean=False) -> str:
         """Get the name of a pokedex"""
         return self.get_name(dex, clean=clean)
 
@@ -269,16 +294,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_type
-        WHERE id IN (
-            SELECT type_id
-            FROM pokemon_v2_pokemontype
-            WHERE pokemon_id IN (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :id
-                AND is_default = TRUE
-            )
-        )
+        INNER JOIN pokemon_v2_pokemontype ON pokemon_v2_type.id = pokemon_v2_pokemontype.type_id
+        INNER JOIN pokemon_v2_pokemon ON pokemon_v2_pokemontype.pokemon_id = pokemon_v2_pokemon.id
+        WHERE pokemon_species_id = :id
+        AND is_default = TRUE
         """
         async with self.replace_row_factory(PokeapiModels.Type) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
@@ -290,17 +309,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT damage_factor
         FROM pokemon_v2_typeefficacy
-        WHERE damage_type_id = :damage_type
-        AND target_type_id IN (
-            SELECT type_id
-            FROM pokemon_v2_pokemontype
-            WHERE pokemon_id IN (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :mon_id
-                AND is_default = TRUE
-            )
-        )
+        INNER JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
+        INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
+        WHERE pokemon_species_id = :mon_id
+        AND is_default = TRUE
         """
         async with self.replace_row_factory(None) as conn:
             async with conn.execute(statement, {'damage_type': type_.id, 'mon_id': mon.id}) as cur:
@@ -318,26 +330,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT damage_factor, damage_type_id
         FROM pokemon_v2_typeefficacy
-        WHERE damage_type_id IN (
-            SELECT type_id
-            FROM pokemon_v2_pokemontype
-            WHERE pokemon_id = (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :mon2_id
-                AND is_default = TRUE
-            )
-        )
-        AND target_type_id IN (
-            SELECT type_id
-            FROM pokemon_v2_pokemontype
-            WHERE pokemon_id = (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :mon_id
-                AND is_default = TRUE
-            )
-        )
+        INNER JOIN pokemon_v2_pokemontype pv2t ON pokemon_v2_typeefficacy.damage_type_id = pv2t.type_id
+        INNER JOIN pokemon_v2_pokemontype pv2t2 ON pokemon_v2_typeefficacy.target_type_id = pv2t2.type_id
+        INNER JOIN pokemon_v2_pokemon p ON p.id = pv2t.pokemon_id
+        INNER JOIN pokemon_v2_pokemon p2 ON p2.id = pv2t2.pokemon_id
+        WHERE p.pokemon_species_id = :mon2_id
+        AND p.is_default = TRUE
+        AND p2.pokemon_species_id = :mon_id
+        AND p2.is_default = TRUE
         """
         result = collections.defaultdict(lambda: 1)
         async with self.replace_row_factory(None) as conn:
@@ -355,11 +355,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonspecies
-        WHERE evolves_from_species_id IN (
-            SELECT id
-            FROM pokemon_v2_pokemonspecies
-            WHERE evolves_from_species_id = :id
-        )
+        WHERE evolves_from_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.PokemonSpecies) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
@@ -370,16 +366,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_move
-        WHERE id IN (
-            SELECT move_id
-            FROM pokemon_v2_pokemonmove
-            WHERE pokemon_id = (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :id
-                AND is_default = TRUE
-            )
-        )
+        INNER JOIN pokemon_v2_pokemonmove pv2p ON pokemon_v2_move.id = pv2p.move_id
+        INNER JOIN pokemon_v2_pokemon pv2p2 ON pv2p.pokemon_id = pv2p2.id
+        WHERE pokemon_species_id = :id
+        AND is_default = TRUE
         """
         async with self.replace_row_factory(PokeapiModels.Move) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
@@ -391,13 +381,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         SELECT EXISTS (
             SELECT *
             FROM pokemon_v2_pokemonmove
-            WHERE move_id = :move_id
-            AND pokemon_id = (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :mon_id
-                AND is_default = TRUE
-            )
+            INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pokemon_v2_pokemonmove.pokemon_id
+            AND pokemon_species_id = :mon_id
+            AND is_default = TRUE
         )
         """
         async with self.replace_row_factory(None) as conn:
@@ -410,16 +396,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_ability
-        WHERE id IN (
-            SELECT ability_id
-            FROM pokemon_v2_pokemonability
-            WHERE pokemon_id = (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :id
-                AND is_default = TRUE
-            )
-        )
+        INNER JOIN pokemon_v2_pokemonability p ON pokemon_v2_ability.id = p.ability_id
+        INNER JOIN pokemon_v2_pokemon pv2p ON p.pokemon_id = pv2p.id
+        WHERE pokemon_species_id = :id
+        AND is_default = TRUE
         """
         async with self.replace_row_factory(PokeapiModels.Ability) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
@@ -430,17 +410,11 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT EXISTS (
             SELECT *
-            FROM pokemon_v2_ability
-            WHERE id IN (
-                SELECT ability_id
-                FROM pokemon_v2_pokemonability
-                WHERE pokemon_id = (
-                    SELECT id
-                    FROM pokemon_v2_pokemon
-                    WHERE pokemon_species_id = :id
-                    AND is_default = TRUE
-                )
-            )
+            FROM pokemon_v2_pokemonability
+            INNER JOIN pokemon_v2_ability pv2a ON pokemon_v2_pokemonability.ability_id = pv2a.id
+            INNER JOIN pokemon_v2_pokemon ON pokemon_v2_pokemonability.pokemon_id = pokemon_v2_pokemon.id
+            WHERE pokemon_species_id = :id
+            AND is_default = TRUE
         )
         """
         async with self.replace_row_factory(None) as conn:
@@ -453,21 +427,15 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT EXISTS (
             SELECT *
-            FROM pokemon_v2_type
-            WHERE id IN (
-                SELECT type_id
-                FROM pokemon_v2_pokemontype
-                WHERE pokemon_id = (
-                    SELECT id
-                    FROM pokemon_v2_pokemon
-                    WHERE pokemon_species_id = :id
-                    AND is_default = TRUE
-                )
-            )
+            FROM pokemon_v2_pokemontype
+            INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pokemon_v2_pokemontype.pokemon_id
+            WHERE pokemon_species_id = :id
+            AND type_id = :type_id
+            AND is_default = TRUE
         )
         """
         async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'id': mon.id}) as cur:
+            async with conn.execute(statement, {'id': mon.id, 'type_id': type_.id}) as cur:
                 result = await cur.fetchone()
         return bool(result)
 
@@ -477,11 +445,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         SELECT EXISTS (
             SELECT *
             FROM pokemon_v2_pokemonform
-            WHERE pokemon_id IN (
-                SELECT id
-                FROM pokemon_v2_pokemon
-                WHERE pokemon_species_id = :id
-            )
+            INNER JOIN pokemon_v2_pokemon pv2p ON pokemon_v2_pokemonform.pokemon_id = pv2p.id
+            WHERE pokemon_species_id = :id
             AND is_mega = TRUE
         )
         """
@@ -521,11 +486,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonform
-        WHERE pokemon_id IN (
-            SELECT id
-            FROM pokemon_v2_pokemon
-            WHERE pokemon_species_id = :id
-        )
+        INNER JOIN pokemon_v2_pokemon pv2p ON pokemon_v2_pokemonform.pokemon_id = pv2p.id
+        WHERE pokemon_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.PokemonForm) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
@@ -535,12 +497,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonform
-        WHERE pokemon_id = (
-            SELECT id
-            FROM pokemon_v2_pokemon
-            WHERE pokemon_species_id = :id
-            AND is_default = TRUE
-        )
+        INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pokemon_v2_pokemonform.pokemon_id
+        WHERE pokemon_species_id = :id
+        AND pv2p.is_default = TRUE
         """
         async with self.replace_row_factory(PokeapiModels.PokemonForm) as conn:
             async with conn.execute(statement, {'id': mon.id}) as cur:
@@ -608,11 +567,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_egggroup
-        WHERE id IN (
-            SELECT egg_group_id
-            FROM pokemon_v2_pokemonegggroup
-            WHERE pokemon_species_id = :id
-        )
+        INNER JOIN pokemon_v2_pokemonegggroup pv2p ON pokemon_v2_egggroup.id = pv2p.egg_group_id
+        WHERE pokemon_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.EggGroup) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
@@ -701,12 +657,22 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonevolution
-        WHERE evolved_species_id IN (
-            SELECT id
-            FROM pokemon_v2_pokemonspecies
-            WHERE evolves_from_species_id = :id
-        )
+        INNER JOIN pokemon_v2_pokemonspecies pv2p ON pokemon_v2_pokemonevolution.evolved_species_id = pv2p.id
+        WHERE evolves_from_species_id = :id
         """
         async with self.replace_row_factory(PokeapiModels.PokemonEvolution) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
+
+    async def mon_is_in_undiscovered_egg_group(self, mon: PokeapiModels.PokemonSpecies) -> bool:
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonegggroup
+            WHERE egg_group_id = 15
+            AND pokemon_species_id = :id
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            result, = await conn.execute_fetchall(statement, {'id': mon.id})
+        return bool(result)

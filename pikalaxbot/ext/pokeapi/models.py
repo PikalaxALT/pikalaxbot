@@ -1,12 +1,9 @@
 from sqlite3 import Connection, Row, Cursor
-from typing import Optional, Callable, Tuple, Any, TYPE_CHECKING
+from typing import Optional, Callable, Tuple, Any
 from contextlib import contextmanager
 from re import sub, split
 import json
-import discord
 from discord.ext import commands
-if TYPE_CHECKING:
-    from . import PokeApi
 
 
 __all__ = (
