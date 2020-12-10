@@ -601,6 +601,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         if mon.id == mate.id:
             if mon.id == 132:
                 return False
+            if -1 in {mon.gender_rate, mate.gender_rate}:
+                return False
+            if mon.gender_rate == mate.gender_rate == 0 or mon.gender_rate == mate.gender_rate == 8:
+                return False
             statement = """
             SELECT EXISTS (
                 SELECT *
@@ -630,6 +634,11 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
                 async with conn.execute(statement, {'id': mon.id}) as cur:
                     result, = await cur.fetchone()
             return not result
+
+        if mon.gender_rate == mate.gender_rate == 0 or mon.gender_rate == mate.gender_rate == 8:
+            return False
+        if -1 in {mon.gender_rate, mate.gender_rate}:
+            return False
 
         statement = """
         SELECT EXISTS (

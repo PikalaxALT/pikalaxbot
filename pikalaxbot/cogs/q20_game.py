@@ -775,7 +775,7 @@ class Q20QuestionParser:
             breedable = await self.bot.pokeapi.mon_can_mate_with(solution, res)
             res_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
             solution_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(solution)
-            if 132 in (solution.id, res.id):
+            if 132 in {solution.id, res.id}:
                 flags |= 0x10000
             if solution_is_undiscovered or res_is_undiscovered:
                 flags |= 0x20000
@@ -783,6 +783,8 @@ class Q20QuestionParser:
                 flags |= 0x40000
             if solution.id > 807 or res.id > 808:
                 flags |= 0x80000
+            if solution.gender_rate == 0 and res.gender_rate == 0 or solution.gender_rate == 8 and res.gender_rate == 8:
+                flags |= 0x100000
             return name, 0, breedable, confidence + flags
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
@@ -844,6 +846,8 @@ class Q20QuestionParser:
                         match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
                     elif _flags & 4:
                         match_t = 'Of course not, you sicko'
+                    elif _flags & 16:
+                        match_t = discord.utils.get(self.bot.emojis, name='KappaPride')
                     elif _flags & 8:
                         match_t = 'I have no clue'
                     elif _flags & 2:
