@@ -592,8 +592,12 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         return bool(result)
 
     async def mon_can_mate_with(self, mon: PokeapiModels.PokemonSpecies, mate: PokeapiModels.PokemonSpecies) -> bool:
+        # Babies can't breed
         if mon.is_baby or mate.is_baby:
             return False
+
+        # Undiscovered can't breed together, and Ditto can't breed Ditto
+        # Other than that, same species can breed together.
         if mon.id == mate.id:
             if mon.id == 132:
                 return False
@@ -609,6 +613,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
                 async with conn.execute(statement, {'id': mon.id}) as cur:
                     result, = await cur.fetchone()
             return not result
+
+        # Anything that's not undiscovered can breed with Ditto
         if mon.id == 132 or mate.id == 132:
             if mon.id == 132:
                 mon = mate

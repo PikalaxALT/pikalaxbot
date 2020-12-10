@@ -770,16 +770,17 @@ class Q20QuestionParser:
             name, res, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
             if not res:
                 return None, 0, False, 0
-            if res.is_baby:
-                return name, 0, False, confidence + 0x40000
+            flags = 0
+            breedable = await self.bot.pokeapi.mon_can_mate_with(solution, res)
+            if solution.is_baby or res.is_baby:
+                flags |= 0x40000
             res_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
+            solution_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
             if 132 in (solution.id, res.id):
-                return name, 0, solution.id != res.id and not res_is_undiscovered, confidence + 0x10000
-            if res_is_undiscovered:
-                return name, 0, False, confidence + 0x20000
-            if await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(solution):
-                return name, 0, False, confidence
-            return name, 0, await self.bot.pokeapi.mon_can_mate_with(solution, res), confidence
+                flags |= 0x10000
+            if res_is_undiscovered or solution_is_undiscovered:
+                flags |= 0x20000
+            return name, 0, breedable, confidence + flags
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
 
