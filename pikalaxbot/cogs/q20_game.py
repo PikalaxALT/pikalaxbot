@@ -351,6 +351,8 @@ class Q20QuestionParser:
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
                                 flags |= 0x20000
+                            if _move.move_damage_class.name == 'status':
+                                flags |= 0x40000
             elif found:
                 result = await self.bot.pokeapi.mon_has_type(solution, found)
             return name, message, result, confidence * confidence_f + flags
@@ -806,12 +808,16 @@ class Q20QuestionParser:
             _flags = int(_flags)
             self.bot.log_debug(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence} | {_flags}')
             valid = True
+            defered_valid = True
             if _item:
                 match_t = 'Yes' if match else 'No'
                 if method == pokemon and match:
                     match_t = '**YES!!**'
                 elif method == type_:
-                    if solution.id == 493:
+                    if _flags & 4:
+                        match_t = discord.utils.get(self.bot.emojis, name='Kappa')
+                        defered_valid = False
+                    elif solution.id == 493:
                         match_t = {
                             'single': 'HAHAHAHAHAHAHAHAHA!!!',
                             'dual': 'Nah'
@@ -826,8 +832,10 @@ class Q20QuestionParser:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
                 elif method == move and solution.id > 807:
                     match_t = 'I have no clue'
+                    defered_valid = False
                 elif method == type_challenge:
                     match_t = 'Type-related questions are disabled in this challenge mode'
+                    defered_valid = False
                 elif method == mating and _flags:
                     if _flags & 1:
                         match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
@@ -839,7 +847,7 @@ class Q20QuestionParser:
                     _item = (_item,)
                 if valid:
                     response_s = f'`{msgbank[_message].format(*_item)}`: {match_t}'
-                    valid = match_t not in {'I have no clue', 'Type-related questions are disabled in this challenge mode'}
+                    valid = defered_valid
                 else:
                     response_s = msgbank[_message].format(*_item)
                 return _confidence, response_s, method == pokemon and match, valid
