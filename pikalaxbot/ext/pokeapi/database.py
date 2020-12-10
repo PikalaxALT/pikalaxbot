@@ -419,7 +419,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
         async with self.replace_row_factory(None) as conn:
             async with conn.execute(statement, {'id': mon.id}) as cur:
-                result = await cur.fetchone()
+                result, = await cur.fetchone()
         return bool(result)
 
     async def mon_has_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> bool:
@@ -436,7 +436,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
         async with self.replace_row_factory(None) as conn:
             async with conn.execute(statement, {'id': mon.id, 'type_id': type_.id}) as cur:
-                result = await cur.fetchone()
+                result, = await cur.fetchone()
         return bool(result)
 
     async def has_mega_evolution(self, mon: PokeapiModels.PokemonSpecies) -> bool:
@@ -452,7 +452,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
         async with self.replace_row_factory(None) as conn:
             async with conn.execute(statement, {'id': mon.id}) as cur:
-                result = await cur.fetchone()
+                result, = await cur.fetchone()
         return bool(result)
     
     async def get_evo_line(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
@@ -479,7 +479,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
         async with self.replace_row_factory(None) as conn:
             async with conn.execute(statement, {'mon_id': mon.id, 'dex_id': dex.id}) as cur:
-                result = await cur.fetchone()
+                result, = await cur.fetchone()
         return bool(result)
 
     async def get_formes(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonForm]:
