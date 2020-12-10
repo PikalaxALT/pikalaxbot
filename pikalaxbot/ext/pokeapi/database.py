@@ -151,7 +151,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         )
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
         async with self.replace_row_factory(model) as conn:
-            async with conn.execute(statement, {'name': name, 'cutoff': cutoff, 'language': model._language}) as cur:
+            async with conn.execute(statement, {'name': name, 'cutoff': cutoff, 'language': self._conn._default_language}) as cur:
                 obj = await cur.fetchone()
         if obj:
             __global_cache__[(model, obj.id)] = obj

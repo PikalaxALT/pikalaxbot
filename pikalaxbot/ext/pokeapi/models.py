@@ -1,7 +1,7 @@
 from sqlite3 import Connection, Row, Cursor
 from typing import Optional, Callable, Tuple, Any
 from contextlib import contextmanager
-from re import sub, split
+from re import sub
 import json
 from discord.ext import commands
 
@@ -36,12 +36,15 @@ class PokeApiConnection(Connection):
         WHERE id = :id
         """.format(model.__name__.lower())
         with self.replace_row_factory(model) as conn:
-            cur = conn.execute(statement, {'id': id_})
+            cur = conn.execute(statement, {'id': id_, 'language': conn._default_language})
             result = cur.fetchone()
         return result
 
 
 class PokeapiResource:
+    _namecol = None
+    _suffix = None
+
     def __init__(self, cursor: Cursor, row: Tuple[Any]):
         self._cursor: Cursor = cursor
         self._row: Row = Row(cursor, row)
@@ -86,11 +89,12 @@ class PokeapiResource:
 
 
 class NamedPokeapiResource(PokeapiResource):
-    _language = 9
+    _suffix = 'name'
+    _namecol = 'name',
 
-    def __init__(self, cursor: Cursor, row: Tuple[Any], *, suffix='name', namecol='name'):
+    def __init__(self, cursor: Cursor, row: Tuple[Any]):
         super().__init__(cursor, row)
-        self.language: PokeapiModels.Language = self._connection.get_model(PokeapiModels.Language, self._language)
+        self.language: PokeapiModels.Language = self._connection.get_model(PokeapiModels.Language, self._connection._default_language)
         clsname = self.__class__.__name__
         idcol = sub(r'([a-z])([A-Z])', r'\1_\2', clsname).lower()
         statement = """
@@ -98,16 +102,15 @@ class NamedPokeapiResource(PokeapiResource):
             FROM pokemon_v2_{}{}
             WHERE language_id = {}
             AND {}_id = :id
-            """.format(namecol, clsname.lower(), suffix, self._language, idcol)
-        self._columns = columns = split(r'[, ]+', namecol)
+            """.format(', '.join(self._namecol), clsname.lower(), self._suffix, self._connection._default_language, idcol)
         with self._connection.replace_row_factory(None) as conn:
             cur = conn.execute(statement, {'id': self.id})
             row = cur.fetchone()
         if row:
-            for name, value in zip(columns, row):
+            for name, value in zip(self._namecol, row):
                 setattr(self, name, value)
         else:
-            for name in columns:
+            for name in self._namecol:
                 setattr(self, name, None)
 
     def __str__(self):
@@ -138,8 +141,11 @@ class PokeapiModels:
                     self.name = None
 
     class ItemFlingEffect(NamedPokeapiResource):
+        _suffix = 'effecttext'
+        _namecol = 'effect',
+
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, suffix='effecttext', namecol='effect')
+            super().__init__(cursor, row)
 
     class ItemPocket(NamedPokeapiResource):
         pass
@@ -177,20 +183,28 @@ class PokeapiModels:
         pass
 
     class PokemonShape(NamedPokeapiResource):
+        _namecol = 'awesome_name',
+
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, namecol='name, awesome_name')
+            super().__init__(cursor, row)
 
     class GrowthRate(NamedPokeapiResource):
+        _suffix = 'description'
+        _namecol = 'description',
+
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, suffix='description', namecol='description')
+            super().__init__(cursor, row)
             self.formula = self._row['formula']
 
     class MoveDamageClass(NamedPokeapiResource):
         pass
 
     class MoveEffect(NamedPokeapiResource):
+        _suffix = 'effecttext'
+        _namecol = 'effect', 'short_effect',
+
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, suffix='effecttext', namecol='effect, short_effect')
+            super().__init__(cursor, row)
 
     class MoveTarget(NamedPokeapiResource):
         pass
@@ -202,8 +216,11 @@ class PokeapiModels:
             self.damage_class = self.move_damage_class = self.get_submodel(PokeapiModels.MoveDamageClass, 'move_damage_class_id')  # type: PokeapiModels.MoveDamageClass
 
     class ContestEffect(NamedPokeapiResource):
+        _suffix = 'effecttext'
+        _namecol = 'effect',
+
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, suffix='effecttext', namecol='effect')
+            super().__init__(cursor, row)
             self.appeal = self._row['appeal']
             self.jam = self._row['jam']
 
@@ -211,8 +228,11 @@ class PokeapiModels:
         pass
 
     class SuperContestEffect(NamedPokeapiResource):
+        _suffix = 'flavortext'
+        _namecol = 'flavor_text',
+
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
-            super().__init__(cursor, row, suffix='flavortext', namecol='flavor_text')
+            super().__init__(cursor, row)
             self.appeal = self._row['appeal']
 
     class Move(NamedPokeapiResource):
