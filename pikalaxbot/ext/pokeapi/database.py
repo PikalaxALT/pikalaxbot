@@ -635,7 +635,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         else:
             statement += ' AND version_id = :version'
         async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'id': mon.id, 'lang': mon.language.id, 'version': version.id}) as cur:
+            async with conn.execute(statement, {'id': mon.id, 'lang': mon.language.id, 'version': version and version.id}) as cur:
                 result, = await cur.fetchone()
         return result
 
