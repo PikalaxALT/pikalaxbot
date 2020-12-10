@@ -814,16 +814,15 @@ class Q20QuestionParser:
                 if method == pokemon and match:
                     match_t = '**YES!!**'
                 elif method == type_:
-                    if _flags & 4:
-                        match_t = discord.utils.get(self.bot.emojis, name='Kappa')
-                        defered_valid = False
-                    elif solution.id == 493:
+                    kappa = discord.utils.get(self.bot.emojis, name='Kappa')
+                    if solution.id == 493:
                         match_t = {
                             'single': 'HAHAHAHAHAHAHAHAHA!!!',
                             'dual': 'Nah'
                         }.get(_item, 'Sometimes')
-                    elif _flags & 3:
-                        match_t = ['Sometimes', 'It is immune', 'It is sometimes immune'][(_flags & 3) - 1]
+                        _flags = 1
+                    if _flags & 7 and _item not in ('single', 'dual'):
+                        match_t = ['Sometimes', 'It is immune', 'It is sometimes immune', kappa, kappa, 'It is immune', 'It is sometimes immune'][(_flags & 3) - 1]
                 elif method == pokedex and _item == 'National':
                     match_t = 'Duh.'
                 elif method in (size, weight) and _message == 4:
