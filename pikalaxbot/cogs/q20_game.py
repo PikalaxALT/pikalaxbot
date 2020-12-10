@@ -820,7 +820,7 @@ class Q20QuestionParser:
                 if method == pokemon and match:
                     match_t = '**YES!!**'
                 elif method == type_:
-                    kappa = discord.utils.get(self.bot.emojis, name='Kappa')
+                    kappa = discord.utils.get(self.bot.emojis, name='Kappa') or 'Kappa'
                     if solution.id == 493:
                         match_t = {
                             'single': 'HAHAHAHAHAHAHAHAHA!!!',
@@ -847,7 +847,7 @@ class Q20QuestionParser:
                     elif _flags & 4:
                         match_t = 'Of course not, you sicko'
                     elif _flags & 16:
-                        match_t = discord.utils.get(self.bot.emojis, name='KappaPride')
+                        match_t = discord.utils.get(self.bot.emojis, name='KappaPride') or 'KappaPride'
                     elif _flags & 8:
                         match_t = 'I have no clue'
                     elif _flags & 2:
