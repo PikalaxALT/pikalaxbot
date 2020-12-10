@@ -85,6 +85,7 @@ class Q20QuestionParser:
         re.compile(r'farfetch[e\']?d|dux', re.I): 83,
         re.compile(r'^(gh?astle?y)$', re.I): 92,
         re.compile(r'mr\.? ?mime', re.I): 122,
+        re.compile(r'mr\.? ?rime', re.I): 866,
         re.compile(r'^dragonair$', re.I): 148,
         re.compile(r'^dragonite$', re.I): 149,
         re.compile(r'porygon[ -]?(2|two)', re.I): 233,
