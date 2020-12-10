@@ -683,5 +683,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         )
         """
         async with self.replace_row_factory(None) as conn:
-            result, = await conn.execute_fetchall(statement, {'id': mon.id})
+            async with conn.execute(statement, {'id': mon.id}) as cur:
+                result, = await cur.fetchone()
         return bool(result)
