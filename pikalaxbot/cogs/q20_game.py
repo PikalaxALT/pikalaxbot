@@ -772,14 +772,16 @@ class Q20QuestionParser:
                 return None, 0, False, 0
             flags = 0
             breedable = await self.bot.pokeapi.mon_can_mate_with(solution, res)
-            if solution.is_baby or res.is_baby:
-                flags |= 0x40000
             res_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
             solution_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
             if 132 in (solution.id, res.id):
                 flags |= 0x10000
-            if res_is_undiscovered or solution_is_undiscovered:
+            if solution_is_undiscovered or res_is_undiscovered:
                 flags |= 0x20000
+            if solution.is_baby or res.is_baby:
+                flags |= 0x40000
+            if solution.id > 807 or res.id > 808:
+                flags |= 0x80000
             return name, 0, breedable, confidence + flags
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
@@ -826,11 +828,11 @@ class Q20QuestionParser:
                         match_t = ['Sometimes', 'It is immune', 'It is sometimes immune', kappa, kappa, 'It is immune', 'It is sometimes immune'][(_flags & 3) - 1]
                 elif method == pokedex and _item == 'National':
                     match_t = 'Duh.'
-                elif method in (size, weight) and _message == 4:
+                elif method in {size, weight} and _message == 4:
                     valid = False
                 elif method == evolution and _message == 3 and match:
                     match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
-                elif method == move and solution.id > 807:
+                elif method in {move, egg} and solution.id > 807:
                     match_t = 'I have no clue'
                     defered_valid = False
                 elif method == type_challenge:
@@ -841,6 +843,8 @@ class Q20QuestionParser:
                         match_t = 'HAHAHAHAHAHAHAHA!!!' if match else 'Nah.'
                     elif _flags & 4:
                         match_t = 'Of course not, you sicko'
+                    elif _flags & 8:
+                        match_t = 'I have no clue'
                     elif _flags & 2:
                         match_t = 'Of course not'
                 if isinstance(_item, str):
