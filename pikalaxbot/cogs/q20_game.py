@@ -783,7 +783,7 @@ class Q20QuestionParser:
                 flags |= 0x40000
             if solution.id > 807 or res.id > 808:
                 flags |= 0x80000
-            if solution.gender_rate == 0 and res.gender_rate == 0 or solution.gender_rate == 8 and res.gender_rate == 8:
+            if solution.gender_rate == res.gender_rate == 0 or solution.gender_rate == res.gender_rate == 8:
                 flags |= 0x100000
             return name, 0, breedable, confidence + flags
 

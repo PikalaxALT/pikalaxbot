@@ -599,45 +599,19 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         # Undiscovered can't breed together, and Ditto can't breed Ditto
         # Other than that, same species can breed together.
         if mon.id == mate.id:
-            if mon.id == 132:
-                return False
-            if -1 in {mon.gender_rate, mate.gender_rate}:
-                return False
-            if mon.gender_rate == mate.gender_rate == 0 or mon.gender_rate == mate.gender_rate == 8:
-                return False
-            statement = """
-            SELECT EXISTS (
-                SELECT *
-                FROM pokemon_v2_pokemonegggroup
-                WHERE pokemon_species_id = :id
-                AND egg_group_id = 15
-            )
-            """
-            async with self.replace_row_factory(None) as conn:
-                async with conn.execute(statement, {'id': mon.id}) as cur:
-                    result, = await cur.fetchone()
-            return not result
+            return mon.id != 132 \
+                    and mon.gender_rate not in {0, 8, -1} \
+                    and not await self.mon_is_in_undiscovered_egg_group(mon)
 
         # Anything that's not undiscovered can breed with Ditto
         if mon.id == 132 or mate.id == 132:
             if mon.id == 132:
                 mon = mate
-            statement = """
-            SELECT EXISTS (
-                SELECT *
-                FROM pokemon_v2_pokemonegggroup
-                WHERE pokemon_species_id = :id
-                AND egg_group_id = 15
-            )
-            """
-            async with self.replace_row_factory(None) as conn:
-                async with conn.execute(statement, {'id': mon.id}) as cur:
-                    result, = await cur.fetchone()
-            return not result
+            return not await self.mon_is_in_undiscovered_egg_group(mon)
 
-        if mon.gender_rate == mate.gender_rate == 0 or mon.gender_rate == mate.gender_rate == 8:
-            return False
-        if -1 in {mon.gender_rate, mate.gender_rate}:
+        if mon.gender_rate == mate.gender_rate == 0 \
+                or mon.gender_rate == mate.gender_rate == 8 \
+                or -1 in {mon.gender_rate, mate.gender_rate}:
             return False
 
         statement = """
