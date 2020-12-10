@@ -555,12 +555,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonstat
-        WHERE pokemon_id = (
-            SELECT id
-            FROM pokemon_v2_pokemon
-            WHERE pokemon_species_id = :id
-            AND is_default = TRUE
-        )
+        INNER JOIN pokemon_v2_pokemon pv2p on pokemon_v2_pokemonstat.pokemon_id = pv2p.id
+        WHERE pokemon_species_id = :id
+        AND is_default = TRUE
         """
         async with self.replace_row_factory(PokeapiModels.PokemonStat) as conn:
             async with conn.execute(statement, {'id': mon.id}) as cur:
