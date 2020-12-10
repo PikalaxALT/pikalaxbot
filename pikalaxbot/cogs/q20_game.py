@@ -773,7 +773,7 @@ class Q20QuestionParser:
             flags = 0
             breedable = await self.bot.pokeapi.mon_can_mate_with(solution, res)
             res_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
-            solution_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
+            solution_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(solution)
             if 132 in (solution.id, res.id):
                 flags |= 0x10000
             if solution_is_undiscovered or res_is_undiscovered:
