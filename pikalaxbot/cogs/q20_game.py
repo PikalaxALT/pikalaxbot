@@ -254,7 +254,9 @@ class Q20QuestionParser:
             singletype += len(re.findall(r'\b(pure|single|one)\b', q, re.I))
             dualtype += len(re.findall(r'\b(du[ea]l|duo|two)\b', q, re.I))
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b', '', q, re.I)
+            q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b',
+                       '', q,
+                       re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
@@ -276,6 +278,10 @@ class Q20QuestionParser:
                     else:
                         _move: 'Optional[PokeApi.Move]'
                         name, _move, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
+                        if _move:
+                            message = 3 + (typeeffect < 0)
+            elif found:
+                result = await self.bot.pokeapi.mon_has_type(solution, found)
             return name, message, False, confidence * confidence_f
 
         async def type_(q):
