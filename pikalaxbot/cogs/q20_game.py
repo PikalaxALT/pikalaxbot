@@ -161,7 +161,6 @@ class Q20QuestionParser:
     def __init__(self, game, pokeapi):
         self.game: Q20GameObject = game
         self.bot = game.bot
-        self.pokeapi = pokeapi
         self.differ = difflib.SequenceMatcher()
         self.tokenizer = nltk.WordPunctTokenizer()
 
@@ -177,22 +176,22 @@ class Q20QuestionParser:
             return discord.utils.find(
                 lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None, lut.items()) or (None, None)
 
-        if table in (self.pokeapi.Pokemon, self.pokeapi.PokemonSpecies):
+        if table in (self.bot.pokeapi.Pokemon, self.bot.pokeapi.PokemonSpecies):
             _, id_ = get_first_match(Q20QuestionParser.mon_search)
-        elif table is self.pokeapi.Move:
+        elif table is self.bot.pokeapi.Move:
             _, id_ = get_first_match(Q20QuestionParser.move_search)
         else:
             id_ = None
         if id_:
-            r = await self.pokeapi.get_model(table, id_)
-            name = self.pokeapi.get_name(r)
+            r = await self.bot.pokeapi.get_model(table, id_)
+            name = self.bot.pokeapi.get_name(r)
             confidence = 1
         else:
             q = q.lower()
             r = None
             orig = None
             name = None
-            for coro, orig in iter_matches(lambda s: (self.pokeapi.get_model_named(table, s), s)):
+            for coro, orig in iter_matches(lambda s: (self.bot.pokeapi.get_model_named(table, s), s)):
                 r = await coro
                 if r:
                     break
@@ -211,7 +210,7 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\s+', ' ', q, re.I)
             found: 'Optional[PokeApi.PokemonSpecies]'
-            name, found, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+            name, found, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
             won = found and found.id == solution.id
             return name, 0, won, (name is not None) * (1000 if won else 0.5 * confidence)
 
@@ -221,8 +220,8 @@ class Q20QuestionParser:
             q = re.sub(r'\b(learn|know|move|tm)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             found: 'Optional[PokeApi.Move]'
-            name, found, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
-            return name, 0, found and await self.pokeapi.mon_can_learn_move(solution, found), confidence * confidence_f
+            name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
+            return name, 0, found and await self.bot.pokeapi.mon_can_learn_move(solution, found), confidence * confidence_f
 
         async def ability(q):
             confidence = len(re.findall(r'\b(have|ability)\b', q, re.I))
@@ -230,8 +229,8 @@ class Q20QuestionParser:
             q = re.sub(r'\b(have|ability)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             found: 'Optional[PokeApi.Ability]'
-            name, found, confidence_f = await self.lookup_name(self.pokeapi.Ability, q)
-            return name, 0, found and await self.pokeapi.mon_has_ability(solution, found), confidence * confidence_f
+            name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Ability, q)
+            return name, 0, found and await self.bot.pokeapi.mon_has_ability(solution, found), confidence * confidence_f
 
         async def type_challenge(q):
             # fuck you tustin
@@ -259,7 +258,7 @@ class Q20QuestionParser:
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
             found: 'Optional[PokeApi.Type]'
-            name, found, confidence_f = await self.lookup_name(self.pokeapi.Type, q)
+            name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Type, q)
             message = 0
             if singletype and not found:
                 name = 'single'
@@ -270,12 +269,12 @@ class Q20QuestionParser:
                     message = 1 + (typeeffect < 0)
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
-                    name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+                    name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
                     if mon:
                         message = 3 + (typeeffect < 0)
                     else:
                         _move: 'Optional[PokeApi.Move]'
-                        name, _move, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
+                        name, _move, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
             return name, message, False, confidence * confidence_f
 
         async def type_(q):
@@ -304,30 +303,30 @@ class Q20QuestionParser:
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
             found: 'Optional[PokeApi.Type]'
-            name, found, confidence_f = await self.lookup_name(self.pokeapi.Type, q)
+            name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Type, q)
             message = 0
             result = False
             flags = 0
             if singletype and not found:
-                mon_types = await self.pokeapi.get_mon_types(solution)
+                mon_types = await self.bot.pokeapi.get_mon_types(solution)
                 result = len(mon_types) == 1
                 name = 'single'
             elif dualtype and not found:
-                mon_types = await self.pokeapi.get_mon_types(solution)
+                mon_types = await self.bot.pokeapi.get_mon_types(solution)
                 result = len(mon_types) == 2
                 name = 'dual'
             elif typeeffect:
                 if found:
-                    testeffect = await self.pokeapi.get_mon_matchup_against_type(solution, found)
+                    testeffect = await self.bot.pokeapi.get_mon_matchup_against_type(solution, found)
                     message = 1 + (typeeffect < 0)
                     result = testeffect > 1 and typeeffect > 0 or testeffect < 1 and typeeffect < 0
                     if testeffect == 0:
                         flags |= 0x20000
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
-                    name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+                    name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
                     if mon:
-                        testeffect = await self.pokeapi.get_mon_matchup_against_mon(solution, mon)
+                        testeffect = await self.bot.pokeapi.get_mon_matchup_against_mon(solution, mon)
                         assert len(testeffect) in (1, 2)
                         message = 3 + (typeeffect < 0)
                         if len(testeffect) == 2:
@@ -342,25 +341,25 @@ class Q20QuestionParser:
                             flags |= 0x20000
                     else:
                         _move: 'Optional[PokeApi.Move]'
-                        name, _move, confidence_f = await self.lookup_name(self.pokeapi.Move, q)
+                        name, _move, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
                         if _move:
-                            testeffect = await self.pokeapi.get_mon_matchup_against_move(solution, _move)
+                            testeffect = await self.bot.pokeapi.get_mon_matchup_against_move(solution, _move)
                             if _move.id == 560:  # Flying Press
-                                extra_type = await self.pokeapi.get_model_named('Type', 'Flying')
-                                testeffect *= await self.pokeapi.get_mon_matchup_against_type(solution, extra_type)
+                                extra_type = await self.bot.pokeapi.get_model_named('Type', 'Flying')
+                                testeffect *= await self.bot.pokeapi.get_mon_matchup_against_type(solution, extra_type)
                             message = 3 + (typeeffect < 0)
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
                                 flags |= 0x20000
             elif found:
-                result = await self.pokeapi.mon_has_type(solution, found)
+                result = await self.bot.pokeapi.mon_has_type(solution, found)
             return name, message, result, confidence * confidence_f + flags
 
         async def color(q):
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\s+', ' ', q, re.I)
             _color: 'Optional[PokeApi.PokemonColor]'
-            name, _color, confidence = await self.lookup_name(self.pokeapi.PokemonColor, q)
+            name, _color, confidence = await self.lookup_name(self.bot.pokeapi.PokemonColor, q)
             return name, 0, _color and _color == solution.pokemon_color, confidence / len(re.findall(r'\w+', q)) if q else 0
 
         async def evolution(q):
@@ -381,19 +380,19 @@ class Q20QuestionParser:
             if mega:
                 item = 'found'
                 message = 2
-                result = await self.pokeapi.has_mega_evolution(solution)
+                result = await self.bot.pokeapi.has_mega_evolution(solution)
             elif has:
                 item = 'found'
                 message = 3
-                result = bool(solution.evolves_from_species or await self.pokeapi.get_evos(solution))
+                result = bool(solution.evolves_from_species or await self.bot.pokeapi.get_evos(solution))
             elif branch:
                 message = 5
-                evos = await self.pokeapi.get_evo_line(solution)
+                evos = await self.bot.pokeapi.get_evo_line(solution)
                 result = len(set(evo.evolves_from_species for evo in evos)) < len(evos)
                 item = 'found'
             elif stone or trade:
                 message = 4
-                methods = await self.pokeapi.get_mon_evolution_methods(solution)
+                methods = await self.bot.pokeapi.get_mon_evolution_methods(solution)
                 result = any(meth.evolution_trigger.id == 2 + stone for meth in methods)
                 item = 'stone' if stone else 'trade'
             return item, message, result, confidence
@@ -405,8 +404,8 @@ class Q20QuestionParser:
             q = re.sub(r'\b(family|evolution(ary)?|tree|line|part|of)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q)
             res: 'Optional[PokeApi.PokemonSpecies]'
-            name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
-            return name, 0, res and any(mon.id == solution.id for mon in await self.pokeapi.get_evo_line(res)), confidence
+            name, res, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
+            return name, 0, res and any(mon.id == solution.id for mon in await self.bot.pokeapi.get_evo_line(res)), confidence
 
         async def pokedex(q):
             is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex|region)\b', q, re.I) is not None
@@ -427,11 +426,11 @@ class Q20QuestionParser:
                 q = re.sub(pat, '', q, re.I)
             q = re.sub(r'\s+', '', q)
             dex: 'Optional[PokeApi.Pokedex]'
-            dex_name, dex, confidence = await self.lookup_name(self.pokeapi.Pokedex, q)
+            dex_name, dex, confidence = await self.lookup_name(self.bot.pokeapi.Pokedex, q)
             if dex_name is None and not is_mine:
                 return None, 0, False, 0
             if dex_name is not None:
-                result = await self.pokeapi.mon_is_in_dex(solution, dex)
+                result = await self.bot.pokeapi.mon_is_in_dex(solution, dex)
                 message = 1
                 item = dex_name
             elif generation > -1:
@@ -440,7 +439,7 @@ class Q20QuestionParser:
                 item = f'Generation {generation}'
             else:
                 region: 'Optional[PokeApi.Region]'
-                region_name, region, confidence = await self.lookup_name(self.pokeapi.Region, q)
+                region_name, region, confidence = await self.lookup_name(self.bot.pokeapi.Region, q)
                 if region_name is None:
                     return None, 0, False, 0
                 result = solution.generation.id == region.id
@@ -506,7 +505,7 @@ class Q20QuestionParser:
                     unknown_tokens.append(word)
             if not is_this_question:
                 return None, 0, False, 0
-            solution_forme = await self.pokeapi.get_default_forme(solution)
+            solution_forme = await self.bot.pokeapi.get_default_forme(solution)
             height = solution_forme.pokemon.height
             if size_literal <= 0:
                 equal_message = 3
@@ -525,9 +524,9 @@ class Q20QuestionParser:
                     name = 'your penis'
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
-                    name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
+                    name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon: 'Optional[PokeApi.PokemonForm]' = await self.pokeapi.get_default_forme(mon)
+                        mon: 'Optional[PokeApi.PokemonForm]' = await self.bot.pokeapi.get_default_forme(mon)
                         size_literal = mon.pokemon.height / 10
                         confidence = confidence_f
             if size_literal > 0:
@@ -588,7 +587,7 @@ class Q20QuestionParser:
                     unknown_tokens.append(word)
             if not is_this_question:
                 return None, 0, False, 0
-            solution_forme = await self.pokeapi.get_default_forme(solution)
+            solution_forme = await self.bot.pokeapi.get_default_forme(solution)
             _weight = solution_forme.pokemon.weight
             if size_literal <= 0:
                 equal_message = 3
@@ -604,9 +603,9 @@ class Q20QuestionParser:
                     name = 'a breadbox'
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
-                    name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
+                    name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon: 'Optional[PokeApi.PokemonForm]' = await self.pokeapi.get_default_forme(mon)
+                        mon: 'Optional[PokeApi.PokemonForm]' = await self.bot.pokeapi.get_default_forme(mon)
                         size_literal = mon.pokemon.weight / 10
                         confidence = confidence_f
             if size_literal > 0:
@@ -637,7 +636,7 @@ class Q20QuestionParser:
             q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, re.I)
             q = re.sub('\s+', '', q)
             _habitat: 'Optional[PokeApi.PokemonHabitat]'
-            name, _habitat, confidence = await self.lookup_name(self.pokeapi.PokemonHabitat, q)
+            name, _habitat, confidence = await self.lookup_name(self.bot.pokeapi.PokemonHabitat, q)
             return name, 0, _habitat == solution.habitat, confidence
 
         async def stats(q):
@@ -699,7 +698,7 @@ class Q20QuestionParser:
                 stat_name = f'Special {stat_name}'
 
             async def get_stat_value(mon: 'PokeApi.PokemonSpecies'):
-                base_stats = await self.pokeapi.get_base_stats(mon)
+                base_stats = await self.bot.pokeapi.get_base_stats(mon)
                 if stat_name == 'Stat Total':
                     return sum(base_stats.values())
                 return base_stats.get(stat_name, 0)
@@ -709,7 +708,7 @@ class Q20QuestionParser:
                 equal_message = 3
                 conglom = ' '.join(unknown_tokens)
                 mon: 'Optional[PokeApi.PokemonSpecies]'
-                name, mon, confidence_f = await self.lookup_name(self.pokeapi.PokemonSpecies, conglom)
+                name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                 if mon:
                     stat_literal = await get_stat_value(mon)
                     confidence = confidence_f
@@ -737,11 +736,11 @@ class Q20QuestionParser:
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(shaped?|form(ed)?|like)', '', q, re.I)
             shape: 'Optional[PokeApi.PokemonShape]'
-            name, shape, confidence = await self.lookup_name(self.pokeapi.PokemonShape, q)
+            name, shape, confidence = await self.lookup_name(self.bot.pokeapi.PokemonShape, q)
             message = 0
             if not name:
                 mon: 'Optional[PokeApi.PokemonSpecies]'
-                name, mon, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+                name, mon, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
                 if not name:
                     return None, 0, False, 0
                 message = 1
@@ -755,8 +754,8 @@ class Q20QuestionParser:
             q = re.sub(r'\b(part|of|egg|group|breeding)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             res: 'Optional[PokeApi.EggGroup]'
-            name, res, confidence = await self.lookup_name(self.pokeapi.EggGroup, q)
-            return name, 0, res and await self.pokeapi.mon_is_in_egg_group(solution, res), confidence
+            name, res, confidence = await self.lookup_name(self.bot.pokeapi.EggGroup, q)
+            return name, 0, res and await self.bot.pokeapi.mon_is_in_egg_group(solution, res), confidence
 
         async def mating(q):
             # owo
@@ -766,19 +765,19 @@ class Q20QuestionParser:
             q = re.sub(r'\b(mate|breed|with|fuck)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             res: 'Optional[PokeApi.PokemonSpecies]'
-            name, res, confidence = await self.lookup_name(self.pokeapi.PokemonSpecies, q)
+            name, res, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
             if not res:
                 return None, 0, False, 0
             if res.is_baby:
                 return name, 0, False, confidence + 0x40000
-            res_is_undiscovered = await self.pokeapi.mon_is_in_undiscovered_egg_group(res)
+            res_is_undiscovered = await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(res)
             if 132 in (solution.id, res.id):
                 return name, 0, solution.id != res.id and not res_is_undiscovered, confidence + 0x10000
             if res_is_undiscovered:
                 return name, 0, False, confidence + 0x20000
-            if await self.pokeapi.mon_is_in_undiscovered_egg_group(solution):
+            if await self.bot.pokeapi.mon_is_in_undiscovered_egg_group(solution):
                 return name, 0, False, confidence
-            return name, 0, await self.pokeapi.mon_can_mate_with(solution, res), confidence
+            return name, 0, await self.bot.pokeapi.mon_can_mate_with(solution, res), confidence
 
         ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
 
