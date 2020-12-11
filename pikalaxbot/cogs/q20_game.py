@@ -834,7 +834,7 @@ class Q20QuestionParser:
                         }.get(_item, 'Sometimes')
                         _flags = 1
                     if _flags & 7 and _item not in ('single', 'dual'):
-                        match_t = ['Sometimes', 'It is immune', 'It is sometimes immune', kappa, kappa, 'It is immune', 'It is sometimes immune'][(_flags & 3) - 1]
+                        match_t = ['Sometimes', 'It is immune', 'It is sometimes immune', kappa, kappa, 'It is immune', 'It is sometimes immune'][(_flags & 7) - 1]
                 elif method == pokedex and _item == 'National':
                     match_t = 'Duh.'
                 elif method in {size, weight} and _message == 4:
