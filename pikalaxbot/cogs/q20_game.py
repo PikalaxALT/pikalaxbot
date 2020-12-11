@@ -926,6 +926,7 @@ class Q20GameObject(GameBase):
         self._state = []
         self.attempts = 0
         self.challenge_mode = False
+        self._plando_maker: Optional[discord.Member] = None
 
     @property
     def state(self):
@@ -938,14 +939,16 @@ class Q20GameObject(GameBase):
                f'{self.state}\n' \
                f'```'
 
-    async def start(self, ctx: commands.Context, *, challenge_mode=False):
+    async def start(self, ctx: commands.Context, *, challenge_mode=False, plando: 'Optional[PokeApi.PokemonSpecies]' = None):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Q20 is already running here.', delete_after=10)
         else:
             pokeapi = self.bot.pokeapi
-            self._solution: pokeapi.PokemonSpecies = await pokeapi.random_pokemon()
+            self._solution: pokeapi.PokemonSpecies = plando or await pokeapi.random_pokemon()
             self.attempts = self._attempts
             self.challenge_mode = challenge_mode
+            if plando:
+                self._plando_maker = ctx.author
             samples = random.sample(self._sample_questions, 3)
             prefix, *_ = await self.bot.get_prefix(ctx.message)
             challenge_message = '\n\n**This is a challenge mode where type-related questions are disabled. Also points are worth double.**' if challenge_mode else ''
@@ -991,6 +994,8 @@ class Q20GameObject(GameBase):
             if ctx.command:
                 await ctx.send('Q20 is not running here.')
             return
+        if self._plando_maker == ctx.author:
+            return await ctx.send('It\'s not fair for you to play!')
         try:
             async with ctx.typing(), thinking(ctx):
                 message, res, valid = await self._parser.parse(question)
@@ -1106,8 +1111,7 @@ class Q20Game(GameCogBase):
                 await ctx.author.send('Umm, what? That ain\'t a Pokémon I recognize...', delete_after=10)
         except asyncio.TimeoutError:
             return await msg.edit(content='You took too long!')
-        await self.game_cmd('start', ctx, challenge_mode=challenge_mode)
-        self[ctx.channel.id]._solution = solution
+        await self.game_cmd('start', ctx, challenge_mode=challenge_mode, plando=solution)
         await msg.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     @GameCogBase.listener()
