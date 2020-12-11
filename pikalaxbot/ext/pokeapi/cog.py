@@ -7,6 +7,7 @@ import aiosqlite
 import contextlib
 import typing
 import time
+import re
 from .models import PokeapiModels
 
 
@@ -212,3 +213,25 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
             value=preevo_str or 'No evolutions'
         )
         await ctx.send(embed=embed)
+
+    @commands.command(usage='<mon>, <move>')
+    async def learn(self, ctx, *, query):
+        """Get whether the given pokemon can learn the given move"""
+        mon_name, move_name = re.split(r', *', query)
+        mon = await self.bot.pokeapi.get_species_by_name(mon_name)
+        if mon is None:
+            return await ctx.send(f'Could not find a Pokémon named "{mon_name}"')
+        async with self.bot.pokeapi.execute("""
+            SELECT COUNT(*)
+            FROM pokemon_v2_pokemonmove pv2pm
+            INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
+            WHERE pokemon_species_id = :id
+            AND is_default = TRUE
+        """, {'id': mon.id}) as cur:
+            if not await cur.fetchone():
+                return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
+        move = await self.bot.pokeapi.get_move_by_name(move_name)
+        if move is None:
+            return await ctx.send(f'Could not find a move named "{move_name}"')
+        flag = 'can' if await self.bot.pokeapi.mon_can_learn_move(mon, move) else 'cannot'
+        await ctx.send(f'{mon} **{flag}** learn {move}.')

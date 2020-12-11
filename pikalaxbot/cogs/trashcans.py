@@ -164,23 +164,23 @@ class Trashcans(GameCogBase):
         """Start a game in the current channel"""
         await self.start(ctx)
 
-    @trashcans.command()
+    @trashcans.command(usage='<y x|yx>')
     async def guess(self, ctx, *, args: converter):
         """Make a guess, if you dare"""
         await self.game_cmd('guess', ctx, *args)
 
-    @commands.command(name='trashguess', aliases=['tgu', 'tg'])
+    @commands.command(name='trashguess', aliases=['tgu', 'tg'], usage='<y x|yx>')
     async def trashcans_guess(self, ctx, *, args: converter):
         """Make a guess, if you dare"""
         await self.guess(ctx, args=args)
 
-    @trashcans.command()
+    @trashcans.command(usage='<y x|yx>')
     @commands.is_owner()
     async def end(self, ctx):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
-    @commands.command(name='trashend', aliases=['te'])
+    @commands.command(name='trashend', aliases=['te'], usage='<y x|yx>')
     @commands.is_owner()
     async def trashcans_end(self, ctx):
         """End the game as a loss (owner only)"""

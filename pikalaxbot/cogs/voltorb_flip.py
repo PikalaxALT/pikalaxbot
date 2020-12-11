@@ -313,22 +313,22 @@ class VoltorbFlip(GameCogBase):
         """Reveal a square and either claim its coins or blow it up"""
         await self.guess(ctx, args=args)
 
-    @voltorb.command()
+    @voltorb.command(usage='<y x|yx>')
     async def flag(self, ctx, *, args: converter):
         """Flag a square"""
         await self.game_cmd('flag', ctx, *args)
 
-    @commands.command(name='voltflag', aliases=['vfl', 'vf'])
+    @commands.command(name='voltflag', aliases=['vfl', 'vf'], usage='[< x|yx>')
     async def voltorb_flag(self, ctx, *, args: converter):
         """Flag a square"""
         await self.flag(ctx, args=args)
 
-    @voltorb.command()
+    @voltorb.command(usage='<y x|yx>')
     async def unflag(self, ctx, *, args: converter):
         """Unflag a square"""
         await self.game_cmd('unflag', ctx, *args)
 
-    @commands.command(name='voltunflag', aliases=['vuf', 'vu'])
+    @commands.command(name='voltunflag', aliases=['vuf', 'vu'], usage='<y x|yx>')
     async def voltorb_unflag(self, ctx, *, args: converter):
         """Unflag a square"""
         await self.unflag(ctx, args=args)
