@@ -143,7 +143,7 @@ class Q20QuestionParser:
         re.compile(r'soft[ -]?boile?d?', re.I): 135,
         re.compile(r'mud[ -]?slap', re.I): 189,
         re.compile(r'lock[ -]?on', re.I): 199,
-        re.compile(r'will?[ -]?o[ -]?wh?isp', re.I): 261,
+        re.compile(r'(will?[ -]?o[ -]?wh?isp|wow)', re.I): 261,
         re.compile(r'super ?power', re.I): 276,
         re.compile(r'wake[ -]?up ?slap', re.I): 358,
         re.compile(r'tail ?wind', re.I): 366,
