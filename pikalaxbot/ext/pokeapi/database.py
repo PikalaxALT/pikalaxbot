@@ -14,7 +14,6 @@ from operator import attrgetter
 
 
 __all__ = 'PokeApi',
-__global_cache__ = {}
 
 
 async def flatten(iterable: AsyncGenerator):
@@ -72,8 +71,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         model = self.resolve_model(model)
         if id_ is None:
             return
-        if (model, id_) in __global_cache__:
-            return __global_cache__[(model, id_)]
         statement = """
         SELECT *
         FROM pokemon_v2_{}
@@ -82,7 +79,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         async with self.replace_row_factory(model) as conn:
             async with conn.execute(statement, {'id': id_}) as cur:
                 result = await cur.fetchone()
-        __global_cache__[(model, id_)] = result
         return result
 
     @acm
@@ -98,11 +94,8 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_all_models(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> List[Any]:
         model = self.resolve_model(model)
-        if model in __global_cache__:
-            return __global_cache__[model]
         async with self.all_models_cursor(model) as cur:
             result = await cur.fetchall()
-        __global_cache__[model] = result
         return result
 
     async def find(self, predicate: Callable[[Any], bool], model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[PokeapiResource]:
@@ -150,8 +143,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         async with self.replace_row_factory(model) as conn:
             async with conn.execute(statement, {'name': name, 'cutoff': cutoff, 'language': self._conn._default_language}) as cur:
                 obj = await cur.fetchone()
-        if obj:
-            __global_cache__[(model, obj.id)] = obj
         return obj
 
     async def get_names_from(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> AsyncGenerator[str, None]:
@@ -171,8 +162,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_random(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[Any]:
         """Generic method to get a random PokeApi object."""
         model = self.resolve_model(model)
-        if model in __global_cache__:
-            return random.choice(__global_cache__[model])
         statement = """
         SELECT *
         FROM pokemon_v2_{}
@@ -181,7 +170,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         async with self.replace_row_factory(model) as conn:
             async with conn.execute(statement) as cur:
                 obj = await cur.fetchone()
-        __global_cache__[(model, obj.id)] = obj
         return obj
     
     async def get_random_name(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> Optional[str]:
