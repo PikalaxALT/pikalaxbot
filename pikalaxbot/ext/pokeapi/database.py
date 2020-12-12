@@ -25,7 +25,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         self._lock = asyncio.Lock()
 
     async def _connect(self) -> "PokeApi":
-        differ = difflib.SequenceMatcher()
+        differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
 
         def fuzzy_ratio(s):
             differ.set_seq1(s.lower())
