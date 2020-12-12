@@ -6,7 +6,6 @@ import json
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
-import random
 import difflib
 from ... import __dirname__
 import asyncio
@@ -28,19 +27,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def _connect(self) -> "PokeApi":
         differ = difflib.SequenceMatcher()
 
-        def is_fuzzy_match(s1, s2, cutoff):
-            differ.set_seq1(s1.lower())
-            differ.set_seq2(s2.lower())
-            return differ.real_quick_ratio() > cutoff and differ.quick_ratio() > cutoff and differ.ratio() > cutoff
-
-        def fuzzy_ratio(s1, s2):
-            differ.set_seq1(s1.lower())
-            differ.set_seq2(s2.lower())
+        def fuzzy_ratio(s):
+            differ.set_seq1(s.lower())
             return min(differ.real_quick_ratio(), differ.quick_ratio(), differ.ratio())
 
         await super()._connect()
-        await self.create_function('IS_FUZZY_MATCH', 3, is_fuzzy_match, deterministic=True)
-        await self.create_function('FUZZY_RATIO', 2, fuzzy_ratio, deterministic=True)
+        await self.create_function('FUZZY_RATIO', 1, fuzzy_ratio, deterministic=True)
+        await self.create_function('SET_FUZZY_SEQ', 1, lambda s: differ.set_seq2(s.lower()))
         return self
 
     @staticmethod
@@ -135,13 +128,14 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_{0} pv2t
-        INNER JOIN pokemon_v2_{0}name pv2n on pv2t.id = pv2n.{1}_id
-        WHERE IS_FUZZY_MATCH(:name, pv2n.name, :cutoff)
+        INNER JOIN pokemon_v2_{0}name pv2n ON pv2t.id = pv2n.{1}_id
+        WHERE FUZZY_RATIO(pv2n.name) > :cutoff
         AND pv2n.language_id = :language
-        ORDER BY FUZZY_RATIO(:name, pv2n.name) DESC
+        ORDER BY FUZZY_RATIO(pv2n.name) DESC
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
         async with self.replace_row_factory(model) as conn:
-            async with conn.execute(statement, {'name': name, 'cutoff': cutoff, 'language': self._conn._default_language}) as cur:
+            await self.execute('SELECT SET_FUZZY_SEQ(:name)', {'name': name})
+            async with conn.execute(statement, {'cutoff': cutoff, 'language': self._conn._default_language}) as cur:
                 obj = await cur.fetchone()
         return obj
 
@@ -290,7 +284,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_mon_matchup_against_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
-        result = 1
         statement = """
         SELECT damage_factor
         FROM pokemon_v2_typeefficacy
@@ -300,15 +293,40 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         AND damage_type_id = :damage_type
         AND is_default = TRUE
         """
-        async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'damage_type': type_.id, 'mon_id': mon.id}) as cur:
-                async for damage_factor, in cur:
-                    result *= damage_factor / 100
+        result = 1
+
+        def factory(_, row):
+            nonlocal result
+            result *= row[0] / 100
+
+        async with self.replace_row_factory(factory) as conn:
+            await conn.execute_fetchall(statement, {'damage_type': type_.id, 'mon_id': mon.id})
         return result
 
     async def get_mon_matchup_against_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> float:
         """Calculates whether a move is effective or not against a mon"""
-        return await self.get_mon_matchup_against_type(mon, move.type)
+        if move.id == 560:  # Flying Press
+            statement = """
+            SELECT damage_factor
+            FROM pokemon_v2_typeefficacy
+            INNER JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
+            INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
+            WHERE pokemon_species_id = :mon_id
+            AND damage_type_id IN (2, 3)
+            AND is_default = TRUE
+            """
+            result = 1.
+
+            def factory(_, row):
+                nonlocal result
+                result *= row[0] / 100
+
+            async with self.replace_row_factory(factory) as conn:
+                await conn.execute_fetchall(statement, {'mon_id': mon.id})
+            result = result and min(max(result, 0.5), 2)
+        else:
+            result = await self.get_mon_matchup_against_type(mon, move.type)
+        return result
 
     async def get_mon_matchup_against_mon(self, mon: PokeapiModels.PokemonSpecies, mon2: PokeapiModels.PokemonSpecies) -> List[float]:
         """For each type mon2 has, determines its effectiveness against mon"""
@@ -326,10 +344,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         AND p2.is_default = TRUE
         """
         result = collections.defaultdict(lambda: 1)
-        async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'mon2_id': mon2.id, 'mon_id': mon.id}) as cur:
-                async for damage_factor, damage_type_id in cur:
-                    result[damage_type_id] *= damage_factor / 100
+
+        def factory(_, row):
+            result[row[1]] *= row[0] / 100
+            return row
+
+        async with self.replace_row_factory(factory) as conn:
+            await conn.execute_fetchall(statement, {'mon2_id': mon2.id, 'mon_id': mon.id})
         return list(result.values())
 
     async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
@@ -540,7 +561,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonstat
-        INNER JOIN pokemon_v2_pokemon pv2p on pokemon_v2_pokemonstat.pokemon_id = pv2p.id
+        INNER JOIN pokemon_v2_pokemon pv2p ON pokemon_v2_pokemonstat.pokemon_id = pv2p.id
         WHERE pokemon_species_id = :id
         AND is_default = TRUE
         """

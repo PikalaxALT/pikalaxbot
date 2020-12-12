@@ -351,9 +351,6 @@ class Q20QuestionParser:
                         name, _move, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
                         if _move:
                             testeffect = await self.bot.pokeapi.get_mon_matchup_against_move(solution, _move)
-                            if _move.id == 560:  # Flying Press
-                                extra_type = await self.bot.pokeapi.get_model_named('Type', 'Flying')
-                                testeffect *= await self.bot.pokeapi.get_mon_matchup_against_type(solution, extra_type)
                             message = 3 + (typeeffect < 0)
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
