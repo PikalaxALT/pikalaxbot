@@ -33,7 +33,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
         await super()._connect()
         await self.create_function('FUZZY_RATIO', 1, fuzzy_ratio, deterministic=True)
-        await self.create_function('SET_FUZZY_SEQ', 1, lambda s: differ.set_seq2(s.lower()))
+        await self.create_function('SET_FUZZY_SEQ', 1, lambda s: differ.set_seq2(s.lower()), deterministic=True)
         return self
 
     @staticmethod
