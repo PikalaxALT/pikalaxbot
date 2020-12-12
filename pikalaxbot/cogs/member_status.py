@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-from collections import Counter, defaultdict
+from collections import Counter
 from . import BaseCog
 import time
 import datetime

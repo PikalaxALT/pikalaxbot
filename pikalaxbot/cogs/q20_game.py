@@ -1019,6 +1019,8 @@ class Q20GameObject(GameBase):
 
 
 class Q20Game(GameCogBase):
+    """Commands related to playing Pokemon Q20."""
+
     gamecls = Q20GameObject
 
     def cog_check(self, ctx):

@@ -68,6 +68,8 @@ class SqlResponseEmbed(menus.ListPageSource):
 
 
 class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
+    """Commands relating to the bot's local clone of the PokeAPI database."""
+
     def __init__(self, bot):
         self.bot = bot
         self._lock = asyncio.Lock()
