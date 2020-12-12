@@ -224,13 +224,15 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{mon_name}"')
         async with self.bot.pokeapi.execute("""
-            SELECT COUNT(*)
+        SELECT EXISTS(
+            SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
             INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
             WHERE pokemon_species_id = :id
             AND is_default = TRUE
+        )
         """, {'id': mon.id}) as cur:
-            if not await cur.fetchone():
+            if not (await cur.fetchone())[0]:
                 return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         move = await self.bot.pokeapi.get_move_by_name(move_name)
         if move is None:
