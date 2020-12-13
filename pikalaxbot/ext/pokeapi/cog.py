@@ -225,7 +225,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
         paginator = commands.Paginator()
-        async with self.bot.pokeapi.replace_row_factory('PokemonMove') as conn:
+        async with self.bot.pokeapi.replace_row_factory(self.bot.pokeapi.PokemonMove) as conn:
             async with conn.execute("""
             SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
