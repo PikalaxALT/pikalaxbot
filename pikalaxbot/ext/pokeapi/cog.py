@@ -246,7 +246,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                         embed.add_field(
                             name=str(movelearn.move),
                             value=f'Method: {method}\n'
-                                  f'{movelearn.version_group._name.title().replace("-", ", ")}'
+                                  f'{movelearn.version_group.generation}'
                         )
                     return embed
 
