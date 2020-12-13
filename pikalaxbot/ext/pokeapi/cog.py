@@ -246,7 +246,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                         embed.add_field(
                             name=str(movelearn.move),
                             value=f'Method: {method}\n'
-                                  f'{movelearn.version_group.name.title().replace("-", ", ")}'
+                                  f'{movelearn.version_group._name.title().replace("-", ", ")}'
                         )
                     return embed
 
@@ -256,5 +256,5 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             move = await self.bot.pokeapi.get_move_by_name(query[1])
             if move is None:
                 return await ctx.send(f'Could not find a move named "{query[1]}"')
-            flag = 'can' if await self.bot.pokeapi.mon_can_learn_move(mon, move) else 'cannot'
+            flag = 'can' if any(ml.move == move for ml in movelearns) else 'cannot'
             await ctx.send(f'{mon} **{flag}** learn {move}.')
