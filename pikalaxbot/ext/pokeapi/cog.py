@@ -224,32 +224,34 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         mon = await self.bot.pokeapi.get_species_by_name(query[0])
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
-        paginator = commands.Paginator()
-        async with self.bot.pokeapi.replace_row_factory(self.bot.pokeapi.PokemonMove) as conn:
-            async with conn.execute("""
+        movelearns = []
+        async with self.bot.pokeapi.replace_row_factory(PokeapiModels.PokemonMove) as conn:
+            movelearns = await conn.execute_fetchall("""
             SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
             INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
             WHERE pokemon_species_id = :id
             AND is_default = TRUE
-            """, {'id': mon.id}) as cur:
-                async for row in cur:  # type: PokeapiModels.PokemonMove
-                    if row.move_learn_method.id == 1:
-                        method = f'Level {row.level}'
-                    else:
-                        method = str(row.move_learn_method)
-                    paginator.add_line(f'**{row.move}**: {method} in {row.version_group.generation}')
-                if not paginator.pages:
-                    return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
+            ORDER BY version_group_id, 'order'
+            """, {'id': mon.id})
+        if not movelearns:
+            return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         if len(query) == 1:
             class MoveLearnPageSource(menus.ListPageSource):
-                async def format_page(self, menu, page):
-                    return discord.Embed(
-                        title=f'{mon}\'s learnset',
-                        description=page
+                async def format_page(self, menu, page: list[PokeapiModels.PokemonMove]):
+                    embed = discord.Embed(
+                        title=f'{mon}\'s learnset'
                     ).set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
+                    for movelearn in page:
+                        method = f'Level {movelearn.level}' if movelearn.move_learn_method.id == 1 else str(movelearn.move_learn_method)
+                        embed.add_field(
+                            name=str(movelearn.move),
+                            value=f'Method: {method}\n'
+                                  f'{movelearn.version_group}'
+                        )
+                    return embed
 
-            menu = menus.MenuPages(MoveLearnPageSource(paginator.pages, per_page=1), clear_reactions_after=True, delete_message_after=True)
+            menu = menus.MenuPages(MoveLearnPageSource(movelearns, per_page=12), clear_reactions_after=True, delete_message_after=True)
             await menu.start(ctx)
         else:
             move = await self.bot.pokeapi.get_move_by_name(query[1])
