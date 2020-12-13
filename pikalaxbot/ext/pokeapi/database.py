@@ -673,3 +673,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             async with conn.execute(statement, {'id': mon.id}) as cur:
                 result, = await cur.fetchone()
         return bool(result)
+
+    async def get_versions_in_group(self, grp: PokeapiModels.VersionGroup) -> List[PokeapiModels.Version]:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_version
+        WHERE version_group_id = :vgid
+        """
+        async with self.replace_row_factory(PokeapiModels.Version) as conn:
+            result = await conn.execute_fetchall(statement, {'vgid': grp.id})
+        return result

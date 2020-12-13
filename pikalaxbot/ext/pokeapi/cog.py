@@ -8,6 +8,7 @@ import contextlib
 import typing
 import time
 import re
+import itertools
 from .models import PokeapiModels
 
 
@@ -225,36 +226,51 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
         async with self.bot.pokeapi.replace_row_factory(PokeapiModels.PokemonMove) as conn, ctx.typing():
-            movelearns = await conn.execute_fetchall("""
+            movelearns = {
+                move: list(group)
+                for move, group in itertools.groupby(await conn.execute_fetchall("""
             SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
             INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
+            INNER JOIN pokemon_v2_versiongroup pv2v on pv2v.id = pv2pm.version_group_id
             WHERE pokemon_species_id = :id
             AND is_default = TRUE
-            ORDER BY version_group_id, move_learn_method_id, 'pv2pm.order', pv2pm.level
-            """, {'id': mon.id})
+            GROUP BY pv2pm.move_id, pv2v.generation_id, pv2v.id, move_learn_method_id, pv2pm.level
+            """, {'id': mon.id}), lambda ml: ml.move)}
         if not movelearns:
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         if len(query) == 1:
+            types = await self.bot.pokeapi.get_mon_types(mon)
             class MoveLearnPageSource(menus.ListPageSource):
-                async def format_page(self, menu, page: list[PokeapiModels.PokemonMove]):
+                async def format_page(self, menu: menus.MenuPages, page: list[PokeapiModels.PokemonMove]):
                     embed = discord.Embed(
-                        title=f'{mon}\'s learnset'
+                        title=f'{mon}\'s learnset',
+                        colour=TYPE_COLORS[types[0].name]
                     ).set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
-                    for movelearn in page:
-                        method = f'Level {movelearn.level}' if movelearn.move_learn_method.id == 1 else str(movelearn.move_learn_method)
+                    for move, movelearns in page:
+                        value = '\n'.join(
+                            f'**{gen}:** ' + ', '.join(set(
+                                f'Level {ml.level}'
+                                if ml.move_learn_method.id == 1
+                                else str(ml.move_learn_method)
+                                for ml in mls))
+                            for gen, mls
+                            in itertools.groupby(
+                                movelearns,
+                                lambda ml: ml.version_group.generation
+                            )
+                        )
                         embed.add_field(
-                            name=str(movelearn.move),
-                            value=f'Method: {method}\n'
-                                  f'{movelearn.version_group.generation}'
+                            name=str(move),
+                            value=value
                         )
                     return embed
 
-            menu = menus.MenuPages(MoveLearnPageSource(movelearns, per_page=12), clear_reactions_after=True, delete_message_after=True)
+            menu = menus.MenuPages(MoveLearnPageSource(list(movelearns.items()), per_page=6), clear_reactions_after=True, delete_message_after=True)
             await menu.start(ctx)
         else:
             move = await self.bot.pokeapi.get_move_by_name(query[1])
             if move is None:
                 return await ctx.send(f'Could not find a move named "{query[1]}"')
-            flag = 'can' if any(ml.move == move for ml in movelearns) else 'cannot'
+            flag = 'can' if move in movelearns else 'cannot'
             await ctx.send(f'{mon} **{flag}** learn {move}.')
