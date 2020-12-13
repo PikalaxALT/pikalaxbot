@@ -67,7 +67,7 @@ class SqlResponseEmbed(menus.ListPageSource):
         )
 
 
-class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
+class PokeApiCog(commands.Cog, name='PokeApi'):
     """Commands relating to the bot's local clone of the PokeAPI database."""
 
     def __init__(self, bot):
@@ -219,26 +219,41 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
     @commands.command(usage='<mon>, <move>')
     async def learn(self, ctx, *, query: re.compile(r', *').split):
         """Get whether the given pokemon can learn the given move"""
-        try:
-            mon_name, move_name = query
-        except ValueError as e:
-            raise commands.BadArgument('mon, move') from e
-        mon = await self.bot.pokeapi.get_species_by_name(mon_name)
+        if len(query) > 2:
+            raise commands.BadArgument('mon, move')
+        mon = await self.bot.pokeapi.get_species_by_name(query[0])
         if mon is None:
-            return await ctx.send(f'Could not find a Pokémon named "{mon_name}"')
-        async with self.bot.pokeapi.execute("""
-        SELECT EXISTS(
+            return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
+        paginator = commands.Paginator()
+        async with self.bot.pokeapi.replace_row_factory('PokemonMove') as conn:
+            async with conn.execute("""
             SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
             INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
             WHERE pokemon_species_id = :id
             AND is_default = TRUE
-        )
-        """, {'id': mon.id}) as cur:
-            if not (await cur.fetchone())[0]:
-                return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
-        move = await self.bot.pokeapi.get_move_by_name(move_name)
-        if move is None:
-            return await ctx.send(f'Could not find a move named "{move_name}"')
-        flag = 'can' if await self.bot.pokeapi.mon_can_learn_move(mon, move) else 'cannot'
-        await ctx.send(f'{mon} **{flag}** learn {move}.')
+            """, {'id': mon.id}) as cur:
+                async for row in cur:  # type: PokeapiModels.PokemonMove
+                    if row.move_learn_method.id == 1:
+                        method = f'Level {row.level}'
+                    else:
+                        method = str(row.move_learn_method)
+                    paginator.add_line(f'**{row.move}**: {method} in {row.version_group.generation}')
+                if not paginator.pages:
+                    return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
+        if len(query) == 1:
+            class MoveLearnPageSource(menus.ListPageSource):
+                async def format_page(self, menu, page):
+                    return discord.Embed(
+                        title=f'{mon}\'s learnset',
+                        description=page
+                    ).set_footer(text=f'Page {menu.current_page + 1}/{self.get_max_pages()}')
+
+            menu = menus.MenuPages(MoveLearnPageSource(paginator.pages, per_page=1), clear_reactions_after=True, delete_message_after=True)
+            await menu.start(ctx)
+        else:
+            move = await self.bot.pokeapi.get_move_by_name(query[1])
+            if move is None:
+                return await ctx.send(f'Could not find a move named "{query[1]}"')
+            flag = 'can' if await self.bot.pokeapi.mon_can_learn_move(mon, move) else 'cannot'
+            await ctx.send(f'{mon} **{flag}** learn {move}.')
