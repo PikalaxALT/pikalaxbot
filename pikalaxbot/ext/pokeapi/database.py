@@ -369,10 +369,10 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
-    async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> Set[PokeapiModels.Move]:
+    async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Move]:
         """Returns a list of all the moves the Pokemon can learn"""
         statement = """
-        SELECT *
+        SELECT DISTINCT *
         FROM pokemon_v2_move
         INNER JOIN pokemon_v2_pokemonmove pv2p ON pokemon_v2_move.id = pv2p.move_id
         INNER JOIN pokemon_v2_pokemon pv2p2 ON pv2p.pokemon_id = pv2p2.id
@@ -381,7 +381,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
         async with self.replace_row_factory(PokeapiModels.Move) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
-        return set(result)
+        return result
     
     async def mon_can_learn_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> bool:
         """Returns whether a move is in the Pokemon's learnset"""
@@ -554,21 +554,22 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             'versions/generation-vii/ultra-sun-ultra-moon/front_default',
             'versions/generation-viii/icons/front_default',
         ]
-        for name in attempts:
-            if path := await self.get_sprite_url(poke, name):
-                return path
+        for path in filter(None, (await self.get_sprite_url(poke, name) for name in attempts)):
+            return path
 
     async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
         statement = """
-        SELECT *
-        FROM pokemon_v2_pokemonstat
-        INNER JOIN pokemon_v2_pokemon pv2p ON pokemon_v2_pokemonstat.pokemon_id = pv2p.id
-        WHERE pokemon_species_id = :id
-        AND is_default = TRUE
+        SELECT pv2sn.name, pv2ps.base_stat
+        FROM pokemon_v2_pokemonstat pv2ps
+        INNER JOIN pokemon_v2_pokemon pv2p ON pv2ps.pokemon_id = pv2p.id
+        INNER JOIN pokemon_v2_statname pv2sn ON pv2ps.stat_id = pv2sn.stat_id
+        WHERE pv2p.pokemon_species_id = 25
+        AND pv2p.is_default = TRUE
+        AND pv2sn.language_id = 9
         """
-        async with self.replace_row_factory(PokeapiModels.PokemonStat) as conn:
-            async with conn.execute(statement, {'id': mon.id}) as cur:
-                return {pstat.stat.name: pstat.base_stat async for pstat in cur}
+        async with self.replace_row_factory(None) as conn:
+            result = await conn.execute(statement, {'id': mon.id})
+        return dict(result)
 
     async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.EggGroup]:
         statement = """
