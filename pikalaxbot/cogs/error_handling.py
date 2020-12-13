@@ -32,13 +32,14 @@ class ErrorHandling(BaseCog):
             embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
         await self.bot.send_tb(content, embed=embed)
 
-    async def handle_command_error(self, ctx, exc):
+    async def handle_command_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.MissingRequiredArgument):
             msg = f'`{exc.param}` is a required argument that is missing.'
         elif isinstance(exc, commands.TooManyArguments):
             msg = f'Too many arguments for `{ctx.command}`'
         elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
             msg = f'Got a bad argument for `{ctx.command}`: {exc}'
+            await ctx.send_help(ctx.command)
         elif isinstance(exc, CogOperationError):
             for cog, original in exc.cog_errors.items():
                 if not original:

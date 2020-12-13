@@ -1,6 +1,6 @@
 import aiosqlite
 import re
-from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping, AsyncGenerator
+from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type
 import collections
 import json
 from sqlite3 import Cursor
@@ -13,6 +13,7 @@ from operator import attrgetter
 
 
 __all__ = 'PokeApi',
+RowFactory = Union[Type[PokeapiResource], Callable[[Cursor, Tuple[Any]], Any]]
 
 
 async def flatten(iterable: AsyncGenerator):
@@ -45,7 +46,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     # Generic getters
 
     @acm
-    async def replace_row_factory(self, factory: Optional[Callable[[Cursor, Tuple[Any]], Any]]) -> 'PokeApi':
+    async def replace_row_factory(self, factory: Optional[RowFactory]) -> 'PokeApi':
         if self._connection is None:
             await self._connect()
         async with self._lock:
@@ -54,13 +55,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             yield self
             self.row_factory = old_factory
 
-    def resolve_model(self, model: Union[str, Callable[[Cursor, Tuple[Any]], Any]]) -> Callable[[Cursor, Tuple[Any]], Any]:
+    def resolve_model(self, model: Union[str, Type[PokeapiResource]]) -> Type[PokeapiResource]:
         if isinstance(model, str):
             model = getattr(self, model)
         assert issubclass(model, PokeapiResource)
         return model
 
-    async def get_model(self, model: Callable[[Cursor, Tuple[Any]], Any], id_: int) -> Optional[Any]:
+    async def get_model(self, model: Type[PokeapiResource], id_: int) -> Optional[Any]:
         model = self.resolve_model(model)
         if id_ is None:
             return
@@ -75,7 +76,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         return result
 
     @acm
-    async def all_models_cursor(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> aiosqlite.Cursor:
+    async def all_models_cursor(self, model: Type[PokeapiResource]) -> aiosqlite.Cursor:
         model = self.resolve_model(model)
         statement = """
         SELECT *
@@ -85,20 +86,20 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             async with conn.execute(statement) as cur:
                 yield cur
 
-    async def get_all_models(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> List[Any]:
+    async def get_all_models(self, model: Type[PokeapiResource]) -> List[Any]:
         model = self.resolve_model(model)
         async with self.all_models_cursor(model) as cur:
             result = await cur.fetchall()
         return result
 
-    async def find(self, predicate: Callable[[Any], bool], model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[PokeapiResource]:
+    async def find(self, predicate: Callable[[Any], bool], model: Type[PokeapiResource]) -> Optional[PokeapiResource]:
         async with self.all_models_cursor(model) as seq:
             async for element in seq:  # type: PokeapiResource
                 if predicate(element):
                     return element
             return None
 
-    async def filter(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> AsyncGenerator[Any, None]:
+    async def filter(self, model: Type[PokeapiResource], **attrs) -> AsyncGenerator[Any, None]:
         _all = all
         attrget = attrgetter
         async with self.all_models_cursor(model) as iterable:
@@ -119,11 +120,11 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
                 if _all(pred(elem) == value for pred, value in converted):
                     yield elem
 
-    async def get(self, model: Callable[[Cursor, Tuple[Any]], Any], **attrs) -> Optional[Any]:
+    async def get(self, model: Type[PokeapiResource], **attrs) -> Optional[Any]:
         async for item in self.filter(model, **attrs):
             return item
 
-    async def get_model_named(self, model: Callable[[Cursor, Tuple[Any]], Any], name: str, *, cutoff=0.9) -> Optional[Any]:
+    async def get_model_named(self, model: Type[PokeapiResource], name: str, *, cutoff=0.9) -> Optional[Any]:
         model = self.resolve_model(model)
         statement = """
         SELECT *
@@ -139,7 +140,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
 
-    async def get_names_from(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> AsyncGenerator[str, None]:
+    async def get_names_from(self, table: Type[PokeapiResource], *, clean=False) -> AsyncGenerator[str, None]:
         """Generic method to get a list of all names from a PokeApi table."""
         async with self.all_models_cursor(table) as cur:
             async for obj in cur:
@@ -148,12 +149,12 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
         return self._clean_name(item.name) if clean else item.name
 
-    async def get_name_by_id(self, model: Callable[[Cursor, Tuple[Any]], Any], id_: int, *, clean=False):
+    async def get_name_by_id(self, model: Type[PokeapiResource], id_: int, *, clean=False):
         """Generic method to get the name of a PokeApi object given only its ID."""
         obj = await self.get_model(model, id_)
         return obj and self.get_name(obj, clean=clean)
 
-    async def get_random(self, model: Callable[[Cursor, Tuple[Any]], Any]) -> Optional[Any]:
+    async def get_random(self, model: Type[PokeapiResource]) -> Optional[Any]:
         """Generic method to get a random PokeApi object."""
         model = self.resolve_model(model)
         statement = """
@@ -166,7 +167,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
     
-    async def get_random_name(self, table: Callable[[Cursor, Tuple[Any]], Any], *, clean=False) -> Optional[str]:
+    async def get_random_name(self, table: Type[PokeapiResource], *, clean=False) -> Optional[str]:
         """Generic method to get a random PokeApi object name."""
         obj = await self.get_random(table)
         return obj and self.get_name(obj, clean=clean)

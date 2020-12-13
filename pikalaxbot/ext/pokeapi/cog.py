@@ -217,9 +217,9 @@ class PokeApiCog(commands.Cog, name='PokeApi', command_attrs={'hidden': True}):
         await ctx.send(embed=embed)
 
     @commands.command(usage='<mon>, <move>')
-    async def learn(self, ctx, *, query):
+    async def learn(self, ctx, *, query: re.compile(r', *').split):
         """Get whether the given pokemon can learn the given move"""
-        mon_name, move_name = re.split(r', *', query)
+        mon_name, move_name = query
         mon = await self.bot.pokeapi.get_species_by_name(mon_name)
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{mon_name}"')
