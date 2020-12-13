@@ -231,7 +231,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
             WHERE pokemon_species_id = :id
             AND is_default = TRUE
-            ORDER BY version_group_id, 'order'
+            ORDER BY version_group_id, move_learn_method_id, 'pv2pm.order', pv2pm.level
             """, {'id': mon.id})
         if not movelearns:
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
