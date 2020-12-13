@@ -224,8 +224,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         mon = await self.bot.pokeapi.get_species_by_name(query[0])
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
-        movelearns = []
-        async with self.bot.pokeapi.replace_row_factory(PokeapiModels.PokemonMove) as conn:
+        async with self.bot.pokeapi.replace_row_factory(PokeapiModels.PokemonMove) as conn, ctx.typing():
             movelearns = await conn.execute_fetchall("""
             SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
@@ -247,7 +246,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                         embed.add_field(
                             name=str(movelearn.move),
                             value=f'Method: {method}\n'
-                                  f'{movelearn.version_group}'
+                                  f'{movelearn.version_group.name.title().replace("-", ", ")}'
                         )
                     return embed
 
