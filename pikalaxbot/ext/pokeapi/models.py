@@ -17,9 +17,6 @@ __all__ = (
 class PokeApiConnection(Connection):
     _default_language = 9
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @contextmanager
     def replace_row_factory(self, factory: Optional[Callable[[Cursor, Tuple[Any]], Any]]):
         old_factory = self.row_factory

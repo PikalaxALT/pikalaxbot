@@ -13,6 +13,7 @@ from operator import attrgetter
 
 __all__ = 'PokeApi',
 RowFactory = Union[Type[PokeapiResource], Callable[[Cursor, Tuple[Any]], Any]]
+differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
 
 
 async def flatten(iterable: AsyncGenerator):
@@ -31,8 +32,6 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         await self._execute(self._conn.create_collation, name, callable)
 
     async def _connect(self) -> "PokeApi":
-        differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
-
         def fuzzy_ratio(s):
             differ.set_seq1(s.lower())
             return min(differ.real_quick_ratio(), differ.quick_ratio(), differ.ratio())
