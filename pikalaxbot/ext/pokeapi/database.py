@@ -1,7 +1,6 @@
 import aiosqlite
 import re
-from typing import Coroutine, Optional, List, Set, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type
-import collections
+from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type
 import json
 from sqlite3 import Cursor
 from .models import *
