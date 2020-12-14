@@ -558,8 +558,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             'versions/generation-vii/ultra-sun-ultra-moon/front_default',
             'versions/generation-viii/icons/front_default',
         ]
-        for path in filter(None, (await self.get_sprite_url(poke, name) for name in attempts)):
-            return path
+        for name in attempts:
+            if path := await self.get_sprite_url(poke, name):
+                return path
 
     async def get_base_stats(self, mon: PokeapiModels.PokemonSpecies) -> Mapping[str, int]:
         statement = """
