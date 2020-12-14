@@ -290,7 +290,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         for fullterm in query:
             notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
             joiner = 'EXCEPT' if notsearch else 'INTERSECT'
-            if m := re.match(r'^(g(en)?)?([1-8])$', term, re.I):
+            if m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
                 gen = int(m[3])
                 statement += joiner + """
                 SELECT pv2psn.name
