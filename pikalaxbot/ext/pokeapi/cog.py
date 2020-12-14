@@ -280,6 +280,8 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
 
     @commands.command(aliases=['ds'], usage='<term[, term[, ...]]>')
     async def dexsearch(self, ctx, *, query: CommaSeparatedArgs):
+        """Search the pokedex. Valid terms: generation, move, ability, type, color, mega, monotype, gigantamax, fully evolved"""
+
         statement = """
         SELECT name FROM pokemon_v2_pokemonspeciesname WHERE language_id = 9
         """
