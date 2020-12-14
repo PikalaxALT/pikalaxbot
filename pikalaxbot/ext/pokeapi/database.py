@@ -25,6 +25,12 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
 
+    async def create_aggregate(self, name: str, num_params: int, aggregate_class: type) -> None:
+        await self._execute(self._conn.create_aggregate, name, num_params, aggregate_class)
+
+    async def create_collation(self, name: str, callable: Callable[[str, str], int]) -> None:
+        await self._execute(self._conn.create_collation, name, callable)
+
     async def _connect(self) -> "PokeApi":
         differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
 
@@ -32,9 +38,20 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             differ.set_seq1(s.lower())
             return min(differ.real_quick_ratio(), differ.quick_ratio(), differ.ratio())
 
+        class Product:
+            def __init__(self):
+                self.result = 1
+
+            def step(self, value):
+                self.result *= value
+
+            def finalize(self):
+                return self.result
+
         await super()._connect()
         await self.create_function('FUZZY_RATIO', 1, fuzzy_ratio, deterministic=True)
         await self.create_function('SET_FUZZY_SEQ', 1, lambda s: differ.set_seq2(s.lower()), deterministic=True)
+        await self.create_aggregate('PRODUCT', 1, Product)
         return self
 
     @staticmethod
@@ -286,7 +303,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_mon_matchup_against_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
         statement = """
-        SELECT damage_factor
+        SELECT PRODUCT(damage_factor / 100.0)
         FROM pokemon_v2_typeefficacy
         INNER JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
         INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
@@ -294,21 +311,17 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         AND damage_type_id = :damage_type
         AND is_default = TRUE
         """
-        result = 1
 
-        def factory(_, row):
-            nonlocal result
-            result *= row[0] / 100
-
-        async with self.replace_row_factory(factory) as conn:
-            await conn.execute_fetchall(statement, {'damage_type': type_.id, 'mon_id': mon.id})
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'damage_type': type_.id, 'mon_id': mon.id}) as cur:
+                result, = await cur.fetchone()
         return result
 
     async def get_mon_matchup_against_move(self, mon: PokeapiModels.PokemonSpecies, move: PokeapiModels.Move) -> float:
         """Calculates whether a move is effective or not against a mon"""
         if move.id == 560:  # Flying Press
             statement = """
-            SELECT damage_factor
+            SELECT PRODUCT(damage_factor / 100.0)
             FROM pokemon_v2_typeefficacy
             INNER JOIN pokemon_v2_pokemontype pv2t ON pv2t.type_id = pokemon_v2_typeefficacy.target_type_id
             INNER JOIN pokemon_v2_pokemon pv2p ON pv2p.id = pv2t.pokemon_id
@@ -316,14 +329,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             AND damage_type_id IN (2, 3)
             AND is_default = TRUE
             """
-            result = 1.
-
-            def factory(_, row):
-                nonlocal result
-                result *= row[0] / 100
-
-            async with self.replace_row_factory(factory) as conn:
-                await conn.execute_fetchall(statement, {'mon_id': mon.id})
+            async with self.replace_row_factory(None) as conn:
+                async with conn.execute(statement, {'mon_id': mon.id}) as cur:
+                    result, = await cur.fetchone()
             result = result and min(max(result, 0.5), 2)
         else:
             result = await self.get_mon_matchup_against_type(mon, move.type)
@@ -333,7 +341,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """For each type mon2 has, determines its effectiveness against mon"""
 
         statement = """
-        SELECT damage_factor, damage_type_id
+        SELECT PRODUCT(damage_factor / 100.0)
         FROM pokemon_v2_typeefficacy
         INNER JOIN pokemon_v2_pokemontype pv2t ON pokemon_v2_typeefficacy.damage_type_id = pv2t.type_id
         INNER JOIN pokemon_v2_pokemontype pv2t2 ON pokemon_v2_typeefficacy.target_type_id = pv2t2.type_id
@@ -343,16 +351,12 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         AND p.is_default = TRUE
         AND p2.pokemon_species_id = :mon_id
         AND p2.is_default = TRUE
+        GROUP BY pokemon_v2_typeefficacy.damage_type_id
         """
-        result = collections.defaultdict(lambda: 1)
 
-        def factory(_, row):
-            result[row[1]] *= row[0] / 100
-            return row
-
-        async with self.replace_row_factory(factory) as conn:
-            await conn.execute_fetchall(statement, {'mon2_id': mon2.id, 'mon_id': mon.id})
-        return list(result.values())
+        async with self.replace_row_factory(None) as conn:
+            result = await conn.execute_fetchall(statement, {'mon2_id': mon2.id, 'mon_id': mon.id})
+        return result
 
     async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
         """Get the species the given Pokemon evoles from"""
