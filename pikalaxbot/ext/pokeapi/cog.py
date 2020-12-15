@@ -454,7 +454,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 HAVING SUM(pv2pst.base_stat) {} ?
                 """.format(m['ineq'])
                 args += (m['value'],)
-            elif m := re.match(r'^(?P<measure>height|weight)\s*(?P<ineq>[<>!]?=|[<>])\s+(?P<amount>(\d+(\.\d+)?|\.\d+)\s*(m(eters?)?|k(ilo)?g(rams?)?)?)', term, re.I):
+            elif m := re.match(r'^(?P<measure>height|weight)\s*(?P<ineq>[<>!]?=|[<>])\s+(?P<amount>(\d+(\.\d+)?|\.\d+))\s*(?P<units>(m(eters?)?|k(ilo)?g(rams?)?)?)', term, re.I):
                 statement += joiner + """
                 SELECT pv2psn.name
                 FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -489,6 +489,14 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 args += (type_.id,)
                 if is_flying_press:
                     args += (3,)
+            elif re.match(r'^legend(ary)?$', term, re.I):
+                statement += joiner + """
+                SELECT pv2psn.name
+                FROM pokemon_v2_pokemonspeciesname pv2psn
+                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                WHERE pv2psn.language_id = 9
+                AND pv2ps.is_legendary = TRUE
+                """
             else:
                 return await ctx.send(f'I did not understand your query (first unrecognized term: {fullterm})')
         # print(statement)
