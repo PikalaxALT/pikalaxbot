@@ -1,7 +1,6 @@
 import aiosqlite
 import re
 from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type
-import json
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
@@ -520,20 +519,13 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
     async def get_sprite_path(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
         statement = """
-        SELECT sprites
+        SELECT JSON_EXTRACT(sprites, :path)
         FROM pokemon_v2_pokemonsprites
         WHERE pokemon_id = :id
         """
         async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'id': mon.id}) as cur:
-                path = json.loads(*(await cur.fetchone()))
-        for entry in name.split('/'):
-            try:
-                path = path[entry]
-            except (KeyError, TypeError):
-                return None
-        if isinstance(path, (dict, list)):
-            path = None
+            async with conn.execute(statement, {'id': mon.id, 'path': name}) as cur:
+                path, = await cur.fetchone()
         return path
 
     async def get_sprite_local_path(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
@@ -552,9 +544,9 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         forme = await self.get_default_forme(mon)
         poke = forme.pokemon
         attempts = [
-            'front_default',
-            'versions/generation-vii/ultra-sun-ultra-moon/front_default',
-            'versions/generation-viii/icons/front_default',
+            '$.front_default',
+            '$.versions.generation-vii.ultra-sun-ultra-moon.front_default',
+            '$.versions.generation-viii.icons.front_default',
         ]
         for name in attempts:
             if path := await self.get_sprite_url(poke, name):
