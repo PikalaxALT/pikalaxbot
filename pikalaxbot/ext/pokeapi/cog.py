@@ -290,231 +290,232 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         show_all = False
         type_pat = re.compile(r'\s*type$', re.I)
         egg_group_pat = re.compile('\s*egg\s*group$', re.I)
-        for fullterm in query:
-            notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
-            joiner = 'EXCEPT' if notsearch else 'INTERSECT'
-            if term.lower() == 'all':
-                if ctx.guild:
-                    return await ctx.send('The "all" keyword is not allowed in a guild channel. Use this command in DMs instead.')
-                if len(set(query)) == 1:
-                    return await ctx.send('No search terms other than "all" were found. ')
-                show_all = True
-            elif m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
-                gen = int(m[3])
-                if seen_gen and not notsearch:
-                    joiner = 'UNION'
-                seen_gen = True
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonspecies pv2ps on pv2psn.pokemon_species_id = pv2ps.id
-                WHERE pv2ps.generation_id = ?
-                AND pv2psn.language_id = 9
-                """
-                args += (gen,)
-            elif move := await self.bot.pokeapi.get_model_named('Move', term):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemonmove pv2pm ON pv2p.id = pv2pm.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                AND pv2pm.move_id = ?
-                """
-                args += (move.id,)
-            elif type_ := await self.bot.pokeapi.get_model_named('Type', type_pat.sub('', term)):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemontype pv2pt ON pv2p.id = pv2pt.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                AND pv2pt.type_id = ?
-                """
-                args += (type_.id,)
-            elif ability := await self.bot.pokeapi.get_model_named('Ability', term):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemonability pv2pa ON pv2p.id = pv2pa.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                AND pv2pa.ability_id = ?
-                """
-                args += (ability.id,)
-            elif color := await self.bot.pokeapi.get_model_named('PokemonColor', term):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
-                WHERE pv2psn.language_id = 9
-                AND pv2ps.pokemon_color_id = ?
-                """
-                args += (color.id,)
-            elif egg_group := await self.bot.pokeapi.get_model_named('EggGroup', egg_group_pat.sub(term, '')):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonegggroup pv2peg ON pv2psn.pokemon_species_id = pv2peg.id
-                WHERE pv2psn.language_id = 9
-                AND pv2peg.egg_group_id = ?
-                """
-                args += (egg_group.id,)
-            elif re.match(r'^megas?$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemonform pv2pf on pv2p.id = pv2pf.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2pf.is_mega = TRUE
-                """
-            elif re.match(r'^(mono(type)?|single)$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemontype pv2pt ON pv2p.id = pv2pt.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                GROUP BY pv2psn.pokemon_species_id
-                HAVING COUNT(pv2pt.type_id) = 1
-                """
-            elif re.match(r'^g(iganta)?max$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemonform pv2pf on pv2p.id = pv2pf.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2pf.id > 10412
-                """
-            elif re.match(r'^(fe|fully ?evolved)$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
-                WHERE pv2psn.language_id = 9
-                AND NOT EXISTS (
-                    SELECT *
-                    FROM pokemon_v2_pokemonspecies pv2ps2
-                    WHERE pv2ps2.evolves_from_species_id = pv2ps.id
-                )
-                """
-            elif m := re.match(r'^(?P<stat>((?P<special>special|sp[acd]?)\s*)?(?P<attack>at(tac)?k)|(?P<defense>def(en[cs]e)?)|(?P<speed>spe(ed)?)|(?P<hp>hp))\s*(?P<ineq>[<>!]?=|[<>])\s*(?P<value>\d+)$', term, re.I):
-                special = m['special'] is not None
-                attack = m['attack'] is not None
-                defense = m['defense'] is not None
-                speed = m['speed'] is not None
-                hp = m['hp'] is not None
-                assert not (special and (speed or hp)), f'Special {"Speed" if speed else "HP"} is not a thing.'
-                stat_id = None
-                if hp:
-                    stat_id = 1
-                elif attack:
-                    stat_id = 2 + 2 * special
-                elif defense:
-                    stat_id = 3 + 2 * special
-                elif speed:
-                    stat_id = 6
-                elif special:
-                    if m['special'] in ('spa', 'spc'):
-                        stat_id = 4
-                    elif m['special'] == 'spd':
-                        stat_id = 5
-                if stat_id is None:
-                    raise ValueError('invalid stat: %s' % m['stat'])
-                # We use unsafe sql injection here because this is just
-                # too complicated to do with args
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemonstat pv2pst ON pv2p.id = pv2pst.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                AND pv2pst.stat_id = ?
-                AND pv2pst.base_stat {} ?
-                """.format(m['ineq'])
-                args += (stat_id, m['value'])
-            elif m := re.match(r'^(?P<stat>bst)\s*(?P<ineq>[<>!]?=|[<>])\s*(?P<value>\d+)$', term, re.I):
-                # We use unsafe sql injection here because this is just
-                # too complicated to do with args
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemonstat pv2pst ON pv2p.id = pv2pst.pokemon_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                GROUP BY pv2psn.pokemon_species_id
-                HAVING SUM(pv2pst.base_stat) {} ?
-                """.format(m['ineq'])
-                args += (m['value'],)
-            elif m := re.match(r'^(?P<measure>height|weight)\s*(?P<ineq>[<>!]?=|[<>])\s+(?P<amount>(\d+(\.\d+)?|\.\d+))\s*(?P<units>(m(eters?)?|k(ilo)?g(rams?)?)?)', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                WHERE pv2psn.language_id = 9
-                AND pv2p.is_default = TRUE
-                AND pv2p.{} {} ?
-                """.format(m['measure'], m['ineq'])
-                args += (float(m['amount']) * 10,)
-            elif m := re.match(r'^(?P<direction>weak|resists)\s*(?P<type>.+)$', term, re.I):
-                is_flying_press = False
-                type_ = await self.bot.pokeapi.get_model_named('Type', type_pat.sub('', m['type']))
-                if type_ is None:
-                    move = await self.bot.pokeapi.get_model_named('Move', m['type'])  # type: PokeapiModels.Move
-                    if move is None:
-                        return await ctx.send('No type or move named {}'.format(m['type']))
-                    if move.move_damage_class.id == 1:
-                        return await ctx.send('{} is a status move and can\'t be used with {}'.format(move.name, m['direction']))
-                    type_ = move.type
-                    is_flying_press = move.name == 'Flying Press'
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
-                INNER JOIN pokemon_v2_pokemontype pv2pt ON pv2p.id = pv2pt.pokemon_id
-                INNER JOIN pokemon_v2_typeefficacy pv2te ON pv2pt.type_id = pv2te.target_type_id
-                WHERE pv2psn.language_id = 9
-                AND pv2te.damage_type_id {}
-                GROUP BY pv2psn.pokemon_species_id
-                HAVING PRODUCT(pv2te.damage_factor / 100.0) {} 1
-                """.format('IN (?, ?)' if is_flying_press else '= ?', '>' if m['direction'] == 'weak' else '<')
-                args += (type_.id,)
-                if is_flying_press:
-                    args += (3,)
-            elif re.match(r'^legend(ary)?$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
-                WHERE pv2psn.language_id = 9
-                AND pv2ps.is_legendary = TRUE
-                """
-            elif re.match(r'^bab{1,2}y?$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
-                WHERE pv2psn.language_id = 9
-                AND pv2ps.is_baby = TRUE
-                """
-            elif re.match(r'^(unevolved|basic|first stage)$', term, re.I):
-                statement += joiner + """
-                SELECT pv2psn.name
-                FROM pokemon_v2_pokemonspeciesname pv2psn
-                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
-                WHERE pv2psn.language_id = 9
-                AND pv2ps.evolves_from_species_id IS NULL
-                """
-            else:
-                return await ctx.send(f'I did not understand your query (first unrecognized term: {fullterm})')
+        async with ctx.typing():
+            for fullterm in query:
+                notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
+                joiner = 'EXCEPT' if notsearch else 'INTERSECT'
+                if term.lower() == 'all':
+                    if ctx.guild:
+                        return await ctx.send('The "all" keyword is not allowed in a guild channel. Use this command in DMs instead.')
+                    if len(set(query)) == 1:
+                        return await ctx.send('No search terms other than "all" were found. ')
+                    show_all = True
+                elif m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
+                    gen = int(m[3])
+                    if seen_gen and not notsearch:
+                        joiner = 'UNION'
+                    seen_gen = True
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonspecies pv2ps on pv2psn.pokemon_species_id = pv2ps.id
+                    WHERE pv2ps.generation_id = ?
+                    AND pv2psn.language_id = 9
+                    """
+                    args += (gen,)
+                elif move := await self.bot.pokeapi.get_model_named('Move', term):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemonmove pv2pm ON pv2p.id = pv2pm.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    AND pv2pm.move_id = ?
+                    """
+                    args += (move.id,)
+                elif type_ := await self.bot.pokeapi.get_model_named('Type', type_pat.sub('', term)):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemontype pv2pt ON pv2p.id = pv2pt.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    AND pv2pt.type_id = ?
+                    """
+                    args += (type_.id,)
+                elif ability := await self.bot.pokeapi.get_model_named('Ability', term):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemonability pv2pa ON pv2p.id = pv2pa.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    AND pv2pa.ability_id = ?
+                    """
+                    args += (ability.id,)
+                elif color := await self.bot.pokeapi.get_model_named('PokemonColor', term):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2ps.pokemon_color_id = ?
+                    """
+                    args += (color.id,)
+                elif egg_group := await self.bot.pokeapi.get_model_named('EggGroup', egg_group_pat.sub(term, '')):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonegggroup pv2peg ON pv2psn.pokemon_species_id = pv2peg.id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2peg.egg_group_id = ?
+                    """
+                    args += (egg_group.id,)
+                elif re.match(r'^megas?$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemonform pv2pf on pv2p.id = pv2pf.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2pf.is_mega = TRUE
+                    """
+                elif re.match(r'^(mono(type)?|single)$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemontype pv2pt ON pv2p.id = pv2pt.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    GROUP BY pv2psn.pokemon_species_id
+                    HAVING COUNT(pv2pt.type_id) = 1
+                    """
+                elif re.match(r'^g(iganta)?max$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemonform pv2pf on pv2p.id = pv2pf.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2pf.id > 10412
+                    """
+                elif re.match(r'^(fe|fully ?evolved)$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                    WHERE pv2psn.language_id = 9
+                    AND NOT EXISTS (
+                        SELECT *
+                        FROM pokemon_v2_pokemonspecies pv2ps2
+                        WHERE pv2ps2.evolves_from_species_id = pv2ps.id
+                    )
+                    """
+                elif m := re.match(r'^(?P<stat>((?P<special>special|sp[acd]?)\s*)?(?P<attack>at(tac)?k)|(?P<defense>def(en[cs]e)?)|(?P<speed>spe(ed)?)|(?P<hp>hp))\s*(?P<ineq>[<>!]?=|[<>])\s*(?P<value>\d+)$', term, re.I):
+                    special = m['special'] is not None
+                    attack = m['attack'] is not None
+                    defense = m['defense'] is not None
+                    speed = m['speed'] is not None
+                    hp = m['hp'] is not None
+                    assert not (special and (speed or hp)), f'Special {"Speed" if speed else "HP"} is not a thing.'
+                    stat_id = None
+                    if hp:
+                        stat_id = 1
+                    elif attack:
+                        stat_id = 2 + 2 * special
+                    elif defense:
+                        stat_id = 3 + 2 * special
+                    elif speed:
+                        stat_id = 6
+                    elif special:
+                        if m['special'] in ('spa', 'spc'):
+                            stat_id = 4
+                        elif m['special'] == 'spd':
+                            stat_id = 5
+                    if stat_id is None:
+                        raise ValueError('invalid stat: %s' % m['stat'])
+                    # We use unsafe sql injection here because this is just
+                    # too complicated to do with args
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemonstat pv2pst ON pv2p.id = pv2pst.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    AND pv2pst.stat_id = ?
+                    AND pv2pst.base_stat {} ?
+                    """.format(m['ineq'])
+                    args += (stat_id, m['value'])
+                elif m := re.match(r'^(?P<stat>bst)\s*(?P<ineq>[<>!]?=|[<>])\s*(?P<value>\d+)$', term, re.I):
+                    # We use unsafe sql injection here because this is just
+                    # too complicated to do with args
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemonstat pv2pst ON pv2p.id = pv2pst.pokemon_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    GROUP BY pv2psn.pokemon_species_id
+                    HAVING SUM(pv2pst.base_stat) {} ?
+                    """.format(m['ineq'])
+                    args += (m['value'],)
+                elif m := re.match(r'^(?P<measure>height|weight)\s*(?P<ineq>[<>!]?=|[<>])\s+(?P<amount>(\d+(\.\d+)?|\.\d+))\s*(?P<units>(m(eters?)?|k(ilo)?g(rams?)?)?)', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2p.is_default = TRUE
+                    AND pv2p.{} {} ?
+                    """.format(m['measure'], m['ineq'])
+                    args += (float(m['amount']) * 10,)
+                elif m := re.match(r'^(?P<direction>weak|resists)\s*(?P<type>.+)$', term, re.I):
+                    is_flying_press = False
+                    type_ = await self.bot.pokeapi.get_model_named('Type', type_pat.sub('', m['type']))
+                    if type_ is None:
+                        move = await self.bot.pokeapi.get_model_named('Move', m['type'])  # type: PokeapiModels.Move
+                        if move is None:
+                            return await ctx.send('No type or move named {}'.format(m['type']))
+                        if move.move_damage_class.id == 1:
+                            return await ctx.send('{} is a status move and can\'t be used with {}'.format(move.name, m['direction']))
+                        type_ = move.type
+                        is_flying_press = move.name == 'Flying Press'
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemon pv2p ON pv2psn.pokemon_species_id = pv2p.pokemon_species_id
+                    INNER JOIN pokemon_v2_pokemontype pv2pt ON pv2p.id = pv2pt.pokemon_id
+                    INNER JOIN pokemon_v2_typeefficacy pv2te ON pv2pt.type_id = pv2te.target_type_id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2te.damage_type_id {}
+                    GROUP BY pv2psn.pokemon_species_id
+                    HAVING PRODUCT(pv2te.damage_factor / 100.0) {} 1
+                    """.format('IN (?, ?)' if is_flying_press else '= ?', '>' if m['direction'] == 'weak' else '<')
+                    args += (type_.id,)
+                    if is_flying_press:
+                        args += (3,)
+                elif re.match(r'^legend(ary)?$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2ps.is_legendary = TRUE
+                    """
+                elif re.match(r'^bab{1,2}y?$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2ps.is_baby = TRUE
+                    """
+                elif re.match(r'^(unevolved|basic|first stage)$', term, re.I):
+                    statement += joiner + """
+                    SELECT pv2psn.name
+                    FROM pokemon_v2_pokemonspeciesname pv2psn
+                    INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                    WHERE pv2psn.language_id = 9
+                    AND pv2ps.evolves_from_species_id IS NULL
+                    """
+                else:
+                    return await ctx.send(f'I did not understand your query (first unrecognized term: {fullterm})')
         # print(statement)
         # print(args)
         async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
