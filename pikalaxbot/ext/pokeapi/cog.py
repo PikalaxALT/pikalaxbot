@@ -280,7 +280,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
 
     @commands.command(aliases=['ds'], usage='<term[, term[, ...]]>')
     async def dexsearch(self, ctx, *, query: CommaSeparatedArgs):
-        """Search the pokedex. Valid terms: generation, move, ability, type, color, mega, monotype, gigantamax, fully evolved, height, weight, stats, bst"""
+        """Search the pokedex. Valid terms: generation, move, ability, type, color, mega, monotype, gigantamax, fully evolved, height, weight, stats, bst, weak/resists <type, move>, legendary, baby, unevolved"""
 
         statement = """
         SELECT name FROM pokemon_v2_pokemonspeciesname WHERE language_id = 9
@@ -496,6 +496,22 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
                 WHERE pv2psn.language_id = 9
                 AND pv2ps.is_legendary = TRUE
+                """
+            elif re.match(r'^bab{1,2}y?$', term, re.I):
+                statement += joiner + """
+                SELECT pv2psn.name
+                FROM pokemon_v2_pokemonspeciesname pv2psn
+                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                WHERE pv2psn.language_id = 9
+                AND pv2ps.is_baby = TRUE
+                """
+            elif re.match(r'^(unevolved|basic|first stage)$', term, re.I):
+                statement += joiner + """
+                SELECT pv2psn.name
+                FROM pokemon_v2_pokemonspeciesname pv2psn
+                INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+                WHERE pv2psn.language_id = 9
+                AND pv2ps.evolves_from_species_id IS NULL
                 """
             else:
                 return await ctx.send(f'I did not understand your query (first unrecognized term: {fullterm})')
