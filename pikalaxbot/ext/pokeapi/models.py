@@ -180,7 +180,7 @@ class PokeapiModels:
         pass
 
     class PokemonShape(NamedPokeapiResource):
-        _namecol = 'awesome_name',
+        _namecol = 'name', 'awesome_name'
 
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
             super().__init__(cursor, row)
