@@ -563,7 +563,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         AND pv2sn.language_id = 9
         """
         async with self.replace_row_factory(None) as conn:
-            result = await conn.execute(statement, {'id': mon.id})
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
         return dict(result)
 
     async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.EggGroup]:

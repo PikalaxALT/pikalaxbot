@@ -197,7 +197,7 @@ class Q20QuestionParser:
                 if r:
                     break
             confidence = 0
-            if r:
+            if r and r.name:
                 name = r.name
                 self.differ.set_seq1(name)
                 self.differ.set_seq2(orig)
