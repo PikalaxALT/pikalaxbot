@@ -493,8 +493,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
             INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+            INNER JOIN pokemon_v2_pokemonspecies pv2ps2 ON pv2ps.evolution_chain_id = pv2ps2.evolution_chain_id
             WHERE pv2psn.language_id = 9
-            GROUP BY pv2ps.evolution_chain_id
+            GROUP BY pv2ps.id
             HAVING COUNT(*) > 1
             """,
         else:
@@ -526,6 +527,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             for fullterm in query:
                 if fullterm.lower() == 'all':
                     show_all = True
+                    continue
                 try:
                     new_statement, new_args = await self.ds_parse(fullterm)
                 except DexsearchParseError as e:
