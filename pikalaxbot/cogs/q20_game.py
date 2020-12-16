@@ -374,9 +374,9 @@ class Q20QuestionParser:
             has = len(re.findall(r'\b(evolve|evolutions)\b', q, re.I))
             mega = len(re.findall(r'\bmega\b', q, re.I))
             branch = len(re.findall(r'\bbranch\b', q, re.I))
-            stone = len(re.findall(r'\b(stone|fire|water|sun)\b', q, re.I))
+            stone = len(re.findall(r'\bstone\b', q, re.I))
             trade = len(re.findall(r'\btrade\b', q, re.I))
-            q = re.sub(r'\b(evolve|evolutions|mega|branch|stone|fire|water|sub|trade)\b', '', q, re.I)
+            q = re.sub(r'\b(evolve|evolutions|mega|branch|stone|trade)\b', '', q, re.I)
             q = re.sub(r'\s+', ' ', q, re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords

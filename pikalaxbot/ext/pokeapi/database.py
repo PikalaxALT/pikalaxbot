@@ -558,7 +558,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         FROM pokemon_v2_pokemonstat pv2ps
         INNER JOIN pokemon_v2_pokemon pv2p ON pv2ps.pokemon_id = pv2p.id
         INNER JOIN pokemon_v2_statname pv2sn ON pv2ps.stat_id = pv2sn.stat_id
-        WHERE pv2p.pokemon_species_id = 25
+        WHERE pv2p.pokemon_species_id = :id
         AND pv2p.is_default = TRUE
         AND pv2sn.language_id = 9
         """
