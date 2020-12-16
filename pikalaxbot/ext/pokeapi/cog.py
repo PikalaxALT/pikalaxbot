@@ -333,7 +333,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             WHERE pv2psn.language_id = 9
             AND pv2ps.pokemon_color_id = ?
             """, color.id,
-        elif egg_group := await self.bot.pokeapi.get_model_named('EggGroup', egg_group_pat.sub(term, '')):
+        elif egg_group := await self.bot.pokeapi.get_model_named('EggGroup', egg_group_pat.sub('', term)):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
