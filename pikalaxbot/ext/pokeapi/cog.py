@@ -526,6 +526,8 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         async with ctx.typing():
             for fullterm in query:
                 if fullterm.lower() == 'all':
+                    if ctx.guild:
+                        return await ctx.send('Cannot broadcast with "all", try DMs instead')
                     show_all = True
                     continue
                 try:
