@@ -534,7 +534,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 args += new_args
         statement = 'SELECT * FROM ' + ' INTERSECT SELECT * FROM '.join(statements)
         self.bot.log_info(statement)
-        self.bot.log_info(args)
+        self.bot.log_info(', '.join(args))
         async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
             results = await conn.execute_fetchall(statement, args)
         if not results:
