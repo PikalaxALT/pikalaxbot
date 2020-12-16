@@ -337,7 +337,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
-            INNER JOIN pokemon_v2_pokemonegggroup pv2peg ON pv2psn.pokemon_species_id = pv2peg.id
+            INNER JOIN pokemon_v2_pokemonegggroup pv2peg ON pv2psn.pokemon_species_id = pv2peg.pokemon_species_id
             WHERE pv2psn.language_id = 9
             AND pv2peg.egg_group_id = ?
             """, egg_group.id
