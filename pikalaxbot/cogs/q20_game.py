@@ -692,9 +692,10 @@ class Q20QuestionParser:
                 elif m := re.match(r'^([><=]?)([0-9]+)$', word, re.I):
                     stat_literal = int(m[2])
                     stat_compare = (stat_compare + (m[1] == '>') - (m[1] == '<')) * (m[1] != '=')
-                elif re.match(r'^fast(er)?$', word, re.I):
+                elif m := re.match(r'^fast(er)?$', word, re.I):
                     is_this_question = True
                     stat_name = 'Speed'
+                    stat_compare += bool(m[1])
                 else:
                     unknown_tokens.append(word)
             if not is_this_question or not stat_name:
