@@ -16,8 +16,6 @@
 
 import asyncio
 import json
-import aiofile
-import functools
 import os
 
 __all__ = ('Settings',)
