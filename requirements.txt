@@ -1,14 +1,13 @@
-#discord.py[voice]>=1.5.1,<1.6.0
+#discord.py[voice]>=1.6.0,<2.0.0
 git+https://github.com/Rapptz/discord.py#egg=discord.py[voice]
 git+https://github.com/Rapptz/discord-ext-menus
+#jishaku[procinfo,voice]
+git+https://github.com/Gorialis/jishaku#egg=jishaku[procinfo,voice]
 python-dateutil>=2.8.0
 matplotlib>=3.3.0
-import-expression>=1.1.0
-jishaku>=1.20
 parsedatetime>=2.6
 setuptools>=50.3.0
 numpy>=1.19.0
-humanize>=3.1.0
 pyfiglet>=0.7
 asyncpg>=0.21.0
 aiosqlite>=0.16.0
