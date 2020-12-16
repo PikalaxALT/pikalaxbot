@@ -475,7 +475,46 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
         async with self.replace_row_factory(PokeapiModels.PokemonSpecies) as conn:
             result = await conn.execute_fetchall(statement, {'evo_chain': mon.evolution_chain.id})
-        result = await flatten(self.filter(PokeapiModels.PokemonSpecies, evolution_chain=mon.evolution_chain))
+        return result
+
+    async def has_evos(self, mon: PokeapiModels.PokemonSpecies) -> bool:
+        statement = """
+        SELECT COUNT(*) > 1
+        FROM pokemon_v2_pokemonspecies
+        WHERE evolution_chain_id = :evo_chain
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'evo_chain': mon.evolution_chain.id}) as cur:
+                result, = await cur.fetchone()
+        return result
+
+    async def is_in_evo_line(self, needle: PokeapiModels.PokemonSpecies, haystack: PokeapiModels.PokemonSpecies) -> bool:
+        statement = """
+        SELECT EXISTS(
+            SELECT *
+            FROM pokemon_v2_pokemonspecies
+            WHERE evolution_chain_id = :evo_chain
+            AND id = :needle
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'evo_chain': haystack.evolution_chain.id, 'needle': needle.id}) as cur:
+                result, = await cur.fetchone()
+        return result
+
+    async def has_branching_evos(self, mon: PokeapiModels.PokemonSpecies) -> bool:
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonspecies
+            WHERE evolution_chain_id = :evo_chain
+            GROUP BY evolves_from_species_id
+            HAVING COUNT(*) > 1
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'evo_chain': mon.evolution_chain.id}) as cur:
+                result, = await cur.fetchone()
         return result
 
     async def mon_is_in_dex(self, mon: PokeapiModels.PokemonSpecies, dex: PokeapiModels.Pokedex) -> bool:

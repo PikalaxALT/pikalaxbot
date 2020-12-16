@@ -488,6 +488,15 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             WHERE pv2psn.language_id = 9
             AND pv2ps.evolves_from_species_id IS NULL
             """
+        elif re.match(r'^(evolve[ds])$', term, re.I):
+            return """
+            SELECT pv2psn.name
+            FROM pokemon_v2_pokemonspeciesname pv2psn
+            INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
+            WHERE pv2psn.language_id = 9
+            GROUP BY pv2ps.evolution_chain_id
+            HAVING COUNT(*) > 1
+            """
         else:
             raise DexsearchParseError(f'I did not understand your query (first unrecognized term: {fullterm})')
 

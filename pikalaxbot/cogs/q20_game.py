@@ -390,11 +390,10 @@ class Q20QuestionParser:
             elif has:
                 item = 'found'
                 message = 3
-                result = bool(solution.evolves_from_species or await self.bot.pokeapi.get_evos(solution))
+                result = bool(solution.evolves_from_species or await self.bot.pokeapi.has_evos(solution))
             elif branch:
                 message = 5
-                evos = await self.bot.pokeapi.get_evo_line(solution)
-                result = len(set(evo.evolves_from_species for evo in evos)) < len(evos)
+                result = await self.bot.pokeapi.has_branching_evos(solution)
                 item = 'found'
             elif stone or trade:
                 message = 4
@@ -411,7 +410,7 @@ class Q20QuestionParser:
             q = re.sub(r'\s+', ' ', q)
             res: 'Optional[PokeApi.PokemonSpecies]'
             name, res, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
-            return name, 0, res and any(mon.id == solution.id for mon in await self.bot.pokeapi.get_evo_line(res)), confidence
+            return name, 0, res and await self.bot.pokeapi.is_in_evo_line(solution, res), confidence
 
         async def pokedex(q):
             is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex|region)\b', q, re.I) is not None
