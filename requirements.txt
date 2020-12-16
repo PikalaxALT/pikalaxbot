@@ -3,6 +3,7 @@ git+https://github.com/Rapptz/discord.py#egg=discord.py[voice]
 git+https://github.com/Rapptz/discord-ext-menus
 #jishaku[procinfo,voice]
 git+https://github.com/Gorialis/jishaku#egg=jishaku[procinfo,voice]
+discord-flags>=2.1.0
 python-dateutil>=2.8.0
 matplotlib>=3.3.0
 parsedatetime>=2.6

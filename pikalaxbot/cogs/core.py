@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import discord
-from discord.ext import commands, menus
+from discord.ext import commands, menus, flags
 from humanize import naturaltime, precisedelta
 try:
     import resource
@@ -139,10 +139,11 @@ class Core(BaseCog):
             raise BotIsIgnoringUser(f'I am ignoring {ctx.author}')
         return True
 
-    @commands.command(aliases=['reboot', 'restart', 'shutdown'])
+    @flags.add_flag('-y', '--yes', dest='yes', action='store_true')
+    @flags.command(aliases=['reboot', 'restart', 'shutdown'])
     @commands.is_owner()
     @commands.max_concurrency(1)
-    async def kill(self, ctx: commands.Context):
+    async def kill(self, ctx: commands.Context, **flags):
         """Shut down the bot (owner only, manual restart required)"""
 
         class ConfirmationMenu(menus.Menu):
@@ -170,14 +171,17 @@ class Core(BaseCog):
                     await self.bot.logout()
 
                 self.bot.loop.create_task(do_logout())
-                self.stop()
 
             async def finalize(self, timed_out):
                 if timed_out:
                     await self.message.edit(content='Request timed out', delete_after=10)
 
         menu = ConfirmationMenu(ctx.invoked_with in {'reboot', 'restart'}, timeout=60.0, clear_reactions_after=True)
-        await menu.start(ctx, wait=True)
+        if flags.get('yes'):
+            await ctx.send('Rebooting to apply updates' if menu.mode else 'Shutting down')
+            await self.bot.logout()
+        else:
+            await menu.start(ctx, wait=True)
 
     @commands.command()
     @commands.is_owner()
