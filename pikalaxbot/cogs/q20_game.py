@@ -1121,7 +1121,7 @@ class Q20Game(GameCogBase):
         if not self[message.channel.id].running:
             return
         ctx = await self.bot.get_context(message)
-        if not ctx.prefix or ctx.valid:
+        if not ctx.prefix or ctx.valid or ('Fix' in self.bot.cogs and ctx.invoked_with.startswith('fix')):
             return
         content = message.content[len(ctx.prefix):]
         await self.ask(ctx, question=content)
