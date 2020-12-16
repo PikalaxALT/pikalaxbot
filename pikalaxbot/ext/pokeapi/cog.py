@@ -349,7 +349,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             INNER JOIN pokemon_v2_pokemonform pv2pf on pv2p.id = pv2pf.pokemon_id
             WHERE pv2psn.language_id = 9
             AND pv2pf.is_mega = TRUE
-            """
+            """,
         elif re.match(r'^(mono(type)?|single)$', term, re.I):
             return """
             SELECT pv2psn.name
@@ -360,7 +360,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             GROUP BY pv2psn.pokemon_species_id
             HAVING COUNT(pv2pt.type_id) = 1
-            """
+            """,
         elif re.match(r'^g(iganta)?max$', term, re.I):
             return """
             SELECT pv2psn.name
@@ -369,7 +369,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             INNER JOIN pokemon_v2_pokemonform pv2pf on pv2p.id = pv2pf.pokemon_id
             WHERE pv2psn.language_id = 9
             AND pv2pf.id > 10412
-            """
+            """,
         elif re.match(r'^(fe|fully ?evolved)$', term, re.I):
             return """
             SELECT pv2psn.name
@@ -381,7 +381,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 FROM pokemon_v2_pokemonspecies pv2ps2
                 WHERE pv2ps2.evolves_from_species_id = pv2ps.id
             )
-            """
+            """,
         elif m := re.match(r'^(?P<stat>((?P<special>special|sp[acd]?)\s*)?(?P<attack>at(tac)?k)|(?P<defense>def(en[cs]e)?)|(?P<speed>spe(ed)?)|(?P<hp>hp))\s*(?P<ineq>[<>!]?=|[<>])\s*(?P<value>\d+)$', term, re.I):
             special = m['special'] is not None
             attack = m['attack'] is not None
@@ -471,7 +471,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
             WHERE pv2psn.language_id = 9
             AND pv2ps.is_legendary = TRUE
-            """
+            """,
         elif re.match(r'^bab{1,2}y?$', term, re.I):
             return """
             SELECT pv2psn.name
@@ -479,7 +479,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
             WHERE pv2psn.language_id = 9
             AND pv2ps.is_baby = TRUE
-            """
+            """,
         elif re.match(r'^(unevolved|basic|first stage)$', term, re.I):
             return """
             SELECT pv2psn.name
@@ -487,7 +487,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             INNER JOIN pokemon_v2_pokemonspecies pv2ps ON pv2psn.pokemon_species_id = pv2ps.id
             WHERE pv2psn.language_id = 9
             AND pv2ps.evolves_from_species_id IS NULL
-            """
+            """,
         elif re.match(r'^(evolve[ds])$', term, re.I):
             return """
             SELECT pv2psn.name
@@ -496,7 +496,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             WHERE pv2psn.language_id = 9
             GROUP BY pv2ps.evolution_chain_id
             HAVING COUNT(*) > 1
-            """
+            """,
         else:
             raise DexsearchParseError(f'I did not understand your query (first unrecognized term: {fullterm})')
 
