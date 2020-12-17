@@ -329,6 +329,9 @@ class Q20QuestionParser:
                     result = testeffect > 1 and typeeffect > 0 or testeffect < 1 and typeeffect < 0
                     if testeffect == 0:
                         flags |= 0x20000
+                        abilities = await self.bot.pokeapi.get_mon_abilities(solution)
+                        if len(abilities) > 1 and any(a.id == 26 for a in abilities):
+                            flags |= 0x10000
                 else:
                     mon: 'Optional[PokeApi.PokemonSpecies]'
                     name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
@@ -346,6 +349,9 @@ class Q20QuestionParser:
                             result = testeffect[0] < 1 and typeeffect < 0 or testeffect[0] > 1 and typeeffect > 0
                         if 0 in testeffect:
                             flags |= 0x20000
+                            abilities = await self.bot.pokeapi.get_mon_abilities(solution)
+                            if len(abilities) > 1 and any(a.id == 26 for a in abilities):
+                                flags |= 0x10000
                     else:
                         _move: 'Optional[PokeApi.Move]'
                         name, _move, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
@@ -355,6 +361,9 @@ class Q20QuestionParser:
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
                                 flags |= 0x20000
+                                abilities = await self.bot.pokeapi.get_mon_abilities(solution)
+                                if len(abilities) > 1 and any(a.id == 26 for a in abilities):
+                                    flags |= 0x10000
                             if _move.move_damage_class.name == 'status':
                                 flags |= 0x40000
             elif found:

@@ -297,8 +297,29 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
+    async def mon_has_levitate(self, mon: PokeapiModels.PokemonSpecies) -> bool:
+        statement = """
+        SELECT EXISTS (
+            SELECT *
+            FROM pokemon_v2_pokemonability pv2pa
+            INNER JOIN pokemon_v2_pokemon pv2p on pv2pa.pokemon_id = pv2p.id
+            WHERE pv2p.pokemon_species_id = :mon_id
+            AND pv2p.is_default
+            AND pv2pa.ability_id = 26
+        )
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'mon_id': mon.id}) as cur:
+                result, = await cur.fetchone()
+        return result
+
     async def get_mon_matchup_against_type(self, mon: PokeapiModels.PokemonSpecies, type_: PokeapiModels.Type) -> float:
         """Calculates whether a type is effective or not against a mon"""
+        if type_.id == 5:
+            has_levitate = await self.mon_has_levitate(mon)
+            if has_levitate:
+                return 0
+
         statement = """
         SELECT PRODUCT(damage_factor / 100.0)
         FROM pokemon_v2_typeefficacy
@@ -338,7 +359,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """For each type mon2 has, determines its effectiveness against mon"""
 
         statement = """
-        SELECT PRODUCT(damage_factor / 100.0)
+        SELECT pokemon_v2_typeefficacy.damage_type_id, PRODUCT(damage_factor / 100.0)
         FROM pokemon_v2_typeefficacy
         INNER JOIN pokemon_v2_pokemontype pv2t ON pokemon_v2_typeefficacy.damage_type_id = pv2t.type_id
         INNER JOIN pokemon_v2_pokemontype pv2t2 ON pokemon_v2_typeefficacy.target_type_id = pv2t2.type_id
@@ -352,8 +373,12 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         """
 
         async with self.replace_row_factory(None) as conn:
-            result = await conn.execute_fetchall(statement, {'mon2_id': mon2.id, 'mon_id': mon.id})
-        return result
+            result = dict(await conn.execute_fetchall(statement, {'mon2_id': mon2.id, 'mon_id': mon.id}))
+
+        if 5 in result:
+            has_levitate = await self.mon_has_levitate(mon)
+            result[5] *= not has_levitate
+        return list(result.values())
 
     async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
         """Get the species the given Pokemon evoles from"""
