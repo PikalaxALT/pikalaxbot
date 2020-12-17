@@ -536,7 +536,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                     return await ctx.send(e)
                 statements += f'({new_statement})',
                 args += new_args
-        statement = 'SELECT * FROM ' + ' INTERSECT SELECT * FROM '.join(statements)
+        statement = 'SELECT * FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
         self.bot.log_info(statement)
         self.bot.log_info(', '.join(map(str, args)))
         async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
