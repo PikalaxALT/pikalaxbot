@@ -23,6 +23,8 @@ import aiohttp
 import os
 import asyncpg
 import typing
+import pygit2
+import collections
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.logging_mixin import LoggingMixin
@@ -30,8 +32,15 @@ if typing.TYPE_CHECKING:
     from .ext.pokeapi import PokeApi
 
 __dirname__ = os.path.dirname(__file__) or '.'
-with open(os.path.join(os.path.dirname(__dirname__), 'version.txt')) as fp:
-    __version__ = fp.read().strip()
+
+__version__ = '0.2.0a'
+if pygit2 is not None:
+    try:
+        repo = pygit2.Repository(os.path.join(os.path.dirname(__dirname__), '.git'))
+    except pygit2.GitError:
+        pass
+    else:
+        __version__ += f'+g{repo.head.target[:7]}'
 
 
 __all__ = ('PikalaxBOT',)
