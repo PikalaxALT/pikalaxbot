@@ -416,6 +416,18 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
+    async def get_mon_abilities_with_flags(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonAbility]:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_pokemonability p
+        INNER JOIN pokemon_v2_pokemon pv2p ON p.pokemon_id = pv2p.id
+        WHERE pv2p.pokemon_species_id = :id
+        AND pv2p.is_default = TRUE
+        """
+        async with self.replace_row_factory(PokeapiModels.Ability) as conn:
+            result = await conn.execute_fetchall(statement, {'id': mon.id})
+        return result
+
     async def mon_has_ability(self, mon: PokeapiModels.PokemonSpecies, ability: PokeapiModels.Ability) -> bool:
         """Returns whether a Pokemon can have a given ability"""
         statement = """

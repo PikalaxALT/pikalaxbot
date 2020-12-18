@@ -194,6 +194,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             image_url: str = await self.bot.pokeapi.get_species_sprite_url(pokemon)
             flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
             evos: typing.List[PokeapiModels.PokemonSpecies] = await self.bot.pokeapi.get_evos(pokemon)
+            abilities: typing.List[PokeapiModels.PokemonAbility] = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
         embed = discord.Embed(
             title=f'{pokemon.name} (#{pokemon.id})',
             description=flavor_text or 'No flavor text',
@@ -223,6 +224,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         embed.add_field(
             name='Evolution',
             value=preevo_str or 'No evolutions'
+        ).add_field(
+            name='Abilities',
+            value=', '.join(f'_{ability.ability.name}_' if ability.is_hidden else ability.ability.name for ability in abilities)
         )
         await ctx.send(embed=embed)
 
