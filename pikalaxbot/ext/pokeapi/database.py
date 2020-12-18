@@ -424,7 +424,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         WHERE pv2p.pokemon_species_id = :id
         AND pv2p.is_default = TRUE
         """
-        async with self.replace_row_factory(PokeapiModels.Ability) as conn:
+        async with self.replace_row_factory(PokeapiModels.PokemonAbility) as conn:
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
