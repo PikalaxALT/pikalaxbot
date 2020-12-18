@@ -563,7 +563,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             for i, page in enumerate(pag.pages):
                 await ctx.send(page.strip().replace('\n', ', ') + (', ...' if i < len(pag.pages) - 1 else ''))
 
-    @dexsearch.error()
+    @dexsearch.error
     async def dexsearch_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
