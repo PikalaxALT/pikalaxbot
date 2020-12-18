@@ -46,6 +46,13 @@ class DexsearchParseError(commands.UserInputError):
     pass
 
 
+async def dexsearch_check(ctx: commands.Context):
+    cog = ctx.bot.get_cog('Q20Game')
+    if cog and cog[ctx.channel.id].running:
+        raise commands.CheckFailure('Dexsearch is banned in this channel while Q20 is running')
+    return True
+
+
 class ConfirmationMenu(menus.Menu):
     async def send_initial_message(self, ctx, channel):
         return await ctx.reply('This can take up to 30 minutes. Are you sure?')
@@ -520,6 +527,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             statement += f' {joiner} {new_statement}'
         return statement, args
 
+    @commands.check(dexsearch_check)
     @commands.command(aliases=['ds'], usage='<term[, term[, ...]]>')
     async def dexsearch(self, ctx, *, query: CommaSeparatedArgs):
         """Search the pokedex. Valid terms: generation, move, ability, type, color, mega, monotype, gigantamax, fully evolved, height, weight, stats, bst, weak/resists <type, move>, legendary, baby, unevolved"""
@@ -554,3 +562,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             [pag.add_line(name) for name in results]
             for i, page in enumerate(pag.pages):
                 await ctx.send(page.strip().replace('\n', ', ') + (', ...' if i < len(pag.pages) - 1 else ''))
+
+    @dexsearch.error()
+    async def dexsearch_error(self, ctx: commands.Context, exc: commands.CommandError):
+        if isinstance(exc, commands.CommandInvokeError):
+            exc = exc.original
+        await ctx.send(f'{exc.__class__}: {exc}', delete_after=10)

@@ -11,6 +11,7 @@ from operator import attrgetter
 
 
 __all__ = 'PokeApi',
+
 RowFactory = Union[Type[PokeapiResource], Callable[[Cursor, Tuple[Any]], Any]]
 differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
 
