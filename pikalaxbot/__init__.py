@@ -34,13 +34,14 @@ if typing.TYPE_CHECKING:
 __dirname__ = os.path.dirname(__file__) or '.'
 
 __version__ = '0.2.0a'
-if pygit2 is not None:
+
+if __version__.endswith(('a', 'b', 'rc')):
     try:
         repo = pygit2.Repository(os.path.join(os.path.dirname(__dirname__), '.git'))
     except pygit2.GitError:
         pass
     else:
-        __version__ += f'+g{repo.head.target.hex[:7]}'
+        __version__ += f'{sum(1 for _ in repo.walk(repo.head.target))}+g{repo.head.target.hex[:7]}'
 
 
 __all__ = ('PikalaxBOT',)

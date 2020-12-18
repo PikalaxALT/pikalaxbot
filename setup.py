@@ -1,4 +1,4 @@
-import setuptools
+from setuptools import setup
 import re
 
 with open('README.md', 'r') as readme:
@@ -8,8 +8,11 @@ with open('requirements.txt', 'r') as reqf:
     requirements = reqf.read().splitlines()
 
 version = ''
-with open('discord/__init__.py') as f:
-    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', f.read(), re.MULTILINE).group(1)
+with open('pikalaxbot/__init__.py') as f:
+    try:
+        version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', f.read(), re.MULTILINE).group(1)
+    except AttributeError:
+        raise RuntimeError('version is not set')
 
 if not version:
     raise RuntimeError('version is not set')
@@ -31,7 +34,7 @@ if version.endswith(('a', 'b', 'rc')):
     except Exception:
         pass
 
-setuptools.setup(
+setup(
     name='pikalaxbot',
     version=version,
     author='PikalaxALT',
@@ -42,13 +45,16 @@ setuptools.setup(
     long_description=long_desc,
     long_description_content_type='text/markdown',
     url='https://github.com/PikalaxALT/pikalaxbot',
-    packages=['pikalaxbot'],
+    packages=['pikalaxbot', 'pikalaxbot.cogs', 'pikalaxbot.ext.pokeapi'],
     install_requires=requirements,
+    python_requires='>=3.7',
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Operating System :: OS Independent',
         'Natural Language :: English',
         'Topic :: Internet',
