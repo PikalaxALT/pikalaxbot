@@ -40,7 +40,7 @@ if pygit2 is not None:
     except pygit2.GitError:
         pass
     else:
-        __version__ += f'+g{repo.head.target[:7]}'
+        __version__ += f'+g{repo.head.target.hex[:7]}'
 
 
 __all__ = ('PikalaxBOT',)
