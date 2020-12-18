@@ -237,6 +237,12 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         )
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=['dt'])
+    async def details(self, ctx: commands.Context, pokemon: PokeapiModels.PokemonSpecies):
+        """Gets information about a Pokémon species"""
+
+        await self.mon_info(ctx, pokemon)
+
     @commands.command(usage='<mon>, <move>')
     async def learn(self, ctx, *, query: CommaSeparatedArgs):
         """Get whether the given pokemon can learn the given move"""
