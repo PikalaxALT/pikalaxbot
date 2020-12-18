@@ -567,4 +567,4 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
     async def dexsearch_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
-        await ctx.send(f'{exc.__class__}: {exc}', delete_after=10)
+        await ctx.send(f'{exc.__class__.__name__}: {exc}', delete_after=10)
