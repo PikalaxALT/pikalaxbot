@@ -5,6 +5,8 @@ BOTDIR=$(dirname "$(realpath -P "$0")"); cd "${BOTDIR}"
 
 if ! [ -d pokeapi ]; then
   git submodule init
+  git submodule update
+  git submodule foreach --recursive init
 fi
 git submodule update --recursive
 cd pokeapi
