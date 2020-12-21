@@ -233,7 +233,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             value=preevo_str or 'No evolutions'
         ).add_field(
             name='Abilities',
-            value=', '.join(f'_{ability.ability.name}_' if ability.is_hidden else ability.ability.name for ability in abilities)
+            value=', '.join(f'_{ability.ability.name}_' if ability.is_hidden else ability.ability.name for ability in abilities) or 'Unknown'
         )
         await ctx.send(embed=embed)
 
