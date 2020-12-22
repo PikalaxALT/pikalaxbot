@@ -24,7 +24,6 @@ import os
 import asyncpg
 import typing
 import pygit2
-import collections
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.logging_mixin import LoggingMixin
@@ -108,17 +107,19 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         return self._pokeapi
 
     @pokeapi.setter
-    def pokeapi(self, value: 'PokeApi'):
+    def pokeapi(self, value: typing.Optional['PokeApi']):
         old_value = self._pokeapi
         close_task = None
         if old_value and old_value._running:
             close_task = self.loop.create_task(old_value.close())
         if value is not None:
             value.start()
+
             async def connect():
                 if close_task:
                     await close_task
                 await value._connect()
+
             self.loop.create_task(connect())
         self._pokeapi = value
 

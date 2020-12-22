@@ -42,6 +42,21 @@ TYPE_COLORS = {
 }
 
 
+DEX_COLORS = (
+    0,         # null
+    0x585858,  # Black
+    0x3088F0,  # Blue
+    0xB07030,  # Brown
+    0xA0A0A0,  # Gray
+    0x40B868,  # Green
+    0xF890C8,  # Pink
+    0xA868C0,  # Purple
+    0xF05868,  # Red
+    0xF0F0F0,  # White
+    0xF0D048,  # Yellow
+)
+
+
 class DexsearchParseError(commands.UserInputError):
     pass
 
@@ -202,10 +217,11 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
             evos: typing.List[PokeapiModels.PokemonSpecies] = await self.bot.pokeapi.get_evos(pokemon)
             abilities: typing.List[PokeapiModels.PokemonAbility] = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
+            forme: PokeapiModels.PokemonForm = await self.bot.pokeapi.get_default_forme(pokemon)
         embed = discord.Embed(
             title=f'{pokemon.name} (#{pokemon.id})',
             description=flavor_text or 'No flavor text',
-            colour=TYPE_COLORS[types[0].name]
+            colour=DEX_COLORS[pokemon.pokemon_color.id]
         ).add_field(
             name='Generation',
             value=pokemon.generation.name or 'Unknown'
@@ -234,6 +250,10 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         ).add_field(
             name='Abilities',
             value=', '.join(f'_{ability.ability.name}_' if ability.is_hidden else ability.ability.name for ability in abilities)
+        ).add_field(
+            name='Biometrics',
+            value=f'Height: {forme.pokemon.height / 10:.1f}m\n'
+                  f'Weight: {forme.pokemon.weight / 10:.1f}kg'
         )
         await ctx.send(embed=embed)
 
@@ -267,6 +287,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         if len(query) == 1:
             types = await self.bot.pokeapi.get_mon_types(mon)
+
             class MoveLearnPageSource(menus.ListPageSource):
                 async def format_page(self, menu: menus.MenuPages, page: list[PokeapiModels.PokemonMove]):
                     embed = discord.Embed(
