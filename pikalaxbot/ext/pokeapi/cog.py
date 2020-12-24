@@ -292,7 +292,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         await ctx.send(embed=embed)
 
     @pokeapi.command(name='info')
-    async def mon_or_move_info(self, ctx: commands.Context, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+    async def mon_or_move_info(self, ctx: commands.Context, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
         """Gets information about a Pokémon species or move"""
 
         if isinstance(entity, PokeapiModels.PokemonSpecies):
@@ -301,7 +301,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             return await self.move_info(ctx, entity)
 
     @commands.command(aliases=['dt'])
-    async def details(self, ctx: commands.Context, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+    async def details(self, ctx: commands.Context, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
         """Gets information about a Pokémon species or move"""
 
         await self.mon_or_move_info(ctx, entity)
