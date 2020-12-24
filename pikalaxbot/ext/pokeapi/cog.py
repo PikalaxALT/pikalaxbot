@@ -304,7 +304,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
     async def details(self, ctx: commands.Context, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
         """Gets information about a Pokémon species or move"""
 
-        await self.mon_or_move_info(ctx, entity)
+        await self.mon_or_move_info(ctx, entity=entity)
 
     @commands.command(usage='<mon>, <move>')
     async def learn(self, ctx, *, query: CommaSeparatedArgs):
