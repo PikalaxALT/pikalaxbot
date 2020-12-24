@@ -740,3 +740,35 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         async with self.replace_row_factory(PokeapiModels.Version) as conn:
             result = await conn.execute_fetchall(statement, {'vgid': grp.id})
         return result
+
+    async def get_move_attrs(self, move: PokeapiModels.Move) -> List[PokeapiModels.MoveAttribute]:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_moveattribute
+        INNER JOIN pokemon_v2_moveattributemap pv2m on pokemon_v2_moveattribute.id = pv2m.move_attribute_id
+        WHERE move_id = :move_id
+        """
+        async with self.replace_row_factory(PokeapiModels.MoveAttribute) as conn:
+            result = await conn.execute_fetchall(statement, {'move_id': move.id})
+        return result
+
+    async def get_move_description(self, move: PokeapiModels.Move, version: Optional[PokeapiModels.Version] = None) -> Optional[str]:
+        statement = """
+        SELECT flavor_text
+        FROM pokemon_v2_moveflavortext
+        WHERE language_id = :language_id
+        AND move_id = :move_id
+        """
+        kwargs = {'language_id': move.language.id, 'move_id': move.id}
+        if version:
+            statement += ' AND version_group_id = :version_group_id'
+            kwargs['version_group_id'] = version.version_group.id
+        else:
+            statement += ' ORDER BY RANDOM'
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, kwargs) as cur:
+                try:
+                    result, = await cur.fetchone()
+                except:
+                    result = None
+        return result

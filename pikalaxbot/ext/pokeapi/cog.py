@@ -205,7 +205,6 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             )
             await ctx.send(embed=embed)
 
-    @pokeapi.command(name='info')
     async def mon_info(self, ctx: commands.Context, pokemon: PokeapiModels.PokemonSpecies):
         """Gets information about a Pokémon species"""
 
@@ -257,11 +256,55 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         )
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['dt'])
-    async def details(self, ctx: commands.Context, pokemon: PokeapiModels.PokemonSpecies):
-        """Gets information about a Pokémon species"""
+    async def move_info(self, ctx: commands.Context, move: PokeapiModels.Move):
+        async with ctx.typing():
+            attrs: typing.List[PokeapiModels.MoveAttribute] = await self.bot.pokeapi.get_move_attrs(move)
+            flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_move_description(move)
+        embed = discord.Embed(
+            title=f'{move.name} (#{move.id})',
+            description=flavor_text or 'No flavor text',
+            colour=TYPE_COLORS[move.type.name]
+        ).add_field(
+            name='Type',
+            value=f'Battle: {move.type.name}\n'
+                  f'Contest: {move.contest_type.name}'
+        ).add_field(
+            name='Stats',
+            value=f'Power: {move.power}\n'
+                  f'Accuracy: {move.accuracy}\n'
+                  f'Max PP: {move.pp}\n'
+                  f'Priority: {move.priority}'
+        ).add_field(
+            name='Generation',
+            value=move.generation.name
+        ).add_field(
+            name='Attributes',
+            value=', '.join(attr.name for attr in attrs) or 'None'
+        ).add_field(
+            name='Effect',
+            value=f'Battle: {move.effect.short_effect}\n'
+                  f'Contest: {move.contest_effect.effect}\n'
+                  f'Super Contest: {move.super_contest_effect.flavor_text}'
+        ).add_field(
+            name='Target',
+            value=move.target.name
+        )
+        await ctx.send(embed=embed)
 
-        await self.mon_info(ctx, pokemon)
+    @pokeapi.command(name='info')
+    async def mon_or_move_info(self, ctx: commands.Context, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+        """Gets information about a Pokémon species or move"""
+
+        if isinstance(entity, PokeapiModels.PokemonSpecies):
+            return await self.mon_info(ctx, entity)
+        else:
+            return await self.move_info(ctx, entity)
+
+    @commands.command(aliases=['dt'])
+    async def details(self, ctx: commands.Context, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+        """Gets information about a Pokémon species or move"""
+
+        await self.mon_or_move_info(ctx, entity)
 
     @commands.command(usage='<mon>, <move>')
     async def learn(self, ctx, *, query: CommaSeparatedArgs):
