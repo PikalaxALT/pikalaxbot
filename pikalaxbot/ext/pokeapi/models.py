@@ -249,6 +249,15 @@ class PokeapiModels:
             self.contest_type = self.get_submodel(PokeapiModels.ContestType, 'contest_type_id')  # type: PokeapiModels.ContestType
             self.super_contest_effect = self.get_submodel(PokeapiModels.SuperContestEffect, 'super_contest_effect_id')  # type: PokeapiModels.SuperContestEffect
 
+    class MoveAttribute(NamedPokeapiResource):
+        pass
+
+    class MoveAttributeMap(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.move = self.get_submodel(PokeapiModels.Move, 'move_id')  # type: PokeapiModels.Move
+            self.attribute = self.move_attribute = self.get_submodel(PokeapiModels.MoveAttribute, 'move_attribute_id')  # type: PokeapiModels.MoveAttribute
+
     class PokemonSpecies(NamedPokeapiResource):
         def __init__(self, cursor: Cursor, row: Tuple[Any]):
             super().__init__(cursor, row)

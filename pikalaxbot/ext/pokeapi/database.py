@@ -145,8 +145,16 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         SELECT *
         FROM pokemon_v2_{0} pv2t
         INNER JOIN pokemon_v2_{0}name pv2n ON pv2t.id = pv2n.{1}_id
-        WHERE FUZZY_RATIO(pv2n.name) > :cutoff
-        AND pv2n.language_id = :language
+        WHERE 
+            FUZZY_RATIO(pv2n.name) > :cutoff 
+            AND pv2n.language_id = :language 
+        OR 
+            EXISTS(
+                SELECT *
+                FROM pragma_table_info('pokemon_v2_{0}')
+                WHERE name = 'name'
+            )
+            AND FUZZY_RATIO(pv2t.name) > :cutoff
         ORDER BY FUZZY_RATIO(pv2n.name) DESC
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
         async with self.replace_row_factory(model) as conn:

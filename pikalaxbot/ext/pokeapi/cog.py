@@ -322,7 +322,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             flag = 'can' if move in movelearns else 'cannot'
             await ctx.send(f'{mon} **{flag}** learn {move}.')
 
-    async def ds_parse_one(self, fullterm):
+    async def ds_parse_one(self, fullterm: str) -> typing.Tuple:
         notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
         if m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
             gen = int(m[3])
@@ -539,7 +539,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         else:
             raise DexsearchParseError(f'I did not understand your query (first unrecognized term: {fullterm})')
 
-    async def ds_parse(self, term):
+    async def ds_parse(self, term: str):
         args = []
         terms = re.split(r'\s*\|\s*', term)
         statement = ''
@@ -575,7 +575,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                     return await ctx.send(e)
                 statements += f'({new_statement})',
                 args += new_args
-        statement = 'SELECT * FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
+        statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
         self.bot.log_info(statement)
         self.bot.log_info(', '.join(map(str, args)))
         async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
@@ -592,6 +592,116 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
 
     @dexsearch.error
     async def dexsearch_error(self, ctx: commands.Context, exc: commands.CommandError):
+        if isinstance(exc, commands.CommandInvokeError):
+            exc = exc.original
+        await ctx.send(f'{exc.__class__.__name__}: {exc}', delete_after=10)
+
+    async def ms_parse_one(self, fullterm: str) -> typing.Tuple:
+        notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
+        if m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
+            gen = int(m[3])
+            return """
+            SELECT pv2mn.name
+            FROM pokemon_v2_movename pv2mn
+            INNER JOIN pokemon_v2_move pv2m on pv2mn.move_id = pv2m.id
+            WHERE pv2m.generation_id = ?
+            AND pv2mn.language_id = 9
+            """, gen
+        elif type_ := await self.bot.pokeapi.get_model_named('Type', type_pat.sub('', term)):
+            return """
+            SELECT pv2mn.name
+            FROM pokemon_v2_movename pv2mn
+            INNER JOIN pokemon_v2_move pv2m on pv2mn.move_id = pv2m.id
+            WHERE pv2mn.language_id = 9
+            AND pv2m.type_id = ?
+            """, type_.id
+        elif mdclass := await self.bot.pokeapi.get_model_named('MoveDamageClass', term):  # type: PokeapiModels.MoveDamageClass
+            return """
+            SELECT pv2mn.name
+            FROM pokemon_v2_movename pv2mn
+            INNER JOIN pokemon_v2_move pv2m on pv2mn.move_id = pv2m.id
+            WHERE pv2mn.language_id = 9
+            AND pv2m.move_damage_class_id = ?
+            """, mdclass.id
+        elif ctype := await self.bot.pokeapi.get_model_named('ContestType', term):  # type: PokeapiModels.ContestType
+            return """
+            SELECT pv2mn.name
+            FROM pokemon_v2_movename pv2mn
+            INNER JOIN pokemon_v2_move pv2m on pv2mn.move_id = pv2m.id
+            WHERE pv2mn.language_id = 9
+            AND pv2m.contest_type_id = ?
+            """, ctype.id
+        elif (m := re.match(r'^targets\s+(?P<target>.+)$', term, re.I)) and (target := await self.bot.pokeapi.get_model_named('MoveTarget', m['target'])):  # type: PokeapiModels.MoveTarget
+            return """
+            SELECT pv2mn.name
+            FROM pokemon_v2_movename pv2mn
+            INNER JOIN pokemon_v2_move pv2m on pv2mn.move_id = pv2m.id
+            WHERE pv2mn.language_id = 9
+            AND pv2m.move_target_id = ?
+            """, target.id
+        elif attr := await self.bot.pokeapi.get_model_named('MoveAttribute', re.sub(r'^bypasses\s*substitute$', 'authentic', term, re.I)):  # type: PokeapiModels.MoveAttribute
+            return """
+            SELECT pv2mn.name
+            FROM pokemon_v2_movename pv2mn
+            INNER JOIN pokemon_v2_moveattributemap p on pv2mn.move_id = p.move_id
+            WHERE pv2mn.language_id = 9
+            AND p.move_attribute_id = ?
+            """, attr.id
+        else:
+            raise DexsearchParseError(f'I did not understand your query (first unrecognized term: {fullterm})')
+
+    async def ms_parse(self, term: str):
+        args = []
+        terms = re.split(r'\s*\|\s*', term)
+        statement = ''
+
+        for i, real_term in enumerate(terms):
+            new_statement, *new_args = await self.ms_parse_one(real_term)
+            if i == 0:
+                joiner = """SELECT name FROM pokemon_v2_movename WHERE language_id = 9 EXCEPT""" if real_term.startswith('!') else ''
+            else:
+                joiner = 'EXCEPT' if real_term.startswith('!') else 'UNION'
+            args += new_args
+            statement += f' {joiner} {new_statement}'
+        return statement, args
+
+    @commands.command(aliases=['ms'], usage='<term[, term[, ...]]>')
+    async def movesearch(self, ctx, *, query: CommaSeparatedArgs):
+        """Search the list of moves"""
+
+        statements = ()
+        args = []
+        show_all = False
+        async with ctx.typing():
+            for fullterm in query:
+                if fullterm.lower() == 'all':
+                    if ctx.guild:
+                        return await ctx.send('Cannot broadcast with "all", try DMs instead')
+                    show_all = True
+                    continue
+                try:
+                    new_statement, new_args = await self.ms_parse(fullterm)
+                except DexsearchParseError as e:
+                    return await ctx.send(e)
+                statements += f'({new_statement})',
+                args += new_args
+        statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
+        self.bot.log_info(statement)
+        self.bot.log_info(', '.join(map(str, args)))
+        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
+            results = await conn.execute_fetchall(statement, args)
+        if not results:
+            await ctx.send('No results found.')
+        elif len(results) > 20 and not show_all:
+            await ctx.send(f'{", ".join(results[:20])}, and {len(results) - 20} more')
+        else:
+            pag = commands.Paginator('', '', max_size=1500)
+            [pag.add_line(name) for name in results]
+            for i, page in enumerate(pag.pages):
+                await ctx.send(page.strip().replace('\n', ', ') + (', ...' if i < len(pag.pages) - 1 else ''))
+
+    @movesearch.error
+    async def movesearch_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
         await ctx.send(f'{exc.__class__.__name__}: {exc}', delete_after=10)
