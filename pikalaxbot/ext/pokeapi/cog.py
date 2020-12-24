@@ -237,7 +237,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         ).add_field(
             name='Gender Ratio',
             value=f'{12.5 * pokemon.gender_rate}% Female' if pokemon.gender_rate >= 0 else 'Gender Unknown' or 'Unknown'
-        ).set_image(url=image_url or discord.Embed.Empty)
+        ).set_thumbnail(url=image_url or discord.Embed.Empty)
         if pokemon.evolves_from_species:
             preevo_str = f'Evolves from {pokemon.evolves_from_species.name} (#{pokemon.evolves_from_species.id})\n'
         else:
