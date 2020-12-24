@@ -10,6 +10,7 @@ import time
 import re
 import itertools
 from .models import PokeapiModels
+from textwrap import indent
 
 
 __all__ = 'PokeApiCog',
@@ -279,7 +280,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             value=move.generation.name
         ).add_field(
             name='Attributes',
-            value=', '.join(attr.name for attr in attrs) or 'None'
+            value=indent('\n'.join(attr.name for attr in attrs), '\N{WHITE HEAVY CHECK MARK} ') or '\N{CROSS MARK} None'
         ).add_field(
             name='Effect',
             value=f'Battle: {move.effect.short_effect}\n'
