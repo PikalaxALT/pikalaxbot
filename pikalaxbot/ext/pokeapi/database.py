@@ -764,7 +764,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             statement += ' AND version_group_id = :version_group_id'
             kwargs['version_group_id'] = version.version_group.id
         else:
-            statement += ' ORDER BY RANDOM'
+            statement += ' ORDER BY random()'
         async with self.replace_row_factory(None) as conn:
             async with conn.execute(statement, kwargs) as cur:
                 try:
