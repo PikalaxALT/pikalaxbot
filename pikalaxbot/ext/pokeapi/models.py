@@ -436,3 +436,12 @@ class PokeapiModels:
             self.language = self.get_submodel(PokeapiModels.Language, 'language_id')  # type: PokeapiModels.Language
             self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')  # type: PokeapiModels.PokemonSpecies
             self.version = self.get_submodel(PokeapiModels.Version, 'version_id')  # type: PokeapiModels.Version
+
+    class Machine(PokeapiResource):
+        def __init__(self, cursor: Cursor, row: Tuple[Any]):
+            super().__init__(cursor, row)
+            self.number = self.machine_number = self._row['machine_number']
+            self.move = self.get_submodel(PokeapiModels.Move, 'move_id')
+            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
+            self.item = self.get_submodel(PokeapiModels.Item, 'item_id')
+            self.growth_rate = self.get_submodel(PokeapiModels.GrowthRate, 'growth_rate_id')
