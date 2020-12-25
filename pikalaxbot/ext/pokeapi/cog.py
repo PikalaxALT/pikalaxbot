@@ -292,15 +292,18 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             value=move.target.name
         )
         if machines:
-            machines.sort(key=lambda m: m.version_group.id)
+            machines.sort(key=lambda m: (m.version_group.id, m.number))
             machine_s = []
-            for mach in machines:
-                if mach.number < 100:
-                    mach_no_s = f'TM{mach.number:02d}'
-                else:
-                    mach_no_s = f'HM{mach.number - 100:02d}'
-                vgrp_name = await self.bot.pokeapi.get_version_group_name(mach.version_group)
-                machine_s.append(f'  **{vgrp_name}**: {mach_no_s}')
+            for vgrp, machs in itertools.groupby(machines, lambda m: m.version_group):
+                mach_s = []
+                for mach in machines:
+                    if mach.number < 100:
+                        mach_no_s = f'TM{mach.number:02d}'
+                    else:
+                        mach_no_s = f'HM{mach.number - 100:02d}'
+                    mach_s.append(mach_no_s)
+                vgrp_name = await self.bot.pokeapi.get_version_group_name(vgrp)
+                machine_s.append(f'  **{vgrp_name}**: {", ".join(mach_s)}')
             embed.add_field(
                 name='Machines',
                 value='\n'.join(machine_s)
