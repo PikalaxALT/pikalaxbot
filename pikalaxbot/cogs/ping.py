@@ -97,7 +97,7 @@ class Ping(BaseCog):
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                ping_history = dict(await sql.fetch('select * from ping_history where timestamp >= $1 and timestamp < $2 order by timestamp', hstart, hend))
+                ping_history = dict(await sql.fetch('select * from ping_history where timestamp between $1 and $2 order by timestamp', hstart, hend))
             fetch_end = time.perf_counter()
             if len(ping_history) > 1:
                 buffer = io.BytesIO()

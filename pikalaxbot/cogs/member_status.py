@@ -94,7 +94,7 @@ class MemberStatus(BaseCog):
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:
-                counts = {row[0]: {name: count for name, count in zip(discord.Status, row[1:])} for row in await sql.fetch('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = $1 and timestamp >= $2 and timestamp < $3 order by timestamp', ctx.guild.id, hstart, hend)}
+                counts = {row[0]: {name: count for name, count in zip(discord.Status, row[1:])} for row in await sql.fetch('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = $1 and timestamp between $2 and $3 order by timestamp', ctx.guild.id, hstart, hend)}
             fetch_end = time.perf_counter()
             if len(counts) > 1:
                 buffer = io.BytesIO()
