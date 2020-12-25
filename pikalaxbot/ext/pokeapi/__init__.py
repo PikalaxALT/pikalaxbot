@@ -9,8 +9,6 @@ from .database import *
 
 
 def setup(bot):
-    cog = PokeApiCog(bot)
-
     db_path = os.path.join('file:' + os.path.dirname(__dirname__), 'pokeapi', 'db.sqlite3?mode=ro')
 
     def connector():
@@ -19,7 +17,7 @@ def setup(bot):
     conn = PokeApi(connector, 64)
 
     bot.pokeapi = conn
-    bot.add_cog(cog)
+    bot.add_cog(PokeApiCog(bot))
 
 
 def teardown(bot):
