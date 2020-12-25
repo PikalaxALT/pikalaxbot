@@ -295,9 +295,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             machine_s = []
             for mach in machines:
                 if mach.number < 100:
-                    mach_no_s = f'TM{mach.number}'
+                    mach_no_s = f'TM{mach.number:02d}'
                 else:
-                    mach_no_s = f'HM{mach.number - 100}'
+                    mach_no_s = f'HM{mach.number - 100:02d}'
                 vgrp_name = await self.bot.pokeapi.get_version_group_name(mach.version_group)
                 machine_s.append(f'  **{vgrp_name}**: {mach_no_s}')
             embed.add_field(
