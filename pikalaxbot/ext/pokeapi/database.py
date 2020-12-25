@@ -786,5 +786,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_version_group_name(self, version_group: PokeapiModels.VersionGroup) -> str:
         *versions, last = await self.get_versions_in_group(version_group)
         if versions:
+            if len(versions) == 1:
+                return f'{versions[0].name} and {last.name}'
             return ', '.join(v.name for v in versions) + ', and ' + last.name
         return last.name
