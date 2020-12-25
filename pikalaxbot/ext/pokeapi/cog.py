@@ -303,7 +303,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                         mach_no_s = f'HM{mach.number - 100:02d}'
                     mach_s.append(mach_no_s)
                 vgrp_name = await self.bot.pokeapi.get_version_group_name(vgrp)
-                machine_s.append(f'  **{vgrp_name}**: {", ".join(mach_s)}')
+                machine_s.append(f'{vgrp_name}: {", ".join(mach_s)}')
             embed.add_field(
                 name='Machines',
                 value='\n'.join(machine_s)
