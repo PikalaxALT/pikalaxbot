@@ -765,10 +765,26 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
             kwargs['version_group_id'] = version.version_group.id
         else:
             statement += ' ORDER BY random()'
-        async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, kwargs) as cur:
-                try:
+        try:
+            async with self.replace_row_factory(None) as conn:
+                async with conn.execute(statement, kwargs) as cur:
                     result, = await cur.fetchone()
-                except:
-                    result = None
+        except TypeError:
+            result = None
         return result
+
+    async def get_machines_teaching_move(self, move: PokeapiModels.Move) -> List[PokeapiModels.Machine]:
+        statement = """
+        SELECT *
+        FROM pokemon_v2_machine
+        WHERE move_id = :move_id
+        """
+        async with self.replace_row_factory(PokeapiModels.Machine) as conn:
+            result = await conn.execute_fetchall(statement, {'move_id': move.id})
+        return result
+
+    async def get_version_group_name(self, version_group: PokeapiModels.VersionGroup) -> str:
+        *versions, last = await self.get_versions_in_group(version_group)
+        if versions:
+            return ', '.join(v.name for v in versions) + ', and ' + last.name
+        return last.name

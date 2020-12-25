@@ -261,6 +261,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         async with ctx.typing():
             attrs: typing.List[PokeapiModels.MoveAttribute] = await self.bot.pokeapi.get_move_attrs(move)
             flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_move_description(move)
+            machines: typing.List[PokeapiModels.Machine] = await self.bot.pokeapi.get_machines_teaching_move(move)
         embed = discord.Embed(
             title=f'{move.name} (#{move.id})',
             description=flavor_text or 'No flavor text',
@@ -290,6 +291,19 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             name='Target',
             value=move.target.name
         )
+        if machines:
+            machine_s = []
+            for mach in machines:
+                if mach.number < 100:
+                    mach_no_s = f'TM{mach.number}'
+                else:
+                    mach_no_s = f'HM{mach.number - 100}'
+                vgrp_name = await self.bot.pokeapi.get_version_group_name(mach.version_group)
+                machine_s.append(f'  **{vgrp_name}**: {mach_no_s}')
+            embed.add_field(
+                name='Machines',
+                value='\n'.join(machine_s)
+            )
         await ctx.send(embed=embed)
 
     @pokeapi.command(name='info')
