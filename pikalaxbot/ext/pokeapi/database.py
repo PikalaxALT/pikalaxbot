@@ -142,20 +142,19 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def get_model_named(self, model: Type[PokeapiResource], name: str, *, cutoff=0.9) -> Optional[Any]:
         model = self.resolve_model(model)
         statement = """
-        SELECT *
-        FROM pokemon_v2_{0} pv2t
-        INNER JOIN pokemon_v2_{0}name pv2n ON pv2t.id = pv2n.{1}_id
-        WHERE 
-            FUZZY_RATIO(pv2n.name) > :cutoff 
-            AND pv2n.language_id = :language 
-        OR 
-            EXISTS(
+        SELECT *, CASE
+            WHEN EXISTS(
                 SELECT *
                 FROM pragma_table_info('pokemon_v2_{0}')
                 WHERE name = 'name'
-            )
-            AND FUZZY_RATIO(pv2t.name) > :cutoff
-        ORDER BY FUZZY_RATIO(pv2n.name) DESC
+            ) THEN FUZZY_RATIO(pv2t.name)
+            ELSE FUZZY_RATIO(pv2n.name)
+        END ratio
+        FROM pokemon_v2_{0} pv2t
+        INNER JOIN pokemon_v2_{0}name pv2n ON pv2t.id = pv2n.{1}_id
+        WHERE ratio > :cutoff
+        AND pv2n.language_id = :language
+        ORDER BY ratio DESC
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
         async with self.replace_row_factory(model) as conn:
             await self.execute('SELECT SET_FUZZY_SEQ(:name)', {'name': name})
