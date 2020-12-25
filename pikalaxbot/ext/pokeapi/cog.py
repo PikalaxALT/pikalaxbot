@@ -296,7 +296,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             machine_s = []
             for vgrp, machs in itertools.groupby(machines, lambda m: m.version_group):
                 mach_s = []
-                for mach in machines:
+                for mach in machs:
                     if mach.number < 100:
                         mach_no_s = f'TM{mach.number:02d}'
                     else:
