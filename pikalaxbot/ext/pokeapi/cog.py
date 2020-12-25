@@ -292,6 +292,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             value=move.target.name
         )
         if machines:
+            machines.sort(key=lambda m: m.version_group.id)
             machine_s = []
             for mach in machines:
                 if mach.number < 100:
