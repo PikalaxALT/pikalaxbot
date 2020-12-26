@@ -88,7 +88,7 @@ class ErrorHandling(BaseCog):
         if ctx.cog and BaseCog._get_overridden_method(ctx.cog.cog_command_error) is not None:
             return
 
-        if ctx.command and hasattr(ctx.command, 'on_error'):
+        if hasattr(ctx.command, 'on_error'):
             return
 
         if isinstance(exc, self.handle_excs):
