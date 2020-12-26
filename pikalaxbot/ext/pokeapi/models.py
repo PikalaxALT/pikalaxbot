@@ -81,7 +81,7 @@ class PokeapiResource:
         except ValueError:
             obj = await ctx.bot.pokeapi.get_model_named(cls, argument)
         if obj is None:
-            raise commands.BadArgument(argument)
+            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}', argument)
         return obj
 
 

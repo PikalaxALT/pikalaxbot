@@ -11,6 +11,7 @@ import re
 import itertools
 from .models import PokeapiModels
 from textwrap import indent
+import traceback
 
 
 __all__ = 'PokeApiCog',
@@ -324,6 +325,18 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         """Gets information about a Pokémon species or move"""
 
         await self.mon_or_move_info(ctx, entity=entity)
+
+    @mon_or_move_info.error
+    @details.error
+    async def details_error(self, ctx: commands.Context, exc: commands.CommandError):
+        if isinstance(exc, commands.BadUnionArgument):
+            ps_error: commands.BadArgument = exc.errors[0]
+            await ctx.send(f'No Pokemon or move named "{ps_error.args[0]}"')
+        else:
+            if isinstance(exc, commands.CommandInvokeError):
+                exc = exc.original
+            tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__))
+            await self.bot.send_tb(f'Ignoring exception in {ctx.command}:\n{tb}')
 
     @commands.command(usage='<mon>, <move>')
     async def learn(self, ctx, *, query: CommaSeparatedArgs):
