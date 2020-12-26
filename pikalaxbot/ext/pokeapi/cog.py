@@ -330,8 +330,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
     @details.error
     async def details_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.BadUnionArgument):
-            ps_error: commands.BadArgument = exc.errors[0]
-            await ctx.send(f'No Pokemon or move named "{ps_error.args[0]}"')
+            await ctx.send(f'No Pokemon or move named "{exc.errors[0].args[1]}"')
         else:
             if isinstance(exc, commands.CommandInvokeError):
                 exc = exc.original
