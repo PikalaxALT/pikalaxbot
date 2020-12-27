@@ -16,20 +16,15 @@
 
 import asyncio
 import discord
-import aiohttp
-import sys
-import io
 from discord.ext import commands, tasks
 from . import BaseCog
 import datetime
-import traceback
 import typing
 import base64
 import math
 from collections import Counter
 
 from .utils.errors import *
-from pikalaxbot.utils.hastebin import mystbin
 from .utils.converters import FutureTime
 
 
@@ -265,22 +260,9 @@ class Poll(BaseCog):
                         mgr.start()
                     except discord.HTTPException:
                         pass
-        except Exception:
-            s = traceback.format_exc()
-            tb = f'Ignoring exception in Poll.cache_polls\n{s}'
-            print(tb, file=sys.stderr)
-            channel = self.bot.exc_channel
-            if channel is None:
-                return
-            if len(tb) < 1990:
-                await channel.send(f'```{tb}```')
-            else:
-                try:
-                    url = await mystbin(tb, cs=self.bot.client_session)
-                except aiohttp.ClientResponseError:
-                    await channel.send('An error has occurred', file=discord.File(io.StringIO(tb)))
-                else:
-                    await channel.send(f'An error has occurred: {url}')
+        except Exception as e:
+            self.log_error('Ignoring exception in Poll.cache_polls', exc_info=(e.__class__, e, e.__traceback__))
+            await self.bot.send_tb(None, e, ignoring='Ignoring exception in Poll.cache_polls')
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[PollTime], prompt, *opts):

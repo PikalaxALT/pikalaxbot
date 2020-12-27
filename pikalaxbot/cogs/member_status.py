@@ -7,7 +7,6 @@ import datetime
 import io
 import matplotlib.pyplot as plt
 import typing
-import traceback
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 import numpy as np

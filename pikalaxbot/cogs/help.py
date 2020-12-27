@@ -23,7 +23,6 @@ from discord.ext import commands, menus
 from . import BaseCog
 from .utils.menus import NavMenuPages
 import typing
-import traceback
 import collections
 import difflib
 import textwrap

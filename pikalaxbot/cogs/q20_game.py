@@ -6,7 +6,6 @@ import re
 import difflib
 import random
 import nltk
-import traceback
 import asyncio
 from contextlib import asynccontextmanager as acm
 from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List, Any

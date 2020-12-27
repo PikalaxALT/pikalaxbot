@@ -18,7 +18,6 @@ import asyncio
 import discord
 import math
 import time
-import traceback
 from .. import BaseCog
 from discord.ext import commands
 from .errors import BadGameArgument
@@ -78,7 +77,7 @@ class GameBase:
         self._task = None
         self.start_time = -1
         self._players = set()
-        self._solution: 'PokeApi.PokemonSpecies' = None
+        self._solution: typing.Optional['PokeApi.PokemonSpecies'] = None
 
     @property
     def state(self):

@@ -24,7 +24,6 @@ import os
 import time
 import re
 from .utils.converters import EspeakParamsConverter
-import traceback
 
 
 class VoiceCommandError(commands.CheckFailure):

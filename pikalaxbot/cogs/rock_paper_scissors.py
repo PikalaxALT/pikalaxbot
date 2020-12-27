@@ -170,7 +170,7 @@ class RockPaperScissors(BaseCog):
         else:
             tb = traceback.format_exception(error.__class__, error, error.__traceback__)
             pag = commands.Paginator
-            [pag.add_line(line) for line in tb]
+            [pag.add_line(line.rstrip('\n')) for line in tb]
 
             class ErrorPageSource(menus.ListPageSource):
                 async def format_page(self, menu, page):

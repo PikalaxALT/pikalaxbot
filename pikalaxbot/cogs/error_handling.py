@@ -1,27 +1,20 @@
 import discord
 from discord.ext import commands
 from . import BaseCog
-import traceback
 import sys
 import difflib
-import collections
-from .utils.errors import *
 
 
 class ErrorHandling(BaseCog):
     """Error handling extension"""
 
     filter_excs = commands.CheckFailure, commands.MaxConcurrencyReached
-    handle_excs = commands.UserInputError, CogOperationError, commands.DisabledCommand, commands.CommandNotFound
+    handle_excs = commands.UserInputError, commands.DisabledCommand, commands.CommandNotFound
 
     @BaseCog.listener()
     async def on_error(self, event, *args, **kwargs):
         exc_info = sys.exc_info()
-        try:
-            raise exc_info[0](exc_info[1])
-        except Exception as e:
-            exc = e.with_traceback(exc_info[2])
-        s = traceback.format_exc()
+        exc = exc_info[1]
         await self.bot.wait_until_ready()
         content = f'Ignoring exception in {event}'
         self.log_error(content, exc_info=exc_info)
@@ -46,14 +39,6 @@ class ErrorHandling(BaseCog):
         elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
             msg = f'Got a bad argument for `{ctx.command}`: {exc}'
             await ctx.send_help(ctx.command)
-        elif isinstance(exc, CogOperationError):
-            for cog, original in exc.cog_errors.items():
-                if not original:
-                    continue
-                self.log_tb(ctx, exc)
-                orig = getattr(original, 'original', original) or original
-                await self.bot.send_tb(ctx, orig, ignoring=f'Ignoring exception in {exc.mode}ing {cog}')
-            return
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
         elif isinstance(exc, commands.CommandNotFound):
@@ -85,6 +70,9 @@ class ErrorHandling(BaseCog):
 
     @BaseCog.listener()
     async def on_command_error(self, ctx, exc):
+        if isinstance(exc, commands.CommandInvokeError):
+            exc = exc.original
+
         if isinstance(exc, self.filter_excs):
             return
 
@@ -98,7 +86,6 @@ class ErrorHandling(BaseCog):
             return await self.handle_command_error(ctx, exc)
 
         self.log_tb(ctx, exc)
-        exc = getattr(exc, 'original', exc)
         embed = discord.Embed(title='Command error details')
         embed.add_field(name='Author', value=ctx.author.mention, inline=False)
         if ctx.guild:

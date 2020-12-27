@@ -71,9 +71,8 @@ def init_extensions(bot):
         except commands.ExtensionNotFound:
             bot.logger.error(f'Unable to find extn "{cogname}"')
         except commands.ExtensionFailed as e:
-            bot.logger.warning(f'Failed to load extn "{cogname}"')
-            for line in traceback.format_exception(e.__class__, e, e.__traceback__):
-                bot.logger.warning(line)
+            e = e.original
+            bot.logger.warning(f'Failed to load extn "{cogname}"', exc_info=(e.__class__, e, e.__traceback__))
         else:
             bot.log_info(f'Loaded extn "{cogname}"')
 

@@ -6,7 +6,6 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 import typing
-import traceback
 import numpy as np
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import *

@@ -392,9 +392,19 @@ class Modtools(BaseCog):
     async def cog_command_error(self, ctx, error):
         if hasattr(ctx.command, 'on_error'):
             return
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
         await ctx.message.add_reaction('❌')
-        await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
-        self.log_tb(ctx, error)
+        if isinstance(error, CogOperationError):
+            for cog, original in error.cog_errors.items():
+                if not original:
+                    continue
+                self.log_tb(ctx, original)
+                orig = getattr(original, 'original', original) or original
+                await self.bot.send_tb(ctx, orig, ignoring=f'Ignoring exception in {error.mode}ing {cog}')
+        else:
+            await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
+            self.log_tb(ctx, error)
 
     @commands.command(name='cl')
     async def fast_cog_load(self, ctx, *cogs: lower):
