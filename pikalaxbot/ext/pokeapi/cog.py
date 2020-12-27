@@ -273,10 +273,10 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                   f'Contest: {move.contest_type.name}'
         ).add_field(
             name='Stats',
-            value=f'Power: {move.power}\n'
-                  f'Accuracy: {move.accuracy}\n'
-                  f'Max PP: {move.pp}\n'
-                  f'Priority: {move.priority}'
+            value=f'**Power:** {move.power}\n'
+                  f'**Accuracy:** {move.accuracy}\n'
+                  f'**Max PP:** {move.pp}\n'
+                  f'**Priority:** {move.priority}'
         ).add_field(
             name='Generation',
             value=move.generation.name
@@ -285,9 +285,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             value=indent('\n'.join(attr.name for attr in attrs), '\N{WHITE HEAVY CHECK MARK} ') or '\N{CROSS MARK} None'
         ).add_field(
             name='Effect',
-            value=f'Battle: {move.effect.short_effect}\n'
-                  f'Contest: {move.contest_effect.effect}\n'
-                  f'Super Contest: {move.super_contest_effect.flavor_text}'
+            value=f'**Battle:** {move.effect.short_effect}\n'
+                  f'**Contest:** {move.contest_effect.effect}\n'
+                  f'**Super Contest:** {move.super_contest_effect.flavor_text}'
         ).add_field(
             name='Target',
             value=move.target.name
@@ -295,16 +295,15 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         if machines:
             machines.sort(key=lambda m: (m.version_group.id, m.number))
             machine_s = []
-            for vgrp, machs in itertools.groupby(machines, lambda m: m.version_group):
-                mach_s = []
+            for gen, machs in itertools.groupby(machines, lambda m: m.version_group.generation):
+                mach_s = set()
                 for mach in machs:
                     if mach.number < 100:
                         mach_no_s = f'TM{mach.number:02d}'
                     else:
                         mach_no_s = f'HM{mach.number - 100:02d}'
-                    mach_s.append(mach_no_s)
-                vgrp_name = await self.bot.pokeapi.get_version_group_name(vgrp)
-                machine_s.append(f'{vgrp_name}: {", ".join(mach_s)}')
+                    mach_s.add(mach_no_s)
+                machine_s.append(f'**{gen.name}:** {", ".join(mach_s)}')
             embed.add_field(
                 name='Machines',
                 value='\n'.join(machine_s)

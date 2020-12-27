@@ -89,6 +89,7 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(self, attr, val)
 
     async def cog_before_invoke(self, ctx):
+        await self.bot.pokeapi
         try:
             await self.fetch()
         except Exception as e:

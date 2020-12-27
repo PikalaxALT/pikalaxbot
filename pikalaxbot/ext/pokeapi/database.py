@@ -1,4 +1,4 @@
-import aiosqlite
+from . import asqlite3
 import re
 from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type
 from sqlite3 import Cursor
@@ -13,17 +13,17 @@ from operator import attrgetter
 __all__ = 'PokeApi',
 
 RowFactory = Union[Type[PokeapiResource], Callable[[Cursor, Tuple[Any]], Any]]
-differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
 
 
 async def flatten(iterable: AsyncGenerator):
     return [x async for x in iterable]
 
 
-class PokeApi(aiosqlite.Connection, PokeapiModels):
+class PokeApi(asqlite3.Connection, PokeapiModels):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
+        self.differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
 
     async def create_aggregate(self, name: str, num_params: int, aggregate_class: type) -> None:
         await self._execute(self._conn.create_aggregate, name, num_params, aggregate_class)
@@ -31,14 +31,17 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
     async def create_collation(self, name: str, callable: Callable[[str, str], int]) -> None:
         await self._execute(self._conn.create_collation, name, callable)
 
+    async def set_trace_callback(self, handler: Callable):
+        await self._execute(self._conn.set_trace_callback, handler)
+
     async def _connect(self) -> "PokeApi":
         def fuzzy_ratio(s):
-            differ.set_seq1(s.lower())
-            return min(differ.real_quick_ratio(), differ.quick_ratio(), differ.ratio())
+            self.differ.set_seq1(s.lower())
+            return self.differ.ratio()
 
         class Product:
             def __init__(self):
-                self.result = 1
+                self.result = 1.0
 
             def step(self, value):
                 self.result *= value
@@ -48,7 +51,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
 
         await super()._connect()
         await self.create_function('FUZZY_RATIO', 1, fuzzy_ratio, deterministic=True)
-        await self.create_function('SET_FUZZY_SEQ', 1, lambda s: differ.set_seq2(s.lower()), deterministic=True)
+        await self.create_function('SET_FUZZY_SEQ', 1, lambda s: self.differ.set_seq2(s.lower()), deterministic=True)
         await self.create_aggregate('PRODUCT', 1, Product)
         return self
 
@@ -91,7 +94,7 @@ class PokeApi(aiosqlite.Connection, PokeapiModels):
         return result
 
     @acm
-    async def all_models_cursor(self, model: Type[PokeapiResource]) -> aiosqlite.Cursor:
+    async def all_models_cursor(self, model: Type[PokeapiResource]) -> asqlite3.Cursor:
         model = self.resolve_model(model)
         statement = """
         SELECT *

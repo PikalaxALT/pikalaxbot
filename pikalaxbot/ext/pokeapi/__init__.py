@@ -1,5 +1,4 @@
 import os
-import sqlite3
 
 from ... import __dirname__
 
@@ -10,15 +9,10 @@ from .database import *
 
 def setup(bot):
     db_path = os.path.join('file:' + os.path.dirname(__dirname__), 'pokeapi', 'db.sqlite3?mode=ro')
-
-    def connector():
-        return sqlite3.connect(db_path, factory=PokeApiConnection, uri=True)
-
-    conn = PokeApi(connector, 64)
-
-    bot.pokeapi = conn
+    bot.pokeapi = PokeApi(db_path, factory=PokeApiConnection, uri=True)
     bot.add_cog(PokeApiCog(bot))
 
 
 def teardown(bot):
+    bot.pokeapi._conn.interrupt()
     bot.pokeapi = None
