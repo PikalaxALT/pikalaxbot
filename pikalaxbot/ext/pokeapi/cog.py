@@ -1,9 +1,8 @@
 import discord
 from discord.ext import commands, tasks, menus
 import asyncio
-import traceback
 import sqlite3
-import aiosqlite
+from . import asqlite3
 import contextlib
 import typing
 import time
@@ -172,7 +171,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         async with ctx.typing():
             pokeapi = self.bot.pokeapi
             start = time.perf_counter()
-            async with pokeapi.execute(query) as cur:  # type: aiosqlite.Cursor
+            async with pokeapi.execute(query) as cur:  # type: asqlite3.Cursor
                 records = await cur.fetchall()
             end = time.perf_counter()
             header = '|'.join(col[0] for col in cur.description)

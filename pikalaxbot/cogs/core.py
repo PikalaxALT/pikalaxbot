@@ -453,6 +453,29 @@ class Core(BaseCog):
         member = member or ctx.author
         await Core.send_perms(ctx, member, ctx.guild, member.guild_permissions)
 
+    @commands.command()
+    async def credits(self, ctx: commands.Context):
+        """Credit where credit is due"""
+
+        embed = discord.Embed(
+            title='Credits',
+            description='I was mostly written by PikalaxALT#5823, but some extensions contain code written by other beautiful people.',
+            colour=0xF47FFF
+        ).add_field(
+            name='Q20Game',
+            value='Tustin2121#6219'
+        ).add_field(
+            name='Eval',
+            value='Danny#0007'
+        ).add_field(
+            name='Jishaku',
+            value='Devon Gorialis'
+        ).add_field(
+            name='ext.PokeAPI',
+            value='jreese (asqlite3), Naramsim (database itself)'
+        )
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Core(bot))
