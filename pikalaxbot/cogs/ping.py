@@ -36,16 +36,12 @@ class Ping(BaseCog):
 
     @build_ping_history.error
     async def ping_history_error(self, error):
-        s = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
-        content = f'Ignoring exception in Ping.build_ping_history\n{s}'
-        await self.bot.send_tb(content)
+        content = 'Ignoring exception in Ping.build_ping_history'
+        await self.bot.send_tb(None, error, ignoring=content)
 
     @commands.group(invoke_without_command=True)
     async def ping(self, ctx: commands.Context):
         """Quickly test the bot's ping"""
-
-        # Receive delay
-        now = datetime.datetime.utcnow()
 
         # Typing delay
         t = time.perf_counter()
@@ -54,14 +50,14 @@ class Ping(BaseCog):
 
         # Send delay
         embed = discord.Embed(title='Pong!', colour=0xf47fff)
-        now2 = datetime.datetime.utcnow()
+        t3 = time.perf_counter()
         new = await ctx.reply(embed=embed, mention_author=False)
+        t4 = time.perf_counter()
 
         # Report results
         embed.add_field(name='Heartbeat latency', value=f'{self.bot.latency * 1000:.0f} ms')
         embed.add_field(name='Typing delay', value=f'{(t2 - t) * 1000:.0f} ms')
-        embed.add_field(name='Message receive delay', value=f'{(now - ctx.message.created_at).total_seconds() * 1000:.0f} ms')
-        embed.add_field(name='Message send delay', value=f'{(new.created_at - now2).total_seconds() * 1000:.0f} ms')
+        embed.add_field(name='Message send delay', value=f'{(t4 - t3) * 1000:.0f} ms')
         await new.edit(embed=embed, mention_author=False)
 
     @staticmethod

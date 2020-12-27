@@ -250,9 +250,8 @@ class Poll(BaseCog):
 
     @cleanup_polls.error
     async def cleanup_polls_error(self, error):
-        s = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
-        content = f'Ignoring exception in Poll.cleanup_polls\n{s}'
-        await self.bot.send_tb(content)
+        content = 'Ignoring exception in Poll.cleanup_polls'
+        await self.bot.send_tb(None, error, ignoring=content)
 
     @cleanup_polls.before_loop
     async def cache_polls(self):

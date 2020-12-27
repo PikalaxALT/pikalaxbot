@@ -16,14 +16,15 @@
 
 import asyncio
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 import logging
-from io import StringIO
 import aiohttp
 import os
 import asyncpg
 import typing
 import pygit2
+import traceback
+import collections
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.logging_mixin import LoggingMixin
@@ -44,6 +45,9 @@ if __version__.endswith(('a', 'b', 'rc')):
 
 
 __all__ = ('PikalaxBOT',)
+
+
+FakeContext = collections.namedtuple('Context', 'guild channel message author', module='discord.ext.commands.context')
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
@@ -110,20 +114,29 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     def pokeapi(self, value: typing.Optional['PokeApi']):
         self._pokeapi = value
 
-    async def send_tb(self, tb, embed=None):
+    async def send_tb(self, ctx: typing.Optional[commands.Context], exc: Exception, *, ignoring: typing.Optional[str] = None, embed: typing.Optional[discord.Embed] = None):
         channel = self.exc_channel
-        client_session = self.client_session
         if channel is None:
             return
-        if len(tb) < 1990:
-            await channel.send(f'```{tb}```', embed=embed)
-        else:
-            try:
-                url = await mystbin(tb, cs=client_session)
-            except aiohttp.ClientResponseError:
-                await channel.send('An error has occurred', file=discord.File(StringIO(tb)), embed=embed)
-            else:
-                await channel.send(f'An error has occurred: {url}', embed=embed)
+        if ctx is None:
+            if self.owner_id is None:
+                await self.is_owner(discord.Object(id=0))
+            ctx = FakeContext(channel.guild, channel, None, channel.guild.get_member(self.owner_id))
+        paginator = commands.Paginator()
+        if ignoring is not None:
+            paginator.add_line(ignoring)
+        for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):
+            paginator.add_line(line)
+
+        class TracebackPageSource(menus.ListPageSource):
+            async def format_page(self, menu: menus.MenuPages, page: str):
+                content = page
+                if embed is None:
+                    return content
+                return {'content': content, 'embed': embed}
+
+        menu = menus.MenuPages(TracebackPageSource(paginator.pages, per_page=1))
+        await menu.start(ctx, channel=channel)
 
     def run(self):
         self.log_info('Starting bot')

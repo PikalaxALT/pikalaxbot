@@ -4,6 +4,7 @@ from . import BaseCog
 import traceback
 import sys
 import difflib
+import collections
 from .utils.errors import *
 
 
@@ -15,10 +16,15 @@ class ErrorHandling(BaseCog):
 
     @BaseCog.listener()
     async def on_error(self, event, *args, **kwargs):
+        exc_info = sys.exc_info()
+        try:
+            raise exc_info[0](exc_info[1])
+        except Exception as e:
+            exc = e.with_traceback(exc_info[2])
         s = traceback.format_exc()
         await self.bot.wait_until_ready()
-        content = f'Ignoring exception in {event}\n{s}'
-        print(content, file=sys.stderr)
+        content = f'Ignoring exception in {event}'
+        self.log_error(content, exc_info=exc_info)
         embed = None
         if event == 'on_message':
             message, = args
@@ -30,7 +36,7 @@ class ErrorHandling(BaseCog):
                             + (message.content if len(message.content) < 100 else message.content[:97] + '...')
                             + '`', inline=False)
             embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
-        await self.bot.send_tb(content, embed=embed)
+        await self.bot.send_tb(None, exc, ignoring=content, embed=embed)
 
     async def handle_command_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.MissingRequiredArgument):
@@ -44,12 +50,9 @@ class ErrorHandling(BaseCog):
             for cog, original in exc.cog_errors.items():
                 if not original:
                     continue
-                self.bot.log_tb(ctx, exc)
+                self.log_tb(ctx, exc)
                 orig = getattr(original, 'original', original) or original
-                lines = ''.join(traceback.format_exception(orig.__class__, orig, orig.__traceback__))
-                print(lines)
-                lines = f'Ignoring exception in {exc.mode}ing {cog}:\n{lines}'
-                await self.bot.send_tb(lines)
+                await self.bot.send_tb(ctx, orig, ignoring=f'Ignoring exception in {exc.mode}ing {cog}')
             return
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
@@ -94,18 +97,15 @@ class ErrorHandling(BaseCog):
         if isinstance(exc, self.handle_excs):
             return await self.handle_command_error(ctx, exc)
 
-        self.bot.log_tb(ctx, exc)
+        self.log_tb(ctx, exc)
         exc = getattr(exc, 'original', exc)
-        lines = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__))
-        print(lines)
-        lines = f'Ignoring exception in command {ctx.command}:\n{lines}'
         embed = discord.Embed(title='Command error details')
         embed.add_field(name='Author', value=ctx.author.mention, inline=False)
         if ctx.guild:
             embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
         embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
         embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm", inline=False)
-        await self.bot.send_tb(lines, embed=embed)
+        await self.bot.send_tb(ctx, exc, ignoring=f'Ignoring exception in command {ctx.command}:', embed=embed)
 
 
 def setup(bot):

@@ -55,9 +55,7 @@ class MemberStatus(BaseCog):
 
     @update_counters.error
     async def update_counters_error(self, error):
-        s = ''.join(traceback.format_exception(error.__class__, error, error.__traceback__))
-        content = f'Ignoring exception in MemberStatus.update_counters\n{s}'
-        await self.bot.send_tb(content)
+        await self.bot.send_tb(None, error, ignoring='Ignoring exception in MemberStatus.update_counters')
 
     @staticmethod
     def do_plot_status_history(buffer, history):
