@@ -395,7 +395,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
 
     async def ds_parse_one(self, fullterm: str) -> typing.Tuple:
         notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
-        if m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
+        if m := re.match(r'^(g(en)?)? ?([1-8])$', term, flags=re.I):
             gen = int(m[3])
             return """
             SELECT pv2psn.name

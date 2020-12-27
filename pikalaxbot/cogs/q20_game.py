@@ -208,7 +208,7 @@ class Q20QuestionParser:
 
         async def pokemon(q):
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             found: 'Optional[PokeApi.PokemonSpecies]'
             name, found, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
             won = found and found.id == solution.id
@@ -217,8 +217,8 @@ class Q20QuestionParser:
         async def move(q):
             confidence = len(re.findall(r'\b(learn|know|move|tm)\b', q, re.I)) * 5
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(learn|know|move|tm)\b', '', q, re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\b(learn|know|move|tm)\b', '', q, flags=re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             found: 'Optional[PokeApi.Move]'
             name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
             return name, 0, found and await self.bot.pokeapi.mon_can_learn_move(solution, found), confidence * confidence_f
@@ -226,8 +226,8 @@ class Q20QuestionParser:
         async def ability(q):
             confidence = len(re.findall(r'\b(have|ability)\b', q, re.I))
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(have|ability)\b', '', q, re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\b(have|ability)\b', '', q, flags=re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             found: 'Optional[PokeApi.Ability]'
             name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Ability, q)
             return name, 0, found and await self.bot.pokeapi.mon_has_ability(solution, found), confidence * confidence_f
@@ -240,7 +240,7 @@ class Q20QuestionParser:
             nwords = len(re.findall(r'\w+', q))
             if re.search(r'\begg\b', q):
                 return None, 0, False, 0
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             typeeffect -= len(re.findall(r'\b(resist|strong)\b', q, re.I))
             typeeffect += len(re.findall(r'\bweak\b', q, re.I))
             for match in re.findall(r'\b(((not )?very|super) )?effect[ia]ve\b', q, re.I):
@@ -256,7 +256,7 @@ class Q20QuestionParser:
             q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b',
                        '', q,
                        re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
             found: 'Optional[PokeApi.Type]'
@@ -291,7 +291,7 @@ class Q20QuestionParser:
             nwords = len(re.findall(r'\w+', q))
             if re.search(r'\begg\b', q):
                 return None, 0, False, 0
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             typeeffect -= len(re.findall(r'\b(resist|strong)\b', q, re.I))
             typeeffect += len(re.findall(r'\bweak\b', q, re.I))
             for match in re.findall(r'\b(((not )?very|super) )?effect[ia]ve\b', q, re.I):
@@ -304,8 +304,8 @@ class Q20QuestionParser:
             singletype += len(re.findall(r'\b(pure|single|one)\b', q, re.I))
             dualtype += len(re.findall(r'\b(du[ea]l|duo|two)\b', q, re.I))
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b', '', q, re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b', '', q, flags=re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
             found: 'Optional[PokeApi.Type]'
@@ -362,7 +362,7 @@ class Q20QuestionParser:
 
         async def color(q):
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             _color: 'Optional[PokeApi.PokemonColor]'
             name, _color, confidence = await self.lookup_name(self.bot.pokeapi.PokemonColor, q)
             return name, 0, _color and _color == solution.pokemon_color, confidence / len(re.findall(r'\w+', q)) if q else 0
@@ -375,8 +375,8 @@ class Q20QuestionParser:
             branch = len(re.findall(r'\bbranch\b', q, re.I))
             stone = len(re.findall(r'\bstone\b', q, re.I))
             trade = len(re.findall(r'\btrade\b', q, re.I))
-            q = re.sub(r'\b(evolve|evolutions|mega|branch|stone|trade)\b', '', q, re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\b(evolve|evolutions|mega|branch|stone|trade)\b', '', q, flags=re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords
             item = None
@@ -405,7 +405,7 @@ class Q20QuestionParser:
             if not re.search(r'\b(family|evolution(ary)?|tree|line)\b', q, re.I):
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(family|evolution(ary)?|tree|line|part|of)\b', '', q, re.I)
+            q = re.sub(r'\b(family|evolution(ary)?|tree|line|part|of)\b', '', q, flags=re.I)
             q = re.sub(r'\s+', ' ', q)
             res: 'Optional[PokeApi.PokemonSpecies]'
             name, res, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
@@ -414,7 +414,7 @@ class Q20QuestionParser:
         async def pokedex(q):
             is_mine = re.search(r'\b(generation|gen|poke(dex)?|dex|region)\b', q, re.I) is not None
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(generation|gen|poke(dex)?|dex|in|region)\b', '', q, re.I)
+            q = re.sub(r'\b(generation|gen|poke(dex)?|dex|in|region)\b', '', q, flags=re.I)
             patterns = [
                 r'\b(1|1st|first|i)\b',
                 r'\b(2|2nd|second|ii)\b',
@@ -427,7 +427,7 @@ class Q20QuestionParser:
             ]
             generation, _ = discord.utils.find(lambda pat: re.search(pat[1], q, re.I) is not None, enumerate(patterns, 1)) or (-1, None)
             for pat in patterns:
-                q = re.sub(pat, '', q, re.I)
+                q = re.sub(pat, '', q, flags=re.I)
             q = re.sub(r'\s+', '', q)
             dex: 'Optional[PokeApi.Pokedex]'
             dex_name, dex, confidence = await self.lookup_name(self.bot.pokeapi.Pokedex, q)
@@ -637,7 +637,7 @@ class Q20QuestionParser:
             if not re.search(r'\b(live|habitat)\b', q, re.I):
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, re.I)
+            q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, flags=re.I)
             q = re.sub('\s+', '', q)
             _habitat: 'Optional[PokeApi.PokemonHabitat]'
             name, _habitat, confidence = await self.lookup_name(self.bot.pokeapi.PokemonHabitat, q)
@@ -739,7 +739,7 @@ class Q20QuestionParser:
             if not re.search(r'\b(shaped?|form(ed)?)\b', q, re.I):
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(shaped?|form(ed)?|like)', '', q, re.I)
+            q = re.sub(r'\b(shaped?|form(ed)?|like)', '', q, flags=re.I)
             shape: 'Optional[PokeApi.PokemonShape]'
             name, shape, confidence = await self.lookup_name(self.bot.pokeapi.PokemonShape, q)
             message = 0
@@ -756,8 +756,8 @@ class Q20QuestionParser:
             if not re.search(r'\b(egg|group|breeding)\b', q, re.I):
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(part|of|egg|group|breeding)\b', '', q, re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\b(part|of|egg|group|breeding)\b', '', q, flags=re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             res: 'Optional[PokeApi.EggGroup]'
             name, res, confidence = await self.lookup_name(self.bot.pokeapi.EggGroup, q)
             return name, 0, res and await self.bot.pokeapi.mon_is_in_egg_group(solution, res), confidence
@@ -767,8 +767,8 @@ class Q20QuestionParser:
             if not re.search(r'\b(mate|breed|fuck)\b', q, re.I):
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(mate|breed|with|fuck)\b', '', q, re.I)
-            q = re.sub(r'\s+', ' ', q, re.I)
+            q = re.sub(r'\b(mate|breed|with|fuck)\b', '', q, flags=re.I)
+            q = re.sub(r'\s+', ' ', q, flags=re.I)
             res: 'Optional[PokeApi.PokemonSpecies]'
             name, res, confidence = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, q)
             if not res:
