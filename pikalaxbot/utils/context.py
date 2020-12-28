@@ -36,10 +36,36 @@ def owoify_message(text: str):
     return text + ' ' + random.choice(['owo', 'uwu', 'OwO', 'UwU'])
 
 
+def owoify_embed(embed: discord.Embed):
+    if embed.title is not embed.Empty:
+        embed.title = owoify_message(embed.title)
+    if embed.description is not embed.Empty:
+        embed.description = owoify_message(embed.description)
+    for i, field in enumerate(embed.fields):
+        embed.set_field_at(
+            i,
+            name=owoify_message(field.name),
+            value=owoify_message(field.value),
+            inline=field.inline
+        )
+    if embed.footer.text is not embed.Empty:
+        embed.set_footer(
+            text=owoify_message(embed.footer.text),
+            icon_url=embed.footer.icon_url
+        )
+    if embed.author.name is not embed.Empty:
+        embed.set_author(
+            name=owoify_message(embed.author.name),
+            url=embed.author.url,
+            icon_url=embed.author.icon_url
+        )
+    return embed
+
+
 class MyContext(commands.Context):
     async def send(self, content: typing.Optional[str] = None, **kwargs):
         if content is not None:
-            content = owoify_message(content)
+            content = owoify_message(str(content))
 
         try:
             embed = kwargs.pop('embed')  # type: typing.Optional[discord.Embed]
@@ -47,28 +73,7 @@ class MyContext(commands.Context):
             pass
         else:
             if embed is not None:
-                if embed.title is not embed.Empty:
-                    embed.title = owoify_message(embed.title)
-                if embed.description is not embed.Empty:
-                    embed.description = owoify_message(embed.description)
-                for i, field in enumerate(embed.fields):
-                    embed.set_field_at(
-                        i,
-                        name=owoify_message(field.name),
-                        value=owoify_message(field.value),
-                        inline=field.inline
-                    )
-                if embed.footer.text is not embed.Empty:
-                    embed.set_footer(
-                        text=owoify_message(embed.footer.text),
-                        icon_url=embed.footer.icon_url
-                    )
-                if embed.author.name is not embed.Empty:
-                    embed.set_author(
-                        name=owoify_message(embed.author.name),
-                        url=embed.author.url,
-                        icon_url=embed.author.icon_url
-                    )
+                embed = owoify_embed(embed)
             kwargs['embed'] = embed
 
         return await super().send(content, **kwargs)
