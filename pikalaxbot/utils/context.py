@@ -26,7 +26,7 @@ OWO_REPL = {
   re.compile('er', re.I): case_repl('ew'),
   re.compile('l', re.I): case_repl('w'),
   re.compile('the', re.I): case_repl('t', 'h', ['uwu', 'UwU']),
-  re.compile('row', re.I): lambda m: m[0] + 'oO'[m[0][1].isupper()],
+  re.compile('row', re.I): lambda m: m[0][:2] + 'w' + m[0][1],
   re.compile('rus', re.I): case_repl('r', ['uwu', 'UwU'], 's')
 }
 
