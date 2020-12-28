@@ -11,6 +11,7 @@ __all__ = ('MyContext',)
 def case_repl(*repls):
     if len(repls) == 1:
         repls, = repls
+
     def inner(match):
         ret = ''
         for x, y in zip(match[0], repls):
@@ -32,11 +33,42 @@ OWO_REPL = {
 
 def owoify_message(text: str):
     [text := pat.sub(repl, text) for pat, repl in OWO_REPL.items()]
-    return text + random.choice(['owo', 'uwu', 'OwO', 'UwU'])
+    return text + ' ' + random.choice(['owo', 'uwu', 'OwO', 'UwU'])
 
 
 class MyContext(commands.Context):
     async def send(self, content: typing.Optional[str] = None, **kwargs):
         if content is not None:
             content = owoify_message(content)
+
+        try:
+            embed = kwargs.pop('embed')  # type: typing.Optional[discord.Embed]
+        except KeyError:
+            pass
+        else:
+            if embed is not None:
+                if embed.title is not embed.Empty:
+                    embed.title = owoify_message(embed.title)
+                if embed.description is not embed.Empty:
+                    embed.description = owoify_message(embed.description)
+                for i, field in enumerate(embed.fields):
+                    embed.set_field_at(
+                        i,
+                        name=owoify_message(field.name),
+                        value=owoify_message(field.value),
+                        inline=field.inline
+                    )
+                if embed.footer.text is not embed.Empty:
+                    embed.set_footer(
+                        text=owoify_message(embed.footer.text),
+                        icon_url=embed.footer.icon_url
+                    )
+                if embed.author.name is not embed.Empty:
+                    embed.set_author(
+                        name=owoify_message(embed.author.name),
+                        url=embed.author.url,
+                        icon_url=embed.author.icon_url
+                    )
+            kwargs['embed'] = embed
+
         return await super().send(content, **kwargs)
