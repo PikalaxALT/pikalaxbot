@@ -10,6 +10,7 @@ import typing
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 import numpy as np
+from jishaku.functools import executor_function
 
 
 class MemberStatus(BaseCog):
@@ -57,6 +58,7 @@ class MemberStatus(BaseCog):
         await self.bot.send_tb(None, error, ignoring='Ignoring exception in MemberStatus.update_counters')
 
     @staticmethod
+    @executor_function
     def do_plot_status_history(buffer, history):
         times = list(history.keys())
         values = list(history.values())
@@ -96,7 +98,7 @@ class MemberStatus(BaseCog):
             if len(counts) > 1:
                 buffer = io.BytesIO()
                 start = time.perf_counter()
-                await self.bot.loop.run_in_executor(None, MemberStatus.do_plot_status_history, buffer, counts)
+                await MemberStatus.do_plot_status_history(buffer, counts)
                 end = time.perf_counter()
                 buffer.seek(0)
                 msg = f'Fetched {len(counts)} records in {fetch_end - fetch_start:.3f}s\n' \

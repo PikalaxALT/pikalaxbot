@@ -9,6 +9,7 @@ import typing
 import numpy as np
 from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
+from jishaku.functools import executor_function
 
 
 class Ping(BaseCog):
@@ -60,6 +61,7 @@ class Ping(BaseCog):
         await new.edit(embed=embed, mention_author=False)
 
     @staticmethod
+    @executor_function
     def do_plot_ping(buffer, history):
         times = list(history.keys())
         values = list(history.values())
@@ -97,7 +99,7 @@ class Ping(BaseCog):
             if len(ping_history) > 1:
                 buffer = io.BytesIO()
                 start = time.perf_counter()
-                await self.bot.loop.run_in_executor(None, Ping.do_plot_ping, buffer, ping_history)
+                await Ping.do_plot_ping(buffer, ping_history)
                 end = time.perf_counter()
                 buffer.seek(0)
                 msg = f'Fetched {len(ping_history)} records in {fetch_end - fetch_start:.3f}s\n' \

@@ -7,6 +7,7 @@ import typing
 import io
 import time
 import matplotlib.pyplot as plt
+from jishaku.functools import executor_function
 
 
 class ChatDeathIndex(BaseCog):
@@ -25,6 +26,7 @@ class ChatDeathIndex(BaseCog):
     def cog_unload(self):
         self.save_message_count.cancel()
 
+    @executor_function
     def plot(self, channels: typing.Tuple[discord.TextChannel], buffer):
         plt.figure()
         for channel in channels:
@@ -128,7 +130,7 @@ class ChatDeathIndex(BaseCog):
         async with ctx.typing():
             mem_buffer = io.BytesIO()
             start = time.perf_counter()
-            await self.bot.loop.run_in_executor(None, self.plot, channels, mem_buffer)
+            await self.plot(channels, mem_buffer)
             end = time.perf_counter()
             mem_buffer.seek(0)
             file = discord.File(mem_buffer, filename='cdi.png')
