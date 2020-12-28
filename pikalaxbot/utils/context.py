@@ -77,3 +77,18 @@ class MyContext(commands.Context):
             kwargs['embed'] = embed
 
         return await super().send(content, **kwargs)
+
+    async def reply(self, content: typing.Optional[str] = None, **kwargs):
+        if content is not None:
+            content = owoify_message(str(content))
+
+        try:
+            embed = kwargs.pop('embed')  # type: typing.Optional[discord.Embed]
+        except KeyError:
+            pass
+        else:
+            if embed is not None:
+                embed = owoify_embed(embed)
+            kwargs['embed'] = embed
+
+        return await super().reply(content, **kwargs)
