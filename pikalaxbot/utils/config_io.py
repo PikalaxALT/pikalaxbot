@@ -51,6 +51,7 @@ _defaults = {
         'host': 'localhost',
         'dbname': 'pikalaxbot'
     },
+    'owoify': False,
 }
 
 

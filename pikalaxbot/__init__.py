@@ -25,11 +25,13 @@ import typing
 import pygit2
 import traceback
 import collections
+from .utils.context import MyContext
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.logging_mixin import LoggingMixin
 if typing.TYPE_CHECKING:
     from .ext.pokeapi import PokeApi
+
 
 __dirname__ = os.path.dirname(__file__) or '.'
 
@@ -154,3 +156,10 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     async def on_ready(self):
         self.log_info(f'Logged in as {self.user}')
+
+    @property
+    def _context_class(self):
+        return MyContext if self.settings.owoify else commands.Context
+
+    async def get_context(self, message, *, cls=None):  # Override default value
+        return await super().get_context(message, cls=cls or self._context_class)
