@@ -144,6 +144,8 @@ class Modtools(BaseCog):
                 for i, row in enumerate(await sql.fetch(script), 1):  # type: [int, asyncpg.Record]
                     if header is None:
                         header = '|'.join(row.keys())
+                        pag.add_line(header)
+                        pag.add_line('-' * len(header))
                     to_add = '|'.join(map(str, row))
                     if len(header) * 2 + len(to_add) > 2040:
                         raise ValueError('At least one page of results is too long to fit. Try returning fewer columns?')

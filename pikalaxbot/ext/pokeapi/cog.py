@@ -198,6 +198,8 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                     end = time.perf_counter()
             header = '|'.join(col[0] for col in cur.description)
             pag = commands.Paginator(max_size=2048)
+            pag.add_line(header)
+            pag.add_line('-' * len(header))
             for i, row in enumerate(records, 1):  # type: [int, tuple]
                 to_add = '|'.join(map(str, row))
                 if len(header) * 2 + len(to_add) > 2040:
