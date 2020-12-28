@@ -1094,6 +1094,8 @@ class Q20Game(GameCogBase):
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.check(lambda ctx: not ctx.cog[ctx.channel.id].running)
     async def q20_plando(self, ctx: commands.Context, *, challenge_mode=False):
+        """Start a Q20 game with a specified solution"""
+
         try:
             msg = await ctx.author.send(f'Welcome to the Q20 Plando Maker! Please give the name of a Pokémon to use as the solution for the game starting in {ctx.channel.mention}.')
         except discord.Forbidden:
