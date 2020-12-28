@@ -58,6 +58,28 @@ DEX_COLORS = (
 )
 
 
+class Paginator(commands.Paginator):
+    def __init__(self, prefix='```', suffix='```', max_size=2000, max_per_page=0):
+        super().__init__(prefix, suffix, max_size)
+        self.max_per_page = max_per_page
+
+    def add_line(self, line='', *, empty=False):
+        max_page_size = self.max_size - self._prefix_len - self._suffix_len - 2
+        if len(line) > max_page_size:
+            raise RuntimeError('Line exceeds maximum page size %s' % (max_page_size))
+
+        if self._count + len(line) + 1 > self.max_size - self._suffix_len \
+                or self.max_per_page and len(self._current_page) >= self.max_per_page:
+            self.close_page()
+
+        self._count += len(line) + 1
+        self._current_page.append(line)
+
+        if empty:
+            self._current_page.append('')
+            self._count += 1
+
+
 class DexsearchParseError(commands.UserInputError):
     pass
 
@@ -169,17 +191,22 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
-            pokeapi = self.bot.pokeapi
-            start = time.perf_counter()
-            async with pokeapi.execute(query) as cur:  # type: asqlite3.Cursor
-                records = await cur.fetchall()
-            end = time.perf_counter()
+            async with self.bot.pokeapi.replace_row_factory(None) as pokeapi:
+                start = time.perf_counter()
+                async with pokeapi.execute(query) as cur:  # type: asqlite3.Cursor
+                    records = await cur.fetchall()
+                    end = time.perf_counter()
             header = '|'.join(col[0] for col in cur.description)
-            pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
+            pag = commands.Paginator(max_size=2048)
             for i, row in enumerate(records, 1):  # type: [int, tuple]
-                pag.add_line('|'.join(map(str, row)))
-                if i % 20 == 0:
+                to_add = '|'.join(map(str, row))
+                if len(header) * 2 + len(to_add) > 2040:
+                    raise ValueError('At least one page of results is too long to fit. Try returning fewer columns?')
+                if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
                     pag.close_page()
+                    pag.add_line(header)
+                    pag.add_line('-' * len(header))
+                pag.add_line(to_add)
 
         if pag.pages:
             menu = menus.MenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)

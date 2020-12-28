@@ -47,14 +47,11 @@ class Connection:
 
     async def _connect(self) -> 'Connection':
         if self._connection is None:
-            print('Connecting')
             try:
                 self._connection = await self._execute(sqlite3.connect, self._db_path, **self._init_kwargs)
             except Exception:
-                print('Failed')
                 self._connection = None
                 raise
-            print('Success')
 
         return self
 

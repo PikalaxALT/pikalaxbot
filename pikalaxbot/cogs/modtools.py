@@ -29,12 +29,15 @@ from .utils.menus import NavMenuPages
 
 class SqlResponseEmbed(menus.ListPageSource):
     async def format_page(self, menu: NavMenuPages, page):
+        first = 1 if menu.current_page == 0 else menu._cumsums[menu.current_page - 1] + 1
+        last = menu._cumsums[menu.current_page]
         return discord.Embed(
             title=menu.sql_cmd,
             description=page,
             colour=0xf47fff
         ).set_footer(
-            text=f'Page {menu.current_page + 1}/{self.get_max_pages()}'
+            text=f'Rows {first}-{last} of {menu._cumsums[-1]}\n'
+                 f'Page {menu.current_page + 1}/{self.get_max_pages()}'
         )
 
 
@@ -133,20 +136,29 @@ class Modtools(BaseCog):
     async def call_sql(self, ctx, *, script):
         """Run arbitrary sql command"""
 
-        pag = None
+        pag = commands.Paginator(max_size=2048)
+        header = None
+        counts = []
         async with ctx.typing():
             async with self.bot.sql as sql:
                 for i, row in enumerate(await sql.fetch(script), 1):  # type: [int, asyncpg.Record]
-                    if i == 1:
+                    if header is None:
                         header = '|'.join(row.keys())
-                        pag = commands.Paginator(f'```\n{header}\n{"-" * len(header)}', max_size=2048)
-                    pag.add_line('|'.join(map(str, row)))
-                    if i % 20 == 0:
+                    to_add = '|'.join(map(str, row))
+                    if len(header) * 2 + len(to_add) > 2040:
+                        raise ValueError('At least one page of results is too long to fit. Try returning fewer columns?')
+                    if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
+                        counts.append(i)
                         pag.close_page()
+                        pag.add_line(header)
+                        pag.add_line('-' * len(header))
+                    pag.add_line(to_add)
+                counts.append(i)
 
         if pag and pag.pages:
             menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = script
+            menu._cumsums = counts
             await menu.start(ctx)
         else:
             await ctx.send('Operation completed, no rows returned.', delete_after=10)
