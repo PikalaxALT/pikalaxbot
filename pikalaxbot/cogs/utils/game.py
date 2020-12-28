@@ -161,7 +161,7 @@ class GameCogBase(BaseCog):
     gamecls = None
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists game (id bigint unique primary key, name text, score integer default 0)")
+        await sql.execute("create table if not exists game (id bigint unique primary key, name varchar(32), score integer default 0)")
 
     def _local_check(self, ctx):
         if ctx.guild is None:

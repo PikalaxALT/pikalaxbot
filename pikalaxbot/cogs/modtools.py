@@ -155,9 +155,9 @@ class Modtools(BaseCog):
                         pag.add_line(header)
                         pag.add_line('-' * len(header))
                     pag.add_line(to_add)
-                counts.append(i)
 
         if pag and pag.pages:
+            counts.append(i)
             menu = NavMenuPages(SqlResponseEmbed(pag.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
             menu.sql_cmd = script
             menu._cumsums = counts
