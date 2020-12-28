@@ -435,7 +435,7 @@ duration, prompt, and options."""
             content2 = content
         else:
             try:
-                winner = max(tally, key=lambda k: tally[k])
+                winner = max(tally, key=tally.get)
                 content = f'Poll closed, the winner is {mgr.emojis[winner]}'
                 content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} vote(s).\n\nFull results: {mgr.message.jump_url}'
             except (ValueError, IndexError):

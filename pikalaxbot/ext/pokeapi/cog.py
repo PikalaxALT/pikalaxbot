@@ -11,6 +11,7 @@ import itertools
 from .models import PokeapiModels
 from textwrap import indent
 import traceback
+import operator
 
 
 __all__ = 'PokeApiCog',
@@ -321,9 +322,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             value=move.target.name
         )
         if machines:
-            machines.sort(key=lambda m: (m.version_group.id, m.number))
+            machines.sort(key=operator.attrgetter('version_group.id', 'number'))
             machine_s = []
-            for gen, machs in itertools.groupby(machines, lambda m: m.version_group.generation):
+            for gen, machs in itertools.groupby(machines, operator.attrgetter('version_group.generation')):
                 mach_s = set()
                 for mach in machs:
                     if mach.number < 100:
@@ -382,7 +383,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             WHERE pokemon_species_id = :id
             AND is_default = TRUE
             GROUP BY pv2pm.move_id, pv2v.generation_id, pv2v.id, move_learn_method_id, pv2pm.level
-            """, {'id': mon.id}), lambda ml: ml.move)}
+            """, {'id': mon.id}), operator.attrgetter('move'))}
         if not movelearns:
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         if len(query) == 1:
@@ -404,8 +405,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                             for gen, mls
                             in itertools.groupby(
                                 movelearns,
-                                lambda ml: ml.version_group.generation
-                            )
+                                operator.attrgetter('version_group.generation'))
                         )
                         embed.add_field(
                             name=str(move),
