@@ -148,7 +148,7 @@ class Modtools(BaseCog):
                     if len(header) * 2 + len(to_add) > 2040:
                         raise ValueError('At least one page of results is too long to fit. Try returning fewer columns?')
                     if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
-                        counts.append(i)
+                        counts.append(i - 1)
                         pag.close_page()
                         pag.add_line(header)
                         pag.add_line('-' * len(header))
