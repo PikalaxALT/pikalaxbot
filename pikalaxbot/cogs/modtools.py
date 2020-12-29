@@ -28,7 +28,7 @@ from .utils.menus import NavMenuPages
 
 
 class SqlResponseEmbed(menus.ListPageSource):
-    async def format_page(self, menu: NavMenuPages, page):
+    def format_page(self, menu: NavMenuPages, page):
         first = 1 if menu.current_page == 0 else menu._cumsums[menu.current_page - 1] + 1
         last = menu._cumsums[menu.current_page]
         return discord.Embed(

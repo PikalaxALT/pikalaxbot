@@ -38,7 +38,7 @@ class RedditErrorPageSource(menus.ListPageSource):
         self.embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm",
                              inline=False)
 
-    async def format_page(self, menu, page):
+    def format_page(self, menu, page):
         return {'content': page, 'embed': self.embed}
 
 

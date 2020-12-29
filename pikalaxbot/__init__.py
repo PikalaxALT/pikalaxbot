@@ -131,11 +131,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             paginator.add_line(line.rstrip('\n'))
 
         class TracebackPageSource(menus.ListPageSource):
-            async def format_page(self, menu: menus.MenuPages, page: str):
-                content = page
-                if embed is None:
-                    return content
-                return {'content': content, 'embed': embed}
+            def format_page(self, menu: menus.MenuPages, page: str):
+                return {'content': page, 'embed': embed}
 
         menu = menus.MenuPages(TracebackPageSource(paginator.pages, per_page=1))
         await menu.start(ctx, channel=channel)

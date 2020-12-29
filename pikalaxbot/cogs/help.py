@@ -46,7 +46,7 @@ class HelpMenu(NavMenuPages):
 
 
 class BotHelpPageSource(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, entry):
+    def format_page(self, menu: menus.MenuPages, entry):
         bot = menu.bot
         prefix = menu.ctx.prefix
         cmd_name = bot.help_command.command_attrs['name']
@@ -71,7 +71,7 @@ class BotHelpPageSource(menus.ListPageSource):
 
 
 class GroupOrCogHelpPageSource(menus.ListPageSource):
-    async def format_page(self, menu, page):
+    def format_page(self, menu, page):
         # Silence IDE warnings
         raise NotImplementedError
 
@@ -98,7 +98,7 @@ class CogHelpPageSource(GroupOrCogHelpPageSource):
         super().__init__(entries, per_page=per_page)
         self._cog = cog
 
-    async def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
+    def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
         cog = self._cog
         return self.format_embed(menu, entry, title=f'{cog.qualified_name} Help', description=cog.description or discord.Embed.Empty)
 
@@ -107,7 +107,7 @@ class GroupHelpPageSource(GroupOrCogHelpPageSource):
     title = discord.Embed.Empty
     description = discord.Embed.Empty
 
-    async def format_page(self, menu: menus.MenuPages, page):
+    def format_page(self, menu: menus.MenuPages, page):
         return self.format_embed(menu, page, title=self.title, description=self.description)
 
 

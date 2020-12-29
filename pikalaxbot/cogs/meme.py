@@ -196,7 +196,7 @@ class Meme(BaseCog):
                 paginator.close_page()
 
         class SimplePageSource(menus.ListPageSource):
-            async def format_page(self, menu: NavMenuPages, page):
+            def format_page(self, menu: NavMenuPages, page):
                 return f'{page}\n\nPage {menu.current_page + 1} of {self.get_max_pages()}'
 
         menu = NavMenuPages(SimplePageSource(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)

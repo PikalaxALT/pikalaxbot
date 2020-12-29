@@ -113,7 +113,7 @@ class ConfirmationMenu(menus.Menu):
 
 
 class SqlResponseEmbed(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, page):
+    def format_page(self, menu: menus.MenuPages, page):
         return discord.Embed(
             title=menu.sql_cmd,
             description=page,
@@ -390,7 +390,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             types = await self.bot.pokeapi.get_mon_types(mon)
 
             class MoveLearnPageSource(menus.ListPageSource):
-                async def format_page(self, menu: menus.MenuPages, page: list[PokeapiModels.PokemonMove]):
+                def format_page(self, menu: menus.MenuPages, page: list[PokeapiModels.PokemonMove]):
                     embed = discord.Embed(
                         title=f'{mon}\'s learnset',
                         colour=TYPE_COLORS[types[0].name]

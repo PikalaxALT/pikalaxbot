@@ -18,13 +18,13 @@ class HoisterPageSource(menus.ListPageSource):
     def num_entries(self):
         return len(self.entries)
 
-    async def format_page(self, menu: HoistersMenu, entry: typing.List[discord.Member]):
+    def format_page(self, menu: HoistersMenu, entry: typing.List[discord.Member]):
         try:
             mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
             first_idx = menu.current_page * self.per_page + 1
             max_idx = self.num_entries
             last_idx = min(max_idx, first_idx + self.per_page - 1)
-            for i, member in enumerate(entry,first_idx):
+            for i, member in enumerate(entry, first_idx):
                 nick = discord.utils.escape_markdown(member.nick) if member.nick else 'No nickname'
                 emoji = menu.emojis[member.status]
                 mbd.add_field(
@@ -41,7 +41,7 @@ class HoisterPageSource(menus.ListPageSource):
             return mbd
         except Exception as e:
             menu.bot.dispatch('command_error', menu.ctx, e)
-            await menu.stop()
+            return menu.stop()
 
 
 class Hoisters(BaseCog):

@@ -173,7 +173,7 @@ class RockPaperScissors(BaseCog):
             [pag.add_line(line.rstrip('\n')) for line in tb]
 
             class ErrorPageSource(menus.ListPageSource):
-                async def format_page(self, menu, page):
+                def format_page(self, menu, page):
                     return page
 
             exc_menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)

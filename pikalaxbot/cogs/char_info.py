@@ -6,7 +6,7 @@ import unicodedata
 
 
 class CharInfoMenu(menus.ListPageSource):
-    async def format_page(self, menu: NavMenuPages, page: tuple[str, str, str]):
+    def format_page(self, menu: NavMenuPages, page: tuple[str, str, str]):
         c, digit, name = page
         c_ord = ord(c)
         py_repr = f'{digit}'
