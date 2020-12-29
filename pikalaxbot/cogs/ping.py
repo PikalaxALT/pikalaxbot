@@ -58,7 +58,7 @@ class Ping(BaseCog):
         embed.add_field(name='Heartbeat latency', value=f'{self.bot.latency * 1000:.0f} ms')
         embed.add_field(name='Typing delay', value=f'{(t2 - t) * 1000:.0f} ms')
         embed.add_field(name='Message send delay', value=f'{(t4 - t3) * 1000:.0f} ms')
-        await new.edit(embed=embed, mention_author=False)
+        await new.edit(embed=embed, allowed_mentions=discord.AllowedMentions(replied_user=False))
 
     @staticmethod
     @executor_function
