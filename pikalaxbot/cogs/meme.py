@@ -22,9 +22,7 @@ import pyfiglet
 import asyncio
 import time
 import functools
-import sqlite3
-import concurrent.futures as futures
-import contextlib
+import collections
 
 import discord
 from discord.ext import commands, tasks, menus
@@ -34,24 +32,6 @@ from .utils.menus import NavMenuPages
 
 DPY_GUILD_ID = 336642139381301249
 MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
-executor = futures.ThreadPoolExecutor(max_workers=1)
-
-
-@contextlib.contextmanager
-def replace_row_factory(db: sqlite3.Connection, factory: typing.Optional[typing.Callable[[sqlite3.Cursor, tuple], typing.Any]]) -> sqlite3.Connection:
-    old_factory = db.row_factory
-    db.row_factory = factory
-    yield db
-    db.row_factory = old_factory
-
-
-def executor_function(func):
-    @functools.wraps(func)
-    async def inner(*args, **kwargs):
-        partial = functools.partial(func, *args, **kwargs)
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(executor, partial)
-    return inner
 
 
 class HMM:
@@ -92,7 +72,7 @@ class Meme(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
-        self._gay_db = None
+        self._gay_db = collections.defaultdict(lambda member: random.Random(member).random())
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
@@ -250,59 +230,13 @@ class Meme(BaseCog):
             await msg.remove_reaction(emoji, ctx.me)
         await msg.edit(embed=embed)
 
-    @executor_function
-    def init_gay_db(self):
-        if self._gay_db is None:
-            rng = random.Random()
-
-            def gayness(member_id):
-                rng.seed(member_id >> 22)
-                return rng.random()
-
-            self._gay_db = sqlite3.connect(':memory:')
-            self._gay_db.execute('create table gay (member_id integer not null unique on conflict ignore primary key, gayness numeric not null)')
-            self._gay_db.execute('create table members (id integer unique not null primary key autoincrement, guild_id integer not null, member_id integer not null references gay(member_id) deferrable initially deferred, is_bot boolean)')
-            self._gay_db.execute('create unique index member_idx on members (guild_id, member_id)')
-            self._gay_db.create_function('howgay', 1, gayness, deterministic=True)
-
-    @executor_function
-    def get_gayness(self, member):
-        params = {
-            'guild': member.guild.id,
-            'member': member.id,
-            'bot': member.bot
-        }
-        self._gay_db.execute('insert or ignore into members (guild_id, member_id, is_bot) values (:guild, :member, :bot)', params)
-        self._gay_db.execute('insert or ignore into gay values (:member, howgay(:member))', params)
-        gayness, = self._gay_db.execute('select gayness from gay where member_id = :member', params).fetchone()
-        return gayness
-
-    @executor_function
-    def get_guild_gayness(self, guild: discord.Guild):
-        def row_factory(cursor, row):
-            return guild.get_member(row[0]), row[1]
-
-        params = [
-            {
-                'guild': guild.id,
-                'member': member.id,
-                'bot': member.bot
-            } for member in guild.members
-        ]
-        self._gay_db.executemany('insert or ignore into members (guild_id, member_id, is_bot) values (:guild, :member, :bot)', params)
-        self._gay_db.executemany('insert or ignore into gay values (:member, howgay(:member))', params)
-        with replace_row_factory(self._gay_db, row_factory) as conn:
-            cur = conn.execute('select gay.member_id, gay.gayness from members inner join gay on members.member_id = gay.member_id where members.guild_id = :guild and not members.is_bot order by gay.gayness desc limit 10', params[0])
-            return cur.fetchall()
-
     @commands.guild_only()
     @commands.command(name='howgay')
     async def show_how_gay(self, ctx, *, member: discord.Member = None):
         """Reports how gay you are"""
 
         member = member or ctx.author
-        await self.init_gay_db()
-        gayness = await self.get_gayness(member)
+        gayness = self._gay_db[member]
         await ctx.send(f'{member} is {gayness * 100:.1f}% gay.')
 
     @commands.guild_only()
@@ -311,8 +245,7 @@ class Meme(BaseCog):
         """Reports the top 10 gay people"""
 
         async with ctx.typing():
-            await self.init_gay_db()
-            members = await self.get_guild_gayness(ctx.guild)
+            members = sorted([(member, self._gay_db[member]) for member in ctx.guild.members if not member.bot], key=lambda t: t[1], reverse=True)[:10]
         embed = discord.Embed(
             title=f'Top {min(len(members), 10)} gayest members of {ctx.guild}',
             description='\n'.join(f'**#{i}:** {member.mention} ({gayness * 100:.1f}%)' for i, (member, gayness) in enumerate(members[:10], 1)),
