@@ -68,8 +68,7 @@ class Modtools(BaseCog):
     disabled_commands = set()
     disabled_cogs = set()
     debug = False
-    owoify = False
-    config_attrs = 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug', 'owoify'
+    config_attrs = 'prefix', 'game', 'disabled_commands', 'disabled_cogs', 'debug'
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -432,13 +431,6 @@ class Modtools(BaseCog):
         """Reoad the extension"""
 
         await self.reload_cog(ctx, *cogs)
-
-    @commands.command(name='owoify')
-    async def toggle_owo(self, ctx: commands.Context):
-        """Toggle owoification"""
-
-        self.owoify = not self.owoify
-        await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
 
 def setup(bot):
