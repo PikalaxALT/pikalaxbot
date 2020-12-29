@@ -69,10 +69,13 @@ class Meme(BaseCog):
         'pew! '
     )
 
+    @functools.cache
+    def _calc_gayness(self, member):
+        return random.Random(member).random()
+
     def __init__(self, bot):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
-        self._gay_db = collections.defaultdict(lambda member: random.Random(member).random())
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
@@ -236,7 +239,7 @@ class Meme(BaseCog):
         """Reports how gay you are"""
 
         member = member or ctx.author
-        gayness = self._gay_db[member]
+        gayness = self._calc_gayness(member)
         await ctx.send(f'{member} is {gayness * 100:.1f}% gay.')
 
     @commands.guild_only()
@@ -245,7 +248,7 @@ class Meme(BaseCog):
         """Reports the top 10 gay people"""
 
         async with ctx.typing():
-            members = sorted([(member, self._gay_db[member]) for member in ctx.guild.members if not member.bot], key=lambda t: t[1], reverse=True)[:10]
+            members = sorted([(member, self._calc_gayness(member)) for member in ctx.guild.members if not member.bot], key=lambda t: t[1], reverse=True)[:10]
         embed = discord.Embed(
             title=f'Top {min(len(members), 10)} gayest members of {ctx.guild}',
             description='\n'.join(f'**#{i}:** {member.mention} ({gayness * 100:.1f}%)' for i, (member, gayness) in enumerate(members[:10], 1)),
