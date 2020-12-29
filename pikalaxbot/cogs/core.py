@@ -316,7 +316,9 @@ class Core(BaseCog):
 
         target = target or ctx.author
         is_member = isinstance(target, discord.Member)
-        embed = discord.Embed().set_author(
+        embed = discord.Embed(
+            colour=0xf47fff
+        ).set_author(
             name=str(target)
         ).set_thumbnail(
             url=str(target.avatar_url)
