@@ -22,7 +22,6 @@ import pyfiglet
 import asyncio
 import time
 import functools
-import collections
 
 import discord
 from discord.ext import commands, tasks, menus
@@ -73,10 +72,6 @@ class Meme(BaseCog):
     def _calc_gayness(self, member):
         return random.Random(member).random()
 
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.session: aiohttp.ClientSession = bot.client_session
-
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
             return
@@ -96,7 +91,7 @@ class Meme(BaseCog):
         timeout = aiohttp.ClientTimeout(total=15.0)
         params = {'Subject1': true_subj1, 'Subject2': true_subj2}
         async with ctx.typing():
-            async with self.session.post('http://www.watchout4snakes.com/Random/RandomParagraph', data=params, timeout=timeout) as r:
+            async with self.bot.client_session.post('http://www.watchout4snakes.com/Random/RandomParagraph', data=params, timeout=timeout) as r:
                 res = await r.text()
         if not isinstance(subj1, str):
             res = res.replace(true_subj1, str(subj1))
