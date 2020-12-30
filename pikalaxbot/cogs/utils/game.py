@@ -132,7 +132,7 @@ class GameBase:
         else:
             self._task = self.bot.loop.create_task(self.timeout(ctx))
         self._task.add_done_callback(destroy_self)
-        self.start_time = ctx.message.created_at.timestamp()
+        self.start_time = time.time()
 
     async def end(self, ctx, failed=False, aborted=False):
         if self.running:
