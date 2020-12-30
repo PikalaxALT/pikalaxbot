@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
 
 __dirname__ = os.path.dirname(__file__) or '.'
 
-__version__ = '0.2.0a'
+__version__ = '0.2.1a'
 
 if __version__.endswith(('a', 'b', 'rc')):
     try:
@@ -48,7 +48,23 @@ if __version__.endswith(('a', 'b', 'rc')):
 __all__ = ('PikalaxBOT',)
 
 
-FakeContext = collections.namedtuple('Context', 'guild channel message author', module='discord.ext.commands.context')
+FakeContext = collections.namedtuple('Context', 'guild channel message author command', module='discord.ext.commands.context', defaults=(None,))
+
+
+class MyContext(commands.Context):
+    def __init__(self, **attrs):
+        super().__init__(**attrs)
+        self._message_history = set()
+
+    async def send(self, content=None, **kwargs):
+        msg = await super().send(content, **kwargs)
+        self._message_history.add((self.channel.id, msg.id))
+        return msg
+
+    async def reply(self, content=None, **kwargs):
+        msg = await super().reply(content, **kwargs)
+        self._message_history.add((self.channel.id, msg.id))
+        return msg
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
@@ -57,6 +73,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         loop = kwargs.pop('loop', None) or asyncio.get_event_loop()
         log_level = kwargs.pop('log_level', logging.NOTSET)
         self.settings = Settings(settings_file, loop=loop)
+        self._ctx_cache = {}
         super().__init__(
             activity=discord.Game(self.settings.game),
             loop=loop,
@@ -153,3 +170,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     async def on_ready(self):
         self.log_info(f'Logged in as {self.user}')
+
+    async def get_context(self, message, *, cls=None):
+        ctx = await super().get_context(message, cls=cls or MyContext)
+        self._ctx_cache[(message.channel.id, message.id)] = ctx
+        return ctx
