@@ -36,10 +36,10 @@ __all__ = (
 
 
 def find_emoji(guild, name, case_sensitive=True):
-    def lower(s):
-        return s if case_sensitive else s.lower()
-
-    return discord.utils.find(lambda e: lower(name) == lower(e.name), guild.emojis)
+    if case_sensitive:
+        return discord.utils.get(guild.emojis, name=name)
+    name = name.lower()
+    return discord.utils.find(lambda e: e.name.lower() == name, guild.emojis)
 
 
 async def increment_score(sql, player, *, by=1):

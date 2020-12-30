@@ -174,7 +174,9 @@ class Q20QuestionParser:
 
         def get_first_match(lut):
             return discord.utils.find(
-                lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None, lut.items()) or (None, None)
+                lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None,
+                lut.items()
+            ) or (None, None)
 
         if table in (self.bot.pokeapi.Pokemon, self.bot.pokeapi.PokemonSpecies):
             _, id_ = get_first_match(Q20QuestionParser.mon_search)
