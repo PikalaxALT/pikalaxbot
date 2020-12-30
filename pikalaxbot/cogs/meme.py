@@ -22,6 +22,7 @@ import pyfiglet
 import asyncio
 import time
 import functools
+import operator
 
 import discord
 from discord.ext import commands, tasks, menus
@@ -243,7 +244,7 @@ class Meme(BaseCog):
         """Reports the top 10 gay people"""
 
         async with ctx.typing():
-            members = sorted([(member, self._calc_gayness(member)) for member in ctx.guild.members if not member.bot], key=lambda t: t[1], reverse=True)[:10]
+            members = sorted([(member, self._calc_gayness(member)) for member in ctx.guild.members if not member.bot], key=operator.itemgetter(1), reverse=True)[:10]
         embed = discord.Embed(
             title=f'Top {min(len(members), 10)} gayest members of {ctx.guild}',
             description='\n'.join(f'**#{i}:** {member.mention} ({gayness * 100:.1f}%)' for i, (member, gayness) in enumerate(members[:10], 1)),

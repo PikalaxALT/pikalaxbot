@@ -17,7 +17,11 @@
 import re
 import time
 from discord.ext import commands
+import operator
 from . import BaseCog
+
+
+str_lower = operator.methodcaller('lower')
 
 
 class Fix(BaseCog):
@@ -72,7 +76,7 @@ class Fix(BaseCog):
             await self.fix(ctx)
 
     @fix.command()
-    async def add(self, ctx, key: lambda x: x.lower(), owner, altname=None):
+    async def add(self, ctx, key: str_lower, owner, altname=None):
         """Add a bot to my database"""
         if key not in self.bot_owners:
             self.bot_owners[key] = owner
@@ -87,7 +91,7 @@ class Fix(BaseCog):
             await ctx.message.add_reaction('\N{CROSS MARK}')
 
     @fix.command(name='del')
-    async def delete_key(self, ctx, key: lambda x: x.lower()):
+    async def delete_key(self, ctx, key: str_lower):
         """Remove a bot from my database"""
         if key in self.bot_owners:
             del self.bot_owners[key]

@@ -15,8 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import aiohttp
-import io
-import os
+import operator
 
 import discord
 from discord.ext import commands
@@ -70,7 +69,7 @@ class Onehand(BaseCog):
         num_sent = 0
         for imagespec in resp:
             if not any(blacklist & set(value) for value in imagespec['tags'].values()):
-                filespec = discord.utils.find(lambda x: x['url'], (imagespec['file'], imagespec['sample'], imagespec['preview']))
+                filespec = discord.utils.find(operator.itemgetter('url'), (imagespec['file'], imagespec['sample'], imagespec['preview']))
                 if not filespec:
                     print(imagespec['id'])
                     continue
