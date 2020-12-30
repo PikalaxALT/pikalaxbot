@@ -201,6 +201,11 @@ class GameCogBase(BaseCog):
                                delete_after=10)
             else:
                 await cb(ctx, *args, **kwargs)
+        if cmd == 'start':
+            await asyncio.wait({
+                ctx._task,
+                asyncio.wait_for(self[ctx.channel.id]._task, None)
+            }, return_when=asyncio.FIRST_COMPLETED)
 
     async def _error(self, ctx, exc):
         if isinstance(exc, BadGameArgument):
