@@ -19,7 +19,7 @@ import discord
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase, increment_score
+from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
 
 
 class HangmanGame(GameBase):
@@ -154,12 +154,12 @@ class Hangman(GameCogBase):
         """Play Hangman"""
         await ctx.send_help(ctx.command)
 
-    @hangman.command()
+    @hangman.command(cls=GameStartCommand)
     async def start(self, ctx):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
-    @commands.command(name='hangstart', aliases=['hst'])
+    @commands.command(name='hangstart', aliases=['hst'], cls=GameStartCommand)
     async def hangman_start(self, ctx):
         """Start a game in the current channel"""
         await self.start(ctx)

@@ -35,6 +35,10 @@ from . import BaseCog
 from .. import __dirname__, __version__
 from .utils.errors import *
 from .utils.converters import CommandConverter
+from .utils.game import GameCogBase, GameStartCommand
+
+if typing.TYPE_CHECKING:
+    from .. import MyContext
 
 
 class Core(BaseCog):
@@ -478,23 +482,32 @@ class Core(BaseCog):
         )
         await ctx.send(embed=embed)
 
-    # @BaseCog.listener('on_message_delete')
-    async def clear_context(self, message: discord.Message):
+    async def delete_response(self, ctx, history):
+        # Try bulk delete first
         try:
-            history = self.bot._ctx_cache.pop((message.channel.id, message.id))
-        except KeyError:
-            pass
-        else:
+            await self.bot.http.delete_messages(ctx.channel.id, list(history), reason='Message edited to delete prior response')
+        except discord.HTTPException:
+            # Bulk delete failed for some reason, so try deleting them one by one
             for msg_id in history:
                 try:
-                    await self.bot.http.delete_message(message.channel.id, msg_id, reason='Message edited to delete prior response')
+                    await self.bot.http.delete_message(ctx.channel.id, msg_id, reason='Message edited to delete prior response')
                 except discord.HTTPException:
                     pass
 
-    @BaseCog.listener()
-    async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        # await self.clear_context(before)
-        await self.bot.process_commands(after)
+    @BaseCog.listener('on_message_delete')
+    @BaseCog.listener('on_message_edit')
+    async def clear_context(self, message: discord.Message, after: typing.Optional[discord.Message] = None):
+        try:
+            ctx, history = self.bot._ctx_cache.pop((message.channel.id, message.id))  # type: 'MyContext', set[int]
+        except KeyError:
+            pass
+        else:
+            ctx.cancel()
+            if isinstance(ctx.cog, GameCogBase):
+                await ctx.cog.end_quietly(ctx, history)
+            await self.delete_response(ctx, history)
+        if after:
+            await self.bot.process_commands(after)
 
 
 def setup(bot):

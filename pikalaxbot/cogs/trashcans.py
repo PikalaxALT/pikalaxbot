@@ -18,7 +18,7 @@ import random
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase
+from .utils.game import GameBase, GameCogBase, GameStartCommand
 from .utils.converters import BoardCoords
 
 
@@ -154,12 +154,12 @@ class Trashcans(GameCogBase):
         """Play trashcans"""
         await ctx.send_help(ctx.command)
 
-    @trashcans.command()
+    @trashcans.command(cls=GameStartCommand)
     async def start(self, ctx):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
-    @commands.command(name='trashstart', aliases=['tst'])
+    @commands.command(name='trashstart', aliases=['tst'], cls=GameStartCommand)
     async def trashcans_start(self, ctx):
         """Start a game in the current channel"""
         await self.start(ctx)

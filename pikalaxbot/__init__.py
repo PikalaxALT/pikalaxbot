@@ -55,16 +55,20 @@ class MyContext(commands.Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
         self._message_history = set()
+        self._task = asyncio.current_task()
 
     async def send(self, content=None, **kwargs):
         msg = await super().send(content, **kwargs)
-        self.bot._ctx_history[(self.channel.id, self.message.id)].add(msg.id)
+        self.bot._ctx_cache[(self.channel.id, self.message.id)][1].add(msg.id)
         return msg
 
     async def reply(self, content=None, **kwargs):
         msg = await super().reply(content, **kwargs)
-        self.bot._ctx_history[(self.channel.id, self.message.id)].add(msg.id)
+        self.bot._ctx_cache[(self.channel.id, self.message.id)][1].add(msg.id)
         return msg
+
+    def cancel(self, msg=None):
+        self._task.cancel(msg)
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
@@ -173,5 +177,5 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     async def get_context(self, message, *, cls=None):
         ctx = await super().get_context(message, cls=cls or MyContext)
-        self._ctx_cache[(message.channel.id, message.id)] = set()
+        self._ctx_cache[(message.channel.id, message.id)] = [ctx, set()]
         return ctx

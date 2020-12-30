@@ -19,7 +19,7 @@ import discord
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase
+from .utils.game import GameBase, GameCogBase, GameStartCommand
 
 
 class AnagramGame(GameBase):
@@ -131,12 +131,12 @@ class Anagram(GameCogBase):
         """Play Anagram"""
         await ctx.send_help(ctx.command)
 
-    @anagram.command()
+    @anagram.command(cls=GameStartCommand)
     async def start(self, ctx: commands.Context):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
-    @commands.command(name='anastart', aliases=['ast'])
+    @commands.command(name='anastart', aliases=['ast'], cls=GameStartCommand)
     async def anagram_start(self, ctx):
         """Start a game in the current channel"""
         await self.start(ctx)

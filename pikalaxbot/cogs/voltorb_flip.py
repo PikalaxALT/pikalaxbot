@@ -18,7 +18,7 @@ import random
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase, find_emoji
+from .utils.game import GameBase, GameCogBase, find_emoji, GameStartCommand
 from .utils.converters import BoardCoords
 
 
@@ -293,12 +293,12 @@ class VoltorbFlip(GameCogBase):
         """Play Voltorb Flip"""
         await ctx.send_help(ctx.command)
 
-    @voltorb.command()
+    @voltorb.command(cls=GameStartCommand)
     async def start(self, ctx):
         """Start a game of Voltorb Flip"""
         await self.game_cmd('start', ctx)
 
-    @commands.command(name='voltstart', aliases=['vst'])
+    @commands.command(name='voltstart', aliases=['vst'], cls=GameStartCommand)
     async def voltorb_start(self, ctx):
         """Start a game of Voltorb Flip"""
         await self.start(ctx)

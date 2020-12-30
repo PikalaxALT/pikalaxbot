@@ -29,7 +29,8 @@ __all__ = (
     'find_emoji',
     'increment_score',
     'GameBase',
-    'GameCogBase'
+    'GameStartCommand',
+    'GameCogBase',
 )
 
 
@@ -126,7 +127,7 @@ class GameBase:
         else:
             self._task = self.bot.loop.create_task(self.timeout(ctx))
         self._task.add_done_callback(destroy_self)
-        self.start_time = time.time()
+        self.start_time = ctx.message.created_at.timestamp()
 
     async def end(self, ctx, failed=False, aborted=False):
         if self.running:
@@ -157,6 +158,17 @@ class GameBase:
             ).set_image(url=sprite_url or discord.Embed.Empty)
 
 
+class GameStartCommand(commands.Command):
+    @property
+    def _max_concurrency(self):
+        if self.cog:
+            return self.cog._max_concurrency
+
+    @_max_concurrency.setter  # Workaround for super __init__
+    def _max_concurrency(self, value):
+        pass
+
+
 class GameCogBase(BaseCog):
     gamecls = None
 
@@ -173,6 +185,7 @@ class GameCogBase(BaseCog):
             raise NotImplemented('this class must be subclassed')
         super().__init__(bot)
         self.channels = {}
+        self._max_concurrency = commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False)
 
     def __getitem__(self, channel):
         if channel not in self.channels:
@@ -197,6 +210,14 @@ class GameCogBase(BaseCog):
                            delete_after=10)
         elif isinstance(exc, commands.NoPrivateMessage):
             await ctx.send(exc)
+        elif isinstance(exc, commands.MaxConcurrencyReached):
+            await ctx.send(f'{self.qualified_name} is already running here')
         else:
             await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}')
         self.log_tb(ctx, exc)
+
+    async def end_quietly(self, ctx, history):
+        async with self[ctx.channel.id] as game:
+            if game.running and game._message and game._message.id in history:
+                game._task.cancel()
+                game.reset()

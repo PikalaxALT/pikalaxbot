@@ -1,7 +1,7 @@
 import discord
 import math
 from discord.ext import commands
-from .utils.game import GameBase, GameCogBase, increment_score
+from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
 import re
 import difflib
 import random
@@ -1034,12 +1034,12 @@ class Q20Game(GameCogBase):
         if ctx.invoked_subcommand is None:
             await ctx.send_help(self.q20)
 
-    @q20.command()
+    @q20.command(cls=GameStartCommand)
     async def start(self, ctx, *, challenge_mode=False):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx, challenge_mode=challenge_mode)
 
-    @commands.command(name='q20start', aliases=['qst', 'start'])
+    @commands.command(name='q20start', aliases=['qst', 'start'], cls=GameStartCommand)
     async def q20_start(self, ctx, *, challenge_mode=False):
         """Start a game in the current channel"""
         await self.start(ctx, challenge_mode=challenge_mode)
