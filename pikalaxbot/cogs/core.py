@@ -478,22 +478,22 @@ class Core(BaseCog):
         )
         await ctx.send(embed=embed)
 
-    @BaseCog.listener('on_message_delete')
+    # @BaseCog.listener('on_message_delete')
     async def clear_context(self, message: discord.Message):
         try:
-            ctx = self.bot._ctx_cache.pop((message.channel.id, message.id))
+            history = self.bot._ctx_cache.pop((message.channel.id, message.id))
         except KeyError:
             pass
         else:
-            for chan_id, msg_id in ctx._message_history:
+            for msg_id in history:
                 try:
-                    await self.bot.http.delete_message(chan_id, msg_id, reason='Message edited to delete prior response')
+                    await self.bot.http.delete_message(message.channel.id, msg_id, reason='Message edited to delete prior response')
                 except discord.HTTPException:
                     pass
 
     @BaseCog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        await self.clear_context(before)
+        # await self.clear_context(before)
         await self.bot.process_commands(after)
 
 

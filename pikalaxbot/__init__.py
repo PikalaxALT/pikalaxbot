@@ -58,12 +58,12 @@ class MyContext(commands.Context):
 
     async def send(self, content=None, **kwargs):
         msg = await super().send(content, **kwargs)
-        self._message_history.add((self.channel.id, msg.id))
+        self.bot._ctx_history[(self.channel.id, self.message.id)].add(msg.id)
         return msg
 
     async def reply(self, content=None, **kwargs):
         msg = await super().reply(content, **kwargs)
-        self._message_history.add((self.channel.id, msg.id))
+        self.bot._ctx_history[(self.channel.id, self.message.id)].add(msg.id)
         return msg
 
 
@@ -173,5 +173,5 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
 
     async def get_context(self, message, *, cls=None):
         ctx = await super().get_context(message, cls=cls or MyContext)
-        self._ctx_cache[(message.channel.id, message.id)] = ctx
+        self._ctx_cache[(message.channel.id, message.id)] = set()
         return ctx
