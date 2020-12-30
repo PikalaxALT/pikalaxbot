@@ -24,6 +24,7 @@ from .errors import BadGameArgument
 import typing
 if typing.TYPE_CHECKING:
     from ...ext.pokeapi import PokeApi
+    from ... import MyContext
 
 __all__ = (
     'find_emoji',
@@ -49,6 +50,10 @@ async def increment_score(sql, player, *, by=1):
         'do update '
         'set score = game.score + $3',
         player.id, player.name, by)
+
+
+class NoInvokeOnEdit(commands.CheckFailure):
+    pass
 
 
 class GameBase:
@@ -175,9 +180,11 @@ class GameCogBase(BaseCog):
     async def init_db(self, sql):
         await sql.execute("create table if not exists game (id bigint unique primary key, name varchar(32), score integer default 0)")
 
-    def _local_check(self, ctx):
+    def _local_check(self, ctx: 'MyContext'):
         if ctx.guild is None:
             raise commands.NoPrivateMessage('This command cannot be used in private messages.')
+        if ctx.message.edited_at:
+            raise NoInvokeOnEdit('This command cannot be invoked by editing your message')
         return True
 
     def __init__(self, bot):
@@ -213,7 +220,7 @@ class GameCogBase(BaseCog):
                            f'Try using two numbers (i.e. 2 5) or a letter '
                            f'and a number (i.e. c2).',
                            delete_after=10)
-        elif isinstance(exc, commands.NoPrivateMessage):
+        elif isinstance(exc, (commands.NoPrivateMessage, NoInvokeOnEdit)):
             await ctx.send(exc)
         elif isinstance(exc, commands.MaxConcurrencyReached):
             await ctx.send(f'{self.qualified_name} is already running here')
