@@ -265,7 +265,7 @@ class Modtools(BaseCog):
         if isinstance(result, tuple):
             _, error = result
             await self.bot.wait_until_ready()
-            await self.bot.send_tb(None, error, ignoring=f'Ignoring exception in db init for cog {cog}:')
+            await self.bot.send_tb(None, error, origin=f'db init for cog {cog}:')
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx, *cogs: lower):
@@ -413,9 +413,8 @@ class Modtools(BaseCog):
             for cog, original in error.cog_errors.items():
                 if not original:
                     continue
-                self.log_tb(ctx, original)
                 orig = getattr(original, 'original', original) or original
-                await self.bot.send_tb(ctx, orig, ignoring=f'Ignoring exception in {error.mode}ing {cog}')
+                await self.bot.send_tb(ctx, orig, origin=f'{error.mode}ing {cog}')
         else:
             await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
             self.log_tb(ctx, error)

@@ -92,7 +92,7 @@ class BaseCog(LoggingMixin, commands.Cog):
         try:
             await self.fetch()
         except Exception as e:
-            await self.bot.send_tb(ctx, e, ignoring=f'Ignoring exception in {self}.cog_before_invoke:')
+            await self.bot.send_tb(ctx, e, origin=f'{self}.cog_before_invoke:')
 
     async def commit(self):
         """
@@ -110,4 +110,4 @@ class BaseCog(LoggingMixin, commands.Cog):
         try:
             await self.commit()
         except Exception as e:
-            await self.bot.send_tb(ctx, e, ignoring=f'Ignoring exception in {self}.cog_after_invoke:')
+            await self.bot.send_tb(ctx, e, origin=f'{self}.cog_after_invoke:')

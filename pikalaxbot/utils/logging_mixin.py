@@ -31,9 +31,8 @@ class LoggingMixin:
         self.log_and_print(logging.CRITICAL, msg, *args, **kwargs)
 
     def log_tb(self, ctx, exc):
-        self.log_and_print(
-            logging.ERROR,
-            f'Ignoring exception in command {ctx.command}:',
+        self.log_error(
+            f'Ignoring exception in command {ctx.command}:' if ctx else '',
             exc_info=(exc.__class__, exc, exc.__traceback__)
         )
 

@@ -253,8 +253,8 @@ class Voice(BaseCog):
         if isinstance(error, VoiceCommandError):
             await ctx.reply(f'Unable to execute voice command: {error}', delete_after=10)
         else:
-            msg = f'Ignoring exception in command "{ctx.command}"'
-            await self.bot.send_tb(ctx, error, ignoring=msg)
+            msg = f'command "{ctx.command}"'
+            await self.bot.send_tb(ctx, error, origin=msg)
 
 
 def setup(bot):

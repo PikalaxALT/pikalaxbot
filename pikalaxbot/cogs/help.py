@@ -221,7 +221,7 @@ class Help(BaseCog):
             return await ctx.send(f'You are using this command too frequently. Try again in {error.retry_after}s.', delete_after=10)
         elif isinstance(error, commands.MaxConcurrencyReached):
             return await ctx.send('Someone else is using a Help menu in this channel.', delete_after=10)
-        await self.bot.send_tb(ctx, error, ignoring='Ignoring exception in help command')
+        await self.bot.send_tb(ctx, error, origin='help command')
 
     def cog_unload(self):
         self.bot.help_command = self._original_help_command

@@ -362,7 +362,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         else:
             if isinstance(exc, commands.CommandInvokeError):
                 exc = exc.original
-            await self.bot.send_tb(ctx, exc, ignoring=f'Ignoring exception in {ctx.command}:')
+            await self.bot.send_tb(ctx, exc, origin=str(ctx.command))
 
     @commands.command(usage='<mon>, <move>')
     async def learn(self, ctx, *, query: CommaSeparatedArgs):

@@ -198,5 +198,5 @@ class GameCogBase(BaseCog):
         elif isinstance(exc, commands.NoPrivateMessage):
             await ctx.send(exc)
         else:
-            await self.bot.send_tb(ctx, exc, ignoring=f'Ignoring exception in command {ctx.command}')
+            await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}')
         self.log_tb(ctx, exc)

@@ -245,8 +245,8 @@ class Poll(BaseCog):
 
     @cleanup_polls.error
     async def cleanup_polls_error(self, error):
-        content = 'Ignoring exception in Poll.cleanup_polls'
-        await self.bot.send_tb(None, error, ignoring=content)
+        content = 'Poll.cleanup_polls'
+        await self.bot.send_tb(None, error, origin=content)
 
     @cleanup_polls.before_loop
     async def cache_polls(self):
@@ -261,8 +261,7 @@ class Poll(BaseCog):
                     except discord.HTTPException:
                         pass
         except Exception as e:
-            self.log_error('Ignoring exception in Poll.cache_polls', exc_info=(e.__class__, e, e.__traceback__))
-            await self.bot.send_tb(None, e, ignoring='Ignoring exception in Poll.cache_polls')
+            await self.bot.send_tb(None, e, origin='Poll.cache_polls')
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[PollTime], prompt, *opts):

@@ -115,7 +115,8 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     def pokeapi(self, value: typing.Optional['PokeApi']):
         self._pokeapi = value
 
-    async def send_tb(self, ctx: typing.Optional[commands.Context], exc: BaseException, *, ignoring: typing.Optional[str] = None, embed: typing.Optional[discord.Embed] = None):
+    async def send_tb(self, ctx: typing.Optional[commands.Context], exc: BaseException, *, origin: typing.Optional[str] = None, embed: typing.Optional[discord.Embed] = None):
+        msg = f'Ignoring exception in {origin}' if origin is not None else ''
         channel = self.exc_channel
         if channel is None:
             return
@@ -124,10 +125,10 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 await self.is_owner(discord.Object(id=0))
             ctx = FakeContext(channel.guild, channel, None, channel.guild.get_member(self.owner_id))
         paginator = commands.Paginator()
-        if ignoring is not None:
-            paginator.add_line(ignoring)
+        msg and paginator.add_line(msg)
         for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):
             paginator.add_line(line.rstrip('\n'))
+        self.log_error(msg, exc_info=(exc.__class__, exc, exc.__traceback__))
 
         class TracebackPageSource(menus.ListPageSource):
             def format_page(self, menu: menus.MenuPages, page: str):

@@ -26,7 +26,7 @@ class SubredditNotFound(commands.CommandError):
 class RedditErrorPageSource(menus.ListPageSource):
     def __init__(self, ctx, error):
         paginator = commands.Paginator()
-        paginator.add_line(f'Ignoring exception in command {ctx.command}:')
+        paginator.add_line(f'command {ctx.command}')
         for line in traceback.format_exception(error.__class__, error, error.__traceback__):
             paginator.add_line(line.rstrip('\n'))
         super().__init__(paginator.pages, per_page=1)

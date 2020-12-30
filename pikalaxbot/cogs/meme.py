@@ -77,7 +77,7 @@ class Meme(BaseCog):
             return
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-            await self.bot.send_tb(ctx, error, ignoring=f'Ignoring exception in command {ctx.command}')
+            await self.bot.send_tb(ctx, error, origin=f'command {ctx.command}')
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command(ignore_extra=False)

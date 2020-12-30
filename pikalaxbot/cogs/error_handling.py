@@ -16,8 +16,6 @@ class ErrorHandling(BaseCog):
         exc_info = sys.exc_info()
         exc = exc_info[1]
         await self.bot.wait_until_ready()
-        content = f'Ignoring exception in {event}'
-        self.log_error(content, exc_info=exc_info)
         embed = None
         if event == 'on_message':
             message, = args
@@ -29,7 +27,7 @@ class ErrorHandling(BaseCog):
                             + (message.content if len(message.content) < 100 else message.content[:97] + '...')
                             + '`', inline=False)
             embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
-        await self.bot.send_tb(None, exc, ignoring=content, embed=embed)
+        await self.bot.send_tb(None, exc, origin=event, embed=embed)
 
     async def handle_command_error(self, ctx: commands.Context, exc: commands.CommandError):
         if isinstance(exc, commands.MissingRequiredArgument):
@@ -85,14 +83,13 @@ class ErrorHandling(BaseCog):
         if isinstance(exc, self.handle_excs):
             return await self.handle_command_error(ctx, exc)
 
-        self.log_tb(ctx, exc)
         embed = discord.Embed(title='Command error details')
         embed.add_field(name='Author', value=ctx.author.mention, inline=False)
         if ctx.guild:
             embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
         embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
         embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm", inline=False)
-        await self.bot.send_tb(ctx, exc, ignoring=f'Ignoring exception in command {ctx.command}:', embed=embed)
+        await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
 
 
 def setup(bot):

@@ -55,7 +55,7 @@ class MemberStatus(BaseCog):
 
     @update_counters.error
     async def update_counters_error(self, error):
-        await self.bot.send_tb(None, error, ignoring='Ignoring exception in MemberStatus.update_counters')
+        await self.bot.send_tb(None, error, origin='MemberStatus.update_counters')
 
     @staticmethod
     @executor_function

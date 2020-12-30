@@ -136,7 +136,7 @@ class Core(BaseCog):
         if isinstance(ctx.command, commands.Command) and await self.bot.is_owner(ctx.author):
             return True
         if ctx.author.id in self.banlist:
-            raise BotIsIgnoringUser(f'I am ignoring {ctx.author}')
+            raise BotIsIgnoringUser(f'I am origin {ctx.author}')
         return True
 
     @flags.add_flag('-y', '--yes', dest='yes', action='store_true')
