@@ -57,7 +57,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
 
     @staticmethod
     def _clean_name(name):
-        name = name.replace('♀', '_F').replace('♂', '_m').replace('é', 'e')
+        name = name.replace('♀', '_F').replace('♂', '_M').replace('é', 'e')
         name = re.sub(r'\W+', '_', name).title()
         return name
 
