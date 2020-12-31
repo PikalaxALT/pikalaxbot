@@ -29,11 +29,12 @@ class CommandConverter(commands.Command):
         return cmd
 
 
-class DiceRollConverter(commands.Converter):
+class DiceRollConverter(tuple[int, int]):
     _pattern = re.compile(r'(?P<count>\d+)?(d(?P<sides>\d+))?')
 
-    async def convert(self, ctx, argument):
-        match = self._pattern.match(argument)
+    @classmethod
+    async def convert(cls, ctx, argument):
+        match = cls._pattern.match(argument)
         if match is None:
             raise ValueError
         count = int(match['count'] or 1)
@@ -42,55 +43,49 @@ class DiceRollConverter(commands.Converter):
         return count, sides
 
 
-class AliasedRoleConverter(commands.Converter):
+class AliasedRoleConverter(commands.RoleConverter):
     async def convert(self, ctx, argument):
         role_id = ctx.cog.roles.get(str(ctx.guild.id), {}).get(argument.lower())
         if role_id is None:
             raise commands.BadArgument(f'No alias "{argument}" has been registered to a role')
-        return discord.utils.get(ctx.guild.roles, id=role_id)
+        return await super().convert(ctx, argument)
 
 
-class BoardCoords(commands.Converter):
-    def __init__(self, minx=1, maxx=5, miny=1, maxy=5):
-        super().__init__()
-        self.minx = minx
-        self.maxx = maxx
-        self.miny = miny
-        self.maxy = maxy
+def BoardCoords(minx=1, maxx=5, miny=1, maxy=5):
+    class RealConverter(tuple[int, int]):
+        @classmethod
+        async def convert(cls, ctx, argument):
+            if isinstance(argument, tuple):
+                return argument
+            try:
+                argument = argument.lower()
+                if argument.startswith(tuple('abcde')):
+                    y = ord(argument[0]) - 0x60
+                    x = int(argument[1])
+                else:
+                    y, x = map(int, argument.split())
+                assert minx <= x <= maxx and miny <= y <= maxy
+                return x - 1, y - 1
+            except (ValueError, AssertionError, IndexError) as e:
+                raise BadGameArgument from e
 
-    async def convert(self, ctx, argument):
-        if isinstance(argument, tuple):
-            return argument
-        try:
-            argument = argument.lower()
-            if argument.startswith(tuple('abcde')):
-                y = ord(argument[0]) - 0x60
-                x = int(argument[1])
+    return RealConverter
+
+
+def EspeakParamsConverter(**valid_keys):
+    class RealConverter(tuple[str, str]):
+        @classmethod
+        async def convert(cls, ctx, argument):
+            if isinstance(argument, str):
+                # Convert from a string
+                key, value = argument.split('=')
+                value = valid_keys[key](value)
             else:
-                y, x = map(int, argument.split())
-            assert self.minx <= x <= self.maxx and self.miny <= y <= self.maxy
-            return x - 1, y - 1
-        except (ValueError, AssertionError, IndexError) as e:
-            raise BadGameArgument from e
+                # Make sure this is an iterable of length 2
+                key, value = argument
+            return key, value
 
-
-class EspeakParamsConverter(commands.Converter):
-    def __init__(self, **valid_keys):
-        """Converts key=value pairs to a 2ple
-        valid_keys: name=type pairs
-        """
-        super().__init__()
-        self.valid_keys = valid_keys
-
-    async def convert(self, ctx, argument):
-        if isinstance(argument, str):
-            # Convert from a string
-            key, value = argument.split('=')
-            value = self.valid_keys[key](value)
-        else:
-            # Make sure this is an iterable of length 2
-            key, value = argument
-        return key, value
+    return RealConverter
 
 
 # Thanks Danny#0007/Rapptz for these handy converters
