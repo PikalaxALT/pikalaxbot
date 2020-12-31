@@ -209,9 +209,21 @@ class Core(BaseCog):
     async def about(self, ctx):
         """Shows info about the bot in the current context"""
 
-        e = discord.Embed(title=f'PikalaxBOT v{__version__}')
+        await self.bot.is_owner(discord.Object(id=0))  # for owner_id
+        prefix, *_ = await self.bot.get_prefix(ctx.message)
+        e = discord.Embed(
+            title=f'PikalaxBOT v{__version__}',
+            description=f'Hiya, I\'m a bot! **{self.bot.get_user(self.bot.owner_id)}** made me.\n\n'
+                        f'My prefix in this guild is `{prefix}`.'
+        )
         shared = sum(g.get_member(ctx.author.id) is not None for g in self.bot.guilds)
         e.set_author(name=str(ctx.me))
+        e.add_field(
+            name='Package Versions',
+            value=f'Discord.py v{discord.__version__}\n'
+                  f'Jishaku v{jsk_ver}',
+            inline=False
+        )
         e.add_field(name='ID', value=ctx.me.id, inline=False)
         e.add_field(name='Guilds', value=f'{len(self.bot.guilds)} ({shared} shared)', inline=False)
         if ctx.guild:
