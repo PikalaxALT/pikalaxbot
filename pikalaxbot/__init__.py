@@ -24,7 +24,7 @@ import asyncpg
 import typing
 import pygit2
 import traceback
-import collections
+import datetime
 from .utils.hastebin import mystbin
 from .utils.config_io import Settings
 from .utils.logging_mixin import LoggingMixin
@@ -48,21 +48,26 @@ if __version__.endswith(('a', 'b', 'rc')):
 __all__ = ('PikalaxBOT',)
 
 
-FakeContext = collections.namedtuple('Context', 'guild channel message author command', module='discord.ext.commands.context', defaults=(None,))
+class FakeContext(typing.NamedTuple):
+    guild: typing.Optional[discord.Guild]
+    channel: discord.TextChannel
+    message: typing.Optional[discord.Message]
+    author: typing.Union[discord.Member, discord.User]
+    command: typing.Optional[commands.Command] = None
 
 
 class MyContext(commands.Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
-        self._message_history = set()
+        self._message_history: set[int] = set()
         self._task = asyncio.current_task()
 
-    async def send(self, content=None, **kwargs):
+    async def send(self, content: typing.Optional[str] = None, **kwargs):
         msg = await super().send(content, **kwargs)
         self.bot._ctx_cache[(self.channel.id, self.message.id)][1].add(msg.id)
         return msg
 
-    async def reply(self, content=None, **kwargs):
+    async def reply(self, content: typing.Optional[str] = None, **kwargs):
         msg = await super().reply(content, **kwargs)
         self.bot._ctx_cache[(self.channel.id, self.message.id)][1].add(msg.id)
         return msg
@@ -72,17 +77,12 @@ class MyContext(commands.Context):
 
 
 class PikalaxBOT(LoggingMixin, commands.Bot):
-    def __init__(self, settings_file, logfile, **kwargs):
+    def __init__(self, settings_file: typing.Union[str, os.PathLike], logfile: typing.Union[str, os.PathLike], **kwargs):
         # Load settings
-        loop = kwargs.pop('loop', None) or asyncio.get_event_loop()
         log_level = kwargs.pop('log_level', logging.NOTSET)
-        self.settings = Settings(settings_file, loop=loop)
+        self.settings = Settings(settings_file)
+        super().__init__(activity=discord.Game(self.settings.game), **kwargs)
         self._ctx_cache = {}
-        super().__init__(
-            activity=discord.Game(self.settings.game),
-            loop=loop,
-            **kwargs
-        )
         self.guild_prefixes = {}
         self._sql = 'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
 
@@ -109,7 +109,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         # Reboot handler
         self.reboot_after = True
 
-        self._alive_since = None
+        self._alive_since: typing.Optional[datetime.datetime] = None
         self._pokeapi_factory: typing.Optional[typing.Callable[[], 'PokeApi']] = None
         self._pokeapi: typing.Optional['PokeApi'] = None
 
@@ -125,7 +125,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     @property
-    def sql(self) -> asyncpg.Connection:
+    def sql(self):
         return self._pool.acquire()
 
     @property
@@ -136,7 +136,14 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     def pokeapi(self, value: typing.Optional['PokeApi']):
         self._pokeapi = value
 
-    async def send_tb(self, ctx: typing.Optional[commands.Context], exc: BaseException, *, origin: typing.Optional[str] = None, embed: typing.Optional[discord.Embed] = None):
+    async def send_tb(
+            self,
+            ctx: typing.Optional[commands.Context],
+            exc: BaseException,
+            *,
+            origin: typing.Optional[str] = None,
+            embed: typing.Optional[discord.Embed] = None
+    ):
         msg = f'Ignoring exception in {origin}' if origin is not None else ''
         channel = self.exc_channel
         if channel is None:

@@ -17,6 +17,7 @@
 import asyncio
 import json
 import os
+import warnings
 
 __all__ = ('Settings',)
 
@@ -58,9 +59,14 @@ class Settings(dict):
     def __init__(self, fname='settings.json', *, loop=None):
         super().__init__(**_defaults)
         self._fname = fname
-        self._loop = loop or asyncio.get_event_loop()
+        self.__loop = None
         self._changed = False
         self._lock = asyncio.Lock()
+        if loop:
+            warnings.warn(
+                'Passing loop to Settings constructor is deprecated and will be removed in a future update',
+                DeprecationWarning
+            )
         try:
             with open(fname) as fp:
                 self.update(json.load(fp))
@@ -72,9 +78,15 @@ class Settings(dict):
             raise ValueError(f'Please set your bot\'s token in {fname}')
         self._mtime = os.path.getmtime(fname)
 
+    @property
+    def _loop(self):
+        if self.__loop is None:
+            self.__loop = asyncio.get_running_loop()
+        return self.__loop
+
     def __enter__(self):
         if os.path.getmtime(self._fname) > self._mtime:
-            with(self._fname) as fp:
+            with self._fname as fp:
                 data = json.load(fp)
             self.update(data)
             self._mtime = os.path.getmtime(self._fname)

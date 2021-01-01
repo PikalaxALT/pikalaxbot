@@ -87,7 +87,7 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = old_attr
                 setattr(self, attr, val)
 
-    async def cog_before_invoke(self, ctx):
+    async def cog_before_invoke(self, ctx: commands.Context):
         await self.bot.pokeapi
         try:
             await self.fetch()
@@ -106,7 +106,7 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = list(val)
                 setattr(settings, attr, val)
 
-    async def cog_after_invoke(self, ctx):
+    async def cog_after_invoke(self, ctx: commands.Context):
         try:
             await self.commit()
         except Exception as e:
