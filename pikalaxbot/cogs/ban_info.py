@@ -27,7 +27,7 @@ class BanInfoPageSource(menus.PageSource):
             self._ncache += 1
 
     async def prepare(self):
-        await self.fetchmany(2)
+        await self.fetchmany(100)
 
     def is_paginating(self):
         return self._ncache >= 2
