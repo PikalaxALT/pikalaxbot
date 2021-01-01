@@ -57,6 +57,7 @@ class BanInfoPageSource(menus.PageSource):
 
 
 class BanInfo(BaseCog):
+    """Commands related to retrieving server bans"""
     @commands.command('ban-info')
     async def ban_info(self, ctx: commands.Context):
         """Get the entire ban log"""
