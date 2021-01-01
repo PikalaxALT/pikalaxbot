@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
 class BanInfoPageSource(menus.PageSource):
     def __init__(self, guild: discord.Guild):
         super().__init__()
-        self.iterator: typing.AsyncIterator[discord.AuditLogEntry] = guild.audit_logs(limit=None, action=discord.AuditLogAction.ban)
+        self.iterator: discord.guild.AuditLogIterator = guild.audit_logs(limit=None, action=discord.AuditLogAction.ban)
         self._cache: typing.List[discord.AuditLogEntry] = []
         self._ncache = 0
         self._more = True
@@ -19,8 +19,8 @@ class BanInfoPageSource(menus.PageSource):
             return
         for i in range(n):
             try:
-                entry = await self.iterator.__anext__()
-            except StopAsyncIteration:
+                entry = await self.iterator.next()
+            except discord.NoMoreItems:
                 self._more = False
                 break
             self._cache.append(entry)
@@ -60,7 +60,7 @@ class BanInfo(BaseCog):
     @commands.command('ban-info')
     async def ban_info(self, ctx: commands.Context):
         """Get the entire ban log"""
-        menu = menus.MenuPages(BanInfoPageSource(ctx.guild))
+        menu = menus.MenuPages(BanInfoPageSource(ctx.guild), delete_message_after=True)
         try:
             await menu.start(ctx)
         except IndexError:
