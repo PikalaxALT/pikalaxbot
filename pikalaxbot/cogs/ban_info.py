@@ -19,7 +19,7 @@ class BanInfoPageSource(menus.PageSource):
             return
         for i in range(n):
             try:
-                entry = await next(self.iterator)
+                entry = await self.iterator.__anext__()
             except StopAsyncIteration:
                 self._more = False
                 break
