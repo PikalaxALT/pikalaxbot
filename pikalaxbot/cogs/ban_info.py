@@ -17,14 +17,14 @@ class BanInfoPageSource(menus.PageSource):
     async def fetchmany(self, n=1):
         if not self._more or n < 1:
             return
-        n += self._ncache
-        async for entry in self.iterator:
+        for i in range(n):
+            try:
+                entry = await next(self.iterator)
+            except StopAsyncIteration:
+                self._more = False
+                break
             self._cache.append(entry)
             self._ncache += 1
-            if self._ncache == n:
-                break
-        else:
-            self._more = False
 
     async def prepare(self):
         await self.fetchmany(2)
