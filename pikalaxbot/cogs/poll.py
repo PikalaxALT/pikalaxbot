@@ -22,6 +22,7 @@ import datetime
 import typing
 import base64
 import math
+import aioitertools
 from collections import Counter
 
 from .utils.errors import *
@@ -301,63 +302,55 @@ duration, prompt, and options."""
                         f'React with :x: to cancel.',
             colour=discord.Colour.orange()
         )
-        my_message = await ctx.send('Hello, you\'ve entered the interactive poll maker. '
-                                    'Please enter your question below.',
-                                    embed=embed)
-        await my_message.add_reaction('\N{CROSS MARK}')
-        accepted_emojis = ['\N{CROSS MARK}']
+        content = 'Hello, you\'ve entered the interactive poll maker. Please enter your question below.'
+        accepted_emojis = {'\N{CROSS MARK}'}
 
-        def msg_check(msg):
-            return msg.channel == ctx.channel and msg.author == ctx.author
+        async def get_poll_options() -> typing.Union[str, bool]:
 
-        def rxn_check(rxn, usr):
-            return rxn.message == my_message and usr == ctx.author and str(rxn) in accepted_emojis
+            def msg_check(msg):
+                return msg.channel == ctx.channel and msg.author == ctx.author
 
-        i = 0
-        while i < 11:
-            futs = [
-                    self.bot.loop.create_task(self.bot.wait_for('message', check=msg_check)),
-                    self.bot.loop.create_task(self.bot.wait_for('reaction_add', check=rxn_check))
-                ]
-            try:
-                done, pending = await asyncio.wait(futs, timeout=60.0, return_when=asyncio.FIRST_COMPLETED)
-                [fut.cancel() for fut in pending]
-                params = done.pop().result()
-            except KeyError:
-                await my_message.delete()
-                return await ctx.send('Request timed out')
-            except Exception as e:
-                await my_message.delete()
-                return await ctx.send(f'Request failed with {e.__class__.__name__}: {e}')
-            if isinstance(params, discord.Message):
-                response = params.content.strip()
-                if not response:
-                    await ctx.send('Message has no content', delete_after=10)
-                    continue
-                if i > 0 and discord.utils.find(lambda f: f.value == response, embed.fields):
-                    await ctx.send('Duplicate options are not allowed', delete_after=10)
-                    continue
-                embed.add_field(
-                    name=i and f'Option {i}' or 'Question',
-                    value=response
-                )
-                i += 1
-                content = f'Hello, you\'ve entered the interactive poll maker. ' \
-                          f'Please enter option {i} below.'
-                if i == 3:
-                    accepted_emojis.append('\N{WHITE HEAVY CHECK MARK}')
-                    embed.description += '\nReact with :white_check_mark: to exit'
-                await my_message.delete()
-                if i > 10:
-                    break
+            def rxn_check(rxn, usr):
+                return rxn.message == my_message and usr == ctx.author and str(rxn) in accepted_emojis
+
+            while True:
                 my_message = await ctx.send(content, embed=embed)
                 for emo in accepted_emojis:
                     await my_message.add_reaction(emo)
-            else:
-                r, u = params
+                futs = {
+                        self.bot.loop.create_task(self.bot.wait_for('message', check=msg_check)),
+                        self.bot.loop.create_task(self.bot.wait_for('reaction_add', check=rxn_check))
+                }
+                done, pending = await asyncio.wait(futs, timeout=60.0, return_when=asyncio.FIRST_COMPLETED)
+                [fut.cancel() for fut in pending]
+                params: typing.Union[discord.Message, tuple[discord.Reaction, discord.User]] = done.pop().result()
+                if isinstance(params, discord.Message):
+                    response = params.content.strip()
+                    if not response:
+                        await ctx.send('Message has no content', delete_after=10)
+                        continue
+                    if discord.utils.get(embed.fields, value=response):
+                        await ctx.send('Duplicate options are not allowed')
+                        continue
+                else:
+                    response = str(params[0]) == '\N{CROSS MARK}'
                 await my_message.delete()
-                if str(r) == '\N{CROSS MARK}':
-                    return await ctx.send('Poll creation cancelled by user', delete_after=10)
+                yield response
+
+        async for i, resp in aioitertools.zip(range(11), get_poll_options()):
+            if isinstance(resp, str):
+                content = f'Hello, you\'ve entered the interactive poll maker. ' \
+                          f'Please enter option {i + 1} below.'
+                if i == 2:
+                    accepted_emojis.add('\N{WHITE HEAVY CHECK MARK}')
+                    embed.description += '\nReact with :white_check_mark: to exit'
+                embed.add_field(
+                    name='Question' if i == 0 else f'Option {1}',
+                    value=resp
+                )
+            elif resp:
+                return await ctx.send('Poll creation cancelled by user', delete_after=10)
+            else:
                 break
         timeout += (datetime.datetime.utcnow() - ctx.message.created_at).total_seconds()
         mgr = await PollManager.from_command(ctx, timeout, *[field.value for field in embed.fields])
@@ -375,6 +368,8 @@ duration, prompt, and options."""
     async def poll_create_error(self, ctx, error):
         if isinstance(error, BadPollTimeArgument):
             await ctx.send('Invalid value for timeout. Try something like `300`, `60m`, `1w`, ...')
+        else:
+            await self.bot.send_tb(ctx, error, origin='poll new')
 
     @poll_cmd.command()
     async def cancel(self, ctx: commands.Context, mgr: PollManager):
@@ -392,8 +387,7 @@ duration, prompt, and options."""
         if mgr.message is not None:
             await ctx.send(mgr.message.jump_url)
         else:
-            channel = self.bot.get_channel(mgr.channel_id)
-            if channel is None:
+            if (channel := self.bot.get_channel(mgr.channel_id)) is None:
                 mgr.cancel()
                 raise NoPollFound('Channel not found')
             await ctx.send(f'https://discord.gg/channels/{channel.guild.id}/{mgr.channel_id}/{mgr.message_id}\n'
@@ -424,14 +418,11 @@ duration, prompt, and options."""
         if mgr in self.polls:
             self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)
-        if channel is None:
-            return
-        if mgr.message is None:
+        if channel is None or mgr.message is None:
             return
         tally = Counter(mgr.votes.values())
         if now < mgr.stop_time:
-            content = 'The poll was cancelled.'
-            content2 = content
+            content2 = content = 'The poll was cancelled.'
         else:
             try:
                 winner = max(tally, key=tally.get)

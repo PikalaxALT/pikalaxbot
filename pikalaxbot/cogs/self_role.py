@@ -40,9 +40,7 @@ class SelfAssignableRole(BaseCog):
     config_attrs = 'roles',
 
     def cog_check(self, ctx):
-        if ctx.guild is None:
-            raise commands.NoPrivateMessage('This command cannot be used in private messages.')
-        return True
+        return commands.guild_only().predicate(ctx)
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)

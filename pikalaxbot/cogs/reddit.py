@@ -49,7 +49,7 @@ class Reddit(BaseCog):
         super().__init__(bot)
         self.session: aiohttp.ClientSession = bot.client_session
 
-    @property
+    @discord.utils.cached_property
     def headers(self):
         return {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
 

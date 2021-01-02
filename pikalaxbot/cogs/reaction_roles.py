@@ -6,20 +6,32 @@ import typing
 from .utils.errors import *
 
 
+def reaction_roles_initialized():
+    def predicate(ctx: commands.Context):
+        if ctx.guild.id not in ctx.cog.reaction_schema:
+            raise NotInitialized
+        return True
+    return predicate
+
+
+def reaction_roles_not_initialized():
+    def predicate(ctx: commands.Context):
+        if ctx.guild.id in ctx.cog.reaction_schema:
+            raise AlreadyInitialized
+        return True
+    return predicate
+
+
 class ReactionRoles(BaseCog):
     """Commands and functionality for reaction roles."""
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.reaction_schema = {}
-        self.reaction_roles = collections.defaultdict(dict)
+        self.reaction_schema: dict[int, tuple[int, int]] = {}
+        self.reaction_roles: dict[int, dict[str, int]] = collections.defaultdict(dict)
     
-    async def cog_check(self, ctx):
-        if not ctx.guild:
-            raise commands.NoPrivateMessage
-        if not ctx.me.guild_permissions.manage_roles:
-            raise commands.BotMissingPermissions(['manage_roles'])
-        return True
+    def cog_check(self, ctx):
+        return all(check.predicate(ctx) for check in {commands.guild_only(), commands.bot_has_guild_permissions(manage_roles=True)})
 
     async def init_db(self, sql):
         await sql.execute("create table if not exists reaction_schema (guild bigint unique not null primary key, channel bigint, message bigint)")
@@ -58,13 +70,12 @@ class ReactionRoles(BaseCog):
         author: discord.Member = guild.get_member(payload.user_id)
         await author.remove_roles(role)
 
-    @commands.command(name='register')
+    @reaction_roles_not_initialized()
     @commands.has_permissions(manage_roles=True)
+    @commands.command(name='register')
     async def register_role_bot(self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel]):
         """Register the role reaction bot to the specified channel (default: the current channel)"""
 
-        if ctx.guild.id in self.reaction_schema:
-            raise AlreadyInitialized
         channel = channel or ctx.channel
         if channel.permissions_for(ctx.me).send_messages:
             message = await channel.send('React to the following emoji to get the associated roles:')
@@ -73,17 +84,14 @@ class ReactionRoles(BaseCog):
                 await sql.execute("insert into reaction_schema values ($1, $2, $3)", ctx.guild.id, channel.id, message.id)
             await ctx.message.add_reaction('✅')
 
-    @commands.command(name='drop')
+    @reaction_roles_initialized()
     @commands.has_permissions(manage_roles=True)
+    @commands.command(name='drop')
     async def unregister_role_bot(self, ctx: commands.Context):
         """Drops the role reaction registration in this guild"""
 
-        if ctx.guild.id not in self.reaction_schema:
-            raise NotInitialized
         channel_id, message_id = self.reaction_schema[ctx.guild.id]
-        channel = ctx.guild.get_channel(channel_id)
-        message = await channel.fetch_message(message_id)
-        await message.delete()
+        await self.bot.http.delete_message(channel_id, message_id, reason='Requested to unregister roles bot')
         self.reaction_schema.pop(ctx.guild.id)
         self.reaction_roles.pop(ctx.guild.id, None)
         with self.bot.sql as sql:
@@ -91,12 +99,11 @@ class ReactionRoles(BaseCog):
             await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
         await ctx.message.add_reaction('✅')
 
+    @reaction_roles_initialized()
     @commands.command(name='add-role')
     async def add_role(self, ctx: commands.Context, emoji: typing.Union[discord.Emoji, str], *, role: discord.Role):
         """Register a role to an emoji in the current guild"""
 
-        if ctx.guild.id not in self.reaction_schema:
-            raise NotInitialized
         channel_id, message_id = self.reaction_schema[ctx.guild.id]
         channel = ctx.guild.get_channel(channel_id)
         if channel is None:
@@ -111,13 +118,12 @@ class ReactionRoles(BaseCog):
         with self.bot.sql as sql:
             await sql.execute("insert into reaction_roles values ($1, $2, $3)", ctx.guild.id, str(emoji), role.id)
         await ctx.message.add_reaction('✅')
-    
+
+    @reaction_roles_initialized()
     @commands.command('drop-role')
     async def drop_role(self, ctx: commands.Context, *, emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]):
         """Unregister a role or emoji from the current guild"""
 
-        if ctx.guild.id not in self.reaction_schema:
-            raise NotInitialized
         channel_id, message_id = self.reaction_schema[ctx.guild.id]
         channel = ctx.guild.get_channel(channel_id)
         if channel is None:
