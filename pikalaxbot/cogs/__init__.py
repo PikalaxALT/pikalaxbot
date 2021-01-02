@@ -48,23 +48,16 @@ class BaseCog(LoggingMixin, commands.Cog):
         super().__init__()
         self.bot = bot
 
-        async def do_db_init():
-            bot.dispatch('cog_db_init', self)
-            try:
-                async with self.bot.sql as sql:
-                    await self.init_db(sql)
-            except Exception as e:
-                bot.dispatch('cog_db_init_error', self, e)
-            else:
-                bot.dispatch('cog_db_init_complete', self)
-
-        if BaseCog._get_overridden_method(self.init_db) is not None:
-            bot.loop.create_task(do_db_init())
-
     @_cog_special_method
     async def init_db(self, sql: asyncpg.Connection):
         """Override this"""
         pass
+
+    async def prepare(self):
+        """Async init"""
+        if BaseCog._get_overridden_method(self.init_db) is not None:
+            async with self.bot.sql as sql:
+                await self.init_db(sql)
 
     async def fetch(self):
         """
@@ -88,11 +81,16 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(self, attr, val)
 
     async def cog_before_invoke(self, ctx: commands.Context):
-        await self.bot.pokeapi
+        # Name mangling is a fickle beast, so we don't even bother with it.
+        # Read this as:
+        #     if not hasattr(self, '__prepared'):
+        # ... except it works as expected
         try:
-            await self.fetch()
-        except Exception as e:
-            await self.bot.send_tb(ctx, e, origin=f'{self}.cog_before_invoke:')
+            _ = self.__prepared
+        except AttributeError:
+            await self.prepare()
+            self.__prepared = True
+        await self.fetch()
 
     async def commit(self):
         """
@@ -107,7 +105,4 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(settings, attr, val)
 
     async def cog_after_invoke(self, ctx: commands.Context):
-        try:
-            await self.commit()
-        except Exception as e:
-            await self.bot.send_tb(ctx, e, origin=f'{self}.cog_after_invoke:')
+        await self.commit()

@@ -133,16 +133,12 @@ class ReactionRoles(BaseCog):
         except discord.HTTPException:
             raise InitializationInvalid
         if isinstance(emoji_or_role, discord.Role):
-            role = emoji_or_role
-            for emoji, role_id in self.reaction_roles[ctx.guild.id].items():
-                if role_id == role.id:
-                    break
-            else:
+            try:
+                emoji, role_id = discord.utils.find(lambda t: t[0] == emoji_or_role.id, self.reaction_roles[ctx.guild.id].items())
+            except ValueError:
                 raise RoleOrEmojiNotFound
         else:
-            emoji = emoji_or_role
-            role = self.reaction_roles.get(str(emoji))
-            if role is None:
+            if self.reaction_roles[ctx.guild.id].get(str(emoji := emoji_or_role)) is None:
                 raise RoleOrEmojiNotFound
         self.reaction_roles[ctx.guild.id].pop(str(emoji))
         await message.remove_reaction(emoji)

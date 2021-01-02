@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, menus
 from . import BaseCog
 import typing
+import aioitertools
 if typing.TYPE_CHECKING:
     from .. import PikalaxBOT
 
@@ -13,16 +14,22 @@ class BanInfoPageSource(menus.PageSource):
         self._cache: typing.List[discord.AuditLogEntry] = []
         self._ncache = 0
         self._more = True
+        self._n_last_fetched = 0
 
     async def fetchmany(self, n=1):
         if not self._more or n < 1:
             return
-        for i in range(n):
-            try:
-                entry = await self.iterator.next()
-            except discord.NoMoreItems:
-                self._more = False
-                break
+        self._cache += [entry async for self._n_last_fetched, entry in aioitertools.zip(range(n), self.iterator)]
+        if self._n_last_fetched < n:
+            self._more = False
+        self._ncache += self._n_last_fetched
+
+    async def fetchone(self):
+        try:
+            entry: discord.AuditLogEntry = await self.iterator.next()
+        except discord.NoMoreItems:
+            self._more = False
+        else:
             self._cache.append(entry)
             self._ncache += 1
 

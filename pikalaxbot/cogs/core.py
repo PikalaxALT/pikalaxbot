@@ -311,15 +311,11 @@ class Core(BaseCog):
             units = [
                 (1 << 30, 'TiB'),
                 (1 << 20, 'GiB'),
-                (1 << 10, 'MiB')
+                (1 << 10, 'MiB'),
+                (1 <<  0, 'KiB'),
             ]
-            for size, unit in units:
-                if rss >= size:
-                    rss /= size
-                    break
-            else:
-                unit = 'KiB'
-            await ctx.send(f'Total resources used: {rss:.3f} {unit}')
+            size, unit = discord.utils.find(lambda c: rss >= size[0], units)
+            await ctx.send(f'Total resources used: {rss / size:.3f} {unit}')
 
     @commands.command()
     async def userinfo(self, ctx, *, target: typing.Union[discord.Member, discord.User] = None):

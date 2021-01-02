@@ -20,6 +20,8 @@ import traceback
 import asyncpg
 import logging
 import typing
+import aioitertools
+import sys
 from discord.ext import commands, menus
 from . import BaseCog
 from .utils.converters import CommandConverter
@@ -50,14 +52,9 @@ class lower(str):
 
 async def filter_history(channel, **kwargs):
     check = kwargs.pop('check', lambda m: True)
-    limit = kwargs.pop('limit', None)
-    count = 0
-    async for message in channel.history(limit=None, **kwargs):
-        if check(message):
-            yield message
-            count += 1
-            if count == limit:
-                break
+    limit = kwargs.pop('limit', sys.maxsize)
+    async for count, message in aioitertools.zip(range(limit), channel.history(limit=None, **kwargs).filter(check)):
+        yield message
 
 
 class Modtools(BaseCog):

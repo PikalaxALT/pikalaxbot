@@ -106,11 +106,18 @@ class Voice(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.load_opus()
+        self.timeout_tasks = {}
+        self.ffmpeg = None
 
+    def cog_unload(self):
+        [task.cancel() for task in self.timeout_tasks.values()]
+
+    async def prepare(self):
+        await super().prepare()
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
                 try:
-                    subprocess.run([executable, '-h'], stdout=DEVNULL, stderr=DEVNULL, check=True)
+                    await asyncio.create_subprocess_exec(executable, '-h', stdout=DEVNULL, stderr=DEVNULL)
                 except FileNotFoundError:
                     continue
                 self.ffmpeg = executable
@@ -118,10 +125,6 @@ class Voice(BaseCog):
                 break
             else:
                 raise discord.ClientException('ffmpeg or avconv not installed')
-        self.timeout_tasks = {}
-
-    def cog_unload(self):
-        [task.cancel() for task in self.timeout_tasks.values()]
 
     @staticmethod
     async def idle_timeout(ctx):

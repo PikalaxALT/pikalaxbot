@@ -116,15 +116,18 @@ class PaginatedHelpCommand(commands.HelpCommand):
         command_attrs = options.pop('command_attrs', {})
         command_attrs.update(
             cooldown=commands.Cooldown(1, 3.0, commands.BucketType.user),
-            max_concurrency=commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False),
+            max_concurrency=commands.MaxConcurrency(3, per=commands.BucketType.channel, wait=False),
             help='Shows help about the bot, a command, or a category'
         )
         super().__init__(command_attrs=command_attrs, **options)
 
     async def on_help_command_error(self, ctx, error):
-        ctx.bot.log_tb(ctx, error)
-        if isinstance(error, commands.CommandInvokeError):
-            await ctx.send(str(error.original))
+        if isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send(f'You are using this command too frequently. '
+                                  f'Try again in {error.retry_after}s.', delete_after=10)
+        elif isinstance(error, commands.MaxConcurrencyReached):
+            return await ctx.send('Too many people are using a Help menu in this channel.', delete_after=10)
+        await ctx.bot.send_tb(ctx, error, origin='help command')
 
     def get_command_signature(self, command):
         parent = command.full_parent_name
@@ -215,13 +218,6 @@ class Help(BaseCog):
         self._original_help_command = bot.help_command
         bot.help_command = PaginatedHelpCommand(command_attrs={'name': bot.settings.help_name})
         bot.help_command.cog = self
-
-    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        if isinstance(error, commands.CommandOnCooldown):
-            return await ctx.send(f'You are using this command too frequently. Try again in {error.retry_after}s.', delete_after=10)
-        elif isinstance(error, commands.MaxConcurrencyReached):
-            return await ctx.send('Someone else is using a Help menu in this channel.', delete_after=10)
-        await self.bot.send_tb(ctx, error, origin='help command')
 
     def cog_unload(self):
         self.bot.help_command = self._original_help_command
