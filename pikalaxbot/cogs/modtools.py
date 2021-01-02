@@ -50,7 +50,7 @@ class lower(str):
         return arg.lower()
 
 
-async def filter_history(channel, **kwargs):
+async def filter_history(channel: discord.TextChannel, **kwargs) -> typing.AsyncGenerator[discord.Message]:
     check = kwargs.pop('check', lambda m: True)
     limit = kwargs.pop('limit', sys.maxsize)
     async for count, message in aioitertools.zip(range(limit), channel.history(limit=None, **kwargs).filter(check)):

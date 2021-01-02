@@ -67,10 +67,9 @@ class ChatDeathIndex(BaseCog):
         start = now - datetime.timedelta(minutes=2 * ChatDeathIndex.MAX_SAMPLES - 1)
         if ChatDeathIndex.can_get_messages(channel):
             self.cdi_samples[channel.id] = [0 for _ in range(2 * ChatDeathIndex.MAX_SAMPLES - 1)]
-            async for message in channel.history(before=now, after=start):  # type: discord.Message
-                if await self.msg_counts_against_chat_death(message):
-                    idx = int((message.created_at - start).total_seconds()) // 60
-                    self.cdi_samples[channel.id][idx] += ChatDeathIndex.get_message_cdi_effect(message)
+            async for message in channel.history(before=now, after=start).filter(self.msg_counts_against_chat_death):  # type: discord.Message
+                idx = int((message.created_at - start).total_seconds()) // 60
+                self.cdi_samples[channel.id][idx] += ChatDeathIndex.get_message_cdi_effect(message)
         for i in range(ChatDeathIndex.MAX_SAMPLES):
             self.calculations[channel.id].append(ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel.id][i:i + ChatDeathIndex.MAX_SAMPLES]))
         self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
