@@ -3,6 +3,8 @@ from typing import *
 
 if TYPE_CHECKING:
     from .core import Connection
+    from .types import *
+    from types import TracebackType
 
 
 class Cursor:
@@ -10,7 +12,7 @@ class Cursor:
         self._connection = connection
         self._cursor = cursor
 
-    async def _execute(self, fn, *args, **kwargs):
+    async def _execute(self, fn: Callable[[T, ...], R], *args: T, **kwargs) -> R:
         return await self._connection._execute(fn, *args, **kwargs)
 
     async def __aiter__(self) -> AsyncIterator:
@@ -18,26 +20,26 @@ class Cursor:
             for row in rows:
                 yield row
 
-    async def execute(self, sql: str, parameters: Optional[Iterable] = None) -> 'Cursor':
+    async def execute(self, sql: str, parameters: Optional[Iterable] = None):
         await self._execute(self._cursor.execute, sql, parameters)
         return self
 
-    async def executemany(self, sql: str, parameters: Iterable[Iterable] = None) -> 'Cursor':
+    async def executemany(self, sql: str, parameters: Iterable[Iterable] = None):
         await self._execute(self._cursor.executemany, sql, parameters)
         return self
 
-    async def executescript(self, script: str) -> 'Cursor':
+    async def executescript(self, script: str):
         await self._execute(self._cursor.executescript, script)
         return self
 
-    async def fetchone(self) -> Any:
+    async def fetchone(self):
         return await self._execute(self._cursor.fetchone)
 
-    async def fetchmany(self, size: int = None) -> Iterable[Any]:
+    async def fetchmany(self, size: int = None):
         params = (size,) if size else ()
         return await self._execute(self._cursor.fetchmany, *params)
 
-    async def fetchall(self) -> Iterable[Any]:
+    async def fetchall(self):
         return await self._execute(self._cursor.fetchall)
 
     async def close(self):
@@ -56,11 +58,11 @@ class Cursor:
         return self._cursor.arraysize
 
     @arraysize.setter
-    def arraysize(self, value: int) -> None:
+    def arraysize(self, value: int):
         self._cursor.arraysize = value
 
     @property
-    def description(self) -> Tuple[Tuple]:
+    def description(self) -> tuple[tuple[str, None, None, None, None, None, None]]:
         return self._cursor.description
 
     @property
@@ -70,5 +72,5 @@ class Cursor:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         await self.close()

@@ -7,6 +7,9 @@ import functools
 import logging
 from os import PathLike
 from .context import contextmanager
+if TYPE_CHECKING:
+    from types import TracebackType
+    from .types import *
 
 
 __all__ = ('Cursor', 'Connection', 'connect')
@@ -16,11 +19,11 @@ LOG.setLevel(logging.DEBUG)
 
 
 class Connection:
-    def __init__(self, db_path, **kwargs):
+    def __init__(self, db_path: Union[str, PathLike], **kwargs):
         self._db_path = db_path
         self._init_kwargs = kwargs
         self._connection: Optional[sqlite3.Connection] = None
-        self._loop = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._executor = cf.ThreadPoolExecutor(max_workers=1)
 
     @property
@@ -30,7 +33,7 @@ class Connection:
 
         return self._connection
 
-    async def _execute(self, fn: Callable, *args, **kwargs):
+    async def _execute(self, fn: Callable[[T, ...], R], *args: T, **kwargs) -> R:
         if self._loop is None:
             self._loop = asyncio.get_running_loop()
         real_fn = functools.partial(fn, *args, **kwargs)
@@ -41,11 +44,11 @@ class Connection:
         cursor.execute('SELECT last_insert_rowid()')
         return cursor.fetchone()
 
-    def _execute_fetchall(self, sql: str, parameters: Iterable) -> Iterable:
+    def _execute_fetchall(self, sql: str, parameters: Iterable):
         cursor = self._conn.execute(sql, parameters)
         return cursor.fetchall()
 
-    async def _connect(self) -> 'Connection':
+    async def _connect(self):
         if self._connection is None:
             try:
                 self._connection = await self._execute(sqlite3.connect, self._db_path, **self._init_kwargs)
@@ -61,20 +64,20 @@ class Connection:
     async def __aenter__(self) -> 'Connection':
         return await self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         await self.close()
 
     @contextmanager
     async def cursor(self, cursorClass: Optional[type] = sqlite3.Cursor) -> Cursor:
         return Cursor(self, await self._execute(self._conn.cursor, cursorClass))
 
-    async def commit(self) -> None:
+    async def commit(self):
         await self._execute(self._conn.commit)
 
-    async def rollback(self) -> None:
+    async def rollback(self):
         await self._execute(self._conn.rollback)
 
-    async def close(self) -> None:
+    async def close(self):
         try:
             await self._execute(self._conn.close)
         except Exception:
@@ -83,19 +86,19 @@ class Connection:
             self._connection = None
 
     @contextmanager
-    async def execute(self, sql: str, parameters: Optional[Iterable] = None) -> Cursor:
+    async def execute(self, sql: str, parameters: Optional[Iterable] = None):
         if parameters is None:
             parameters = []
         return Cursor(self, await self._execute(self._conn.execute, sql, parameters))
 
     @contextmanager
-    async def execute_insert(self, sql: str, parameters: Optional[Iterable] = None) -> Optional:
+    async def execute_insert(self, sql: str, parameters: Optional[Iterable] = None):
         if parameters is None:
             parameters = []
         return await self._execute(self._execute_insert, sql, parameters)
 
     @contextmanager
-    async def execute_fetchall(self, sql: str, parameters: Optional[Iterable] = None) -> Iterable:
+    async def execute_fetchall(self, sql: str, parameters: Optional[Iterable] = None):
         if parameters is None:
             parameters = []
         return await self._execute(self._execute_fetchall, sql, parameters)
@@ -121,7 +124,7 @@ class Connection:
         return await self._execute(self._conn.create_collation, name, callback)
 
     @property
-    def in_transaction(self):
+    def in_transaction(self) -> bool:
         return self._conn.in_transaction
 
     @property
@@ -129,7 +132,7 @@ class Connection:
         return self._conn.isolation_level
 
     @isolation_level.setter
-    def isolation_level(self, value: str) -> None:
+    def isolation_level(self, value: str):
         self._conn.isolation_level = value
 
     @property
@@ -137,7 +140,7 @@ class Connection:
         return self._conn.row_factory
 
     @row_factory.setter
-    def row_factory(self, factory: "Optional[Type]") -> None:  # py3.5.2 compat (#24)
+    def row_factory(self, factory: "Optional[Type]"):  # py3.5.2 compat (#24)
         self._conn.row_factory = factory
 
     @property
@@ -145,14 +148,14 @@ class Connection:
         return self._conn.text_factory
 
     @text_factory.setter
-    def text_factory(self, factory: Type) -> None:
+    def text_factory(self, factory: Type):
         self._conn.text_factory = factory
 
     @property
     def total_changes(self) -> int:
         return self._conn.total_changes
 
-    async def enable_load_extension(self, value: bool) -> None:
+    async def enable_load_extension(self, value: bool):
         await self._execute(self._conn.enable_load_extension, value)  # type: ignore
 
     async def load_extension(self, path: str):
@@ -160,10 +163,10 @@ class Connection:
 
     async def set_progress_handler(
         self, handler: Callable[[], Optional[int]], n: int
-    ) -> None:
+    ):
         await self._execute(self._conn.set_progress_handler, handler, n)
 
-    async def set_trace_callback(self, handler: Callable) -> None:
+    async def set_trace_callback(self, handler: Callable):
         await self._execute(self._conn.set_trace_callback, handler)
 
     async def iterdump(self) -> AsyncIterator[str]:

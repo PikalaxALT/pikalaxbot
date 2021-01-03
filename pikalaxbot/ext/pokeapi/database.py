@@ -1,6 +1,6 @@
 from . import asqlite3
 import re
-from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type
+from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type, TYPE_CHECKING
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
@@ -8,11 +8,13 @@ import difflib
 from ... import __dirname__
 import asyncio
 from operator import attrgetter
+if TYPE_CHECKING:
+    from .types import *
 
 
 __all__ = 'PokeApi',
 
-RowFactory = Union[Type[PokeapiResource], Callable[[Cursor, Tuple[Any]], Any]]
+RowFactory = Union[Type[Model], Callable[[Cursor, Tuple[Any]], Any]]
 
 
 async def flatten(iterable: AsyncGenerator):
@@ -24,15 +26,6 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
         self.differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
-
-    async def create_aggregate(self, name: str, num_params: int, aggregate_class: type) -> None:
-        await self._execute(self._conn.create_aggregate, name, num_params, aggregate_class)
-
-    async def create_collation(self, name: str, callable: Callable[[str, str], int]) -> None:
-        await self._execute(self._conn.create_collation, name, callable)
-
-    async def set_trace_callback(self, handler: Callable):
-        await self._execute(self._conn.set_trace_callback, handler)
 
     async def _connect(self) -> "PokeApi":
         def fuzzy_ratio(s):
@@ -73,13 +66,13 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             yield self
             self.row_factory = old_factory
 
-    def resolve_model(self, model: Union[str, Type[PokeapiResource]]) -> Type[PokeapiResource]:
+    def resolve_model(self, model: Union[str, Type[Model]]) -> Type[Model]:
         if isinstance(model, str):
             model = getattr(self, model)
         assert issubclass(model, PokeapiResource)
         return model
 
-    async def get_model(self, model: Type[PokeapiResource], id_: int) -> Optional[Any]:
+    async def get_model(self, model: Type[Model], id_: int) -> Optional[Model]:
         model = self.resolve_model(model)
         if id_ is None:
             return
@@ -94,7 +87,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         return result
 
     @acm
-    async def all_models_cursor(self, model: Type[PokeapiResource]) -> asqlite3.Cursor:
+    async def all_models_cursor(self, model: Type[Model]) -> asqlite3.Cursor:
         model = self.resolve_model(model)
         statement = """
         SELECT *
@@ -104,20 +97,20 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             async with conn.execute(statement) as cur:
                 yield cur
 
-    async def get_all_models(self, model: Type[PokeapiResource]) -> List[Any]:
+    async def get_all_models(self, model: Type[Model]) -> List[Model]:
         model = self.resolve_model(model)
         async with self.all_models_cursor(model) as cur:
             result = await cur.fetchall()
         return result
 
-    async def find(self, predicate: Callable[[Any], bool], model: Type[PokeapiResource]) -> Optional[PokeapiResource]:
+    async def find(self, predicate: Callable[[Any], bool], model: Type[Model]) -> Optional[Model]:
         async with self.all_models_cursor(model) as seq:
             async for element in seq:  # type: PokeapiResource
                 if predicate(element):
                     return element
             return None
 
-    async def filter(self, model: Type[PokeapiResource], **attrs) -> AsyncGenerator[Any, None]:
+    async def filter(self, model: Type[Model], **attrs) -> AsyncGenerator[Model, None]:
         _all = all
         attrget = attrgetter
         async with self.all_models_cursor(model) as iterable:
@@ -134,15 +127,15 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 for attr, value in attrs.items()
             ]
 
-            async for elem in iterable:
+            async for elem in iterable:  # type: Model
                 if _all(pred(elem) == value for pred, value in converted):
                     yield elem
 
-    async def get(self, model: Type[PokeapiResource], **attrs) -> Optional[Any]:
+    async def get(self, model: Type[Model], **attrs) -> Optional[Model]:
         async for item in self.filter(model, **attrs):
             return item
 
-    async def get_model_named(self, model: Type[PokeapiResource], name: str, *, cutoff=0.9) -> Optional[Any]:
+    async def get_model_named(self, model: Type[Model], name: str, *, cutoff=0.9) -> Optional[Model]:
         model = self.resolve_model(model)
         statement = """
         SELECT *, CASE
@@ -165,7 +158,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
 
-    async def get_names_from(self, table: Type[PokeapiResource], *, clean=False) -> AsyncGenerator[str, None]:
+    async def get_names_from(self, table: Type[Model], *, clean=False) -> AsyncGenerator[str, None]:
         """Generic method to get a list of all names from a PokeApi table."""
         async with self.all_models_cursor(table) as cur:
             async for obj in cur:
@@ -174,12 +167,12 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
         return self._clean_name(item.name) if clean else item.name
 
-    async def get_name_by_id(self, model: Type[PokeapiResource], id_: int, *, clean=False):
+    async def get_name_by_id(self, model: Type[Model], id_: int, *, clean=False):
         """Generic method to get the name of a PokeApi object given only its ID."""
         obj = await self.get_model(model, id_)
         return obj and self.get_name(obj, clean=clean)
 
-    async def get_random(self, model: Type[PokeapiResource]) -> Optional[Any]:
+    async def get_random(self, model: Type[Model]) -> Optional[Model]:
         """Generic method to get a random PokeApi object."""
         model = self.resolve_model(model)
         statement = """
@@ -192,7 +185,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
     
-    async def get_random_name(self, table: Type[PokeapiResource], *, clean=False) -> Optional[str]:
+    async def get_random_name(self, table: Type[Model], *, clean=False) -> Optional[str]:
         """Generic method to get a random PokeApi object name."""
         obj = await self.get_random(table)
         return obj and self.get_name(obj, clean=clean)
