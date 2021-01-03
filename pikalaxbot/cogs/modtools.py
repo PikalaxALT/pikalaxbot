@@ -390,14 +390,20 @@ class Modtools(BaseCog):
         await ctx.message.add_reaction('✅')
 
     @admin.command()
-    @commands.bot_has_permissions(manage_messages=True)
     async def purge(self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel], limit=10):
         """Purge <limit> of the bot's messages in the current (or given) channel"""
 
         channel = channel or ctx.channel
         async with ctx.typing():
             to_delete = [m async for m in filter_history(channel, limit=limit, check=lambda m: m.author == self.bot.user)]
-            await ctx.channel.delete_messages(to_delete)
+            try:
+                await ctx.channel.delete_messages(to_delete)
+            except discord.HTTPException:
+                for m in to_delete:
+                    try:
+                        await m.delete()
+                    except discord.HTTPException:
+                        pass
         await ctx.message.add_reaction('✅')
 
     async def cog_command_error(self, ctx, error):
