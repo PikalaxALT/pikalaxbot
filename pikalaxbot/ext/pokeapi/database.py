@@ -8,6 +8,7 @@ import difflib
 from ... import __dirname__
 import asyncio
 from operator import attrgetter
+import functools
 if TYPE_CHECKING:
     from .types import *
 
@@ -26,12 +27,9 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
         self.differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
+        self._connection: Optional[PokeApiConnection]
 
     async def _connect(self) -> "PokeApi":
-        def fuzzy_ratio(s):
-            self.differ.set_seq1(s.lower())
-            return self.differ.ratio()
-
         class Product:
             def __init__(self):
                 self.result = 1.0
@@ -43,8 +41,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 return self.result
 
         await super()._connect()
-        await self.create_function('FUZZY_RATIO', 1, fuzzy_ratio, deterministic=True)
-        await self.create_function('SET_FUZZY_SEQ', 1, lambda s: self.differ.set_seq2(s.lower()), deterministic=True)
+        await self.create_function('FUZZY_RATIO', 2, lambda a, b: difflib.SequenceMatcher(a=a.lower(), b=b.lower()).ratio(), deterministic=True)
         await self.create_aggregate('PRODUCT', 1, Product)
         return self
 
@@ -66,6 +63,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             yield self
             self.row_factory = old_factory
 
+    @functools.cache
     def resolve_model(self, model: Union[str, Type[Model]]) -> Type[Model]:
         if isinstance(model, str):
             model = getattr(self, model)
@@ -143,8 +141,8 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 SELECT *
                 FROM pragma_table_info('pokemon_v2_{0}')
                 WHERE name = 'name'
-            ) THEN FUZZY_RATIO(pv2t.name)
-            ELSE FUZZY_RATIO(pv2n.name)
+            ) THEN FUZZY_RATIO(pv2t.name, :name)
+            ELSE FUZZY_RATIO(pv2n.name, :name)
         END ratio
         FROM pokemon_v2_{0} pv2t
         INNER JOIN pokemon_v2_{0}name pv2n ON pv2t.id = pv2n.{1}_id
@@ -153,8 +151,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         ORDER BY ratio DESC
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
         async with self.replace_row_factory(model) as conn:
-            await self.execute('SELECT SET_FUZZY_SEQ(:name)', {'name': name})
-            async with conn.execute(statement, {'cutoff': cutoff, 'language': self._conn._default_language}) as cur:
+            async with conn.execute(statement, {'cutoff': cutoff, 'language': self._conn._default_language, 'name': name}) as cur:
                 obj = await cur.fetchone()
         return obj
 

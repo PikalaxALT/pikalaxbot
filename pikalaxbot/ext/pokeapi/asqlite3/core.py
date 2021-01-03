@@ -27,7 +27,7 @@ class Connection:
         self._executor = cf.ThreadPoolExecutor(max_workers=1)
 
     @property
-    def _conn(self) -> sqlite3.Connection:
+    def _conn(self):
         if self._connection is None:
             raise ValueError('No active connection')
 
