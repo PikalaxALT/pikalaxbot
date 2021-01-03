@@ -3,6 +3,9 @@ from discord.ext import commands, menus
 from . import BaseCog
 from .utils.menus import NavMenuPages
 import unicodedata
+import typing
+if typing.TYPE_CHECKING:
+    from .. import PikalaxBOT
 
 
 class CharInfoMenu(menus.ListPageSource):
@@ -34,7 +37,7 @@ class CharInfo(BaseCog):
 
     @commands.max_concurrency(1)
     @commands.command()
-    async def charinfo(self, ctx, *, characters):
+    async def charinfo(self, ctx: commands.Context, *, characters: str):
         """Shows you information about a number of characters."""
 
         units = [
@@ -43,20 +46,24 @@ class CharInfo(BaseCog):
             (0xFF, 2, 'x'),
         ]
 
-        def as_hex_str(c, default=None):
+        def as_hex_str(c: str, default: typing.Optional[str] = None) -> str:
             c_ord = ord(c)
-            for mask, width, code in units:
-                if c_ord & mask:
-                    return (f'\\{code}{{:0{width}x}}').format(c_ord)
-            if default is not None:
-                return default
-            raise ValueError('unable to parse unicode codepoint')
+            try:
+                return '\\{2}{{:0{1}x}}'.format(*discord.utils.find(lambda x: c_ord & x[0], units)).format(c_ord)
+            except ValueError:
+                if default is not None:
+                    return default
+                raise ValueError('unable to parse unicode codepoint')
 
-        entries = [(c, as_hex_str(c, 'Internal error'), unicodedata.name(c, 'Name not found')) for c in characters]
+        entries: list[tuple[str, str, str]] = [(
+            c,
+            as_hex_str(c, 'Internal error'),
+            unicodedata.name(c, 'Name not found')
+        ) for c in characters]
         page_source = CharInfoMenu(entries, per_page=1)
         menu = NavMenuPages(page_source, delete_message_after=True)
         await menu.start(ctx, wait=True)
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(CharInfo(bot))
