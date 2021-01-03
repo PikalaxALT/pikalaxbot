@@ -65,7 +65,7 @@ class Core(BaseCog):
             await sql.execute(
                 'insert into commandstats '
                 'values ($1, $2, 1) '
-                'on conflict (command) '
+                'on conflict (command, guild) '
                 'do update '
                 'set uses = commandstats.uses + 1',
                 ctx.command.qualified_name,
