@@ -58,6 +58,8 @@ class BanInfoPageSource(menus.PageSource):
             icon_url=str(page.user.avatar_url)
         ).set_thumbnail(
             url=str(page.target.avatar_url)
+        ).set_footer(
+            text=f'Entry {menu.current_page + 1} of {self.get_max_pages() or "???"}'
         )
         embed.timestamp = page.created_at
         return embed
