@@ -75,5 +75,5 @@ class BanInfo(BaseCog):
             await ctx.send('No bans to speak of')
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(BanInfo(bot))

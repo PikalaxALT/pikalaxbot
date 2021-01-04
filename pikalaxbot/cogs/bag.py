@@ -79,5 +79,5 @@ class Bag(BaseCog):
         await ctx.send('Reset the bag')
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Bag(bot))

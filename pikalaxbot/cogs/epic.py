@@ -25,5 +25,5 @@ class Epic(BaseCog):
         )
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Epic(bot))

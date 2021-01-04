@@ -49,7 +49,7 @@ class SqlResponseEmbed(menus.ListPageSource):
         )
 
 
-class lower(str):
+class clean_lower(str):
     @classmethod
     async def convert(cls, ctx, argument):
         arg = await commands.clean_content().convert(ctx, argument)
@@ -274,7 +274,7 @@ class Modtools(BaseCog):
             await self.bot.send_tb(None, error, origin=f'db init for cog {cog}:')
 
     @cog.command(name='disable')
-    async def disable_cog(self, ctx: MyContext, *cogs: lower):
+    async def disable_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Disable cogs"""
 
         failures = {}
@@ -294,7 +294,7 @@ class Modtools(BaseCog):
             raise CogOperationError('unload', **failures)
 
     @cog.command(name='enable')
-    async def enable_cog(self, ctx: MyContext, *cogs: lower):
+    async def enable_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Enable cogs"""
 
         await self.git_pull(ctx)
@@ -313,7 +313,7 @@ class Modtools(BaseCog):
             raise CogOperationError('load', **failures)
 
     @cog.command(name='reload')
-    async def reload_cog(self, ctx: MyContext, *cogs: lower):
+    async def reload_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Reload cogs"""
 
         await self.git_pull(ctx)
@@ -355,7 +355,7 @@ class Modtools(BaseCog):
             raise CogOperationError('reload', **failures)
 
     @cog.command(name='load')
-    async def load_cog(self, ctx: MyContext, *cogs: lower):
+    async def load_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Load cogs that aren't already loaded"""
 
         await self.git_pull(ctx)
@@ -419,9 +419,9 @@ class Modtools(BaseCog):
             try:
                 await ctx.channel.delete_messages(to_delete)
             except discord.HTTPException:
-                for m in to_delete:
+                for msg in to_delete:
                     try:
-                        await m.delete()
+                        await msg.delete()
                     except discord.HTTPException:
                         pass
         await ctx.message.add_reaction('✅')
@@ -443,13 +443,13 @@ class Modtools(BaseCog):
             self.log_tb(ctx, error)
 
     @commands.command(name='cl')
-    async def fast_cog_load(self, ctx: MyContext, *cogs: lower):
+    async def fast_cog_load(self, ctx: MyContext, *cogs: clean_lower):
         """Load the extension"""
 
         await self.load_cog(ctx, *cogs)
 
     @commands.command(name='cr')
-    async def fast_cog_reload(self, ctx: MyContext, *cogs: lower):
+    async def fast_cog_reload(self, ctx: MyContext, *cogs: clean_lower):
         """Reoad the extension"""
 
         await self.reload_cog(ctx, *cogs)

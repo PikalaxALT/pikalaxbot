@@ -63,5 +63,5 @@ class CharInfo(BaseCog):
         await menu.start(ctx, wait=True)
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(CharInfo(bot))

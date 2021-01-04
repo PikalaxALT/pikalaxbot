@@ -16,7 +16,7 @@
 
 import discord
 from discord.ext import commands
-from . import BaseCog
+from . import *
 from .utils.converters import AliasedRoleConverter
 
 
@@ -68,7 +68,7 @@ class SelfAssignableRole(BaseCog):
 
     @iam.error
     @iamnot.error
-    async def assign_roles_error(self, ctx: MyContext, exc: BaseException):
+    async def assign_roles_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, (commands.BotMissingPermissions, commands.BadArgument, Hierarchy)):
             emoji = self.bot.command_error_emoji
             await ctx.send(f'**{exc.__class__.__name__}**: {exc} {emoji}', delete_after=10)
@@ -98,7 +98,7 @@ class SelfAssignableRole(BaseCog):
         await ctx.send(f'Role "{alias}" is no longer self-assignable')
 
     @commands.command()
-    async def lsar(self, ctx):
+    async def lsar(self, ctx: MyContext):
         """List self-assignable roles"""
         if str(ctx.guild.id) not in self.roles:
             self.roles[str(ctx.guild.id)] = {}
@@ -114,11 +114,11 @@ class SelfAssignableRole(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def resetar(self, ctx):
+    async def resetar(self, ctx: MyContext):
         """Reset self-assignable roles"""
         self.roles = {}
         await ctx.message.add_reaction('☑')
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(SelfAssignableRole(bot))

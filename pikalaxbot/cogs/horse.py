@@ -15,42 +15,48 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import discord
 from discord.ext import commands
 from . import *
 
-MORSE_CODE_DICT = { 'A':'.-', 'B':'-...', 'C':'-.-.',
-                    'D':'-..', 'E':'.', 'F':'..-.',
-                    'G':'--.', 'H':'....', 'I':'..',
-                    'J':'.---', 'K':'-.-', 'L':'.-..',
-                    'M':'--', 'N':'-.', 'O':'---',
-                    'P':'.--.', 'Q':'--.-', 'R':'.-.',
-                    'S':'...', 'T':'-', 'U':'..-',
-                    'V':'...-', 'W':'.--', 'X':'-..-',
-                    'Y':'-.--', 'Z':'--..', '1':'.----',
-                    '2':'..---', '3':'...--', '4':'....-',
-                    '5':'.....', '6':'-....', '7':'--...',
-                    '8':'---..', '9':'----.', '0':'-----',
-                    ',':'--..--', '.':'.-.-.-', '?':'..--..',
-                    '!':'-.-.--', '/':'-..-.', '-':'-....-',
-                    '(':'-.--.', ')':'-.--.-', "'":'.----.',
-                    '&':'.-...', ':':'---...', ';':'-.-.-.', 
-                    '=':'-...-', '+':'.-.-.', '_':'..--.-',
-                    '"':'.-..-.', '$':'...-..-', '@':'.--.-.'}
+MORSE_CODE_DICT = {'A': '.-', 'B': '-...', 'C': '-.-.',
+                   'D': '-..', 'E': '.', 'F': '..-.',
+                   'G': '--.', 'H': '....', 'I': '..',
+                   'J': '.---', 'K': '-.-', 'L': '.-..',
+                   'M': '--', 'N': '-.', 'O': '---',
+                   'P': '.--.', 'Q': '--.-', 'R': '.-.',
+                   'S': '...', 'T': '-', 'U': '..-',
+                   'V': '...-', 'W': '.--', 'X': '-..-',
+                   'Y': '-.--', 'Z': '--..', '1': '.----',
+                   '2': '..---', '3': '...--', '4': '....-',
+                   '5': '.....', '6': '-....', '7': '--...',
+                   '8': '---..', '9': '----.', '0': '-----',
+                   ',': '--..--', '.': '.-.-.-', '?': '..--..',
+                   '!': '-.-.--', '/': '-..-.', '-': '-....-',
+                   '(': '-.--.', ')': '-.--.-', "'":'.----.',
+                   '&': '.-...', ': ':'---...', ';': '-.-.-.',
+                   '=': '-...-', '+': '.-.-.', '_': '..--.-',
+                   '"': '.-..-.', '$': '...-..-', '@': '.--.-.'}
 
 
-def reverse_horse_lookup(code, default=None):
-    for k, v in MORSE_CODE_DICT.items():
-        if v == code:
-            return k
-    return default
+def reverse_horse_lookup(code: str, default=None):
+    return discord.utils.find(lambda t: t[1] == code, MORSE_CODE_DICT.items()) or default
 
 
-def horse_encode(input_str):
-    return ' / '.join(' '.join(MORSE_CODE_DICT.get(c, '#').replace('-', 'H').replace('.', 'h') for c in w) for w in input_str.upper().strip().split())
+def horse_encode(input_str: str):
+    return ' / '.join(
+        ' '.join(
+            MORSE_CODE_DICT.get(c, '#').replace('-', 'H').replace('.', 'h') for c in w
+        ) for w in input_str.upper().strip().split()
+    )
 
 
-def horse_decode(input_str):
-    return ' '.join(''.join(reverse_horse_lookup(c.replace('h', '.').replace('H', '-'), '#') for c in w.strip().split()) for w in input_str.strip().split('/'))
+def horse_decode(input_str: str):
+    return ' '.join(
+        ''.join(
+            reverse_horse_lookup(c.replace('h', '.').replace('H', '-'), '#') for c in w.strip().split()
+        ) for w in input_str.strip().split('/')
+    )
 
 
 class HorseCode(BaseCog):
@@ -61,15 +67,15 @@ class HorseCode(BaseCog):
         """Horse Code commands"""
     
     @horse.command()
-    async def encode(self, ctx: MyContext, *, input_str):
+    async def encode(self, ctx: MyContext, *, input_str: str):
         """Encode a string to Horse Code"""
         await ctx.send(horse_encode(input_str))
     
     @horse.command()
-    async def decode(self, ctx: MyContext, *, input_str):
+    async def decode(self, ctx: MyContext, *, input_str: str):
         """Decode a Horse Code string to English"""
         await ctx.send(horse_decode(input_str))
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(HorseCode(bot))

@@ -114,5 +114,5 @@ class Fix(BaseCog):
             await ctx.message.add_reaction('\N{CROSS MARK}')
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Fix(bot))

@@ -215,5 +215,5 @@ class Eval(BaseCog):
             fut.cancel()
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Eval(bot))

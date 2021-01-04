@@ -570,5 +570,5 @@ class Core(BaseCog):
             await self.bot.process_commands(after)
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Core(bot))

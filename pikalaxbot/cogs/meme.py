@@ -274,5 +274,5 @@ class Meme(BaseCog):
         await ctx.send(embed=embed)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Meme(bot))

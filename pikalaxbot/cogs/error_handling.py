@@ -87,7 +87,7 @@ class ErrorHandling(BaseCog):
         await ctx.reply(f'{msg} {self.bot.command_error_emoji}', delete_after=10, mention_author=False)
 
     @BaseCog.listener()
-    async def on_command_error(self, ctx: MyContext, exc: BaseException):
+    async def on_command_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
 
@@ -112,5 +112,5 @@ class ErrorHandling(BaseCog):
         await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(ErrorHandling(bot))

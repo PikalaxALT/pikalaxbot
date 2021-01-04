@@ -159,5 +159,5 @@ class ChatDeathIndex(BaseCog):
             await self.init_channel(channel, now)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(ChatDeathIndex(bot))

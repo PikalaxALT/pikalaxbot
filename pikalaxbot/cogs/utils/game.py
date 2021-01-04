@@ -234,7 +234,7 @@ class GameCogBase(BaseCog):
                 asyncio.wait_for(self[ctx.channel.id]._task, None)
             }, return_when=asyncio.FIRST_COMPLETED)
 
-    async def _error(self, ctx: MyContext, exc: BaseException):
+    async def _error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, BadGameArgument):
             await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
                            f'Try using two numbers (i.e. 2 5) or a letter '
@@ -251,5 +251,5 @@ class GameCogBase(BaseCog):
     async def end_quietly(self, ctx: MyContext, history: set[int]):
         async with self[ctx.channel.id] as game:
             if game.running and game._message and game._message.id in history:
-                game._task.cancel()
+                game.task.cancel()
                 game.reset()

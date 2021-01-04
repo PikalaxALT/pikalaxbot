@@ -83,5 +83,5 @@ class Leaderboard(BaseCog):
         await ctx.send(f'Gave {score:d} points to {person.name}')
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Leaderboard(bot))

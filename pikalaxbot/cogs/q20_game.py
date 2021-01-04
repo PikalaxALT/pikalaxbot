@@ -918,6 +918,9 @@ class Q20GameObject(GameBase):
         super().__init__(bot, timeout=None)
         self._attempts = 20
         self._parser = Q20QuestionParser(self, bot.pokeapi)
+        self.attempts = 0
+        self.challenge_mode = False
+        self._plando_maker: Optional[discord.Member] = None
 
     def reset(self):
         super().reset()
@@ -925,7 +928,7 @@ class Q20GameObject(GameBase):
         self._state = []
         self.attempts = 0
         self.challenge_mode = False
-        self._plando_maker: Optional[discord.Member] = None
+        self._plando_maker = None
 
     @property
     def state(self):
@@ -956,7 +959,7 @@ class Q20GameObject(GameBase):
                            f'**Examples:**\n' + '\n'.join(f'`{prefix}{q}`' for q in samples) + challenge_message)
             await super().start(ctx)
 
-    async def end(self, ctx: commands, failed=False, aborted=False):
+    async def end(self, ctx: MyContext, failed=False, aborted=False):
         if self.running:
             name = self._solution.name
             if self._task and not self._task.done():
@@ -988,7 +991,7 @@ class Q20GameObject(GameBase):
                            f'Start a game by saying `{ctx.prefix}start`.',
                            delete_after=10)
 
-    async def ask(self, ctx: MyContext, question):
+    async def ask(self, ctx: MyContext, question: str):
         if not self.running:
             if ctx.command:
                 await ctx.send('Q20 is not running here.')
@@ -1024,11 +1027,11 @@ class Q20Game(GameCogBase):
 
     gamecls = Q20GameObject
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)
 
     @commands.group(case_insensitive=True, aliases=['q'])
-    async def q20(self, ctx):
+    async def q20(self, ctx: MyContext):
         """Play Q20
 
         **Known issues**
@@ -1038,47 +1041,47 @@ class Q20Game(GameCogBase):
             await ctx.send_help(self.q20)
 
     @q20.command(cls=GameStartCommand)
-    async def start(self, ctx, *, challenge_mode=False):
+    async def start(self, ctx: MyContext, *, challenge_mode=False):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx, challenge_mode=challenge_mode)
 
     @commands.command(name='q20start', aliases=['qst', 'start'], cls=GameStartCommand)
-    async def q20_start(self, ctx, *, challenge_mode=False):
+    async def q20_start(self, ctx: MyContext, *, challenge_mode=False):
         """Start a game in the current channel"""
         await self.start(ctx, challenge_mode=challenge_mode)
 
     @q20.command()
-    async def ask(self, ctx, *, question):
+    async def ask(self, ctx: MyContext, *, question: str):
         """Ask a question"""
         await self.game_cmd('ask', ctx, question)
 
     @commands.command(name='q20ask', aliases=['qa', 'ask'])
-    async def q20_ask(self, ctx, *, question):
+    async def q20_ask(self, ctx: MyContext, *, question: str):
         """Ask a question"""
         await self.ask(ctx, question=question)
 
     @q20.command()
-    async def show(self, ctx):
+    async def show(self, ctx: MyContext):
         """Show the Q20 game state"""
 
         await self.game_cmd('show', ctx)
 
     @commands.command(name='q20show', aliases=['qsh'])
-    async def q20_show(self, ctx):
+    async def q20_show(self, ctx: MyContext):
         """Show the Q20 game state"""
 
         await self.show(ctx)
 
     @q20.command()
     @commands.is_owner()
-    async def end(self, ctx):
+    async def end(self, ctx: MyContext):
         """Abort the Q20 game early"""
 
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='q20end', aliases=['qe', 'qend', 'end'])
     @commands.is_owner()
-    async def q20_end(self, ctx):
+    async def q20_end(self, ctx: MyContext):
         """Abort the Q20 game early"""
 
         await self.end(ctx)
@@ -1086,7 +1089,7 @@ class Q20Game(GameCogBase):
     @q20.command(name='debug')
     @commands.is_owner()
     @commands.check(lambda ctx: ctx.cog[ctx.channel.id].running)
-    async def q20_debug(self, ctx, mon: PokemonSpeciesConverter):
+    async def q20_debug(self, ctx: MyContext, mon: PokemonSpeciesConverter):
         """Set the solution of the running game to the specified mon."""
 
         self[ctx.channel.id]._solution = mon
@@ -1100,10 +1103,20 @@ class Q20Game(GameCogBase):
         """Start a Q20 game with a specified solution"""
 
         try:
-            msg = await ctx.author.send(f'Welcome to the Q20 Plando Maker! Please give the name of a Pokémon to use as the solution for the game starting in {ctx.channel.mention}.')
+            msg = await ctx.author.send(
+                f'Welcome to the Q20 Plando Maker! '
+                f'Please give the name of a Pokémon to use '
+                f'as the solution for the game starting in {ctx.channel.mention}.'
+            )
         except discord.Forbidden:
-            return await ctx.reply('Hmm... I can\'t make a plando if I can\'t contact you privately. Check your DM permissions?')
+            return await ctx.reply(
+                'Hmm... '
+                'I can\'t make a plando if I can\'t contact you privately. '
+                'Check your DM permissions?'
+            )
         await ctx.reply('Check your DMs!')
+
+        solution: 'PokeApi.PokemonSpecies'
         try:
             while True:
                 msg = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.guild is None, timeout=60.0)
@@ -1117,7 +1130,7 @@ class Q20Game(GameCogBase):
         await msg.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     @GameCogBase.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if message.author == self.bot.user:
             return
         if not self[message.channel.id].running:
@@ -1125,12 +1138,12 @@ class Q20Game(GameCogBase):
         ctx = await self.bot.get_context(message)
         if not ctx.prefix or ctx.valid or ('Fix' in self.bot.cogs and ctx.invoked_with.startswith('fix')):
             return
-        content = message.content[len(ctx.prefix):]
+        content: str = message.content[len(ctx.prefix):]
         await self.ask(ctx, question=content)
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         await self._error(ctx, error)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Q20Game(bot))

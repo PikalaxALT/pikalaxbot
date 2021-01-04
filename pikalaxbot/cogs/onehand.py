@@ -216,5 +216,5 @@ class Onehand(BaseCog):
             self.log_tb(ctx, exc)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Onehand(bot))

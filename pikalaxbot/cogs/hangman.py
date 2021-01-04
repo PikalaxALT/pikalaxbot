@@ -209,5 +209,5 @@ class Hangman(GameCogBase):
         await self._error(ctx, exc)
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Hangman(bot))

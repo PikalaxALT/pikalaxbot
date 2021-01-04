@@ -13,6 +13,8 @@ from textwrap import indent
 import traceback
 import operator
 from ...context import MyContext
+if typing.TYPE_CHECKING:
+    from ...cogs.q20_game import Q20Game
 
 
 __all__ = 'PokeApiCog',
@@ -87,7 +89,7 @@ class DexsearchParseError(commands.UserInputError):
 
 
 async def dexsearch_check(ctx: MyContext):
-    cog = ctx.bot.get_cog('Q20Game')
+    cog: typing.Optional['Q20Game'] = ctx.bot.get_cog('Q20Game')
     if cog and cog[ctx.channel.id].running:
         raise commands.CheckFailure('Dexsearch is banned in this channel while Q20 is running')
     return True

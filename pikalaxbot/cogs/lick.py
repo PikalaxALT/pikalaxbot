@@ -1,7 +1,7 @@
 import random
 import discord
 from discord.ext import commands
-from . import BaseCog
+from . import *
 import re
 
 
@@ -40,5 +40,5 @@ class Lick(BaseCog):
             await ctx.send(f'{emote}')
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Lick(bot))

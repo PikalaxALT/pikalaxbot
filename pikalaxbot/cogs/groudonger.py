@@ -48,5 +48,5 @@ class Groudonger(BaseCog):
             await channel.send(f'{user.mention} pls')
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Groudonger(bot))

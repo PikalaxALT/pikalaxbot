@@ -23,6 +23,7 @@ import subprocess
 import os
 import time
 import re
+import typing
 from .utils.converters import EspeakParamsConverter
 
 
@@ -31,19 +32,19 @@ class VoiceCommandError(commands.CheckFailure):
 
 
 class cleaner_content(commands.clean_content):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: MyContext, argument: str):
         argument = await super().convert(ctx, argument)
         argument = re.sub(r'<a?:(\w+):\d+>', '\\1', argument)
         return argument
 
 
-def voice_client_not_playing(ctx):
+def voice_client_not_playing(ctx: MyContext):
     # Change: Don't care anymore if the voice client exists or is playing.
     vc = ctx.voice_client
     return vc is None or not vc.is_playing()
 
 
-async def voice_cmd_ensure_connected(ctx):
+async def voice_cmd_ensure_connected(ctx: MyContext):
     if not ctx.guild:
         raise commands.NoPrivateMessage
     vc: discord.VoiceClient = ctx.voice_client
@@ -58,12 +59,12 @@ async def voice_cmd_ensure_connected(ctx):
 
 
 class EspeakAudioSource(discord.FFmpegPCMAudio):
-    def __init__(self, fname, **kwargs):
+    def __init__(self, fname: typing.Union[str, os.PathLike], **kwargs):
         super().__init__(fname, **kwargs)
         self.fname = fname
 
     @staticmethod
-    async def call_espeak(msg, fname, **kwargs):
+    async def call_espeak(msg: str, fname: typing.Union[str, os.PathLike], **kwargs):
         flags = ' '.join(f'-{flag} {value}' for flag, value in kwargs.items())
         msg = '\u200b' + msg.replace('"', '\\"')
         args = f'espeak -w {fname} {flags} "{msg}"'
@@ -73,7 +74,7 @@ class EspeakAudioSource(discord.FFmpegPCMAudio):
             raise subprocess.CalledProcessError(fut.returncode, args, out, err)
 
     @classmethod
-    async def from_message(cls, cog, msg, **kwargs):
+    async def from_message(cls, cog: 'Voice', msg: str, **kwargs):
         fname = f'{os.getcwd()}/{time.time()}.wav'
         await cls.call_espeak(msg, fname, **cog.espeak_kw)
         return cls(fname, **kwargs)
@@ -102,6 +103,7 @@ class Voice(BaseCog):
         'g': int,
         'k': int
     }
+    __params_converter = EspeakParamsConverter(**__espeak_valid_keys)
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -127,11 +129,11 @@ class Voice(BaseCog):
                 raise discord.ClientException('ffmpeg or avconv not installed')
 
     @staticmethod
-    async def idle_timeout(ctx):
+    async def idle_timeout(ctx: MyContext):
         await asyncio.sleep(600)
         await ctx.voice_client.disconnect()
 
-    def start_timeout(self, ctx):
+    def start_timeout(self, ctx: MyContext):
         def done(unused):
             self.timeout_tasks.pop(ctx.guild.id, None)
 
@@ -139,7 +141,7 @@ class Voice(BaseCog):
         task.add_done_callback(done)
         self.timeout_tasks[ctx.guild.id] = task
 
-    def player_after(self, ctx, exc):
+    def player_after(self, ctx: MyContext, exc: typing.Optional[BaseException]):
         if exc:
             asyncio.run_coroutine_threadsafe(ctx.command.dispatch_error(ctx, exc), self.bot.loop)
             print(f'Player error: {exc}')
@@ -164,7 +166,7 @@ class Voice(BaseCog):
     @commands.check(voice_client_not_playing)
     @pikavoice.command()
     async def say(self, ctx: MyContext, *, msg: cleaner_content(fix_channel_mentions=True,
-                                                                       escape_markdown=False)):
+                                                                escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         msg = f'{ctx.author.display_name} says: {msg}'
         try:
@@ -180,8 +182,8 @@ class Voice(BaseCog):
     @commands.check(voice_cmd_ensure_connected)
     @commands.check(voice_client_not_playing)
     @commands.command(name='say')
-    async def pikasay(self, ctx, *, msg: cleaner_content(fix_channel_mentions=True,
-                                                         escape_markdown=False)):
+    async def pikasay(self, ctx: MyContext, *, msg: cleaner_content(fix_channel_mentions=True,
+                                                                    escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         await self.say(ctx, msg=msg)
 
@@ -195,12 +197,12 @@ class Voice(BaseCog):
 
     @commands.check(voice_cmd_ensure_connected)
     @commands.command()
-    async def shutup(self, ctx):
+    async def shutup(self, ctx: MyContext):
         """Stop all playing audio"""
         await self.stop(ctx)
 
-    @pikavoice.command()
-    async def params(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
+    @pikavoice.command(usage='<param=value> ...')
+    async def params(self, ctx: MyContext, *kwargs: __params_converter):
         """Update pikavoice params.
 
         Syntax: p!params a=amplitude g=gap k=emphasis p=pitch s=speed v=voice"""
@@ -217,8 +219,8 @@ class Voice(BaseCog):
         finally:
             os.remove('tmp.wav')
 
-    @commands.command(name='params')
-    async def pikaparams(self, ctx, *kwargs: EspeakParamsConverter(**__espeak_valid_keys)):
+    @commands.command(name='params', usage='<param=value> ...')
+    async def pikaparams(self, ctx: MyContext, *kwargs: __params_converter):
         """Update pikavoice params.
 
         Syntax:
@@ -228,7 +230,7 @@ class Voice(BaseCog):
 
     @params.error
     @pikaparams.error
-    async def pikaparams_error(self, ctx: MyContext, exc: BaseException):
+    async def pikaparams_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.BadArgument):
             view = ctx.view
             view.index = 0
@@ -252,7 +254,7 @@ class Voice(BaseCog):
         if task is not None:
             task.cancel()
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         if isinstance(error, VoiceCommandError):
             await ctx.reply(f'Unable to execute voice command: {error}', delete_after=10)
         else:
@@ -260,5 +262,5 @@ class Voice(BaseCog):
             await self.bot.send_tb(ctx, error, origin=msg)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Voice(bot))

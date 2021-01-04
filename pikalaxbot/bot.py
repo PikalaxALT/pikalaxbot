@@ -129,7 +129,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
     async def on_ready(self):
         self.log_info(f'Logged in as {self.user}')
 
-    async def get_context(self, message, *, cls=None):
+    async def get_context(self, message, *, cls=None) -> MyContext:
         ctx = await super().get_context(message, cls=cls or MyContext)
         self._ctx_cache[(message.channel.id, message.id)] = [ctx, set()]
         return ctx

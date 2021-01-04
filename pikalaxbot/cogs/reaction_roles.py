@@ -36,9 +36,9 @@ class ReactionRoles(BaseCog):
     async def init_db(self, sql):
         await sql.execute("create table if not exists reaction_schema (guild bigint unique not null primary key, channel bigint, message bigint)")
         await sql.execute("create table if not exists reaction_roles (guild bigint not null references reaction_schema(guild), emoji text, role bigint)")
-        for guild, channel, message in await sql.fetch('select * from reaction_schema'):
+        async for guild, channel, message in sql.cursor('select * from reaction_schema'):
             self.reaction_schema[guild] = (channel, message)
-        for guild, emoji, role in await sql.fetch('select * from reaction_roles'):
+        async for guild, emoji, role in sql.cursor('select * from reaction_roles'):
             self.reaction_roles[guild][emoji] = role
 
     def validate_reaction(self, payload: discord.RawReactionActionEvent):
@@ -146,9 +146,9 @@ class ReactionRoles(BaseCog):
             await sql.execute("delete from reaction_roles where guild = $1 and emoji = $2", ctx.guild.id, str(emoji))
         await ctx.message.add_reaction('✅')
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(ReactionRoles(bot))
