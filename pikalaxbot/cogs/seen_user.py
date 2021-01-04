@@ -3,11 +3,9 @@ import discord
 from collections import defaultdict
 from discord.ext import commands
 import typing
-from . import BaseCog
+from . import *
 from humanize import naturaldelta
 import re
-if typing.TYPE_CHECKING:
-    from .. import PikalaxBOT
 
 
 class SeenUser(BaseCog):
@@ -38,7 +36,7 @@ class SeenUser(BaseCog):
         return seen_msg
 
     @commands.command()
-    async def seen(self, ctx: commands.Context, *, member: discord.Member):
+    async def seen(self, ctx: MyContext, *, member: discord.Member):
         """Returns the last message sent by the given member in the current server.
         Initially looks back up to 24 hours."""
         key = (ctx.guild, member)
@@ -55,5 +53,5 @@ class SeenUser(BaseCog):
                            f'{seen_msg.jump_url}')
 
 
-def setup(bot: 'PikalaxBOT'):
+def setup(bot: PikalaxBOT):
     bot.add_cog(SeenUser(bot))

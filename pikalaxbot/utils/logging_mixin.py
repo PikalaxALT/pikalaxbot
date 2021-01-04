@@ -35,4 +35,3 @@ class LoggingMixin:
             f'Ignoring exception in command {ctx.command}:' if ctx else '',
             exc_info=(exc.__class__, exc, exc.__traceback__)
         )
-

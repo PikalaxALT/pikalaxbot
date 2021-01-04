@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from collections import Counter
-from . import BaseCog
+from . import *
 import time
 import datetime
 import io
@@ -11,6 +11,7 @@ from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 import numpy as np
 from jishaku.functools import executor_function
+import asyncpg
 
 
 class MemberStatus(BaseCog):
@@ -28,7 +29,16 @@ class MemberStatus(BaseCog):
         self.update_counters.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists memberstatus (guild_id bigint, timestamp timestamp, online integer, offline integer, dnd integer, idle integer)')
+        await sql.execute(
+            'create table if not exists memberstatus ('
+            'guild_id bigint, '
+            'timestamp timestamp, '
+            'online integer, '
+            'offline integer, '
+            'dnd integer, '
+            'idle integer'
+            ')'
+        )
         await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
         self.update_counters.start()
 
@@ -46,24 +56,28 @@ class MemberStatus(BaseCog):
                 counts[discord.Status.dnd],
                 counts[discord.Status.idle]
             ])
-        async with self.bot.sql as sql:
-            await sql.executemany('insert into memberstatus values ($1, $2, $3, $4, $5, $6) on conflict (guild_id, timestamp) do nothing', to_insert)
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            await sql.executemany(
+                'insert into memberstatus '
+                'values ($1, $2, $3, $4, $5, $6) '
+                'on conflict (guild_id, timestamp) do nothing',
+                to_insert
+            )
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
         await self.bot.wait_until_ready()
 
     @update_counters.error
-    async def update_counters_error(self, error):
+    async def update_counters_error(self, error: BaseException):
         await self.bot.send_tb(None, error, origin='MemberStatus.update_counters')
 
     @staticmethod
     @executor_function
-    def do_plot_status_history(buffer, history):
-        times = list(history.keys())
-        values = list(history.values())
+    def do_plot_status_history(buffer: typing.BinaryIO, history: dict[datetime.datetime, Counter[discord.Status]]):
+        times, values = zip(*history.items())
         plt.figure()
-        counts = {key: [v[key] for v in values] for key in MemberStatus.colormap}
+        counts: dict[discord.Status, list[int]] = {key: [v[key] for v in values] for key in MemberStatus.colormap}
         ax: plt.Axes = plt.gca()
         idxs = thin_points(len(times), 1000)
         for key, value in counts.items():
@@ -80,7 +94,12 @@ class MemberStatus(BaseCog):
 
     @commands.guild_only()
     @commands.command(name='userstatus')
-    async def plot_status(self, ctx, hstart: typing.Union[PastTime, int] = 60, hend: typing.Union[PastTime, int] = 0):
+    async def plot_status(
+            self,
+            ctx: MyContext,
+            hstart: typing.Union[PastTime, int] = 60,
+            hend: typing.Union[PastTime, int] = 0
+    ):
         """Plot history of user status counts in the current guild."""
         if isinstance(hstart, int):
             hstart = ctx.message.created_at - datetime.timedelta(minutes=hstart)
@@ -92,8 +111,22 @@ class MemberStatus(BaseCog):
             hend = hend.dt
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql as sql:
-                counts = {row[0]: {name: count for name, count in zip(discord.Status, row[1:])} for row in await sql.fetch('select timestamp, online, offline, dnd, idle from memberstatus where guild_id = $1 and timestamp between $2 and $3 order by timestamp', ctx.guild.id, hstart, hend)}
+            async with self.bot.sql as sql:  # type: asyncpg.Connection
+                counts: dict[datetime.datetime, Counter[discord.Status]] = {
+                    row[0]: {
+                        name: count
+                        for name, count in zip(discord.Status, row[1:])
+                    } async for row in await sql.cursor(
+                        'select timestamp, online, offline, dnd, idle '
+                        'from memberstatus '
+                        'where guild_id = $1 '
+                        'and timestamp between $2 and $3 '
+                        'order by timestamp',
+                        ctx.guild.id,
+                        hstart,
+                        hend
+                    )
+                }
             fetch_end = time.perf_counter()
             if len(counts) > 1:
                 buffer = io.BytesIO()
@@ -111,5 +144,5 @@ class MemberStatus(BaseCog):
         await ctx.send(msg, file=file)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(MemberStatus(bot))

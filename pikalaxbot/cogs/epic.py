@@ -1,19 +1,16 @@
-import discord
 from discord.ext import commands
-from . import BaseCog
-
-
-EPIC_GUILD_ID = 471312957687463956
+from . import *
+from ..constants import *
 
 
 class Epic(BaseCog):
     """Commands unique to the Epic guild. Hi Cyan o/"""
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return ctx.guild.id == EPIC_GUILD_ID
 
     @commands.command()
-    async def ripchat(self, ctx):
+    async def ripchat(self, ctx: MyContext):
         """Pays respects to the death of the chat."""
 
         await ctx.send(
@@ -28,5 +25,5 @@ class Epic(BaseCog):
         )
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(Epic(bot))

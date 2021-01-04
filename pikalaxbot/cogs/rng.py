@@ -18,7 +18,7 @@ import random
 
 from discord.ext import commands
 
-from . import BaseCog
+from . import *
 from .utils.converters import DiceRollConverter
 
 
@@ -26,7 +26,7 @@ class Rng(BaseCog):
     """Commands for random number generators"""
 
     @commands.command()
-    async def choose(self, ctx: commands.Context, *options):
+    async def choose(self, ctx: MyContext, *options: str):
         """Choose between multiple options separated by spaces.
         Use quotes to wrap multi-word options."""
 
@@ -37,10 +37,10 @@ class Rng(BaseCog):
             await ctx.send(random.choice(options))
 
     @commands.command()
-    async def roll(self, ctx, params: DiceRollConverter = (1, 6)):
+    async def roll(self, ctx: MyContext, params: DiceRollConverter = (1, 6)):
         """Roll one or more dice with a given number of sides."""
 
-        count, sides = params
+        count, sides = params  # type: int, int
         rolls = [str(random.randint(1, sides)) for i in range(count)]
         rollstr = ', '.join(rolls)
         dice = 'die' if count == 1 else 'dice'
@@ -48,19 +48,19 @@ class Rng(BaseCog):
                        f'{rollstr}')
 
     @commands.group()
-    async def random(self, ctx):
+    async def random(self, ctx: MyContext):
         """RNG-related commands"""
 
     @commands.check(lambda ctx: ctx.bot.pokeapi is not None)
     @random.command(name='pokemon')
-    async def random_pokemon(self, ctx):
+    async def random_pokemon(self, ctx: MyContext):
         """Get a random Pokemon name"""
 
         mon = await self.bot.pokeapi.random_pokemon_name()
         await ctx.send(mon)
     
     @random.command(name='quilava')
-    async def random_quilava(self, ctx):
+    async def random_quilava(self, ctx: MyContext):
         """Random quilava image"""
 
         img_pool = [
@@ -81,7 +81,7 @@ class Rng(BaseCog):
         url = random.choice(img_pool)
         await ctx.send(f'Quilava ❤ {url}')
 
-    async def cog_command_error(self, ctx, exc):
+    async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         orig = getattr(exc, 'original', exc)
         if isinstance(exc, commands.ConversionError):
             if isinstance(orig, AssertionError):
@@ -101,5 +101,5 @@ class Rng(BaseCog):
         self.log_tb(ctx, exc)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Rng(bot))

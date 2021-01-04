@@ -1,6 +1,7 @@
 import discord
 import math
 from discord.ext import commands
+from . import *
 from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
 import re
 import difflib
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 # Temporary workaround
 class PokemonSpeciesConverter(commands.Converter):
-    async def convert(self, ctx: commands.Context, argument: str):
+    async def convert(self, ctx: MyContext, argument: str):
         pokeapi: 'PokeApi' = ctx.bot.pokeapi
         obj = await pokeapi.get_model_named(pokeapi.PokemonSpecies, argument)
         if obj is None:
@@ -937,7 +938,7 @@ class Q20GameObject(GameBase):
                f'{self.state}\n' \
                f'```'
 
-    async def start(self, ctx: commands.Context, *, challenge_mode=False, plando: 'Optional[PokeApi.PokemonSpecies]' = None):
+    async def start(self, ctx: MyContext, *, challenge_mode=False, plando: 'Optional[PokeApi.PokemonSpecies]' = None):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Q20 is already running here.', delete_after=10)
         else:
@@ -987,7 +988,7 @@ class Q20GameObject(GameBase):
                            f'Start a game by saying `{ctx.prefix}start`.',
                            delete_after=10)
 
-    async def ask(self, ctx: commands.Context, question):
+    async def ask(self, ctx: MyContext, question):
         if not self.running:
             if ctx.command:
                 await ctx.send('Q20 is not running here.')
@@ -1095,7 +1096,7 @@ class Q20Game(GameCogBase):
     @commands.guild_only()
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.check(lambda ctx: not ctx.cog[ctx.channel.id].running)
-    async def q20_plando(self, ctx: commands.Context, *, challenge_mode=False):
+    async def q20_plando(self, ctx: MyContext, *, challenge_mode=False):
         """Start a Q20 game with a specified solution"""
 
         try:

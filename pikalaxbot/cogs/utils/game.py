@@ -22,9 +22,11 @@ from .. import BaseCog
 from discord.ext import commands
 from .errors import BadGameArgument
 import typing
+import asyncpg
+from ...context import MyContext
 if typing.TYPE_CHECKING:
     from ...ext.pokeapi import PokeApi
-    from ... import MyContext
+    from ... import PikalaxBOT
 
 __all__ = (
     'find_emoji',
@@ -42,7 +44,7 @@ def find_emoji(guild, name, case_sensitive=True):
     return discord.utils.find(lambda e: e.name.lower() == name, guild.emojis)
 
 
-async def increment_score(sql, player, *, by=1):
+async def increment_score(sql: asyncpg.Connection, player: discord.Member, *, by=1):
     await sql.execute(
         'insert into game '
         'values ($1, $2, $3) '
@@ -62,12 +64,19 @@ class GameBase:
         'start_time', '_players', '_solution'
     )
 
-    def __init__(self, bot, timeout=90, max_score=1000):
+    def __init__(self, bot: PikalaxBOT, timeout=90, max_score=1000):
         self.bot = bot
         self._timeout = timeout
         self._lock = asyncio.Lock()
         self._max_score = max_score
-        self.reset()
+        # Inline self.reset()
+        self._state = None
+        self._running = False
+        self._message: typing.Optional[discord.Message] = None
+        self._task: typing.Union[None, asyncio.Task, asyncio.Future] = None
+        self.start_time = -1
+        self._players: set[discord.Member] = set()
+        self._solution: typing.Optional['PokeApi.PokemonSpecies'] = None
 
     async def __aenter__(self):
         await self._lock.acquire()
@@ -82,12 +91,23 @@ class GameBase:
         self._message = None
         self._task = None
         self.start_time = -1
-        self._players = set()
+        self._players.clear()
         self._solution: typing.Optional['PokeApi.PokemonSpecies'] = None
 
     @property
     def state(self):
         return self._state
+
+    @property
+    def task(self) -> typing.Union[None, asyncio.Task, asyncio.Future]:
+        t: typing.Union[None, asyncio.Task, asyncio.Future] = self._task
+        if not t or t.done():
+            t = self._task = None
+        return t
+
+    @task.setter
+    def task(self, _task: typing.Union[None, asyncio.Task, asyncio.Future]):
+        self._task = _task
 
     @property
     def score(self):
@@ -107,7 +127,7 @@ class GameBase:
         self._running = state
 
     def __str__(self):
-        pass
+        return 'GameCogBase object should be subclassed'
 
     def add_player(self, player):
         self._players.add(player)
@@ -121,36 +141,36 @@ class GameBase:
             await ctx.send('Time\'s up!')
             self.bot.loop.create_task(self.end(ctx, failed=True))
 
-    async def start(self, ctx):
-        def destroy_self(task):
-            self._task = None
+    async def start(self, ctx: MyContext):
+        def destroy_self(task: asyncio.Task):
+            self.task = None
 
         self.running = True
-        self._message = await ctx.send(self)
+        self._message = await ctx.send(str(self))
         if self._timeout is None:
-            self._task = self.bot.loop.create_future()
+            self.task = self.bot.loop.create_future()
         else:
-            self._task = self.bot.loop.create_task(self.timeout(ctx))
-        self._task.add_done_callback(destroy_self)
+            self.task = self.bot.loop.create_task(self.timeout(ctx))
+        self.task.add_done_callback(destroy_self)
         self.start_time = time.time()
 
-    async def end(self, ctx, failed=False, aborted=False):
+    async def end(self, ctx: MyContext, failed=False, aborted=False):
         if self.running:
-            if self._task and not self._task.done():
-                self._task.cancel()
+            if self.task:
+                self.task.cancel()
             return True
         return False
 
-    async def show(self, ctx):
+    async def show(self, ctx: MyContext):
         if self.running:
             await self._message.delete()
-            self._message = await ctx.send(self)
+            self._message = await ctx.send(str(self))
             return self._message
         return None
 
     async def award_points(self):
-        score = max(math.ceil(self.score / len(self._players)), 1)
-        async with self.bot.sql as sql:
+        score = round(max(math.ceil(self.score / len(self._players)), 1))
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
             for player in self._players:
                 await increment_score(sql, player, by=score)
         return score
@@ -180,7 +200,7 @@ class GameCogBase(BaseCog):
     async def init_db(self, sql):
         await sql.execute("create table if not exists game (id bigint unique primary key, name varchar(32), score integer default 0)")
 
-    def _local_check(self, ctx: 'MyContext'):
+    def _local_check(self, ctx: MyContext):
         if ctx.guild is None:
             raise commands.NoPrivateMessage('This command cannot be used in private messages.')
         if ctx.message.edited_at:
@@ -191,17 +211,17 @@ class GameCogBase(BaseCog):
         if self.gamecls is None:
             raise NotImplemented('this class must be subclassed')
         super().__init__(bot)
-        self.channels = {}
+        self.channels: dict[int, GameBase] = {}
         self._max_concurrency = commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False)
 
-    def __getitem__(self, channel):
+    def __getitem__(self, channel: int):
         if channel not in self.channels:
             self.channels[channel] = self.gamecls(self.bot)
         return self.channels[channel]
 
-    async def game_cmd(self, cmd, ctx, *args, **kwargs):
+    async def game_cmd(self, cmd, ctx: MyContext, *args, **kwargs):
         async with self[ctx.channel.id] as game:
-            cb = getattr(game, cmd)
+            cb: typing.Callable[[MyContext, ...], typing.Coroutine] = getattr(game, cmd)
             if cb is None:
                 await ctx.send(f'{ctx.author.mention}: Invalid command: '
                                f'{ctx.prefix}{self.gamecls.__class__.__name__.lower()} {cmd}',
@@ -214,21 +234,21 @@ class GameCogBase(BaseCog):
                 asyncio.wait_for(self[ctx.channel.id]._task, None)
             }, return_when=asyncio.FIRST_COMPLETED)
 
-    async def _error(self, ctx, exc):
+    async def _error(self, ctx: MyContext, exc: BaseException):
         if isinstance(exc, BadGameArgument):
             await ctx.send(f'{ctx.author.mention}: Invalid arguments. '
                            f'Try using two numbers (i.e. 2 5) or a letter '
                            f'and a number (i.e. c2).',
                            delete_after=10)
         elif isinstance(exc, (commands.NoPrivateMessage, NoInvokeOnEdit)):
-            await ctx.send(exc)
+            await ctx.send(str(exc))
         elif isinstance(exc, commands.MaxConcurrencyReached):
             await ctx.send(f'{self.qualified_name} is already running here')
         else:
             await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}')
         self.log_tb(ctx, exc)
 
-    async def end_quietly(self, ctx, history):
+    async def end_quietly(self, ctx: MyContext, history: set[int]):
         async with self[ctx.channel.id] as game:
             if game.running and game._message and game._message.id in history:
                 game._task.cancel()

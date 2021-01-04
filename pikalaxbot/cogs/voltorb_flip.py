@@ -15,9 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import random
+import typing
+import asyncpg
 
+import discord
 from discord.ext import commands
 
+from . import *
 from .utils.game import GameBase, GameCogBase, find_emoji, GameStartCommand
 from .utils.converters import BoardCoords
 
@@ -31,8 +35,10 @@ class VoltorbFlipGame(GameBase):
     VTB = 16
 
     def __init__(self, bot):
-        self._level = None
         super().__init__(bot, timeout=180)
+        self._level: typing.Optional[int] = None
+        self._score = 0
+        self._ended = False
 
     def reset(self):
         super().reset()
@@ -40,41 +46,46 @@ class VoltorbFlipGame(GameBase):
         self._score = 0
         self._ended = False
 
-    def is_flagged(self, x, y):
-        return self.state[y][x] & self.FLG
+    def is_flagged(self, x: int, y: int):
+        return self.state[y][x] & VoltorbFlipGame.FLG != 0
 
-    def is_revealed(self, x, y):
-        return self.state[y][x] & self.RVL
+    def is_revealed(self, x: int, y: int):
+        return self.state[y][x] & VoltorbFlipGame.RVL != 0
 
-    def is_bomb(self, x, y):
-        return self.state[y][x] & self.VTB != 0
+    def is_bomb(self, x: int, y: int):
+        return self.state[y][x] & VoltorbFlipGame.VTB != 0
 
-    def coin_value(self, x, y):
+    def coin_value(self, x: int, y: int):
         return self.state[y][x] & 3
 
-    def non_bomb_coin_value(self, x, y):
+    def non_bomb_coin_value(self, x: int, y: int):
         return 0 if self.is_bomb(x, y) else self.coin_value(x, y)
 
-    def colsum(self, x, do_coins=False):
-        return sum((self.non_bomb_coin_value if do_coins else self.is_bomb)(x, y) for y in range(5))
+    def get_add_method(self, do_coins=False) -> typing.Callable[[int, int], typing.Union[int, bool]]:
+        return self.non_bomb_coin_value if do_coins else self.is_bomb
+
+    def colsum(self, x: int, do_coins=False):
+        method = self.get_add_method(do_coins)
+        return sum(method(x, y) for y in range(5))
 
     def rowsum(self, y, do_coins=False):
-        return sum((self.non_bomb_coin_value if do_coins else self.is_bomb)(x, y) for x in range(5))
+        method = self.get_add_method(do_coins)
+        return sum(method(x, y) for x in range(5))
 
-    def set_flag(self, x, y):
-        self.state[y][x] |= self.FLG
+    def set_flag(self, x: int, y: int):
+        self.state[y][x] |= VoltorbFlipGame.FLG
 
-    def clear_flag(self, x, y):
-        self.state[y][x] &= ~self.FLG
+    def clear_flag(self, x: int, y: int):
+        self.state[y][x] &= ~VoltorbFlipGame.FLG
 
-    def set_revealed(self, x, y):
-        self.state[y][x] |= self.RVL
+    def set_revealed(self, x: int, y: int):
+        self.state[y][x] |= VoltorbFlipGame.RVL
 
-    def set_coins(self, x, y, coins):
+    def set_coins(self, x: int, y: int, coins):
         self.state[y][x] &= ~3
         self.state[y][x] |= coins
 
-    def get_coin_total(self, condition=lambda x, y: True):
+    def get_coin_total(self, condition: typing.Callable[[int, int], bool] = lambda x, y: True):
         res = 1
         for y in range(5):
             for x in range(5):
@@ -93,17 +104,14 @@ class VoltorbFlipGame(GameBase):
     def level(self):
         return self._level
     
-    async def get_level(self, channel):
-        async with self.bot.sql as sql:
-            try:
-                self._level, = await sql.fetchrow('select level from voltorb where id = $1', channel.id)
-            except TypeError:
-                self._level = 1
+    async def get_level(self, channel: discord.TextChannel):
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            self._level = (await sql.fetchval('select level from voltorb where id = $1', channel.id)) or 1
         return self._level
 
-    async def update_level(self, channel, new_level):
+    async def update_level(self, channel: discord.TextChannel, new_level):
         self._level = new_level
-        async with self.bot.sql as sql:
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
             await sql.execute(
                 "insert into voltorb "
                 "values ($1, $2) "
@@ -114,15 +122,15 @@ class VoltorbFlipGame(GameBase):
 
     def build_board(self):
         minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
-        _min = minmax[self.level - 1]
-        _max = minmax[self.level]
+        _min: int = minmax[self.level - 1]
+        _max: int = minmax[self.level]
         _num_voltorb = 6 + self.level // 2
         self._state = [[1 for x in range(5)] for y in range(5)]
         for i in range(_num_voltorb):
             y, x = divmod(random.randrange(25), 5)
             while self.is_bomb(x, y):
                 y, x = divmod(random.randrange(25), 5)
-            self._state[y][x] |= self.VTB
+            self._state[y][x] |= VoltorbFlipGame.VTB
         while not _min <= self.get_coin_total() <= _max:
             for i in range(25):
                 y, x = divmod(i, 5)
@@ -145,7 +153,7 @@ class VoltorbFlipGame(GameBase):
             for x in range(5):
                 self.set_revealed(x, y)
 
-    def get_element_char(self, x, y):
+    def get_element_char(self, x: int, y: int):
         if self.is_revealed(x, y):
             idx = 0 if self.is_bomb(x, y) else self.coin_value(x, y)
             return (':bomb:', ':one:', ':two:', ':three:')[idx]
@@ -183,7 +191,7 @@ class VoltorbFlipGame(GameBase):
                            f'to find all the coins!')
             await super().start(ctx)
 
-    async def end(self, ctx: commands.Context, failed=False, aborted=False):
+    async def end(self, ctx: MyContext, failed=False, aborted=False):
         if await super().end(ctx, failed=failed, aborted=aborted):
             new_level = self.level
             self.reveal_all()
@@ -208,7 +216,7 @@ class VoltorbFlipGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
 
-    async def guess(self, ctx: commands.Context, x: int, y: int):
+    async def guess(self, ctx: MyContext, x: int, y: int):
         if self.running:
             if self.is_bomb(x, y):
                 await ctx.send('KAPOW')
@@ -233,7 +241,7 @@ class VoltorbFlipGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
 
-    async def flag(self, ctx, x: int, y: int):
+    async def flag(self, ctx: MyContext, x: int, y: int):
         if self.running:
             if self.is_revealed(x, y):
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed',
@@ -249,7 +257,7 @@ class VoltorbFlipGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}voltorb start`.',
                            delete_after=10)
 
-    async def unflag(self, ctx, x: int, y: int):
+    async def unflag(self, ctx: MyContext, x: int, y: int):
         if self.running:
             if self.is_revealed(x, y):
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed',
@@ -285,79 +293,79 @@ class VoltorbFlip(GameCogBase):
         await super().init_db(sql)
         await sql.execute("create table if not exists voltorb (id bigint primary key, level integer default 1)")
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)
 
     @commands.group(case_insensitive=True, invoke_without_command=True)
-    async def voltorb(self, ctx):
+    async def voltorb(self, ctx: MyContext):
         """Play Voltorb Flip"""
         await ctx.send_help(ctx.command)
 
     @voltorb.command(cls=GameStartCommand)
-    async def start(self, ctx):
+    async def start(self, ctx: MyContext):
         """Start a game of Voltorb Flip"""
         await self.game_cmd('start', ctx)
 
     @commands.command(name='voltstart', aliases=['vst'], cls=GameStartCommand)
-    async def voltorb_start(self, ctx):
+    async def voltorb_start(self, ctx: MyContext):
         """Start a game of Voltorb Flip"""
         await self.start(ctx)
 
     @voltorb.command()
-    async def guess(self, ctx, *, args: converter):
+    async def guess(self, ctx: MyContext, *, args: converter):
         """Reveal a square and either claim its coins or blow it up"""
         await self.game_cmd('guess', ctx, *args)
 
     @commands.command(name='voltguess', aliases=['vgu', 'vg'])
-    async def voltorb_guess(self, ctx, *, args: converter):
+    async def voltorb_guess(self, ctx: MyContext, *, args: converter):
         """Reveal a square and either claim its coins or blow it up"""
         await self.guess(ctx, args=args)
 
     @voltorb.command(usage='<y x|yx>')
-    async def flag(self, ctx, *, args: converter):
+    async def flag(self, ctx: MyContext, *, args: converter):
         """Flag a square"""
         await self.game_cmd('flag', ctx, *args)
 
     @commands.command(name='voltflag', aliases=['vfl', 'vf'], usage='[< x|yx>')
-    async def voltorb_flag(self, ctx, *, args: converter):
+    async def voltorb_flag(self, ctx: MyContext, *, args: converter):
         """Flag a square"""
         await self.flag(ctx, args=args)
 
     @voltorb.command(usage='<y x|yx>')
-    async def unflag(self, ctx, *, args: converter):
+    async def unflag(self, ctx: MyContext, *, args: converter):
         """Unflag a square"""
         await self.game_cmd('unflag', ctx, *args)
 
     @commands.command(name='voltunflag', aliases=['vuf', 'vu'], usage='<y x|yx>')
-    async def voltorb_unflag(self, ctx, *, args: converter):
+    async def voltorb_unflag(self, ctx: MyContext, *, args: converter):
         """Unflag a square"""
         await self.unflag(ctx, args=args)
 
     @voltorb.command()
     @commands.is_owner()
-    async def end(self, ctx):
+    async def end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='voltend', aliases=['ve'])
     @commands.is_owner()
-    async def voltorb_end(self, ctx):
+    async def voltorb_end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.end(ctx)
 
     @voltorb.command()
-    async def show(self, ctx):
+    async def show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
 
     @commands.command(name='voltshow', aliases=['vsh'])
-    async def voltorb_show(self, ctx):
+    async def voltorb_show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.show(ctx)
 
-    async def cog_command_error(self, ctx, exc):
+    async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         await self._error(ctx, exc)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(VoltorbFlip(bot))

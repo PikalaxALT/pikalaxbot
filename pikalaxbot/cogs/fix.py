@@ -16,12 +16,14 @@
 
 import re
 import time
+import discord
 from discord.ext import commands
 import operator
-from . import BaseCog
+from . import *
+import typing
 
 
-str_lower = operator.methodcaller('lower')
+str_lower: typing.Callable[[str], str] = operator.methodcaller('lower')
 
 
 class Fix(BaseCog):
@@ -42,8 +44,8 @@ class Fix(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.bot_owners = {}
-        self.bot_names = {}
+        self.bot_owners: dict[str, str] = {}
+        self.bot_names: dict[str, str] = {}
 
     async def init_db(self, sql):
         await sql.execute('CREATE TABLE IF NOT EXISTS fix (name TEXT PRIMARY KEY, owner TEXT NOT NULL, altname TEXT)')
@@ -55,13 +57,13 @@ class Fix(BaseCog):
                 self.bot_names[name] = altname
 
     @staticmethod
-    def get_fix_alias(ctx):
+    def get_fix_alias(ctx: MyContext) -> typing.Optional[str]:
         if ctx.invoked_with is not None:
             match = re.match(r'fix(\w*)', ctx.invoked_with)
             return match and match.group(1)
 
     @commands.group(invoke_without_command=True)
-    async def fix(self, ctx: commands.Context):
+    async def fix(self, ctx: MyContext):
         """`{ctx.prefix}fix<botname>` - Nag the bot's owner to fix their bot"""
         alias = self.get_fix_alias(ctx)
         owner = self.bot_owners.get(alias, 'already')
@@ -69,14 +71,16 @@ class Fix(BaseCog):
         await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT {time.gmtime().tm_year:d}')
 
     @BaseCog.listener()
-    async def on_message(self, message):
-        ctx = await self.bot.get_context(message)
-        if ctx.prefix is not None and not ctx.valid and Fix.get_fix_alias(ctx) \
+    async def on_message(self, message: discord.Message):
+        ctx: MyContext = await self.bot.get_context(message)
+        if ctx.prefix is not None \
+                and not ctx.valid \
+                and Fix.get_fix_alias(ctx) \
                 and await self.fix.can_run(ctx):
             await self.fix(ctx)
 
     @fix.command()
-    async def add(self, ctx, key: str_lower, owner, altname=None):
+    async def add(self, ctx: MyContext, key: str_lower, owner: str, altname: str = None):
         """Add a bot to my database"""
         if key not in self.bot_owners:
             self.bot_owners[key] = owner
@@ -85,13 +89,19 @@ class Fix(BaseCog):
             elif key in self.bot_names:
                 del self.bot_names[key]
             async with self.bot.sql as sql:
-                await sql.execute('INSERT INTO fix VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET owner = $2, altname = $3', key, owner, altname)
+                await sql.execute(
+                    'INSERT INTO fix '
+                    'VALUES ($1, $2, $3) '
+                    'ON CONFLICT (name) '
+                    'DO UPDATE '
+                    'SET owner = $2, altname = $3',
+                    key, owner, altname)
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
 
     @fix.command(name='del')
-    async def delete_key(self, ctx, key: str_lower):
+    async def delete_key(self, ctx: MyContext, key: str_lower):
         """Remove a bot from my database"""
         if key in self.bot_owners:
             del self.bot_owners[key]
@@ -104,5 +114,5 @@ class Fix(BaseCog):
             await ctx.message.add_reaction('\N{CROSS MARK}')
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(Fix(bot))

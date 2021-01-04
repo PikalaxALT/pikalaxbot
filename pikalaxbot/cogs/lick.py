@@ -18,7 +18,7 @@ class Lick(BaseCog):
     lick = 0, 2, 3, 5, 2, -2, 0
 
     @commands.command(name='lick')
-    async def lick_c(self, ctx: commands.Context):
+    async def lick_c(self, ctx: MyContext):
         """
         https://m.youtube.com/watch?v=krDxhnaKD7Q
         """
@@ -28,7 +28,7 @@ class Lick(BaseCog):
         await ctx.send(' '.join(notes[start + offset] for offset in self.lick))
     
     @commands.command(name='licc')
-    async def licc_c(self, ctx: commands.Context, *, recipient: discord.Member = None):
+    async def licc_c(self, ctx: MyContext, *, recipient: discord.Member = None):
         """
         liccs u
         """

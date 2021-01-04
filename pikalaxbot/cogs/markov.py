@@ -20,7 +20,7 @@ import typing
 import discord
 from discord.ext import commands
 
-from . import BaseCog
+from . import *
 from .utils.markov import Chain
 
 
@@ -46,7 +46,7 @@ class Markov(BaseCog):
     def cog_unload(self):
         self._init_task and self._init_task.cancel()
 
-    def cog_check(self, ctx: commands.Context):
+    def cog_check(self, ctx: MyContext):
         def inner():
             # If a command was invoked directly, the check passes.
             if ctx.invoked_with == self.markov.name:
@@ -63,7 +63,7 @@ class Markov(BaseCog):
             raise MarkovNoInit
         return True
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
             embed = await self.get_prefix_help_embed(ctx)
             await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
@@ -84,12 +84,12 @@ class Markov(BaseCog):
                             break
         return longest
 
-    def learn_markov(self, message):
+    def learn_markov(self, message: discord.Message):
         if message.channel.id in self.markov_channels:
             self.storedMsgsSet.add(message.clean_content)
             self.chain.learn_str(message.clean_content)
 
-    def forget_markov(self, message):
+    def forget_markov(self, message: discord.Message):
         if message.channel.id in self.markov_channels:
             self.chain.unlearn_str(message.clean_content)
 
@@ -116,7 +116,7 @@ class Markov(BaseCog):
         self.initialized = True
         self._init_task = None
 
-    async def get_prefix_help_embed(self, ctx):
+    async def get_prefix_help_embed(self, ctx: MyContext):
         first_word = ctx.message.content.split()[0]
         mentions = {f'<@{self.bot.user.id}>', f'<@!{self.bot.user.id}>'}
         if first_word in mentions \
@@ -127,7 +127,7 @@ class Markov(BaseCog):
 
     @commands.check(lambda ctx: len(ctx.cog.markov_channels) != 0)
     @commands.group(hidden=True, invoke_without_command=True)
-    async def markov(self, ctx, *, recipient: typing.Optional[discord.Member]):
+    async def markov(self, ctx: MyContext, *, recipient: typing.Optional[discord.Member]):
         """Generate a random word Markov chain."""
         recipient = recipient or ctx.author
         chain = self.gen_msg(len_max=250, n_attempts=10) or 'An error has occurred.'
@@ -139,7 +139,7 @@ class Markov(BaseCog):
 
     @markov.command(name='add')
     @commands.is_owner()
-    async def add_markov(self, ctx: commands.Context, ch: discord.TextChannel):
+    async def add_markov(self, ctx: MyContext, ch: discord.TextChannel):
         """Add a Markov channel by ID or mention"""
         if ch.id in self.markov_channels:
             await ctx.reply(f'Channel {ch} is already being tracked for Markov chains')
@@ -153,7 +153,7 @@ class Markov(BaseCog):
 
     @markov.command(name='delete')
     @commands.is_owner()
-    async def del_markov(self, ctx: commands.Context, ch: discord.TextChannel):
+    async def del_markov(self, ctx: MyContext, ch: discord.TextChannel):
         """Remove a Markov channel by ID or mention"""
         if ch.id in self.markov_channels:
             await ctx.reply(f'Channel {ch} will no longer be learned')
@@ -165,7 +165,7 @@ class Markov(BaseCog):
     async def on_message(self, msg: discord.Message):
         if msg.author.bot:
             return
-        ctx: commands.Context = await self.bot.get_context(msg)
+        ctx: MyContext = await self.bot.get_context(msg)
         if ctx.valid:
             return
         self.learn_markov(msg)
@@ -177,15 +177,15 @@ class Markov(BaseCog):
             await self.cog_command_error(ctx, e)
 
     @BaseCog.listener()
-    async def on_message_edit(self, old, new):
+    async def on_message_edit(self, old: discord.Message, new: discord.Message):
         # Remove old message
         self.forget_markov(old)
         self.learn_markov(new)
 
     @BaseCog.listener()
-    async def on_message_delete(self, msg):
+    async def on_message_delete(self, msg: discord.Message):
         self.forget_markov(msg)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Markov(bot))

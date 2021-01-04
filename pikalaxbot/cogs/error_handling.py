@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
-from . import BaseCog
 import sys
 import difflib
+from . import *
 
 
 class ErrorHandling(BaseCog):
@@ -12,24 +12,38 @@ class ErrorHandling(BaseCog):
     handle_excs = commands.UserInputError, commands.DisabledCommand, commands.CommandNotFound
 
     @BaseCog.listener()
-    async def on_error(self, event, *args, **kwargs):
+    async def on_error(self, event: str, *args, **kwargs):
         exc_info = sys.exc_info()
-        exc = exc_info[1]
+        exc: BaseException = exc_info[1]
         await self.bot.wait_until_ready()
         embed = None
         if event == 'on_message':
+            message: discord.Message
             message, = args
-            embed = discord.Embed()
-            embed.colour = discord.Colour.red()
-            embed.add_field(name='Author', value=message.author.mention, inline=False)
-            embed.add_field(name='Channel', value=message.channel.mention, inline=False)
-            embed.add_field(name='Invoked with', value='`'
-                            + (message.content if len(message.content) < 100 else message.content[:97] + '...')
-                            + '`', inline=False)
-            embed.add_field(name='Invoking message', value=message.jump_url, inline=False)
+            embed = discord.Embed(
+                colour=discord.Colour.red()
+            ).add_field(
+                name='Author',
+                value=message.author.mention,
+                inline=False
+            ).add_field(
+                name='Channel',
+                value=message.channel.mention,
+                inline=False
+            ).add_field(
+                name='Invoked with',
+                value='`'
+                      + (message.content if len(message.content) < 100 else message.content[:97] + '...')
+                      + '`',
+                inline=False
+            ).add_field(
+                name='Invoking message',
+                value=message.jump_url,
+                inline=False
+            )
         await self.bot.send_tb(None, exc, origin=event, embed=embed)
 
-    async def handle_command_error(self, ctx: commands.Context, exc: commands.CommandError):
+    async def handle_command_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.MissingRequiredArgument):
             msg = f'`{exc.param}` is a required argument that is missing.'
         elif isinstance(exc, commands.TooManyArguments):
@@ -58,7 +72,13 @@ class ErrorHandling(BaseCog):
                     except commands.CommandError:
                         pass
                 return res
-            matches = difflib.get_close_matches(ctx.invoked_with, await filter_commands(self.bot.walk_commands()), n=1, cutoff=0.5)
+
+            matches = difflib.get_close_matches(
+                ctx.invoked_with,
+                await filter_commands(self.bot.walk_commands()),
+                n=1,
+                cutoff=0.5
+            )
             if not matches:
                 return
             msg = f'I don\'t have a command called `{ctx.invoked_with}`. Did you mean `{matches[0]}`?'
@@ -67,7 +87,7 @@ class ErrorHandling(BaseCog):
         await ctx.reply(f'{msg} {self.bot.command_error_emoji}', delete_after=10, mention_author=False)
 
     @BaseCog.listener()
-    async def on_command_error(self, ctx, exc):
+    async def on_command_error(self, ctx: MyContext, exc: BaseException):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
 
@@ -92,5 +112,5 @@ class ErrorHandling(BaseCog):
         await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(ErrorHandling(bot))

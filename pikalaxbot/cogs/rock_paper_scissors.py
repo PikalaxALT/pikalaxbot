@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, menus
 import random
-from . import BaseCog
+from . import *
 import asyncio
 import re
 import traceback
@@ -153,7 +153,7 @@ class RockPaperScissors(BaseCog):
 
     @commands.group(aliases=['rps'])
     @commands.max_concurrency(1, commands.BucketType.channel)
-    async def rock_paper_scissors(self, ctx: commands.Context, *, opponent: discord.Member = None):
+    async def rock_paper_scissors(self, ctx: MyContext, *, opponent: discord.Member = None):
         """Play a game of Rock-Paper-Scissors with someone, or with the bot"""
         coro = self.do_rps(ctx, opponent=opponent)
         task = self.bot.loop.create_task(coro)
@@ -180,5 +180,5 @@ class RockPaperScissors(BaseCog):
             await exc_menu.start(ctx)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(RockPaperScissors(bot))

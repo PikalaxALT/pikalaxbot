@@ -1,13 +1,13 @@
 import discord
 from discord.ext import commands
-from . import BaseCog
+from . import *
 import collections
 import typing
 from .utils.errors import *
 
 
 def reaction_roles_initialized():
-    def predicate(ctx: commands.Context):
+    def predicate(ctx: MyContext):
         if ctx.guild.id not in ctx.cog.reaction_schema:
             raise NotInitialized
         return True
@@ -15,7 +15,7 @@ def reaction_roles_initialized():
 
 
 def reaction_roles_not_initialized():
-    def predicate(ctx: commands.Context):
+    def predicate(ctx: MyContext):
         if ctx.guild.id in ctx.cog.reaction_schema:
             raise AlreadyInitialized
         return True
@@ -73,7 +73,7 @@ class ReactionRoles(BaseCog):
     @reaction_roles_not_initialized()
     @commands.has_permissions(manage_roles=True)
     @commands.command(name='register')
-    async def register_role_bot(self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel]):
+    async def register_role_bot(self, ctx: MyContext, channel: typing.Optional[discord.TextChannel]):
         """Register the role reaction bot to the specified channel (default: the current channel)"""
 
         channel = channel or ctx.channel
@@ -87,7 +87,7 @@ class ReactionRoles(BaseCog):
     @reaction_roles_initialized()
     @commands.has_permissions(manage_roles=True)
     @commands.command(name='drop')
-    async def unregister_role_bot(self, ctx: commands.Context):
+    async def unregister_role_bot(self, ctx: MyContext):
         """Drops the role reaction registration in this guild"""
 
         channel_id, message_id = self.reaction_schema[ctx.guild.id]
@@ -101,7 +101,7 @@ class ReactionRoles(BaseCog):
 
     @reaction_roles_initialized()
     @commands.command(name='add-role')
-    async def add_role(self, ctx: commands.Context, emoji: typing.Union[discord.Emoji, str], *, role: discord.Role):
+    async def add_role(self, ctx: MyContext, emoji: typing.Union[discord.Emoji, str], *, role: discord.Role):
         """Register a role to an emoji in the current guild"""
 
         channel_id, message_id = self.reaction_schema[ctx.guild.id]
@@ -121,7 +121,7 @@ class ReactionRoles(BaseCog):
 
     @reaction_roles_initialized()
     @commands.command('drop-role')
-    async def drop_role(self, ctx: commands.Context, *, emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]):
+    async def drop_role(self, ctx: MyContext, *, emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]):
         """Unregister a role or emoji from the current guild"""
 
         channel_id, message_id = self.reaction_schema[ctx.guild.id]

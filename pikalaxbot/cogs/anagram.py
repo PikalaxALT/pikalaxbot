@@ -15,17 +15,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import random
-import discord
+import typing
 
 from discord.ext import commands
 
+from . import *
 from .utils.game import GameBase, GameCogBase, GameStartCommand
+if typing.TYPE_CHECKING:
+    from ..ext.pokeapi import PokeapiModels
 
 
 class AnagramGame(GameBase):
     def __init__(self, bot, attempts=3):
-        self._attempts = attempts
         super().__init__(bot)
+        self._attempts = attempts
+        self._state = ''
+        self._solution: typing.Optional['PokeapiModels.PokemonSpecies']
+        self._solution_name = ''
+        self._incorrect: list[str] = []
+        self.attempts = 0
 
     def reset(self):
         super().reset()
@@ -44,24 +52,24 @@ class AnagramGame(GameBase):
                f'Incorrect: [{self.incorrect}]\n' \
                f'Remaining: {self.attempts:d}```'
 
-    async def start(self, ctx: commands.Context):
+    async def start(self, ctx):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Anagram is already running here.',
                            delete_after=10)
         else:
             self._solution = await self.bot.pokeapi.random_pokemon()
             self._solution_name = self.bot.pokeapi.get_name(self._solution, clean=True).upper()
-            self._state = list(self._solution_name)
-            while ''.join(self._state) == self._solution_name:
-                random.shuffle(self._state)
-            self._state = ''.join(self._state)
+            _state = list(self._solution_name)
+            while ''.join(_state) == self._solution_name:
+                random.shuffle(_state)
+            self._state = ''.join(_state)
             self.attempts = self._attempts
-            self._incorrect = []
+            self._incorrect.clear()
             await ctx.send(f'Anagram has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
                            f'to guess correctly before OLDEN corrupts your save.\n')
             await super().start(ctx)
 
-    async def end(self, ctx: commands.Context, failed=False, aborted=False):
+    async def end(self, ctx, failed=False, aborted=False):
         if await super().end(ctx, failed=failed, aborted=aborted):
             await self._message.edit(content=self)
             embed = await self.get_solution_embed(failed=failed, aborted=aborted)
@@ -86,7 +94,7 @@ class AnagramGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}anagram start`.',
                            delete_after=10)
 
-    async def solve(self, ctx: commands.Context, guess):
+    async def solve(self, ctx: MyContext, guess: str):
         if self.running:
             guess = guess.upper()
             if guess in self._incorrect:
@@ -123,59 +131,59 @@ class Anagram(GameCogBase):
 
     gamecls = AnagramGame
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return self._local_check(ctx) and ctx.bot.pokeapi is not None
 
     @commands.group(case_insensitive=True, invoke_without_command=True)
-    async def anagram(self, ctx: commands.Context):
+    async def anagram(self, ctx: MyContext):
         """Play Anagram"""
         await ctx.send_help(ctx.command)
 
     @anagram.command(cls=GameStartCommand)
-    async def start(self, ctx: commands.Context):
+    async def start(self, ctx: MyContext):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
     @commands.command(name='anastart', aliases=['ast'], cls=GameStartCommand)
-    async def anagram_start(self, ctx):
+    async def anagram_start(self, ctx: MyContext):
         """Start a game in the current channel"""
         await self.start(ctx)
 
     @anagram.command()
-    async def solve(self, ctx: commands.Context, *, guess):
+    async def solve(self, ctx: MyContext, *, guess: str):
         """Make a guess, if you dare"""
         await self.game_cmd('solve', ctx, guess)
 
     @commands.command(name='anasolve', aliases=['aso'])
-    async def anagram_solve(self, ctx, *, guess):
+    async def anagram_solve(self, ctx: MyContext, *, guess: str):
         """Make a guess, if you dare"""
         await self.solve(ctx, guess=guess)
 
     @anagram.command()
     @commands.is_owner()
-    async def end(self, ctx: commands.Context):
+    async def end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='anaend', aliases=['ae'])
     @commands.is_owner()
-    async def anagram_end(self, ctx):
+    async def anagram_end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.end(ctx)
 
     @anagram.command()
-    async def show(self, ctx):
+    async def show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
 
     @commands.command(name='anashow', aliases=['ash'])
-    async def anagram_show(self, ctx):
+    async def anagram_show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.show(ctx)
 
-    async def cog_command_error(self, ctx, exc):
+    async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         await self._error(ctx, exc)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Anagram(bot))

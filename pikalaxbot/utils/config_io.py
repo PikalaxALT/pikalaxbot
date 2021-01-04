@@ -18,6 +18,7 @@ import asyncio
 import json
 import os
 import warnings
+from ..constants import *
 
 __all__ = ('Settings',)
 
@@ -44,7 +45,7 @@ _defaults = {
     'roles': {},
     'watches': {},
     'error_emoji': 'pikalaOwO',
-    'exc_channel': 657960851193724960,
+    'exc_channel': EXC_CHANNEL_ID,
     'banned_guilds': [],
     'database': {
         'username': 'root',

@@ -26,15 +26,15 @@ import argparse
 import sys
 import os
 import glob
-import traceback
+import typing
 import logging
 
-from . import PikalaxBOT, __dirname__, __version__
+from . import __dirname__, __version__
+from .bot import PikalaxBOT
+from .constants import *
 
-DPY_GUILD_ID = 336642139381301249
 
-
-async def _command_prefix(bot, message):
+async def _command_prefix(bot: PikalaxBOT, message: discord.Message) -> typing.Union[str, list[str]]:
     if message.guild is None:
         return ''
     if message.guild.id not in bot.guild_prefixes:
@@ -47,7 +47,7 @@ async def _command_prefix(bot, message):
     return ret
 
 
-def filter_extensions(bot):
+def filter_extensions(bot: PikalaxBOT) -> typing.Generator[tuple[str, str], typing.Any, None]:
     disabled_cogs = bot.settings.disabled_cogs
     if 'jishaku' not in disabled_cogs:
         yield 'jishaku', 'Jishaku'
@@ -61,7 +61,7 @@ def filter_extensions(bot):
         yield 'pikalaxbot.ext.pokeapi', 'PokeAPI'
 
 
-def init_extensions(bot):
+def init_extensions(bot: PikalaxBOT):
     # Load cogs
     bot.log_info('Loading extensions')
 

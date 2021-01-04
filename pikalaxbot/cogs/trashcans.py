@@ -18,6 +18,7 @@ import random
 
 from discord.ext import commands
 
+from . import *
 from .utils.game import GameBase, GameCogBase, GameStartCommand
 from .utils.converters import BoardCoords
 
@@ -25,6 +26,7 @@ from .utils.converters import BoardCoords
 class TrashcansGame(GameBase):
     def __init__(self, bot):
         super().__init__(bot, timeout=180)
+        self.on_second_can = False
 
     def reset(self):
         super().reset()
@@ -36,7 +38,7 @@ class TrashcansGame(GameBase):
         return board
 
     @staticmethod
-    def is_valid(x, y):
+    def is_valid(x: int, y: int):
         return 5 > x >= 0 and 3 > y >= 0
 
     def reset_locks(self):
@@ -64,7 +66,7 @@ class TrashcansGame(GameBase):
         self._state = [[False for j in range(5)] for i in range(3)]
         self.on_second_can = False
 
-    async def start(self, ctx: commands.Context):
+    async def start(self, ctx: MyContext):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Trashcans is already running here.',
                            delete_after=10)
@@ -74,7 +76,7 @@ class TrashcansGame(GameBase):
                            f'You have {self._timeout:d} seconds to find both switches.  Good luck!')
             await super().start(ctx)
 
-    async def end(self, ctx: commands.Context, failed=False, aborted=False):
+    async def end(self, ctx: MyContext, failed=False, aborted=False):
         if self.running:
             self._state = [[x for x in y] for y in self._solution]
             if self._task and not self._task.done():
@@ -96,7 +98,7 @@ class TrashcansGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}trashcans start`.',
                            delete_after=10)
 
-    async def guess(self, ctx: commands.Context, x: int, y: int):
+    async def guess(self, ctx: MyContext, x: int, y: int):
         if self.running:
             if self.on_second_can:
                 if self.state[y][x] or not self._solution[y][x]:
@@ -146,59 +148,59 @@ class Trashcans(GameCogBase):
 
     gamecls = TrashcansGame
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)
 
     @commands.group(case_insensitive=True, invoke_without_command=True)
-    async def trashcans(self, ctx):
+    async def trashcans(self, ctx: MyContext):
         """Play trashcans"""
         await ctx.send_help(ctx.command)
 
     @trashcans.command(cls=GameStartCommand)
-    async def start(self, ctx):
+    async def start(self, ctx: MyContext):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
     @commands.command(name='trashstart', aliases=['tst'], cls=GameStartCommand)
-    async def trashcans_start(self, ctx):
+    async def trashcans_start(self, ctx: MyContext):
         """Start a game in the current channel"""
         await self.start(ctx)
 
     @trashcans.command(usage='<y x|yx>')
-    async def guess(self, ctx, *, args: converter):
+    async def guess(self, ctx: MyContext, *, args: converter):
         """Make a guess, if you dare"""
         await self.game_cmd('guess', ctx, *args)
 
     @commands.command(name='trashguess', aliases=['tgu', 'tg'], usage='<y x|yx>')
-    async def trashcans_guess(self, ctx, *, args: converter):
+    async def trashcans_guess(self, ctx: MyContext, *, args: converter):
         """Make a guess, if you dare"""
         await self.guess(ctx, args=args)
 
     @trashcans.command(usage='<y x|yx>')
     @commands.is_owner()
-    async def end(self, ctx):
+    async def end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='trashend', aliases=['te'], usage='<y x|yx>')
     @commands.is_owner()
-    async def trashcans_end(self, ctx):
+    async def trashcans_end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.end(ctx)
 
     @trashcans.command()
-    async def show(self, ctx):
+    async def show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
 
     @commands.command(name='trashshow', aliases=['tsh'])
-    async def trashcans_show(self, ctx):
+    async def trashcans_show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.show(ctx)
 
-    async def cog_command_error(self, ctx, exc):
+    async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         await self._error(ctx, exc)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Trashcans(bot))

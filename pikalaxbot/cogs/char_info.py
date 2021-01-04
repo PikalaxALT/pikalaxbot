@@ -1,11 +1,9 @@
 import discord
 from discord.ext import commands, menus
-from . import BaseCog
+from . import *
 from .utils.menus import NavMenuPages
 import unicodedata
 import typing
-if typing.TYPE_CHECKING:
-    from .. import PikalaxBOT
 
 
 class CharInfoMenu(menus.ListPageSource):
@@ -37,7 +35,7 @@ class CharInfo(BaseCog):
 
     @commands.max_concurrency(1)
     @commands.command()
-    async def charinfo(self, ctx: commands.Context, *, characters: str):
+    async def charinfo(self, ctx: MyContext, *, characters: str):
         """Shows you information about a number of characters."""
 
         units = [

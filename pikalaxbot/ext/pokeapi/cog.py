@@ -12,6 +12,7 @@ from .models import PokeapiModels
 from textwrap import indent
 import traceback
 import operator
+from ...context import MyContext
 
 
 __all__ = 'PokeApiCog',
@@ -85,7 +86,7 @@ class DexsearchParseError(commands.UserInputError):
     pass
 
 
-async def dexsearch_check(ctx: commands.Context):
+async def dexsearch_check(ctx: MyContext):
     cog = ctx.bot.get_cog('Q20Game')
     if cog and cog[ctx.channel.id].running:
         raise commands.CheckFailure('Dexsearch is banned in this channel while Q20 is running')
@@ -188,7 +189,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
 
     @pokeapi.command(name='sql')
     @commands.is_owner()
-    async def execute_sql(self, ctx: commands.Context, *, query):
+    async def execute_sql(self, ctx: MyContext, *, query):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
@@ -236,7 +237,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             )
             await ctx.send(embed=embed)
 
-    async def mon_info(self, ctx: commands.Context, pokemon: PokeapiModels.PokemonSpecies):
+    async def mon_info(self, ctx: MyContext, pokemon: PokeapiModels.PokemonSpecies):
         """Gets information about a Pokémon species"""
 
         async with ctx.typing():
@@ -287,7 +288,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         )
         await ctx.send(embed=embed)
 
-    async def move_info(self, ctx: commands.Context, move: PokeapiModels.Move):
+    async def move_info(self, ctx: MyContext, move: PokeapiModels.Move):
         async with ctx.typing():
             attrs: typing.List[PokeapiModels.MoveAttribute] = await self.bot.pokeapi.get_move_attrs(move)
             flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_move_description(move)
@@ -340,7 +341,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         await ctx.send(embed=embed)
 
     @pokeapi.command(name='info')
-    async def mon_or_move_info(self, ctx: commands.Context, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+    async def mon_or_move_info(self, ctx: MyContext, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
         """Gets information about a Pokémon species or move"""
 
         if isinstance(entity, PokeapiModels.PokemonSpecies):
@@ -349,14 +350,14 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             return await self.move_info(ctx, entity)
 
     @commands.command(aliases=['dt'])
-    async def details(self, ctx: commands.Context, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+    async def details(self, ctx: MyContext, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
         """Gets information about a Pokémon species or move"""
 
         await self.mon_or_move_info(ctx, entity=entity)
 
     @mon_or_move_info.error
     @details.error
-    async def details_error(self, ctx: commands.Context, exc: commands.CommandError):
+    async def details_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.BadUnionArgument):
             await ctx.send(f'No Pokemon or move named "{exc.errors[0].args[1]}"')
         else:
@@ -691,7 +692,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 await ctx.send(page.strip().replace('\n', ', ') + (', ...' if i < len(pag.pages) - 1 else ''))
 
     @dexsearch.error
-    async def dexsearch_error(self, ctx: commands.Context, exc: commands.CommandError):
+    async def dexsearch_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
         await ctx.send(f'{exc.__class__.__name__}: {exc}', delete_after=10)
@@ -801,7 +802,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
                 await ctx.send(page.strip().replace('\n', ', ') + (', ...' if i < len(pag.pages) - 1 else ''))
 
     @movesearch.error
-    async def movesearch_error(self, ctx: commands.Context, exc: commands.CommandError):
+    async def movesearch_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
         await ctx.send(f'{exc.__class__.__name__}: {exc}', delete_after=10)

@@ -1,11 +1,11 @@
 import discord
 from discord.ext import commands
-from . import BaseCog
+from . import *
 import contextlib
 
 
 @contextlib.contextmanager
-def transform_context(ctx, user, content):
+def transform_context(ctx: MyContext, user: discord.Member, content: str):
     old_content = ctx.message.content
     old_author = ctx.author
     ctx.message.author = user
@@ -20,9 +20,9 @@ class Sudo(BaseCog):
 
     @commands.is_owner()
     @commands.command()
-    async def sudo(self, ctx, user: discord.Member, *, content):
+    async def sudo(self, ctx: MyContext, user: discord.Member, *, content: str):
         """Run as someone else"""
-        with transform_context(ctx, user, content) as message:
+        with transform_context(ctx, user, content) as message:  # type: discord.Message
             await self.bot.process_commands(message)
 
 

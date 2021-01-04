@@ -27,27 +27,29 @@ from import_expression import exec
 
 import asyncio
 import discord
+import typing
 
-from . import BaseCog
+from . import *
+from ..types import *
 
 
 class Eval(BaseCog):
     """Commands for evaluating arbitrary code. Stolen from R. Danny."""
 
-    _last_result = None
+    _last_result: typing.Any = None
 
     def __init__(self, bot):
         super().__init__(bot)
-        self._running_evals = {}
-        self._running_shells = {}
+        self._running_evals: dict[int, asyncio.Task] = {}
+        self._running_shells: dict[int, asyncio.Task] = {}
 
-    async def cog_check(self, ctx: commands.Context):
+    async def cog_check(self, ctx: MyContext):
         if not await self.bot.is_owner(ctx.author):
             raise commands.NotOwner('You do not own this bot')
         return True
 
     @staticmethod
-    def cleanup_code(content):
+    def cleanup_code(content: str):
         """Automatically removes code blocks from the code."""
         # remove ```py\n```
         if content.startswith('```') and content.endswith('```'):
@@ -56,23 +58,23 @@ class Eval(BaseCog):
         # remove `foo`
         return content.strip('` \n')
 
-    def mask_token(self, value):
+    def mask_token(self, value: str):
         return value.replace(self.bot.http.token, '{TOKEN}')
     
     @staticmethod
-    async def try_add_reaction(message, emoji):
+    async def try_add_reaction(message: discord.Message, emoji: MaybeEmoji):
         try:
             await message.add_reaction(emoji)
         except discord.HTTPException:
             pass
     
     @staticmethod
-    def format_tb(exc):
+    def format_tb(exc: typing.Optional[BaseException]):
         if exc:
             return ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__))
         return ''
 
-    async def format_embed_value(self, embed, name, content):
+    async def format_embed_value(self, embed: discord.Embed, name: str, content: str):
         if content not in {'', None}:
             content = format(content)
             content = self.mask_token(content)
@@ -85,7 +87,14 @@ class Eval(BaseCog):
                 value = f'```{content}```'
             embed.add_field(name=name, value=value)
 
-    async def send_eval_result(self, ctx, exc, title_ok, title_failed, **values):
+    async def send_eval_result(
+            self,
+            ctx: MyContext,
+            exc: BaseException,
+            title_ok: str,
+            title_failed: str,
+            **values
+    ):
         errored = exc is not None
         title = title_failed if errored else title_ok
         color = discord.Color.red() if errored else discord.Color.green()
@@ -95,11 +104,12 @@ class Eval(BaseCog):
         await self.try_add_reaction(ctx.message, '❌' if errored else '✅')
         await ctx.send(embed=embed, files=files)
 
+    @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.group(name='eval', invoke_without_command=True)
-    async def eval_cmd(self, ctx, *, body):
+    async def eval_cmd(self, ctx: MyContext, *, body: str):
         """Evaluates a code"""
 
-        env = {
+        env: dict[str, typing.Any] = {
             'bot': self.bot,
             'ctx': ctx,
             'channel': ctx.channel,
@@ -120,9 +130,9 @@ class Eval(BaseCog):
         except Exception as e:
             return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
-        func = env['func']
-        exc = None
-        ret = None
+        func: typing.Callable[..., typing.Coroutine] = env['func']
+        exc: typing.Optional[BaseException] = None
+        ret: typing.Any = None
         async with ctx.typing():
             try:
                 with redirect_stdout(stdout):
@@ -133,7 +143,7 @@ class Eval(BaseCog):
             except Exception as e:
                 exc = e
             finally:
-                self._running_evals.pop(ctx.channel.id, None)
+                _ = self._running_evals.pop(ctx.channel.id, None)
         await self.send_eval_result(
             ctx,
             exc,
@@ -156,8 +166,9 @@ class Eval(BaseCog):
         else:
             fut.cancel()
 
+    @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.group(name='shell', invoke_without_command=True)
-    async def shell_cmd(self, ctx, *, body):
+    async def shell_cmd(self, ctx: MyContext, *, body: str):
         """Evaluates a shell script"""
 
         body = self.cleanup_code(body)
@@ -165,7 +176,7 @@ class Eval(BaseCog):
         stderr = b''
 
         process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
-        exc = None
+        exc: typing.Optional[BaseException] = None
         async with ctx.typing():
             try:
                 fut = process.communicate()
@@ -175,7 +186,7 @@ class Eval(BaseCog):
             except Exception as e:
                 exc = e
             finally:
-                self._running_shells.pop(ctx.channel.id, None)
+                _ = self._running_shells.pop(ctx.channel.id, None)
 
             if process.returncode is not None:
                 exc_title = 'An exception has occurred'
@@ -194,7 +205,7 @@ class Eval(BaseCog):
             )
 
     @shell_cmd.command(name='cancel')
-    async def shell_cancel(self, ctx):
+    async def shell_cancel(self, ctx: MyContext):
         """Cancel the current running shell process"""
 
         fut = self._running_shells.get(ctx.channel.id)
@@ -204,5 +215,5 @@ class Eval(BaseCog):
             fut.cancel()
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(Eval(bot))

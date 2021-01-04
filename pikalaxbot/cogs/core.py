@@ -29,16 +29,50 @@ import time
 import glob
 import collections
 import asyncio
+import asyncpg
 from jishaku.meta import __version__ as jsk_ver
 
-from . import BaseCog
+from . import *
 from .. import __dirname__, __version__
 from .utils.errors import *
 from .utils.converters import CommandConverter
-from .utils.game import GameCogBase, GameStartCommand
+from .utils.game import GameCogBase
 
-if typing.TYPE_CHECKING:
-    from .. import MyContext
+
+GuildChannel = typing.Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel]
+
+
+class ConfirmationMenu(menus.Menu):
+    def __init__(self, mode, **kwargs):
+        super().__init__(**kwargs)
+        self.mode = mode
+        self.reaction = None
+
+    async def send_initial_message(self, ctx: MyContext, channel):
+        content = 'The bot will shutdown and apply updates. Okay to proceed?' \
+            if self.mode \
+            else 'The bot will shutdown and must be manually restarted. Okay to proceed?'
+        return await ctx.reply(content)
+
+    @menus.button('\N{CROSS MARK}')
+    async def abort(self, payload: discord.RawReactionActionEvent):
+        await self.message.edit(content='Reboot cancelled', delete_after=10)
+        self.stop()
+
+    @menus.button('\N{WHITE HEAVY CHECK MARK}')
+    async def confirm(self, payload: discord.RawReactionActionEvent):
+        self.bot.reboot_after = self.mode
+        await self.message.edit(content='Rebooting to apply updates' if self.mode else 'Shutting down')
+
+        async def do_logout():
+            await asyncio.sleep(3)
+            await self.bot.logout()
+
+        self.bot.loop.create_task(do_logout())
+
+    async def finalize(self, timed_out):
+        if timed_out:
+            await self.message.edit(content='Request timed out', delete_after=10)
 
 
 class Core(BaseCog):
@@ -60,8 +94,8 @@ class Core(BaseCog):
         await sql.execute('create unique index if not exists guild_command_idx on commandstats(command, guild)')
 
     @BaseCog.listener()
-    async def on_command_completion(self, ctx):
-        async with self.bot.sql as sql:
+    async def on_command_completion(self, ctx: MyContext):
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
             await sql.execute(
                 'insert into commandstats '
                 'values ($1, $2, 1) '
@@ -72,11 +106,17 @@ class Core(BaseCog):
                 ctx.guild.id
             )
 
-    async def get_runnable_commands(self, ctx):
+    async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
-        lost_cmds = []
-        async with self.bot.sql as sql:
-            for name, uses in await sql.fetch('select command, uses from commandstats where guild = $1 order by uses desc', ctx.guild.id):
+        lost_cmds: list[tuple[str]] = []
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            async for name, uses in sql.cursor(
+                    'select command, uses '
+                    'from commandstats '
+                    'where guild = $1 '
+                    'order by uses desc',
+                    ctx.guild.id
+            ):
                 cmd: commands.Command = self.bot.get_command(name)
                 if cmd is None:
                     lost_cmds.append((name,))
@@ -101,7 +141,7 @@ class Core(BaseCog):
         api_ping = b - a
         cmds = await self.get_runnable_commands(ctx)
         # Get source lines
-        ctr = collections.Counter()
+        ctr: collections.Counter[str] = collections.Counter()
         for ctr['file'], f in enumerate(glob.glob(f'{__dirname__}/**/*.py', recursive=True)):
             with open(f, encoding='utf-8') as fp:
                 for ctr['line'], line in enumerate(fp, ctr['line']):
@@ -112,6 +152,7 @@ class Core(BaseCog):
                     ctr['comment'] += '#' in line
         n_total_cmds = len(self.bot.commands)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
+        prefix: str
         prefix, *_ = await self.bot.get_prefix(ctx.message)
         embed = discord.Embed(
             title=f'{self.bot.user.name} Stats',
@@ -136,7 +177,7 @@ class Core(BaseCog):
         )
         await ctx.send(embed=embed)
 
-    async def bot_check(self, ctx: commands.Context):
+    async def bot_check(self, ctx: MyContext):
         if not self.bot.is_ready():
             raise NotReady('The bot is not ready to process commands')
         if not ctx.channel.permissions_for(ctx.me).send_messages:
@@ -151,41 +192,11 @@ class Core(BaseCog):
     @flags.command(aliases=['reboot', 'restart', 'shutdown'])
     @commands.is_owner()
     @commands.max_concurrency(1)
-    async def kill(self, ctx: commands.Context, **flags):
+    async def kill(self, ctx: MyContext, **_flags):
         """Shut down the bot (owner only, manual restart required)"""
 
-        class ConfirmationMenu(menus.Menu):
-            def __init__(self, mode, **kwargs):
-                super().__init__(**kwargs)
-                self.mode = mode
-                self.reaction = None
-
-            async def send_initial_message(self, ctx, channel):
-                content = 'The bot will shutdown and apply updates. Okay to proceed?' if self.mode else 'The bot will shutdown and must be manually restarted. Okay to proceed?'
-                return await ctx.reply(content)
-
-            @menus.button('\N{CROSS MARK}')
-            async def abort(self, payload):
-                await self.message.edit(content='Reboot cancelled', delete_after=10)
-                self.stop()
-
-            @menus.button('\N{WHITE HEAVY CHECK MARK}')
-            async def confirm(self, payload):
-                self.bot.reboot_after = self.mode
-                await self.message.edit(content='Rebooting to apply updates' if self.mode else 'Shutting down')
-
-                async def do_logout():
-                    await asyncio.sleep(3)
-                    await self.bot.logout()
-
-                self.bot.loop.create_task(do_logout())
-
-            async def finalize(self, timed_out):
-                if timed_out:
-                    await self.message.edit(content='Request timed out', delete_after=10)
-
         menu = ConfirmationMenu(ctx.invoked_with in {'reboot', 'restart'}, timeout=60.0, clear_reactions_after=True)
-        if flags.get('yes'):
+        if _flags.get('yes'):
             await ctx.send('Rebooting to apply updates' if menu.mode else 'Shutting down')
             await self.bot.logout()
         else:
@@ -193,7 +204,7 @@ class Core(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def ignore(self, ctx, person: discord.Member):
+    async def ignore(self, ctx: MyContext, person: discord.Member):
         """Ban a member from using the bot :datsheffy:"""
 
         if person == self.bot.user or await self.bot.is_owner(person):
@@ -203,14 +214,14 @@ class Core(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def unignore(self, ctx, person: discord.Member):
+    async def unignore(self, ctx: MyContext, person: discord.Member):
         """Unban a member from using the bot"""
 
         self.banlist.discard(person.id)
         await ctx.send(f'{person.display_name} is no longer banned from interacting with me.')
 
     @commands.command()
-    async def about(self, ctx):
+    async def about(self, ctx: MyContext):
         """Shows info about the bot in the current context"""
 
         await self.bot.is_owner(discord.Object(id=0))  # for owner_id
@@ -261,7 +272,7 @@ class Core(BaseCog):
         await ctx.send(embed=e)
 
     @commands.command(aliases=['src'])
-    async def source(self, ctx, *, command: typing.Optional[CommandConverter]):
+    async def source(self, ctx: MyContext, *, command: typing.Optional[CommandConverter]):
         """Links the source of the command. If command source cannot be retrieved,
         links the root of the bot's source tree."""
 
@@ -294,21 +305,21 @@ class Core(BaseCog):
         self.bot._alive_since = self.bot._alive_since or datetime.datetime.utcnow()
 
     @commands.command()
-    async def uptime(self, ctx):
+    async def uptime(self, ctx: MyContext):
         """Print the amount of time since the bot's last reboot"""
 
         date = naturaltime(self.bot._alive_since + self.LOCAL_TZ.utcoffset(None))
         await ctx.send(f'Bot last rebooted {date}')
 
     @commands.command(name='list-cogs', aliases=['cog-list', 'ls-cogs'])
-    async def list_cogs(self, ctx):
+    async def list_cogs(self, ctx: MyContext):
         """Print the names of all loaded Cogs"""
 
         await ctx.send('```\n' + '\n'.join(self.bot.cogs) + '\n```')
 
     if resource:
         @commands.command()
-        async def memory(self, ctx):
+        async def memory(self, ctx: MyContext):
             """Show the bot's current memory usage"""
 
             rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -316,13 +327,13 @@ class Core(BaseCog):
                 (1 << 30, 'TiB'),
                 (1 << 20, 'GiB'),
                 (1 << 10, 'MiB'),
-                (1 <<  0, 'KiB'),
+                (1 << 0,  'KiB'),
             ]
             size, unit = discord.utils.find(lambda c: rss >= size[0], units)
             await ctx.send(f'Total resources used: {rss / size:.3f} {unit}')
 
     @commands.command()
-    async def userinfo(self, ctx, *, target: typing.Union[discord.Member, discord.User] = None):
+    async def userinfo(self, ctx: MyContext, *, target: typing.Union[discord.Member, discord.User] = None):
         """Show information about the given user"""
 
         def format_datetime(dt):
@@ -379,7 +390,7 @@ class Core(BaseCog):
             await self.bot.http.delete_message(payload.channel_id, payload.message_id)
 
     @commands.Cog.listener()
-    async def on_member_update(self, before, after):
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
         if not await self.bot.is_owner(before):
             return
         before_roles = set(before.roles)
@@ -399,12 +410,19 @@ class Core(BaseCog):
 
     @commands.guild_only()
     @commands.command(aliases=['guildinfo'])
-    async def serverinfo(self, ctx: commands.Context):
+    async def serverinfo(self, ctx: MyContext):
         """Shows information about the current server"""
 
         guild: discord.Guild = ctx.guild
         emojis = ''.join([str(e) for e in guild.emojis if e.is_usable()][:10])
-        status_icons = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status if stat is not discord.Status.invisible}
+        status_icons = {
+            stat: discord.utils.get(
+                ctx.bot.emojis,
+                name=f'status_{stat}'
+            )
+            for stat in discord.Status
+            if stat is not discord.Status.invisible
+        }
         member_statuses = collections.Counter(m.status for m in guild.members)
         nbots = sum(1 for m in guild.members if m.bot)
         status_string = ' '.join(f'{icon} {member_statuses[stat]}' for stat, icon in status_icons.items())
@@ -438,8 +456,22 @@ class Core(BaseCog):
         await ctx.send(embed=embed)
 
     @staticmethod
-    async def send_perms(ctx, member, where, perms):
-        voice_perms = {'priority_speaker', 'stream', 'connect', 'speak', 'mute_members', 'deafen_members', 'move_members', 'use_voice_activation'}
+    async def send_perms(
+            ctx: MyContext,
+            member: discord.Member,
+            where: typing.Union[GuildChannel, discord.Guild],
+            perms: discord.Permissions
+    ):
+        voice_perms = frozenset((
+            'priority_speaker',
+            'stream',
+            'connect',
+            'speak',
+            'mute_members',
+            'deafen_members',
+            'move_members',
+            'use_voice_activation'
+        ))
         paginator = commands.Paginator('', '', 1024)
         emojis = ('\N{CROSS MARK}', '\N{WHITE HEAVY CHECK MARK}')
         i = 0
@@ -459,25 +491,33 @@ class Core(BaseCog):
         await ctx.send(embed=embed)
 
     @commands.group(aliases=['perms'], invoke_without_command=True)
-    async def permissions(self, ctx, channel: typing.Optional[typing.Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel]], *, member: discord.Member = None):
+    async def permissions(
+            self,
+            ctx: MyContext,
+            channel: typing.Optional[GuildChannel],
+            *,
+            member: discord.Member = None
+    ):
         """Print the member's permissions in a channel"""
         member = member or ctx.author
         channel = channel or ctx.channel
         await Core.send_perms(ctx, member, channel, member.permissions_in(channel))
 
     @permissions.command(name='guild')
-    async def guild_permissions(self, ctx, *, member: discord.Member = None):
+    async def guild_permissions(self, ctx: MyContext, *, member: discord.Member = None):
         """Print the member's permissions in the guild"""
         member = member or ctx.author
         await Core.send_perms(ctx, member, ctx.guild, member.guild_permissions)
 
     @commands.command()
-    async def credits(self, ctx: commands.Context):
+    async def credits(self, ctx: MyContext):
         """Credit where credit is due"""
 
         embed = discord.Embed(
             title='Credits',
-            description='I was mostly written by PikalaxALT#5823, but some extensions contain code written by other beautiful people.',
+            description='I was mostly written by PikalaxALT#5823, '
+                        'but some extensions contain code '
+                        'written by other beautiful people.',
             colour=0xF47FFF
         ).add_field(
             name='Q20Game',
@@ -494,15 +534,23 @@ class Core(BaseCog):
         )
         await ctx.send(embed=embed)
 
-    async def delete_response(self, ctx, history):
+    async def delete_response(self, ctx: MyContext, history: set[int]):
         # Try bulk delete first
         try:
-            await self.bot.http.delete_messages(ctx.channel.id, list(history), reason='Message edited to delete prior response')
+            await self.bot.http.delete_messages(
+                ctx.channel.id,
+                list(history),
+                reason='Message edited to delete prior response'
+            )
         except discord.HTTPException:
             # Bulk delete failed for some reason, so try deleting them one by one
             for msg_id in history:
                 try:
-                    await self.bot.http.delete_message(ctx.channel.id, msg_id, reason='Message edited to delete prior response')
+                    await self.bot.http.delete_message(
+                        ctx.channel.id,
+                        msg_id,
+                        reason='Message edited to delete prior response'
+                    )
                 except discord.HTTPException:
                     pass
 
@@ -522,5 +570,5 @@ class Core(BaseCog):
             await self.bot.process_commands(after)
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(Core(bot))

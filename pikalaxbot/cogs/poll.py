@@ -17,7 +17,7 @@
 import asyncio
 import discord
 from discord.ext import commands, tasks
-from . import BaseCog
+from . import *
 import datetime
 import typing
 import base64
@@ -265,7 +265,7 @@ class Poll(BaseCog):
             await self.bot.send_tb(None, e, origin='Poll.cache_polls')
 
     @commands.group(name='poll', invoke_without_command=True)
-    async def poll_cmd(self, ctx: commands.Context, timeout: typing.Optional[PollTime], prompt, *opts):
+    async def poll_cmd(self, ctx: MyContext, timeout: typing.Optional[PollTime], prompt, *opts):
         """Create a poll with up to 10 options.  Poll will last for 60.0 seconds (or as specified),
         with sudden death tiebreakers as needed.  Use quotes to enclose multi-word
 duration, prompt, and options."""
@@ -293,7 +293,7 @@ duration, prompt, and options."""
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @poll_cmd.command(name='new')
-    async def interactive_poll_maker(self, ctx: commands.Context, timeout: PollTime = TIMEOUT):
+    async def interactive_poll_maker(self, ctx: MyContext, timeout: PollTime = TIMEOUT):
         """Create a poll interactively"""
 
         embed = discord.Embed(
@@ -372,7 +372,7 @@ duration, prompt, and options."""
             await self.bot.send_tb(ctx, error, origin='poll new')
 
     @poll_cmd.command()
-    async def cancel(self, ctx: commands.Context, mgr: PollManager):
+    async def cancel(self, ctx: MyContext, mgr: PollManager):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
 
@@ -381,7 +381,7 @@ duration, prompt, and options."""
         mgr.cancel()
 
     @poll_cmd.command()
-    async def show(self, ctx: commands.Context, mgr: PollManager):
+    async def show(self, ctx: MyContext, mgr: PollManager):
         """Gets poll info using a code."""
 
         if mgr.message is not None:
@@ -395,12 +395,12 @@ duration, prompt, and options."""
     
     @show.error
     @cancel.error
-    async def poll_access_error(self, ctx: commands.Context, exc: Exception):
+    async def poll_access_error(self, ctx: MyContext, exc: Exception):
         exc = getattr(exc, 'original', exc)
         await ctx.send(f'`{ctx.prefix}{ctx.invoked_with}` raised a(n) {exc.__class__.__name__}: {exc}')
 
     @poll_cmd.command()
-    async def list(self, ctx: commands.Context):
+    async def list(self, ctx: MyContext):
         """Lists all polls"""
 
         s = '\n'.join(str(poll) for poll in self.polls if not poll.task.done())

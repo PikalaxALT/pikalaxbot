@@ -1,10 +1,10 @@
-import discord
 from discord.ext import commands
 import re
 from .errors import BadGameArgument
 from dateutil.relativedelta import relativedelta
 import datetime
 import parsedatetime as pdt
+from .. import *
 
 
 __all__ = (
@@ -16,13 +16,15 @@ __all__ = (
     'ShortTime',
     'HumanTime',
     'Time',
-    'FutureTime'
+    'FutureTime',
+    'PastTime',
+    'ShortPastTime'
 )
 
 
 class CommandConverter(commands.Command):
     @classmethod
-    async def convert(cls, ctx: commands.Context, argument):
+    async def convert(cls, ctx: MyContext, argument: str):
         cmd = ctx.bot.get_command(argument)
         if cmd is None:
             raise commands.CommandNotFound(argument)
@@ -33,7 +35,7 @@ class DiceRollConverter(tuple[int, int]):
     _pattern = re.compile(r'(?P<count>\d+)?(d(?P<sides>\d+))?')
 
     @classmethod
-    async def convert(cls, ctx, argument):
+    async def convert(cls, ctx: MyContext, argument: str):
         match = cls._pattern.match(argument)
         if match is None:
             raise ValueError
@@ -44,7 +46,7 @@ class DiceRollConverter(tuple[int, int]):
 
 
 class AliasedRoleConverter(commands.RoleConverter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: MyContext, argument: str):
         role_id = ctx.cog.roles.get(str(ctx.guild.id), {}).get(argument.lower())
         if role_id is None:
             raise commands.BadArgument(f'No alias "{argument}" has been registered to a role')
@@ -54,7 +56,7 @@ class AliasedRoleConverter(commands.RoleConverter):
 def BoardCoords(minx=1, maxx=5, miny=1, maxy=5):
     class RealConverter(tuple[int, int]):
         @classmethod
-        async def convert(cls, ctx, argument):
+        async def convert(cls, ctx: MyContext, argument: str):
             if isinstance(argument, tuple):
                 return argument
             try:
@@ -75,7 +77,7 @@ def BoardCoords(minx=1, maxx=5, miny=1, maxy=5):
 def EspeakParamsConverter(**valid_keys):
     class RealConverter(tuple[str, str]):
         @classmethod
-        async def convert(cls, ctx, argument):
+        async def convert(cls, ctx: MyContext, argument: str):
             if isinstance(argument, str):
                 # Convert from a string
                 key, value = argument.split('=')
@@ -99,7 +101,7 @@ class ShortTime:
                              (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
                           """, re.VERBOSE)
 
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         match = self.compiled.fullmatch(argument)
         if match is None or not match.group(0):
             raise commands.BadArgument('invalid time provided')
@@ -109,14 +111,14 @@ class ShortTime:
         self.dt = now + relativedelta(**data)
 
     @classmethod
-    async def convert(cls, ctx, argument):
+    async def convert(cls, ctx: MyContext, argument: str):
         return cls(argument, now=ctx.message.created_at)
 
 
 class HumanTime:
     calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         now = now or datetime.datetime.utcnow()
         dt, status = self.calendar.parseDT(argument, sourceTime=now)
         if not status.hasDateOrTime:
@@ -130,12 +132,12 @@ class HumanTime:
         self._past = dt < now
 
     @classmethod
-    async def convert(cls, ctx, argument):
+    async def convert(cls, ctx: MyContext, argument: str):
         return cls(argument, now=ctx.message.created_at)
 
 
 class Time(HumanTime):
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         try:
             o = ShortTime(argument, now=now)
         except Exception as e:
@@ -146,7 +148,7 @@ class Time(HumanTime):
 
 
 class FutureTime(Time):
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         super().__init__(argument, now=now)
 
         if self._past:
@@ -154,7 +156,7 @@ class FutureTime(Time):
 
 
 class ShortPastTime(ShortTime):
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         match = self.compiled.fullmatch(argument)
         if match is None or not match.group(0):
             raise commands.BadArgument('invalid time provided')
@@ -165,7 +167,7 @@ class ShortPastTime(ShortTime):
 
 
 class PastTime(HumanTime):
-    def __init__(self, argument, *, now=None):
+    def __init__(self, argument: str, *, now=None):
         try:
             o = ShortPastTime(argument, now=now)
         except Exception as e:

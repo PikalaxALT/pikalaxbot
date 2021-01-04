@@ -18,7 +18,7 @@ import asyncio
 import discord
 import ctypes.util
 from discord.ext import commands
-from . import BaseCog
+from . import *
 import subprocess
 import os
 import time
@@ -155,7 +155,7 @@ class Voice(BaseCog):
         return discord.opus.is_loaded()
 
     @commands.group(name='voice')
-    async def pikavoice(self, ctx: commands.Context):
+    async def pikavoice(self, ctx: MyContext):
         """Commands for interacting with the bot in voice channels"""
         if ctx.invoked_subcommand is None:
             raise commands.CommandInvokeError('Invalid subcommand')
@@ -163,7 +163,7 @@ class Voice(BaseCog):
     @commands.check(voice_cmd_ensure_connected)
     @commands.check(voice_client_not_playing)
     @pikavoice.command()
-    async def say(self, ctx: commands.Context, *, msg: cleaner_content(fix_channel_mentions=True,
+    async def say(self, ctx: MyContext, *, msg: cleaner_content(fix_channel_mentions=True,
                                                                        escape_markdown=False)):
         """Use eSpeak to say the message aloud in the voice channel."""
         msg = f'{ctx.author.display_name} says: {msg}'
@@ -187,7 +187,7 @@ class Voice(BaseCog):
 
     @commands.check(voice_cmd_ensure_connected)
     @pikavoice.command()
-    async def stop(self, ctx: commands.Context):
+    async def stop(self, ctx: MyContext):
         """Stop all playing audio"""
         vclient: discord.VoiceClient = ctx.voice_client
         if vclient.is_playing():
@@ -228,7 +228,7 @@ class Voice(BaseCog):
 
     @params.error
     @pikaparams.error
-    async def pikaparams_error(self, ctx: commands.Context, exc: BaseException):
+    async def pikaparams_error(self, ctx: MyContext, exc: BaseException):
         if isinstance(exc, commands.BadArgument):
             view = ctx.view
             view.index = 0
@@ -247,7 +247,7 @@ class Voice(BaseCog):
 
     @say.before_invoke
     @pikasay.before_invoke
-    async def voice_cmd_cancel_timeout(self, ctx: commands.Context):
+    async def voice_cmd_cancel_timeout(self, ctx: MyContext):
         task = self.timeout_tasks.get(ctx.guild.id)
         if task is not None:
             task.cancel()

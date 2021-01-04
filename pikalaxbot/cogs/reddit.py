@@ -2,29 +2,30 @@ import aiohttp
 import platform
 import datetime
 import traceback
+import typing
 
 import discord
 from discord.ext import commands, menus
 
-from . import BaseCog
+from . import *
 
 from .. import __version__
 
 
 class NoPostsFound(commands.CommandError):
-    def __init__(self, subreddit, message=None, *args):
+    def __init__(self, subreddit: str, message=None, *args):
         super().__init__(message=message, *args)
         self.subreddit = subreddit
 
 
 class SubredditNotFound(commands.CommandError):
-    def __init__(self, subreddit, message=None, *args):
+    def __init__(self, subreddit: str, message=None, *args):
         super().__init__(message=message, *args)
         self.subreddit = subreddit
 
 
 class RedditErrorPageSource(menus.ListPageSource):
-    def __init__(self, ctx, error):
+    def __init__(self, ctx: commands.Context, error: BaseException):
         paginator = commands.Paginator()
         paginator.add_line(f'command {ctx.command}')
         for line in traceback.format_exception(error.__class__, error, error.__traceback__):
@@ -38,7 +39,7 @@ class RedditErrorPageSource(menus.ListPageSource):
         self.embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm",
                              inline=False)
 
-    def format_page(self, menu, page):
+    def format_page(self, menu: menus.MenuPages, page: str):
         return {'content': page, 'embed': self.embed}
 
 
@@ -47,31 +48,31 @@ class Reddit(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.session: aiohttp.ClientSession = bot.client_session
+        self.session = bot.client_session
 
     @discord.utils.cached_property
     def headers(self):
         return {'user-agent': f'{platform.platform()}:{self.bot.user.name}:{__version__} (by /u/pikalaxalt)'}
 
-    async def get_reddit(self, endpoint):
+    async def get_reddit(self, endpoint: str) -> dict:
         async with self.session.get(f'https://reddit.com/{endpoint}', headers=self.headers, raise_for_status=True) as r:
             resp = await r.json()
         return resp
 
-    async def fetch_subreddit_info(self, subreddit):
+    async def fetch_subreddit_info(self, subreddit: str) -> dict[str, typing.Any]:
         resp = await self.get_reddit(f'r/{subreddit}/about.json')
         return resp['data']
 
-    async def fetch_random_reddit_post(self, subreddit):
+    async def fetch_random_reddit_post(self, subreddit: str) -> dict[str, typing.Any]:
         resp = await self.get_reddit(f'r/{subreddit}/random.json')
         if isinstance(resp, dict):
             raise SubredditNotFound(subreddit)
         return resp[0]['data']['children'][0]['data']
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return ctx.guild.id not in self.bot.settings.banned_guilds
 
-    async def get_subreddit_embed(self, ctx, subreddit):
+    async def get_subreddit_embed(self, ctx: MyContext, subreddit: str):
         min_creation = ctx.message.created_at - datetime.timedelta(hours=3)
 
         subinfo = await self.fetch_subreddit_info(subreddit)
@@ -111,18 +112,18 @@ class Reddit(BaseCog):
         return embed
 
     @commands.command(name='reddit', aliases=['sub'])
-    async def get_subreddit(self, ctx, subreddit):
+    async def get_subreddit(self, ctx: MyContext, subreddit: str):
         """Randomly fetch an image post from the given subreddit."""
         async with ctx.typing():
             embed = await self.get_subreddit_embed(ctx, subreddit)
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def beans(self, ctx):
+    async def beans(self, ctx: MyContext):
         """Gimme my beans reeeeeeeeeeeeee"""
         await self.get_subreddit(ctx, 'beans')
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         error = getattr(error, 'original', error)
         if isinstance(error, aiohttp.ClientResponseError):
             await ctx.send(f'An unhandled HTTP exception occurred: {error.status}: {error.message}')
@@ -141,5 +142,5 @@ class Reddit(BaseCog):
             await menu.start(ctx, channel=self.bot.exc_channel)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Reddit(bot))

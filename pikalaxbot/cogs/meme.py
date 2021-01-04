@@ -27,15 +27,14 @@ import operator
 import discord
 from discord.ext import commands, tasks, menus
 
-from . import BaseCog
+from . import *
 from .utils.menus import NavMenuPages
-
-DPY_GUILD_ID = 336642139381301249
-MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
+from ..types import *
+from ..constants import *
 
 
 class HMM:
-    def __init__(self, transition, emission):
+    def __init__(self, transition: list[list[int]], emission: str):
         self.transition = transition
         self.emission = emission
         self.state = 0
@@ -49,7 +48,7 @@ class HMM:
         self.state, = random.choices(range(self.n_states), weights=self.transition[self.state])
         return res
 
-    def get_chain(self, length, start=0, end=-1):
+    def get_chain(self, length: int, start=0, end=-1):
         self.state = start
         for i in range(length):
             yield self.emit()
@@ -82,7 +81,7 @@ class Meme(BaseCog):
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command(ignore_extra=False)
-    async def archeops(self, ctx, subj1: MaybePartialEmoji = '', subj2: MaybePartialEmoji = ''):
+    async def archeops(self, ctx: MyContext, subj1: MaybePartialEmoji = '', subj2: MaybePartialEmoji = ''):
         """Generates a random paragraph using <arg1> and <arg2> as subject keywords, using the WatchOut4Snakes frontend.
         """
 
@@ -92,7 +91,11 @@ class Meme(BaseCog):
         timeout = aiohttp.ClientTimeout(total=15.0)
         params = {'Subject1': true_subj1, 'Subject2': true_subj2}
         async with ctx.typing():
-            async with self.bot.client_session.post('http://www.watchout4snakes.com/Random/RandomParagraph', data=params, timeout=timeout) as r:
+            async with self.bot.client_session.post(
+                    'http://www.watchout4snakes.com/Random/RandomParagraph',
+                    data=params,
+                    timeout=timeout
+            ) as r:
                 res = await r.text()
         if not isinstance(subj1, str):
             res = res.replace(true_subj1, str(subj1))
@@ -101,7 +104,7 @@ class Meme(BaseCog):
         await ctx.send(res)
 
     @commands.command()
-    async def riot(self, ctx, *, reason=''):
+    async def riot(self, ctx: MyContext, *, reason=''):
         """Riots (for some reason)"""
 
         if reason:
@@ -120,7 +123,7 @@ class Meme(BaseCog):
 
     @commands.check(lambda ctx: ctx.bot.pokeapi is not None)
     @commands.command()
-    async def yolonome(self, ctx):
+    async def yolonome(self, ctx: MyContext):
         """Happy birthday, Waggle!"""
 
         move_name = await self.bot.pokeapi.random_move_name()
@@ -128,14 +131,14 @@ class Meme(BaseCog):
                        f'Waggling a finger allowed it to use {move_name}!')
 
     @commands.command()
-    async def olden(self, ctx):
+    async def olden(self, ctx: MyContext):
         """Time to corrupt your save file >:D"""
 
         await ctx.send('https://vignette.wikia.nocookie.net/twitchplayspokemoncrystal/images/5/5f/'
                        'Serious_%22OLDEN%22_Times.png/revision/latest?cb=20160820193335')
 
     @commands.command()
-    async def honk(self, ctx):
+    async def honk(self, ctx: MyContext):
         """HONK"""
 
         emoji = discord.utils.get(self.bot.emojis, name='HONK')
@@ -143,14 +146,14 @@ class Meme(BaseCog):
 
     @commands.guild_only()
     @commands.command()
-    async def someone(self, ctx):
+    async def someone(self, ctx: MyContext):
         """\"Pings\" someone"""
 
         await ctx.send(random.choice(ctx.guild.members).mention, allowed_mentions=discord.AllowedMentions.none())
 
     @commands.check(lambda ctx: ctx.guild.id == DPY_GUILD_ID)
     @commands.command(aliases=['pp', 'peepee'])
-    async def dick(self, ctx, *, target: typing.Union[discord.Member, discord.Role] = None):
+    async def dick(self, ctx: MyContext, *, target: typing.Union[discord.Member, discord.Role] = None):
         """Get the size of your dick"""
 
         target = target or ctx.author
@@ -163,7 +166,7 @@ class Meme(BaseCog):
         await ctx.send(f'{mention}\'s {collective}dick: 8{shaft}D', allowed_mentions=discord.AllowedMentions.none())
 
     @commands.command()
-    async def ascii(self, ctx, *, message):
+    async def ascii(self, ctx: MyContext, *, message: str):
         """Prints the message in huge ugly block letters"""
 
         paginator = commands.Paginator()
@@ -175,15 +178,19 @@ class Meme(BaseCog):
                 paginator.close_page()
 
         class SimplePageSource(menus.ListPageSource):
-            def format_page(self, menu: NavMenuPages, page):
-                return f'{page}\n\nPage {menu.current_page + 1} of {self.get_max_pages()}'
+            def format_page(self, menu_: NavMenuPages, page):
+                return f'{page}\n\nPage {menu_.current_page + 1} of {self.get_max_pages()}'
 
-        menu = NavMenuPages(SimplePageSource(paginator.pages, per_page=1), delete_message_after=True, clear_reactions_after=True)
+        menu = NavMenuPages(
+            SimplePageSource(paginator.pages, per_page=1),
+            delete_message_after=True,
+            clear_reactions_after=True
+        )
         await menu.start(ctx)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.command(aliases=['cookie', 'c'])
-    async def cookies(self, ctx: commands.Context):
+    async def cookies(self, ctx: MyContext):
         """Reaction time game! Click the cookie as fast as you can!"""
 
         emoji, = random.choices(['🥠', '🍪'], k=1, weights=[0.05, 0.95])
@@ -194,7 +201,7 @@ class Meme(BaseCog):
         msg = await ctx.send(embed=embed)
 
         @self.bot.listen()
-        async def on_reaction_add(reaction, user):
+        async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
             if reaction.message == msg and user != self.bot.user:
                 try:
                     await reaction.clear()
@@ -219,7 +226,14 @@ class Meme(BaseCog):
         self.bot.loop.create_task(msg.add_reaction(emoji))
         start = time.perf_counter()
         try:
-            rxn, usr = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message == msg and str(r) == emoji and u != self.bot.user, timeout=10.0)
+            rxn, usr = await self.bot.wait_for(
+                'reaction_add',
+                check=lambda r, u:
+                    r.message == msg
+                    and str(r) == emoji
+                    and u != self.bot.user,
+                timeout=10.0
+            )  # type: discord.Reaction, discord.User
         except asyncio.TimeoutError:
             embed.description = 'No one claimed the cookie...'
         else:
@@ -244,10 +258,17 @@ class Meme(BaseCog):
         """Reports the top 10 gay people"""
 
         async with ctx.typing():
-            members = sorted([(member, self._calc_gayness(member)) for member in ctx.guild.members if not member.bot], key=operator.itemgetter(1), reverse=True)[:10]
+            members = sorted(
+                [(member, self._calc_gayness(member)) for member in ctx.guild.members if not member.bot],
+                key=operator.itemgetter(1),
+                reverse=True
+            )[:10]
         embed = discord.Embed(
             title=f'Top {min(len(members), 10)} gayest members of {ctx.guild}',
-            description='\n'.join(f'**#{i}:** {member.mention} ({gayness * 100:.1f}%)' for i, (member, gayness) in enumerate(members[:10], 1)),
+            description='\n'.join(
+                f'**#{i}:** {member.mention} ({gayness * 100:.1f}%)'
+                for i, (member, gayness) in enumerate(members[:10], 1)
+            ),
             colour=0xF47FFF
         )
         await ctx.send(embed=embed)

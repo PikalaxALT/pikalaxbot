@@ -15,24 +15,35 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import math
-import discord
 
 from discord.ext import commands
 
 from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
+import typing
+from . import *
+from ..types import *
+if typing.TYPE_CHECKING:
+    from ..ext.pokeapi import PokeapiModels
+
+
+def where(predicate: typing.Callable[[T], bool], iterable: typing.Iterable[T]) -> list[int]:
+    return [i for i, item in enumerate(iterable) if predicate(item)]
 
 
 class HangmanGame(GameBase):
     def __init__(self, bot, attempts=8):
-        self._attempts = attempts
         super().__init__(bot)
+        self._attempts = attempts
+        self._solution_name = ''
+        self._incorrect: list[str] = []
+        self.attempts = 0
 
     def reset(self):
         super().reset()
-        self._state = ''
-        self._solution = None
+        self._state: list[str] = []
+        self._solution: typing.Optional['PokeapiModels.PokemonSpecies'] = None
         self._solution_name = ''
-        self._incorrect = []
+        self._incorrect.clear()
         self.attempts = 0
 
     @property
@@ -49,7 +60,7 @@ class HangmanGame(GameBase):
                f'Remaining: {self.attempts:d}\n' \
                f'Players: {self.get_player_names()}```'
 
-    async def start(self, ctx: commands.Context):
+    async def start(self, ctx):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Hangman is already running here.',
                            delete_after=10)
@@ -58,16 +69,16 @@ class HangmanGame(GameBase):
             self._solution_name = self.bot.pokeapi.get_name(self._solution, clean=True).upper()
             self._state = ['_' if c.isalnum() else c for c in self._solution_name]
             self.attempts = self._attempts
-            self._incorrect = []
+            self._incorrect.clear()
             await ctx.send(f'Hangman has started! You have {self.attempts:d} attempts and {self._timeout:d} seconds '
                            f'to guess correctly before the man dies!')
             await super().start(ctx)
 
-    async def end(self, ctx: commands.Context, failed=False, aborted=False):
+    async def end(self, ctx: MyContext, failed=False, aborted=False):
         if self.running:
-            if self._task and not self._task.done():
-                self._task.cancel()
-                self._task = None
+            if self.task:
+                self.task.cancel()
+                self.task = None
             await self._message.edit(content=self)
             embed = await self.get_solution_embed(failed=failed, aborted=aborted)
             if aborted:
@@ -95,19 +106,17 @@ class HangmanGame(GameBase):
                            f'Start a game by saying `{ctx.prefix}hangman start`.',
                            delete_after=10)
 
-    async def guess(self, ctx: commands.Context, *, guess: str):
+    async def guess(self, ctx: MyContext, *, guess: str):
         if self.running:
             guess = guess.upper()
             if guess in self._incorrect or guess in self._state:
                 await ctx.send(f'{ctx.author.mention}: Character or solution already guessed: {guess}',
                                delete_after=10)
             elif len(guess) == 1:
-                found = False
-                for i, c in enumerate(self._solution_name):
-                    if c == guess:
-                        self._state[i] = guess
-                        found = True
+                found = guess in self._solution_name
                 if found:
+                    for i in where(lambda x: x == guess, self._solution_name):
+                        self._state[i] = guess
                     self.add_player(ctx.author)
                     if ''.join(self._state) == self._solution_name:
                         await self.end(ctx)
@@ -146,7 +155,7 @@ class Hangman(GameCogBase):
 
     gamecls = HangmanGame
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return self._local_check(ctx) and ctx.bot.pokeapi is not None
 
     @commands.group(case_insensitive=True, invoke_without_command=True)
@@ -155,39 +164,39 @@ class Hangman(GameCogBase):
         await ctx.send_help(ctx.command)
 
     @hangman.command(cls=GameStartCommand)
-    async def start(self, ctx):
+    async def start(self, ctx: MyContext):
         """Start a game in the current channel"""
         await self.game_cmd('start', ctx)
 
     @commands.command(name='hangstart', aliases=['hst'], cls=GameStartCommand)
-    async def hangman_start(self, ctx):
+    async def hangman_start(self, ctx: MyContext):
         """Start a game in the current channel"""
         await self.start(ctx)
 
     @hangman.command()
-    async def guess(self, ctx, *, guess):
+    async def guess(self, ctx: MyContext, *, guess: str):
         """Make a guess, if you dare"""
         await self.game_cmd('guess', ctx, guess=guess)
 
     @commands.command(name='hangguess', aliases=['hgu', 'hg'])
-    async def hangman_guess(self, ctx, *, guess):
+    async def hangman_guess(self, ctx: MyContext, *, guess: str):
         """Make a guess, if you dare"""
         await self.guess(ctx, guess=guess)
 
     @hangman.command()
     @commands.is_owner()
-    async def end(self, ctx):
+    async def end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.game_cmd('end', ctx, aborted=True)
 
     @commands.command(name='hangend', aliases=['he'])
     @commands.is_owner()
-    async def hangman_end(self, ctx):
+    async def hangman_end(self, ctx: MyContext):
         """End the game as a loss (owner only)"""
         await self.end(ctx)
 
     @hangman.command()
-    async def show(self, ctx):
+    async def show(self, ctx: MyContext):
         """Show the board in a new message"""
         await self.game_cmd('show', ctx)
 
@@ -196,9 +205,9 @@ class Hangman(GameCogBase):
         """Show the board in a new message"""
         await self.show(ctx)
 
-    async def cog_command_error(self, ctx, exc):
+    async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         await self._error(ctx, exc)
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(Hangman(bot))

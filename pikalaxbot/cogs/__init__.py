@@ -20,10 +20,10 @@ import asyncpg
 
 from discord.ext import commands
 from pikalaxbot.utils.logging_mixin import LoggingMixin
-from .. import PikalaxBOT
+from .. import *
 
 
-__all__ = ('BaseCog',)
+__all__ = ('BaseCog', 'PikalaxBOT', 'MyContext')
 
 
 def _cog_special_method(func):
@@ -80,7 +80,7 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = old_attr
                 setattr(self, attr, val)
 
-    async def cog_before_invoke(self, ctx: commands.Context):
+    async def cog_before_invoke(self, ctx: MyContext):
         # Name mangling is a fickle beast, so we don't even bother with it.
         # Read this as:
         #     if not hasattr(self, '__prepared'):
@@ -104,5 +104,5 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = list(val)
                 setattr(settings, attr, val)
 
-    async def cog_after_invoke(self, ctx: commands.Context):
+    async def cog_after_invoke(self, ctx: MyContext):
         await self.commit()

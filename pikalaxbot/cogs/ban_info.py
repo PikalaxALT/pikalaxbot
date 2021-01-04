@@ -1,10 +1,8 @@
 import discord
 from discord.ext import commands, menus
-from . import BaseCog
+from . import *
 import typing
 import aioitertools
-if typing.TYPE_CHECKING:
-    from .. import PikalaxBOT
 
 
 class BanInfoPageSource(menus.PageSource):
@@ -68,7 +66,7 @@ class BanInfoPageSource(menus.PageSource):
 class BanInfo(BaseCog):
     """Commands related to retrieving server bans"""
     @commands.command('ban-info')
-    async def ban_info(self, ctx: commands.Context):
+    async def ban_info(self, ctx: MyContext):
         """Get the entire ban log"""
         menu = menus.MenuPages(BanInfoPageSource(ctx.guild), delete_message_after=True)
         try:

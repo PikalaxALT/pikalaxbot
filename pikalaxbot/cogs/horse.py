@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from discord.ext import commands
-from . import BaseCog
+from . import *
 
 MORSE_CODE_DICT = { 'A':'.-', 'B':'-...', 'C':'-.-.',
                     'D':'-..', 'E':'.', 'F':'..-.',
@@ -57,16 +57,16 @@ class HorseCode(BaseCog):
     """Commands for decoding and encoding Horse Code."""
 
     @commands.group()
-    async def horse(self, ctx: commands.Context):
+    async def horse(self, ctx: MyContext):
         """Horse Code commands"""
     
     @horse.command()
-    async def encode(self, ctx: commands.Context, *, input_str):
+    async def encode(self, ctx: MyContext, *, input_str):
         """Encode a string to Horse Code"""
         await ctx.send(horse_encode(input_str))
     
     @horse.command()
-    async def decode(self, ctx: commands.Context, *, input_str):
+    async def decode(self, ctx: MyContext, *, input_str):
         """Decode a Horse Code string to English"""
         await ctx.send(horse_decode(input_str))
 

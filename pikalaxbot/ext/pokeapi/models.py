@@ -106,7 +106,7 @@ class NamedPokeapiResource(PokeapiResource):
         return super().__repr__()
 
     @classmethod
-    async def convert(cls, ctx: commands.Context, argument: str) -> 'NamedPokeapiResource':
+    async def convert(cls, ctx: MyContext, argument: str) -> 'NamedPokeapiResource':
         try:
             argument = int(argument)
             obj = await ctx.bot.pokeapi.get_model(cls, argument)

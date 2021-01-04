@@ -20,12 +20,13 @@
 import discord
 from discord.ext import commands, menus
 
-from . import BaseCog
-from .utils.menus import NavMenuPages
 import typing
 import collections
 import difflib
 import textwrap
+from . import *
+from .utils.menus import NavMenuPages
+from ..types import *
 
 
 class HelpMenu(NavMenuPages):
@@ -33,14 +34,36 @@ class HelpMenu(NavMenuPages):
     async def using_the_bot(self, payload):
         """shows how to use the bot"""
 
-        embed = discord.Embed(title='Using the bot', description='Hello! Welcome to the help page')
-        embed.add_field(name='How do I use the bot?', value='Reading the bot signature is pretty simple.', inline=False)
-        embed.add_field(name='<argument>', value='This means the argument is required.', inline=False)
-        embed.add_field(name='[argument]', value='This means the argument is optional.', inline=False)
-        embed.add_field(name='[A|B]', value='This means that it can be either A or B.', inline=False)
-        embed.add_field(name='[argument...]', value='This means you can have multiple arguments.', inline=False)
-        embed.add_field(name='Now that you know the basics, it should be noted that...', value='You do not type in the brackets!', inline=False)
-        embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
+        embed = discord.Embed(
+            title='Using the bot',
+            description='Hello! Welcome to the help page'
+        ).add_field(
+            name='How do I use the bot?',
+            value='Reading the bot signature is pretty simple.',
+            inline=False
+        ).add_field(
+            name='<argument>',
+            value='This means the argument is required.',
+            inline=False
+        ).add_field(
+            name='[argument]',
+            value='This means the argument is optional.',
+            inline=False
+        ).add_field(
+            name='[A|B]',
+            value='This means that it can be either A or B.',
+            inline=False
+        ).add_field(
+            name='[argument...]',
+            value='This means you can have multiple arguments.',
+            inline=False
+        ).add_field(
+            name='Now that you know the basics, it should be noted that...',
+            value='You do not type in the brackets!',
+            inline=False
+        ).set_footer(
+            text=f'We were on page {self.current_page + 1} before this message.'
+        )
         await self.message.edit(embed=embed)
         self.bot.loop.create_task(self.go_back_to_current_page())
 
@@ -57,8 +80,8 @@ class BotHelpPageSource(menus.ListPageSource):
                         f'If you need additional help, idk what to tell you i really don\'t',
             colour=discord.Colour.blurple()
         )
-        for cog_name, (cog, commands) in entry:
-            cmds = ' '.join(f'`{command}`' for command in commands)
+        for cog_name, (cog, _commands) in entry:
+            cmds = ' '.join(f'`{command}`' for command in _commands)
             cog_help = cog.description or 'No description'
             embed.add_field(
                 name=cog.qualified_name,
@@ -75,7 +98,14 @@ class GroupOrCogHelpPageSource(menus.ListPageSource):
         # Silence IDE warnings
         raise NotImplementedError
 
-    def format_embed(self, menu, entry, *, title=discord.Embed.Empty, description=discord.Embed.Empty):
+    def format_embed(
+            self,
+            menu: menus.MenuPages,
+            entry: list[commands.Command],
+            *,
+            title: EmbedStr = discord.Embed.Empty,
+            description: EmbedStr = discord.Embed.Empty
+    ):
         embed = discord.Embed(
             title=title,
             description=description,
@@ -100,15 +130,25 @@ class CogHelpPageSource(GroupOrCogHelpPageSource):
 
     def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
         cog = self._cog
-        return self.format_embed(menu, entry, title=f'{cog.qualified_name} Help', description=cog.description or discord.Embed.Empty)
+        return self.format_embed(
+            menu,
+            entry,
+            title=f'{cog.qualified_name} Help',
+            description=cog.description or discord.Embed.Empty
+        )
 
 
 class GroupHelpPageSource(GroupOrCogHelpPageSource):
     title = discord.Embed.Empty
     description = discord.Embed.Empty
 
-    def format_page(self, menu: menus.MenuPages, page):
-        return self.format_embed(menu, page, title=self.title, description=self.description)
+    def format_page(self, menu: menus.MenuPages, page: list[commands.Command]):
+        return self.format_embed(
+            menu,
+            page,
+            title=self.title,
+            description=self.description
+        )
 
 
 class PaginatedHelpCommand(commands.HelpCommand):
@@ -143,7 +183,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     async def send_bot_help(self, mapping):
         def key(c):
-            return (c.cog_name or '\u200bNo Category', c.name)
+            return c.cog_name or '\u200bNo Category', c.name
 
         bot = self.context.bot
         cog_mapping = collections.defaultdict(lambda: [None, []])
@@ -223,5 +263,5 @@ class Help(BaseCog):
         self.bot.help_command = self._original_help_command
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Help(bot))

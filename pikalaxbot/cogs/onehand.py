@@ -20,20 +20,20 @@ import operator
 import discord
 from discord.ext import commands
 
-from . import BaseCog
+from . import *
 from .utils.errors import CommandBannedInGuild
 
 
 class Onehand(BaseCog):
     """Lewd commands owo"""
 
-    banned_guilds = set()
+    banned_guilds: set[int] = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
-    my_blacklist = set()
+    my_blacklist: set[str] = set()
     e6_api_key = ''
     config_attrs = 'banned_guilds', 'my_blacklist', 'e6_api_key'
 
-    async def cog_check(self, ctx: commands.Context):
+    async def cog_check(self, ctx: MyContext):
         if ctx.command == self.oklewd:
             return True
         if ctx.guild is None:
@@ -42,7 +42,7 @@ class Onehand(BaseCog):
             raise CommandBannedInGuild('Lewd commands are banned in this guild.')
         return True
 
-    async def get_bad_dragon(self, ctx: commands.Context, name, *params):
+    async def get_bad_dragon(self, ctx: MyContext, name: str, *params: str):
         try:
             num = min(max(int(params[-1]), 1), 5)
             params = params[:-1]
@@ -104,7 +104,7 @@ class Onehand(BaseCog):
     @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
     @commands.cooldown(1, 5, commands.BucketType.channel)
-    async def e6(self, ctx: commands.Context, *params):
+    async def e6(self, ctx: MyContext, *params: str):
         """Search for up to 5 images on e621 with the given tags.  The number of images to return must come last."""
 
         await self.get_bad_dragon(ctx, 'e621', *params)
@@ -113,14 +113,14 @@ class Onehand(BaseCog):
     @commands.is_nsfw()
     @commands.bot_has_permissions(embed_links=True)
     @commands.cooldown(1, 5, commands.BucketType.channel)
-    async def e9(self, ctx: commands.Context, *params):
+    async def e9(self, ctx: MyContext, *params: str):
         """Search for up to 5 images on e926 with the given tags.  The number of images to return must come last."""
 
         await self.get_bad_dragon(ctx, 'e926', *params)
 
     @e6.error
     @e9.error
-    async def e9_error(self, ctx: commands.Context, exc: Exception):
+    async def e9_error(self, ctx: MyContext, exc: commands.CommandError):
         dest = 'e621' if ctx.command == self.e6 else 'e926'
         if isinstance(exc, aiohttp.ClientError):
             await ctx.send(f'Could not reach {dest}: {exc}',
@@ -130,11 +130,10 @@ class Onehand(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def nolewd(self, ctx, *, guild: discord.Guild = None):
+    async def nolewd(self, ctx: MyContext, *, guild: discord.Guild = None):
         """Blacklist commands that have the potential to return questionable content in this guild."""
 
-        if guild is None:
-            guild = ctx.guild
+        guild = guild or ctx.guild
         if guild.id in self.banned_guilds:
             await ctx.send(f'Guild "{guild}" is already marked safe', delete_after=10)
         else:
@@ -143,11 +142,10 @@ class Onehand(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def oklewd(self, ctx, *, guild: discord.Guild = None):
+    async def oklewd(self, ctx: MyContext, *, guild: discord.Guild = None):
         """Whitelist commands that have the potential to return questionable content in this guild."""
 
-        if guild is None:
-            guild = ctx.guild
+        guild = guild or ctx.guild
         if guild.id not in self.banned_guilds:
             await ctx.send(f'Guild "{guild}" is not marked safe', delete_after=10)
         else:
@@ -155,34 +153,34 @@ class Onehand(BaseCog):
             await ctx.message.add_reaction('✅')
 
     @commands.group()
-    async def blacklist(self, ctx):
+    async def blacklist(self, ctx: MyContext):
         """Manage the e621/e926 tags blacklist"""
 
         pass
 
     @blacklist.command(name='add')
-    async def blacklist_add(self, ctx, *tags):
+    async def blacklist_add(self, ctx: MyContext, *tags: str):
         """Add the tags to the blacklist"""
 
         self.my_blacklist.update(tags)
         await ctx.message.add_reaction('✅')
 
     @blacklist.command(name='remove')
-    async def blacklist_remove(self, ctx, *tags):
+    async def blacklist_remove(self, ctx: MyContext, *tags: str):
         """Remove the tags from the blacklist"""
 
         self.my_blacklist.difference_update(tags)
         await ctx.message.add_reaction('✅')
 
     @blacklist.command(name='clear')
-    async def blacklist_clear(self, ctx):
+    async def blacklist_clear(self, ctx: MyContext):
         """Delete the blacklisted tags"""
 
-        self.my_blacklist = set()
+        self.my_blacklist.clear()
         await ctx.message.add_reaction('✅')
 
     @blacklist.command(name='show')
-    async def blacklist_show(self, ctx):
+    async def blacklist_show(self, ctx: MyContext):
         """Show the blacklisted tags"""
 
         glb = ', '.join(self.global_blacklist)
@@ -193,7 +191,7 @@ class Onehand(BaseCog):
 
     @commands.command()
     @commands.bot_has_permissions(attach_files=True)
-    async def inspire(self, ctx: commands.Context):
+    async def inspire(self, ctx: MyContext):
         """Generate an inspirational poster using inspirobot.me"""
 
         async with self.bot.client_session.get('http://inspirobot.me/api', params={'generate': 'true'}) as r:
@@ -201,12 +199,12 @@ class Onehand(BaseCog):
         await ctx.send(url)
 
     @inspire.error
-    async def inspire_error(self, ctx, exc):
+    async def inspire_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, aiohttp.ClientError):
             await ctx.send(f'Could not reach inspirobot.me: {exc}',
                            delete_after=10)
 
-    async def cog_command_error(self, ctx: commands.Context, exc: Exception):
+    async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.BotMissingPermissions):
             await ctx.send(f'{exc}')
         elif isinstance(exc, (commands.NSFWChannelRequired, CommandBannedInGuild)):

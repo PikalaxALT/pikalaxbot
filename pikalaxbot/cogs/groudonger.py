@@ -15,23 +15,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import discord
-from discord.ext import commands
 import asyncio
-from . import BaseCog
+from . import *
+from ..constants import *
+import typing
+if typing.TYPE_CHECKING:
+    from .markov import Markov
 
 
 class Groudonger(BaseCog):
     """Meme extension for responding to the bot Groudonger."""
 
     @BaseCog.listener()
-    async def on_reaction_add(self, reaction, user):
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
         msg: discord.Message = reaction.message
         channel: discord.TextChannel = msg.channel
         guild: discord.Guild = msg.guild
 
-        cog = self.bot.get_cog('Markov')
+        cog: 'Markov' = self.bot.get_cog('Markov')
 
-        if user.id == 303257160421212160 and msg.author == guild.me:
+        if user.id == GROUDONGER_ID and msg.author == guild.me:
             chain = cog.gen_msg(len_max=250, n_attempts=10)
             await channel.send(f'!mail {chain}')
             try:
@@ -45,5 +48,5 @@ class Groudonger(BaseCog):
             await channel.send(f'{user.mention} pls')
 
 
-def setup(bot):
+def setup(bot: 'PikalaxBOT'):
     bot.add_cog(Groudonger(bot))

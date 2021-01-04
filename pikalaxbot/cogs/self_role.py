@@ -45,7 +45,7 @@ class SelfAssignableRole(BaseCog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @commands.check(bot_role_is_higher)
-    async def iam(self, ctx: commands.Context, *, role: AliasedRoleConverter):
+    async def iam(self, ctx: MyContext, *, role: AliasedRoleConverter):
         """Assign a role to yourself"""
         if role in ctx.author.roles:
             await ctx.send(f'You already have role "{role}"')
@@ -57,7 +57,7 @@ class SelfAssignableRole(BaseCog):
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @commands.check(bot_role_is_higher)
-    async def iamnot(self, ctx: commands.Context, *, role: AliasedRoleConverter):
+    async def iamnot(self, ctx: MyContext, *, role: AliasedRoleConverter):
         """Unassign a role from yourself"""
         if role not in ctx.author.roles:
             await ctx.send(f'You don\'t have the role "{role}"')
@@ -68,7 +68,7 @@ class SelfAssignableRole(BaseCog):
 
     @iam.error
     @iamnot.error
-    async def assign_roles_error(self, ctx: commands.Context, exc: BaseException):
+    async def assign_roles_error(self, ctx: MyContext, exc: BaseException):
         if isinstance(exc, (commands.BotMissingPermissions, commands.BadArgument, Hierarchy)):
             emoji = self.bot.command_error_emoji
             await ctx.send(f'**{exc.__class__.__name__}**: {exc} {emoji}', delete_after=10)
@@ -76,7 +76,7 @@ class SelfAssignableRole(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def addar(self, ctx: commands.Context, alias: str.lower, *, role: discord.Role):
+    async def addar(self, ctx: MyContext, alias: str.lower, *, role: discord.Role):
         """Add a role to the list of self-assignable roles"""
         if str(ctx.guild.id) not in self.roles:
             self.roles[str(ctx.guild.id)] = {alias: role.id}
@@ -88,7 +88,7 @@ class SelfAssignableRole(BaseCog):
 
     @commands.command()
     @commands.is_owner()
-    async def rmar(self, ctx: commands.Context, alias: str.lower):
+    async def rmar(self, ctx: MyContext, alias: str.lower):
         """Remove a role from the list of self-assignable roles"""
         if str(ctx.guild.id) not in self.roles:
             self.roles[str(ctx.guild.id)] = {}

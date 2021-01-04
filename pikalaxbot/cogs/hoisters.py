@@ -1,14 +1,13 @@
 import discord
 from discord.ext import commands, menus
 import typing
-from . import BaseCog
+from . import *
 from .utils.menus import NavMenuPages
-
-DPY_GUILD_ID = 336642139381301249
+from ..constants import *
 
 
 class HoistersMenu(NavMenuPages):
-    async def start(self, ctx, *, channel=None, wait=False):
+    async def start(self, ctx: MyContext, *, channel=None, wait=False):
         self.emojis = {stat: discord.utils.get(ctx.bot.emojis, name=f'status_{stat}') for stat in discord.Status}
         await super().start(ctx, channel=channel, wait=wait)
 
@@ -54,12 +53,12 @@ class Hoisters(BaseCog):
             and not member.bot \
             and member.display_name < '0'
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: MyContext):
         return ctx.guild.id == DPY_GUILD_ID
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.command(name='hoisters')
-    async def get_hoisters(self, ctx):
+    async def get_hoisters(self, ctx: MyContext):
         """Get a list of all people in the server whose names are hoisted"""
 
         hoisters = sorted(
@@ -72,7 +71,7 @@ class Hoisters(BaseCog):
         await menu.start(ctx, wait=True)
 
     @commands.command(name='is-hoisting', aliases=['hoisting'])
-    async def is_hoisting_cmd(self, ctx, *, member: discord.Member):
+    async def is_hoisting_cmd(self, ctx: MyContext, *, member: discord.Member):
         """Returns whether the member in question is hoisting."""
 
         embed = discord.Embed(
@@ -89,5 +88,5 @@ class Hoisters(BaseCog):
         await ctx.send(embed=embed)
 
 
-def setup(bot):
+def setup(bot: PikalaxBOT):
     bot.add_cog(Hoisters(bot))
