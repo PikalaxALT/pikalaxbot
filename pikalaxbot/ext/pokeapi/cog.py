@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks, menus
 import asyncio
 import sqlite3
-from . import asqlite3
+import asqlite3
 import contextlib
 import typing
 import time

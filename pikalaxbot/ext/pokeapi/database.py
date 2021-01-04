@@ -1,4 +1,4 @@
-from . import asqlite3
+import asqlite3
 import re
 from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type, TYPE_CHECKING
 from sqlite3 import Cursor
