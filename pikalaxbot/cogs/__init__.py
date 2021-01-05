@@ -47,18 +47,13 @@ class BaseCog(LoggingMixin, commands.Cog):
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot = bot
+        self._dirty = False
         bot.loop.create_task(self.prepare())
 
     @_cog_special_method
     async def init_db(self, sql: asyncpg.Connection):
         """Override this"""
         pass
-
-    async def prepare(self):
-        """Async init"""
-        if BaseCog._get_overridden_method(self.init_db) is not None:
-            async with self.bot.sql as sql:
-                await self.init_db(sql)
 
     async def fetch(self):
         """
@@ -81,12 +76,12 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = old_attr
                 setattr(self, attr, val)
 
-    async def cog_before_invoke(self, ctx: MyContext):
-        # Name mangling is a fickle beast, so we don't even bother with it.
-        # Read this as:
-        #     if not hasattr(self, '__prepared'):
-        # ... except it works as expected
+    async def prepare(self):
+        """Async init"""
         await self.fetch()
+        if BaseCog._get_overridden_method(self.init_db) is not None:
+            async with self.bot.sql as sql:
+                await self.init_db(sql)
 
     async def commit(self):
         """
@@ -100,5 +95,11 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = list(val)
                 setattr(settings, attr, val)
 
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+        if key in self.config_attrs:
+            super().__setattr__('_dirty', True)
+
     async def cog_after_invoke(self, ctx: MyContext):
-        await self.commit()
+        if self._dirty:
+            await self.commit()

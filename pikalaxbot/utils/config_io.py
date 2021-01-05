@@ -106,17 +106,7 @@ class Settings:
         finally:
             self._lock.release()
 
-    def __getitem__(self, item):
-        if item not in self.json_keys:
-            raise KeyError(item)
-        return getattr(self, item)
-
-    def __setitem__(self, key, value):
-        if key not in self.json_keys:
-            raise KeyError(key)
-        return setattr(self, key, value)
-
     def __setattr__(self, key, value):
         super().__setattr__(key, value)
         if key in self.json_keys:
-            self._changed = True
+            super().__setattr__('_changed', True)
