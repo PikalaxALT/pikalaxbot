@@ -31,11 +31,26 @@ class ReactionRoles(BaseCog):
         self.reaction_roles: dict[int, dict[str, int]] = collections.defaultdict(dict)
     
     def cog_check(self, ctx):
-        return all(check.predicate(ctx) for check in {commands.guild_only(), commands.bot_has_guild_permissions(manage_roles=True)})
+        return all(check.predicate(ctx) for check in {
+            commands.guild_only(),
+            commands.bot_has_guild_permissions(manage_roles=True)
+        })
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists reaction_schema (guild bigint unique not null primary key, channel bigint, message bigint)")
-        await sql.execute("create table if not exists reaction_roles (guild bigint not null references reaction_schema(guild), emoji text, role bigint)")
+        await sql.execute(
+            "create table if not exists reaction_schema ("
+            "guild bigint unique not null primary key, "
+            "channel bigint, "
+            "message bigint"
+            ")"
+        )
+        await sql.execute(
+            "create table if not exists reaction_roles ("
+            "guild bigint not null references reaction_schema(guild), "
+            "emoji text, "
+            "role bigint"
+            ")"
+        )
         async for guild, channel, message in sql.cursor('select * from reaction_schema'):
             self.reaction_schema[guild] = (channel, message)
         async for guild, emoji, role in sql.cursor('select * from reaction_roles'):
@@ -54,21 +69,23 @@ class ReactionRoles(BaseCog):
 
     @BaseCog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if not self.validate_reaction(payload):
-            return
-        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
-        role: discord.Role = guild.get_role(self.reaction_roles[payload.guild_id][str(payload.emoji)])
-        author: discord.Member = guild.get_member(payload.user_id)
-        await author.add_roles(role)
+        if self.validate_reaction(payload):
+            await self.bot.http.add_role(
+                payload.guild_id,
+                payload.user_id,
+                self.reaction_roles[payload.guild_id][str(payload.emoji)],
+                reason='Reaction Roles'
+            )
 
     @BaseCog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        if not self.validate_reaction(payload):
-            return
-        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
-        role: discord.Role = guild.get_role(self.reaction_roles[payload.guild_id][str(payload.emoji)])
-        author: discord.Member = guild.get_member(payload.user_id)
-        await author.remove_roles(role)
+        if self.validate_reaction(payload):
+            await self.bot.http.remove_role(
+                payload.guild_id,
+                payload.user_id,
+                self.reaction_roles[payload.guild_id][str(payload.emoji)],
+                reason='Reaction Roles'
+            )
 
     @reaction_roles_not_initialized()
     @commands.has_permissions(manage_roles=True)
@@ -81,7 +98,12 @@ class ReactionRoles(BaseCog):
             message = await channel.send('React to the following emoji to get the associated roles:')
             self.reaction_schema[ctx.guild.id] = (channel.id, message.id)
             with self.bot.sql as sql:
-                await sql.execute("insert into reaction_schema values ($1, $2, $3)", ctx.guild.id, channel.id, message.id)
+                await sql.execute(
+                    "insert into reaction_schema values ($1, $2, $3)",
+                    ctx.guild.id,
+                    channel.id,
+                    message.id
+                )
             await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
@@ -134,8 +156,11 @@ class ReactionRoles(BaseCog):
             raise InitializationInvalid
         if isinstance(emoji_or_role, discord.Role):
             try:
-                emoji, role_id = discord.utils.find(lambda t: t[0] == emoji_or_role.id, self.reaction_roles[ctx.guild.id].items())
-            except ValueError:
+                emoji, role_id = discord.utils.find(
+                    lambda t: t[0] == emoji_or_role.id,
+                    self.reaction_roles[ctx.guild.id].items()
+                )
+            except TypeError:
                 raise RoleOrEmojiNotFound
         else:
             if self.reaction_roles[ctx.guild.id].get(str(emoji := emoji_or_role)) is None:

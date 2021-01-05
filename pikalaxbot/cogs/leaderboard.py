@@ -43,10 +43,11 @@ class Leaderboard(BaseCog):
                     'select id, score, rank () over (order by score desc) ranking from game) foo '
                     'where id = $1',
                     person.id)
+            except TypeError:
+                msg = f'{person.name} is not yet on the leaderboard.'
+            else:
                 msg = f'{person.name} has {score:d} point(s) across all games ' \
                       f'and is #{rank:d} on the leaderboard.'
-            except ValueError:
-                msg = f'{person.name} is not yet on the leaderboard.'
         await ctx.send(msg)
 
     @leaderboard.command()

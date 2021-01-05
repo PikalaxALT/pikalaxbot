@@ -7,7 +7,7 @@ __all__ = 'NavMenuPages',
 
 
 class NavMenuPages(menus.MenuPages):
-    def __init__(self, source, **kwargs):
+    def __init__(self, source: menus.PageSource, **kwargs):
         super().__init__(source, **kwargs)
         self._in_info = False
 
@@ -16,7 +16,7 @@ class NavMenuPages(menus.MenuPages):
         await self.show_current_page()
 
     @menus.button('\N{INPUT SYMBOL FOR NUMBERS}', position=menus.Last(1.5))
-    async def pick_page(self, payload):
+    async def pick_page(self, payload: discord.RawReactionActionEvent):
         """lets you type a page number to go to"""
 
         my_msg = await self.ctx.send('What page do you want to go to?')
@@ -32,7 +32,7 @@ class NavMenuPages(menus.MenuPages):
             await self.show_checked_page(page - 1)
 
     @menus.button('\N{INFORMATION SOURCE}', position=menus.Last(3))
-    async def info(self, payload):
+    async def info(self, payload: discord.RawReactionActionEvent):
         """shows this message"""
 
         self._in_info = not self._in_info

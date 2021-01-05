@@ -88,7 +88,7 @@ class Rng(BaseCog):
                 await ctx.send(f'Argument to {ctx.prefix}{ctx.command} must not be more than 200 dice, '
                                f'and each die must have between 2 and 100 sides.')
                 exc = None
-            elif isinstance(orig, ValueError):
+            elif isinstance(orig, (ValueError, TypeError)):
                 await ctx.send(f'Argument to {ctx.prefix}{ctx.command} must be of the form [N]d[S], '
                                f'where N is the number of dice and S is the number of sides per die. '
                                f'Both N and S are optional, but at least one must be supplied.')

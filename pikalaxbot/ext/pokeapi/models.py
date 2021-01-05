@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from re import sub
 import json
 from discord.ext import commands
+from ...context import MyContext
 if TYPE_CHECKING:
     from .types import *
 
