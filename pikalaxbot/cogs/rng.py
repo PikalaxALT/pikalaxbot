@@ -82,7 +82,7 @@ class Rng(BaseCog):
         await ctx.send(f'Quilava ❤ {url}')
 
     async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
-        orig = getattr(exc, 'original', exc)
+        orig: BaseException = getattr(exc, 'original', exc)
         if isinstance(exc, commands.ConversionError):
             if isinstance(orig, AssertionError):
                 await ctx.send(f'Argument to {ctx.prefix}{ctx.command} must not be more than 200 dice, '

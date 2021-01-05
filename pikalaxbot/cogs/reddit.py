@@ -25,7 +25,7 @@ class SubredditNotFound(commands.CommandError):
 
 
 class RedditErrorPageSource(menus.ListPageSource):
-    def __init__(self, ctx: commands.Context, error: BaseException):
+    def __init__(self, ctx: MyContext, error: BaseException):
         paginator = commands.Paginator()
         paginator.add_line(f'command {ctx.command}')
         for line in traceback.format_exception(error.__class__, error, error.__traceback__):
@@ -69,7 +69,7 @@ class Reddit(BaseCog):
             raise SubredditNotFound(subreddit)
         return resp[0]['data']['children'][0]['data']
 
-    def cog_check(self, ctx: MyContext):
+    def cog_check(self, ctx: MyContext) -> bool:
         return ctx.guild.id not in self.bot.settings.banned_guilds
 
     async def get_subreddit_embed(self, ctx: MyContext, subreddit: str):
@@ -93,12 +93,12 @@ class Reddit(BaseCog):
                 break
         else:
             raise NoPostsFound(subreddit)
-        title = child['title']
-        sub_prefixed = child['subreddit_name_prefixed']
-        author = child['author']
-        permalink = child['permalink']
-        score = child['score']
-        upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
+        title: str = child['title']
+        sub_prefixed: str = child['subreddit_name_prefixed']
+        author: str = child['author']
+        permalink: str = child['permalink']
+        score: int = child['score']
+        upvote_emoji: discord.Emoji = discord.utils.get(self.bot.emojis, name='upvote')
         embed = discord.Embed(
             title=f'/{sub_prefixed}',
             description=f'[{title}](https://reddit.com{permalink})\n'

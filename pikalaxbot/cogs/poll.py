@@ -24,6 +24,7 @@ import base64
 import math
 import aioitertools
 import asyncpg
+import operator
 from collections import Counter
 
 from .utils.errors import *
@@ -468,7 +469,7 @@ duration, prompt, and options."""
             content2 = content = 'The poll was cancelled.'
         else:
             try:
-                winner = max(tally, key=tally.get)
+                winner, count = max(tally.items(), key=operator.itemgetter(1))
                 content = f'Poll closed, the winner is {mgr.emojis[winner]}'
                 content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} vote(s).\n\nFull results: {mgr.message.jump_url}'
             except (ValueError, IndexError):

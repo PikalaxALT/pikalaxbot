@@ -6,6 +6,7 @@ import typing
 from . import *
 from humanize import naturaldelta
 import re
+import operator
 
 
 class SeenUser(BaseCog):
@@ -31,8 +32,15 @@ class SeenUser(BaseCog):
             if (history := self.history_cache.get(channel)) is None:
                 if not channel.permissions_for(member.guild.me).read_message_history:
                     continue
-                self.history_cache[channel] = history = sorted(await channel.history(limit=None, after=last).flatten(), key=lambda msg: msg.created_at)
-            last = getattr((seen_msg := discord.utils.get(reversed(history), author=member) or seen_msg), 'created_at', last)
+                self.history_cache[channel] = history = sorted(
+                    await channel.history(limit=None, after=last).flatten(),
+                    key=operator.attrgetter('created_at')
+                )
+            last = getattr(
+                seen_msg := discord.utils.get(reversed(history), author=member) or seen_msg,
+                'created_at',
+                last
+            )
         return seen_msg
 
     @commands.command()

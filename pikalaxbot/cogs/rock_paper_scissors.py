@@ -5,6 +5,8 @@ from . import *
 import asyncio
 import re
 import traceback
+import typing
+import asyncpg
 from .utils.game import increment_score
 
 
@@ -16,11 +18,16 @@ class RPSError(commands.CommandError):
 
 
 class RPSMenu(menus.Menu):
-    async def my_action(self, payload):
+    async def my_action(self, payload: discord.RawReactionActionEvent):
         self.player_move = _emojis.index(str(payload.emoji))
         self.stop()
 
-    def __init__(self, player=None, opponent=None, **kwargs):
+    def __init__(
+            self,
+            player: typing.Optional[discord.Member] = None,
+            opponent: typing.Optional[discord.Member] = None,
+            **kwargs
+    ):
         super().__init__(**kwargs)
         self.player_move = 3
         self.player = player
@@ -30,7 +37,7 @@ class RPSMenu(menus.Menu):
         for emoji in _emojis:
             self.add_button(menus.Button(emoji, self.my_action))
 
-    async def send_initial_message(self, ctx, channel):
+    async def send_initial_message(self, ctx: MyContext, channel):
         self.player = self.player or ctx.author
         self.opponent = self.opponent or ctx.me
         embed = discord.Embed(
@@ -43,7 +50,7 @@ class RPSMenu(menus.Menu):
         return await channel.send(embed=embed)
 
     async def finalize(self, timed_out):
-        embed = self.message.embeds[0]
+        embed: discord.Embed = self.message.embeds[0]
         if self.opponent != self.ctx.me:
             self.timed_out = timed_out
             return
@@ -63,23 +70,15 @@ class RPSMenu(menus.Menu):
             embed.colour = (discord.Colour.dark_gray, discord.Colour.red, discord.Colour.green)[diff]()
         await self.message.edit(embed=embed)
 
-    def reaction_check(self, payload):
-        if payload.message_id != self.message.id:
-            return False
-        if payload.user_id not in {self.bot.owner_id, self.player.id, *self.bot.owner_ids}:
-            return False
-
-        return payload.emoji in self.buttons
-
 
 class RockPaperScissors(BaseCog):
     """Commands for playing rock-paper-scissors"""
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.rps_tasks = {}
+        self.rps_tasks: dict[tuple[int, int, int], asyncio.Task] = {}
 
-    async def do_rps(self, ctx, *, opponent: discord.Member = None):
+    async def do_rps(self, ctx: MyContext, *, opponent: discord.Member = None):
         if opponent in {ctx.me, None}:
             menu = RPSMenu(clear_reactions_after=True)
             await menu.start(ctx, wait=True)
@@ -92,7 +91,7 @@ class RockPaperScissors(BaseCog):
                            f'an epic game of Rock Paper Scissors with {ctx.author.mention}. '
                            f'Do you accept?')
 
-            def check(m):
+            def check(m: discord.Message):
                 return m.channel == ctx.channel and m.author == opponent
 
             try:
@@ -144,9 +143,8 @@ class RockPaperScissors(BaseCog):
                       f'{ctx.author.mention}\'s move: {player_emoji}\n' \
                       f'{opponent.mention}\'s move: {opponent_emoji}\n\n'
             content += '**' + ('It\'s a draw!', f'{opponent.mention} wins!', f'{ctx.author.mention} wins!')[diff] + '**'
-            winner = [None, opponent, ctx.author][diff]
-            if winner:
-                async with self.bot.sql as sql:
+            if winner := [None, opponent, ctx.author][diff]:
+                async with self.bot.sql as sql:  # type: asyncpg.Connection
                     await increment_score(sql, winner, by=69)
                 content += f'\n\n{winner.mention} earns 69 points for winning!'
             await ctx.send(content)
@@ -163,7 +161,7 @@ class RockPaperScissors(BaseCog):
         except asyncio.CancelledError:
             await ctx.send('The game was cancelled.')
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         error = getattr(error, 'original', error)
         if isinstance(error, commands.MaxConcurrencyReached):
             await ctx.send(f'Wait your turn, {ctx.author.mention}!', delete_after=10)
@@ -173,7 +171,7 @@ class RockPaperScissors(BaseCog):
             [pag.add_line(line.rstrip('\n')) for line in tb]
 
             class ErrorPageSource(menus.ListPageSource):
-                def format_page(self, menu, page):
+                def format_page(self, menu: menus.MenuPages, page: str):
                     return page
 
             exc_menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
