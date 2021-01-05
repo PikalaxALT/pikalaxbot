@@ -47,6 +47,7 @@ class BaseCog(LoggingMixin, commands.Cog):
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot = bot
+        bot.loop.create_task(self.prepare())
 
     @_cog_special_method
     async def init_db(self, sql: asyncpg.Connection):
@@ -85,11 +86,6 @@ class BaseCog(LoggingMixin, commands.Cog):
         # Read this as:
         #     if not hasattr(self, '__prepared'):
         # ... except it works as expected
-        try:
-            _ = self.__prepared
-        except AttributeError:
-            await self.prepare()
-            self.__prepared = True
         await self.fetch()
 
     async def commit(self):
