@@ -110,7 +110,7 @@ class Core(BaseCog):
         cmds = []
         lost_cmds: list[tuple[str]] = []
         async with self.bot.sql as sql:  # type: asyncpg.Connection
-            async for name, uses in sql.cursor(
+            for name, uses in await sql.fetch(
                     'select command, uses '
                     'from commandstats '
                     'where guild = $1 '

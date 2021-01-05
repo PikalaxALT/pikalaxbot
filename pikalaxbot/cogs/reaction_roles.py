@@ -11,7 +11,7 @@ def reaction_roles_initialized():
         if ctx.guild.id not in ctx.cog.reaction_schema:
             raise NotInitialized
         return True
-    return predicate
+    return commands.check(predicate)
 
 
 def reaction_roles_not_initialized():
@@ -19,7 +19,7 @@ def reaction_roles_not_initialized():
         if ctx.guild.id in ctx.cog.reaction_schema:
             raise AlreadyInitialized
         return True
-    return predicate
+    return commands.check(predicate)
 
 
 class ReactionRoles(BaseCog):
@@ -51,9 +51,9 @@ class ReactionRoles(BaseCog):
             "role bigint"
             ")"
         )
-        async for guild, channel, message in sql.cursor('select * from reaction_schema'):
+        for guild, channel, message in await sql.fetch('select * from reaction_schema'):
             self.reaction_schema[guild] = (channel, message)
-        async for guild, emoji, role in sql.cursor('select * from reaction_roles'):
+        for guild, emoji, role in await sql.fetch('select * from reaction_roles'):
             self.reaction_roles[guild][emoji] = role
 
     def validate_reaction(self, payload: discord.RawReactionActionEvent):

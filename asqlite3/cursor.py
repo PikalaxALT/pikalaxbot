@@ -1,10 +1,10 @@
 import sqlite3
 from typing import *
 
+from .types import *
+from types import TracebackType
 if TYPE_CHECKING:
     from .core import Connection
-    from .types import *
-    from types import TracebackType
 
 
 class Cursor:
@@ -12,7 +12,7 @@ class Cursor:
         self._connection = connection
         self._cursor = cursor
 
-    async def _execute(self, fn: Callable[[T, ...], R], *args: T, **kwargs) -> R:
+    async def _execute(self, fn: Callable[[T, Any], R], *args: T, **kwargs) -> R:
         return await self._connection._execute(fn, *args, **kwargs)
 
     async def __aiter__(self) -> AsyncIterator:

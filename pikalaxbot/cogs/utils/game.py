@@ -18,15 +18,13 @@ import asyncio
 import discord
 import math
 import time
-from .. import BaseCog
 from discord.ext import commands
 from .errors import BadGameArgument
 import typing
 import asyncpg
-from ...context import MyContext
+from .. import *
 if typing.TYPE_CHECKING:
     from ...ext.pokeapi import PokeApi
-    from ... import PikalaxBOT
 
 __all__ = (
     'find_emoji',

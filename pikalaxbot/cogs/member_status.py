@@ -116,7 +116,7 @@ class MemberStatus(BaseCog):
                     row[0]: {
                         name: count
                         for name, count in zip(discord.Status, row[1:])
-                    } async for row in await sql.cursor(
+                    } for row in await sql.execute(
                         'select timestamp, online, offline, dnd, idle '
                         'from memberstatus '
                         'where guild_id = $1 '

@@ -7,9 +7,8 @@ import functools
 import logging
 from os import PathLike
 from .context import contextmanager
-if TYPE_CHECKING:
-    from types import TracebackType
-    from .types import *
+from types import TracebackType
+from .types import *
 
 
 __all__ = ('Cursor', 'Connection', 'connect')
@@ -33,7 +32,7 @@ class Connection:
 
         return self._connection
 
-    async def _execute(self, fn: Callable[[T, ...], R], *args: T, **kwargs) -> R:
+    async def _execute(self, fn: Callable[[T, Any], R], *args: T, **kwargs) -> R:
         if self._loop is None:
             self._loop = asyncio.get_running_loop()
         real_fn = functools.partial(fn, *args, **kwargs)

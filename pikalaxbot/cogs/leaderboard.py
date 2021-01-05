@@ -55,7 +55,7 @@ class Leaderboard(BaseCog):
         """Check the top 10 players on the leaderboard"""
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             msg = '\n'.join(
-                '{1}: {2:d}'.format(*row) async for row in sql.cursor(
+                '{1}: {2:d}'.format(*row) for row in await sql.execute(
                     'select * from game '
                     'order by score desc '
                     'limit 10'

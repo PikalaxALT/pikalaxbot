@@ -298,7 +298,7 @@ class Poll(BaseCog):
         await self.bot.wait_until_ready()
         try:
             async with self.bot.sql as sql:  # type: asyncpg.Connection
-                async for row in sql.cursor('select * from polls'):
+                for row in await sql.fetch('select * from polls'):
                     try:
                         mgr = await PollManager.from_sql(self.bot, sql, *row)
                         self.polls.append(mgr)

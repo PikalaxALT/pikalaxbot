@@ -27,7 +27,7 @@ class PokeApiConnection(Connection):
         yield self
         self.row_factory = old_factory
 
-    def get_model(self, model: Type[Model], id_: Optional[int]) -> Optional[Model]:
+    def get_model(self, model: Type['Model'], id_: Optional[int]) -> Optional['Model']:
         if id_ is None:
             return
         statement = """
@@ -72,7 +72,7 @@ class PokeapiResource:
         attrs = ', '.join(f'{key}={value!r}' for key, value in zip(self._row.keys(), self._row))
         return '<{0.__class__.__name__} {1}>'.format(self, attrs)
 
-    def get_submodel(self, model: Type[Model], field: str) -> Optional[Model]:
+    def get_submodel(self, model: Type['Model'], field: str) -> Optional['Model']:
         return self._connection.get_model(model, self._row[field])
 
 
