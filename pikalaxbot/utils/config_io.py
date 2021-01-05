@@ -17,57 +17,47 @@
 import asyncio
 import json
 import os
-import warnings
+import typing
 from ..constants import *
 
 __all__ = ('Settings',)
 
 
-_defaults = {
-    'token': None,
-    'prefix': 'p!',
-    'markov_channels': [],
-    'debug': False,
-    'disabled_commands': [],
-    'voice_chans': {},
-    'disabled_cogs': [],
-    'help_name': 'help',
-    'game': 'p!help',
-    'espeak_kw': {
+class Settings:
+    token: str = None
+    prefix: str = 'p!'
+    markov_channels: list[int] = []
+    debug: bool = False
+    disabled_commands: list[str] = []
+    disabled_cogs: list[str] = []
+    help_name: str = 'help'
+    game: str = 'Q20, Anagram, Hangman'
+    espeak_kw: dict[str, typing.Union[str, int]] = {
         'a': 100,
         's': 150,
         'v': 'en-us+f3',
         'p': 75,
         'g': 1,
-        'k': 2
-    },
-    'banlist': [],
-    'roles': {},
-    'watches': {},
-    'error_emoji': 'pikalaOwO',
-    'exc_channel': EXC_CHANNEL_ID,
-    'banned_guilds': [],
-    'database': {
+        'k': 2,
+    }
+    banlist: list[int] = []
+    error_emoji: str = 'pikalaOwO'
+    exc_channel: int = EXC_CHANNEL_ID
+    banned_guilds: list[int] = []
+    database: dict[str, str] = {
         'username': 'root',
         'password': 'raspberrypi',
         'host': 'localhost',
         'dbname': 'pikalaxbot'
-    },
-}
+    }
+    json_keys = 'token', 'prefix', 'markov_channels', 'debug', 'disabled_commands', 'disabled_cogs', 'help_name', \
+                'game', 'espeak_kw', 'banlist', 'error_emoji', 'exc_channel', 'banned_guilds', 'database'
 
-
-class Settings(dict):
-    def __init__(self, fname='settings.json', *, loop=None):
-        super().__init__(**_defaults)
+    def __init__(self, fname='settings.json'):
         self._fname = fname
         self.__loop = None
         self._changed = False
         self._lock = asyncio.Lock()
-        if loop:
-            warnings.warn(
-                'Passing loop to Settings constructor is deprecated and will be removed in a future update',
-                DeprecationWarning
-            )
         try:
             with open(fname) as fp:
                 self.update(json.load(fp))
@@ -78,6 +68,10 @@ class Settings(dict):
         if self.token is None:
             raise ValueError(f'Please set your bot\'s token in {fname}')
         self._mtime = os.path.getmtime(fname)
+
+    def update(self, data: dict[str, typing.Any]):
+        for key, value in data.items():
+            setattr(self, key, value)
 
     @property
     def _loop(self):
@@ -100,8 +94,9 @@ class Settings(dict):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._changed:
+            data = {key: getattr(self, key) for key in self.json_keys}
             with open(self._fname, 'w') as fp:
-                json.dump(self, fp, indent=4)
+                json.dump(data, fp, indent=4)
             self._changed = False
             self._mtime = os.path.getmtime(self._fname)
 
@@ -111,12 +106,17 @@ class Settings(dict):
         finally:
             self._lock.release()
 
-    def __getattr__(self, item):
-        return self.get(item)
+    def __getitem__(self, item):
+        if item not in self.json_keys:
+            raise KeyError(item)
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        if key not in self.json_keys:
+            raise KeyError(key)
+        return setattr(self, key, value)
 
     def __setattr__(self, key, value):
-        if key.startswith('_'):
-            super().__setattr__(key, value)
-        elif key not in self or self[key] != value:
-            self[key] = value
+        super().__setattr__(key, value)
+        if key in self.json_keys:
             self._changed = True

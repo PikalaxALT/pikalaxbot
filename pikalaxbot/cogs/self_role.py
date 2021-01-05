@@ -16,6 +16,7 @@
 
 import discord
 from discord.ext import commands
+import asyncpg
 from . import *
 from .utils.converters import AliasedRoleConverter
 
@@ -36,11 +37,17 @@ def bot_role_is_higher(ctx):
 class SelfAssignableRole(BaseCog):
     """Commands for roles that can be self-assigned using commands."""
 
-    roles = {}
-    config_attrs = 'roles',
-
     def cog_check(self, ctx):
         return commands.guild_only().predicate(ctx)
+
+    async def init_db(self, sql):
+        await sql.execute('create table if not exists self_role ('
+                          'guild_id bigint not null, '
+                          'role_id bigint not null, '
+                          'alias varchar(32)'
+                          ')')
+        await sql.execute('create unique index if not exists self_role_idx '
+                          'on self_role(guild_id, role_id)')
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
@@ -78,45 +85,63 @@ class SelfAssignableRole(BaseCog):
     @commands.is_owner()
     async def addar(self, ctx: MyContext, alias: str.lower, *, role: discord.Role):
         """Add a role to the list of self-assignable roles"""
-        if str(ctx.guild.id) not in self.roles:
-            self.roles[str(ctx.guild.id)] = {alias: role.id}
-        elif alias in self.roles[str(ctx.guild.id)]:
-            return await ctx.send(f'Role "{role}" already self-assignable"')
+        try:
+            async with self.bot.sql as sql:  # type: asyncpg.Connection
+                await sql.execute('insert into self_role values ($1, $2, $3)', ctx.guild.id, role.id, alias)
+        except asyncpg.UniqueViolationError:
+            await ctx.send(f'Role "{role}" already self-assignable"')
+        except asyncpg.DatatypeMismatchError:
+            await ctx.send(f'Alias string too long, try something shorter')
         else:
-            self.roles[str(ctx.guild.id)][alias] = role.id
-        await ctx.send(f'Role "{role}" is now self-assignable')
+            await ctx.send(f'Role "{role}" is now self-assignable')
 
     @commands.command()
     @commands.is_owner()
     async def rmar(self, ctx: MyContext, alias: str.lower):
         """Remove a role from the list of self-assignable roles"""
-        if str(ctx.guild.id) not in self.roles:
-            self.roles[str(ctx.guild.id)] = {}
-        if alias not in self.roles[str(ctx.guild.id)]:
-            return await ctx.send(f'Role "{alias}" is self-assignable"')
-        self.roles[str(ctx.guild.id)].pop(alias)
-        await ctx.send(f'Role "{alias}" is no longer self-assignable')
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            status = await sql.execute(
+                'delete from self_role '
+                'where guild_id = $1 '
+                'and alias = $2',
+                ctx.guild.id,
+                alias
+            )
+        if status == 'DELETE 0':
+            await ctx.send(f'Role "{alias}" is not self-assignable"')
+        else:
+            await ctx.send(f'Role "{alias}" is no longer self-assignable')
 
     @commands.command()
     async def lsar(self, ctx: MyContext):
         """List self-assignable roles"""
-        if str(ctx.guild.id) not in self.roles:
-            self.roles[str(ctx.guild.id)] = {}
-        msg = f'Self-assignable roles for {ctx.guild}:\n'
-        roles = self.roles.get(str(ctx.guild.id), {})
-        if roles:
-            for alias, role_id in roles.items():
-                role = discord.utils.get(ctx.guild.roles, id=role_id)
-                msg += f'    {alias}: {role}\n'
-        else:
-            msg += f'    None\n'
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            role_fmts = [
+                f'    {alias}: {ctx.guild.get_role(role_id)}'
+                for role_id, alias in await sql.fetch(
+                    'select role_id, alias '
+                    'from self_role '
+                    'where guild_id = $1',
+                    ctx.guild.id
+                )
+            ]
+        msg = '\n'.join([f'Self-assignable roles for {ctx.guild}:'] + role_fmts or '    None')
         await ctx.send(msg)
 
     @commands.command()
     @commands.is_owner()
-    async def resetar(self, ctx: MyContext):
+    async def resetar(self, ctx: MyContext, _all=False):
         """Reset self-assignable roles"""
-        self.roles = {}
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            await sql.execute(
+                'delete from self_role '
+                'where case '
+                'when $2 then true '
+                'else guild_id = $1 '
+                'end',
+                ctx.guild.id,
+                _all
+            )
         await ctx.message.add_reaction('☑')
 
 

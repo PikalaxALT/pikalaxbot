@@ -78,7 +78,7 @@ class ConfirmationMenu(menus.Menu):
 class Core(BaseCog):
     """The core functionality of the bot."""
 
-    banlist = set()
+    banlist: set[int] = set()
     game = 'p!help'
     config_attrs = 'banlist', 'game'
     LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo

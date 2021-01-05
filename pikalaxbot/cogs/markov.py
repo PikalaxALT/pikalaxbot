@@ -31,7 +31,7 @@ class MarkovNoInit(commands.CheckFailure):
 class Markov(BaseCog):
     """Commands and listeners for generating random word Markov chains."""
 
-    markov_channels = set()
+    markov_channels: set[int] = set()
     config_attrs = 'markov_channels',
 
     def __init__(self, bot):

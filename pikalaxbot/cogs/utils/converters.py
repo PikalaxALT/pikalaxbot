@@ -1,8 +1,10 @@
+import discord
 from discord.ext import commands
 import re
 from .errors import BadGameArgument
 from dateutil.relativedelta import relativedelta
 import datetime
+import asyncpg
 import parsedatetime as pdt
 from .. import *
 
@@ -45,12 +47,21 @@ class DiceRollConverter(tuple[int, int]):
         return count, sides
 
 
-class AliasedRoleConverter(commands.RoleConverter):
-    async def convert(self, ctx: MyContext, argument: str):
-        role_id = ctx.cog.roles.get(str(ctx.guild.id), {}).get(argument.lower())
+class AliasedRoleConverter(discord.Role):
+    @classmethod
+    async def convert(cls, ctx: MyContext, argument: str):
+        async with ctx.bot.sql as sql:  # type: asyncpg.Connection
+            role_id = await sql.fetchval(
+                'select role_id '
+                'from self_role '
+                'where guild_id = $1 '
+                'and alias = $2',
+                ctx.guild.id,
+                argument
+            )
         if role_id is None:
-            raise commands.BadArgument(f'No alias "{argument}" has been registered to a role')
-        return await super().convert(ctx, argument)
+            raise commands.RoleNotFound(f'No alias "{argument}" has been registered to a role')
+        return await commands.RoleConverter().convert(ctx, role_id)
 
 
 def BoardCoords(minx=1, maxx=5, miny=1, maxy=5):
