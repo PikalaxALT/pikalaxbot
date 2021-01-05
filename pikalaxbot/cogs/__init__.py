@@ -76,12 +76,22 @@ class BaseCog(LoggingMixin, commands.Cog):
                     val = old_attr
                 setattr(self, attr, val)
 
-    async def prepare(self):
-        """Async init"""
-        await self.fetch()
+    async def prepare_once(self):
         if BaseCog._get_overridden_method(self.init_db) is not None:
             async with self.bot.sql as sql:
                 await self.init_db(sql)
+
+    async def prepare(self):
+        """Async init"""
+        try:
+            _ = self.__prepared
+        except AttributeError:
+            await self.prepare_once()
+            self.__prepared = True
+        await self.fetch()
+
+    async def cog_before_invoke(self, ctx):
+        await self.prepare()
 
     async def commit(self):
         """

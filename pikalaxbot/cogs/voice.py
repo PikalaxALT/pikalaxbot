@@ -114,8 +114,7 @@ class Voice(BaseCog):
     def cog_unload(self):
         [task.cancel() for task in self.timeout_tasks.values()]
 
-    async def prepare(self):
-        await super().prepare()
+    async def prepare_once(self):
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
                 try:
