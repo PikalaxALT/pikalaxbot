@@ -3,7 +3,18 @@ import aiohttp
 __all__ = ('mystbin', 'hastebin')
 
 
-async def hastebin(content: str, **kwargs) -> str:
+async def do_bin(domain: str, content: str, cs: aiohttp.ClientSession = None):
+    if close_after := cs is None:
+        cs = aiohttp.ClientSession(raise_for_status=True)
+    timeout = aiohttp.ClientTimeout(total=15.0)
+    async with cs.post('{}/documents'.format(domain), data=content.encode('utf-8'), timeout=timeout) as res:
+        post = await res.json()
+    if close_after:
+        await cs.close()
+    return '{0}/{key}'.format(domain, **post)
+
+
+def hastebin(content: str, cs: aiohttp.ClientSession = None):
     """Upload the content to hastebin and return the url.
 
     :param content: str: Raw content to upload
@@ -11,17 +22,10 @@ async def hastebin(content: str, **kwargs) -> str:
     :return: str: URL to the uploaded content
     :raises aiohttp.ClientException: on failure to upload
     """
-    cs = kwargs.get('cs') or aiohttp.ClientSession(raise_for_status=True)
-    timeout = aiohttp.ClientTimeout(total=15.0)
-    async with cs.post('https://hastebin.com/documents', data=content.encode('utf-8'), timeout=timeout) as res:
-        post = await res.json()
-    uri = post['key']
-    if 'cs' not in kwargs:
-        await cs.close()
-    return f'https://hastebin.com/{uri}'
+    return do_bin('https://hastebin.com', content, cs=cs)
 
 
-async def mystbin(content: str, **kwargs) -> str:
+def mystbin(content: str, cs: aiohttp.ClientSession = None):
     """Upload the content to mystbin and return the url.
 
     :param content: str: Raw content to upload
@@ -29,11 +33,4 @@ async def mystbin(content: str, **kwargs) -> str:
     :return: str: URL to the uploaded content
     :raises aiohttp.ClientException: on failure to upload
     """
-    cs = kwargs.get('cs') or aiohttp.ClientSession(raise_for_status=True)
-    timeout = aiohttp.ClientTimeout(total=15.0)
-    async with cs.post('https://mystb.in/documents', data=content.encode('utf-8'), timeout=timeout) as res:
-        post = await res.json()
-    uri = post['key']
-    if 'cs' not in kwargs:
-        await cs.close()
-    return f'https://mystb.in/{uri}'
+    return do_bin('https://mystb.in', content, cs=cs)
