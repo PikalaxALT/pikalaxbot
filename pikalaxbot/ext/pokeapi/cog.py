@@ -96,16 +96,16 @@ async def dexsearch_check(ctx: MyContext):
 
 
 class ConfirmationMenu(menus.Menu):
-    async def send_initial_message(self, ctx, channel):
+    async def send_initial_message(self, ctx: MyContext, channel):
         return await ctx.reply('This can take up to 30 minutes. Are you sure?')
 
     @menus.button('\N{CROSS MARK}')
-    async def abort(self, payload):
+    async def abort(self, payload: discord.RawReactionActionEvent):
         await self.message.edit(content='Aborting', delete_after=10)
         self.stop()
 
     @menus.button('\N{WHITE HEAVY CHECK MARK}')
-    async def confirm(self, payload):
+    async def confirm(self, payload: discord.RawReactionActionEvent):
         await self.message.edit(content='Confirmed', delete_after=10)
         await self.ctx.cog.do_rebuild_pokeapi(self.ctx)
         self.stop()
@@ -116,7 +116,7 @@ class ConfirmationMenu(menus.Menu):
 
 
 class SqlResponseEmbed(menus.ListPageSource):
-    def format_page(self, menu: menus.MenuPages, page):
+    def format_page(self, menu: menus.MenuPages, page: str):
         return discord.Embed(
             title=menu.sql_cmd,
             description=page,

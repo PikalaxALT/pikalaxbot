@@ -1,6 +1,6 @@
 import asqlite3
 import re
-from typing import Coroutine, Optional, List, Callable, Tuple, Any, Union, Mapping, AsyncGenerator, Type, TYPE_CHECKING
+from typing import Optional, Callable, Any, Union, Mapping, AsyncGenerator, TYPE_CHECKING
 from sqlite3 import Cursor
 from .models import *
 from contextlib import asynccontextmanager as acm
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 __all__ = 'PokeApi',
 
-RowFactory = Union[Type['Model'], Callable[[Cursor, Tuple[Any]], Any]]
+RowFactory = Union[type['Model'], Callable[[Cursor, tuple], ...]]
 
 
 async def flatten(iterable: AsyncGenerator):
@@ -41,7 +41,12 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 return self.result
 
         await super()._connect()
-        await self.create_function('FUZZY_RATIO', 2, lambda a, b: difflib.SequenceMatcher(a=a.lower(), b=b.lower()).ratio(), deterministic=True)
+        await self.create_function(
+            'FUZZY_RATIO',
+            2,
+            lambda a, b: difflib.SequenceMatcher(a=a.lower(), b=b.lower()).ratio(),
+            deterministic=True
+        )
         await self.create_aggregate('PRODUCT', 1, Product)
         return self
 
@@ -64,13 +69,13 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             self.row_factory = old_factory
 
     @functools.cache
-    def resolve_model(self, model: Union[str, Type['Model']]) -> Type['Model']:
+    def resolve_model(self, model: Union[str, type['Model']]) -> type['Model']:
         if isinstance(model, str):
             model = getattr(self, model)
         assert issubclass(model, PokeapiResource)
         return model
 
-    async def get_model(self, model: Type['Model'], id_: int) -> Optional['Model']:
+    async def get_model(self, model: type['Model'], id_: int) -> Optional['Model']:
         model = self.resolve_model(model)
         if id_ is None:
             return
@@ -85,7 +90,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         return result
 
     @acm
-    async def all_models_cursor(self, model: Type['Model']) -> asqlite3.Cursor:
+    async def all_models_cursor(self, model: type['Model']) -> asqlite3.Cursor:
         model = self.resolve_model(model)
         statement = """
         SELECT *
@@ -95,20 +100,20 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             async with conn.execute(statement) as cur:
                 yield cur
 
-    async def get_all_models(self, model: Type['Model']) -> List['Model']:
+    async def get_all_models(self, model: type['Model']) -> list['Model']:
         model = self.resolve_model(model)
         async with self.all_models_cursor(model) as cur:
             result = await cur.fetchall()
         return result
 
-    async def find(self, predicate: Callable[[Any], bool], model: Type['Model']) -> Optional['Model']:
+    async def find(self, predicate: Callable[[Any], bool], model: type['Model']) -> Optional['Model']:
         async with self.all_models_cursor(model) as seq:
             async for element in seq:  # type: PokeapiResource
                 if predicate(element):
                     return element
             return None
 
-    async def filter(self, model: Type['Model'], **attrs) -> AsyncGenerator['Model', None]:
+    async def filter(self, model: type['Model'], **attrs) -> AsyncGenerator['Model', None]:
         _all = all
         attrget = attrgetter
         async with self.all_models_cursor(model) as iterable:
@@ -129,11 +134,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 if _all(pred(elem) == value for pred, value in converted):
                     yield elem
 
-    async def get(self, model: Type['Model'], **attrs) -> Optional['Model']:
+    async def get(self, model: type['Model'], **attrs) -> Optional['Model']:
         async for item in self.filter(model, **attrs):
             return item
 
-    async def get_model_named(self, model: Type['Model'], name: str, *, cutoff=0.9) -> Optional['Model']:
+    async def get_model_named(self, model: type['Model'], name: str, *, cutoff=0.9) -> Optional['Model']:
         model = self.resolve_model(model)
         statement = """
         SELECT *, CASE
@@ -151,11 +156,18 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         ORDER BY ratio DESC
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())
         async with self.replace_row_factory(model) as conn:
-            async with conn.execute(statement, {'cutoff': cutoff, 'language': self._conn._default_language, 'name': name}) as cur:
+            async with conn.execute(
+                    statement,
+                    {
+                        'cutoff': cutoff,
+                        'language': self._conn._default_language,
+                        'name': name
+                    }
+            ) as cur:
                 obj = await cur.fetchone()
         return obj
 
-    async def get_names_from(self, table: Type['Model'], *, clean=False) -> AsyncGenerator[str, None]:
+    async def get_names_from(self, table: type['Model'], *, clean=False) -> AsyncGenerator[str, None]:
         """Generic method to get a list of all names from a PokeApi table."""
         async with self.all_models_cursor(table) as cur:
             async for obj in cur:
@@ -164,12 +176,12 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
         return self._clean_name(item.name) if clean else item.name
 
-    async def get_name_by_id(self, model: Type['Model'], id_: int, *, clean=False):
+    async def get_name_by_id(self, model: type['Model'], id_: int, *, clean=False):
         """Generic method to get the name of a PokeApi object given only its ID."""
         obj = await self.get_model(model, id_)
         return obj and self.get_name(obj, clean=clean)
 
-    async def get_random(self, model: Type['Model']) -> Optional['Model']:
+    async def get_random(self, model: type['Model']) -> Optional['Model']:
         """Generic method to get a random PokeApi object."""
         model = self.resolve_model(model)
         statement = """
@@ -182,90 +194,90 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
     
-    async def get_random_name(self, table: Type['Model'], *, clean=False) -> Optional[str]:
+    async def get_random_name(self, table: type['Model'], *, clean=False) -> Optional[str]:
         """Generic method to get a random PokeApi object name."""
         obj = await self.get_random(table)
         return obj and self.get_name(obj, clean=clean)
 
     # Specific getters, defined for type-hints
 
-    def get_species(self, id_) -> Coroutine[None, None, Optional[PokeapiModels.PokemonSpecies]]:
+    def get_species(self, id_):
         """Get a Pokemon species by ID"""
         return self.get_model(PokeapiModels.PokemonSpecies, id_)
 
-    def random_species(self) -> Coroutine[None, None, Optional[PokeapiModels.PokemonSpecies]]:
+    def random_species(self):
         """Get a random Pokemon species"""
         return self.get_random(PokeapiModels.PokemonSpecies)
 
-    def get_mon_name(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> str:
+    def get_mon_name(self, mon: PokeapiModels.PokemonSpecies, *, clean=False):
         """Get the name of a Pokemon species"""
         return self.get_name(mon, clean=clean)
 
-    def random_species_name(self, *, clean=False) -> Coroutine[None, None, str]:
+    def random_species_name(self, *, clean=False):
         """Get the name of a random Pokemon species"""
         return self.get_random_name(PokeapiModels.PokemonSpecies, clean=clean)
 
-    def get_species_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.PokemonSpecies]]:
+    def get_species_by_name(self, name: str):
         """Get a Pokemon species given its name"""
         return self.get_model_named(PokeapiModels.PokemonSpecies, name)
 
-    def get_forme_name(self, mon: PokeapiModels.PokemonForm, *, clean=False) -> str:
+    def get_forme_name(self, mon: PokeapiModels.PokemonForm, *, clean=False):
         """Get a Pokemon forme's name"""
         return self.get_name(mon, clean=clean)
 
-    def random_move(self) -> Coroutine[None, None, Optional[PokeapiModels.Move]]:
+    def random_move(self):
         """Get a random move"""
         return self.get_random(PokeapiModels.Move)
 
-    def get_move_name(self, move: PokeapiModels.Move, *, clean=False) -> str:
+    def get_move_name(self, move: PokeapiModels.Move, *, clean=False):
         """Get a move's name"""
         return self.get_name(move, clean=clean)
 
-    def random_move_name(self, *, clean=False) -> Coroutine[None, None, str]:
+    def random_move_name(self, *, clean=False):
         """Get a random move's name"""
         return self.get_random_name(PokeapiModels.Move, clean=clean)
 
-    def get_move_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Move]]:
+    def get_move_by_name(self, name: str):
         """Get a move given its name"""
         return self.get_model_named(PokeapiModels.Move, name)
 
-    def get_mon_color(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonColor:
+    def get_mon_color(self, mon: PokeapiModels.PokemonSpecies):
         """Get the object representing the Pokemon species' color"""
         return mon.pokemon_color
 
-    def get_pokemon_color_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.PokemonColor]]:
+    def get_pokemon_color_by_name(self, name: str):
         """Get a Pokemon color given its name"""
         return self.get_model_named(PokeapiModels.PokemonColor, name)
 
-    def get_pokemon_color_name(self, color: PokeapiModels.PokemonColor, *, clean=False) -> str:
+    def get_pokemon_color_name(self, color: PokeapiModels.PokemonColor, *, clean=False):
         """Get the name of a Pokemon color"""
         return self.get_name(color, clean=clean)
 
-    def get_name_of_mon_color(self, mon: PokeapiModels.PokemonSpecies, *, clean=False) -> str:
+    def get_name_of_mon_color(self, mon: PokeapiModels.PokemonSpecies, *, clean=False):
         """Get the name of a Pokemon species' color"""
         return self.get_name(mon.pokemon_color, clean=clean)
 
-    def get_ability_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Ability]]:
+    def get_ability_by_name(self, name: str):
         """Get an ability given its name"""
         return self.get_model_named(PokeapiModels.Ability, name)
 
-    def get_ability_name(self, ability: PokeapiModels.Ability, *, clean=False) -> str:
+    def get_ability_name(self, ability: PokeapiModels.Ability, *, clean=False):
         """Get the name of an ability"""
         return self.get_name(ability, clean=clean)
 
-    def get_type_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Type]]:
+    def get_type_by_name(self, name: str):
         """Get a Pokemon type given its name"""
         return self.get_model_named(PokeapiModels.Type, name)
 
-    def get_type_name(self, type_: PokeapiModels.Type, *, clean=False) -> str:
+    def get_type_name(self, type_: PokeapiModels.Type, *, clean=False):
         """Get the name of a type"""
         return self.get_name(type_, clean=clean)
 
-    def get_pokedex_by_name(self, name: str) -> Coroutine[None, None, Optional[PokeapiModels.Pokedex]]:
+    def get_pokedex_by_name(self, name: str):
         """Get a Pokedex given its name"""
         return self.get_model_named(PokeapiModels.Pokedex, name)
 
-    def get_pokedex_name(self, dex: PokeapiModels.Pokedex, *, clean=False) -> str:
+    def get_pokedex_name(self, dex: PokeapiModels.Pokedex, *, clean=False):
         """Get the name of a pokedex"""
         return self.get_name(dex, clean=clean)
 
@@ -284,7 +296,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
 
     # Nonstandard methods
 
-    async def get_mon_types(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Type]:
+    async def get_mon_types(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.Type]:
         """Returns a list of types for that Pokemon"""
         statement = """
         SELECT *
@@ -335,7 +347,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = await self.get_mon_matchup_against_type(mon, move.type)
         return result
 
-    async def get_mon_matchup_against_mon(self, mon: PokeapiModels.PokemonSpecies, mon2: PokeapiModels.PokemonSpecies) -> List[float]:
+    async def get_mon_matchup_against_mon(
+            self,
+            mon: PokeapiModels.PokemonSpecies,
+            mon2: PokeapiModels.PokemonSpecies
+    ) -> list[float]:
         """For each type mon2 has, determines its effectiveness against mon"""
 
         statement = """
@@ -357,11 +373,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
 
         return list(result.values())
 
-    async def get_preevo(self, mon: PokeapiModels.PokemonSpecies) -> PokeapiModels.PokemonSpecies:
+    async def get_preevo(self, mon: PokeapiModels.PokemonSpecies):
         """Get the species the given Pokemon evoles from"""
         return mon.evolves_from_species
 
-    async def get_evos(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
+    async def get_evos(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.PokemonSpecies]:
         """Get all species the given Pokemon evolves into"""
         statement = """
         SELECT *
@@ -372,7 +388,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
-    async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Move]:
+    async def get_mon_learnset(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.Move]:
         """Returns a list of all the moves the Pokemon can learn"""
         statement = """
         SELECT DISTINCT *
@@ -403,7 +419,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 result, = await cur.fetchone()
         return bool(result)
 
-    async def get_mon_abilities(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.Ability]:
+    async def get_mon_abilities(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.Ability]:
         """Returns a list of abilities for that Pokemon"""
         statement = """
         SELECT *
@@ -417,7 +433,10 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return result
 
-    async def get_mon_abilities_with_flags(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonAbility]:
+    async def get_mon_abilities_with_flags(
+            self,
+            mon: PokeapiModels.PokemonSpecies
+    ) -> list[PokeapiModels.PokemonAbility]:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonability p
@@ -480,7 +499,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 result, = await cur.fetchone()
         return bool(result)
     
-    async def get_evo_line(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonSpecies]:
+    async def get_evo_line(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.PokemonSpecies]:
         """Returns the set of all Pokemon in the same evolution family as the given species."""
         statement = """
         SELECT *
@@ -502,7 +521,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 result, = await cur.fetchone()
         return result
 
-    async def is_in_evo_line(self, needle: PokeapiModels.PokemonSpecies, haystack: PokeapiModels.PokemonSpecies) -> bool:
+    async def is_in_evo_line(
+            self,
+            needle: PokeapiModels.PokemonSpecies,
+            haystack: PokeapiModels.PokemonSpecies
+    ) -> bool:
         statement = """
         SELECT EXISTS(
             SELECT *
@@ -546,7 +569,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 result, = await cur.fetchone()
         return bool(result)
 
-    async def get_formes(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonForm]:
+    async def get_formes(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.PokemonForm]:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonform
@@ -619,7 +642,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'id': mon.id})
         return dict(result)
 
-    async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.EggGroup]:
+    async def get_egg_groups(self, mon: PokeapiModels.PokemonSpecies) -> list[PokeapiModels.EggGroup]:
         statement = """
         SELECT *
         FROM pokemon_v2_egggroup
@@ -682,7 +705,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 result, = await cur.fetchone()
         return bool(result)
 
-    async def get_mon_flavor_text(self, mon: PokeapiModels.PokemonSpecies, version: Optional[PokeapiModels.Version] = None) -> PokeapiModels.PokemonSpeciesFlavorText:
+    async def get_mon_flavor_text(
+            self,
+            mon: PokeapiModels.PokemonSpecies,
+            version: Optional[PokeapiModels.Version] = None
+    ) -> PokeapiModels.PokemonSpeciesFlavorText:
         statement = """
         SELECT flavor_text
         FROM pokemon_v2_pokemonspeciesflavortext
@@ -694,11 +721,20 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         else:
             statement += ' AND version_id = :version'
         async with self.replace_row_factory(None) as conn:
-            async with conn.execute(statement, {'id': mon.id, 'lang': mon.language.id, 'version': version and version.id}) as cur:
+            async with conn.execute(
+                    statement, {
+                        'id': mon.id,
+                        'lang': mon.language.id,
+                        'version': version and version.id
+                    }
+            ) as cur:
                 result, = await cur.fetchone()
         return result
 
-    async def get_mon_evolution_methods(self, mon: PokeapiModels.PokemonSpecies) -> List[PokeapiModels.PokemonEvolution]:
+    async def get_mon_evolution_methods(
+            self,
+            mon: PokeapiModels.PokemonSpecies
+    ) -> list[PokeapiModels.PokemonEvolution]:
         statement = """
         SELECT *
         FROM pokemon_v2_pokemonevolution
@@ -723,7 +759,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 result, = await cur.fetchone()
         return bool(result)
 
-    async def get_versions_in_group(self, grp: PokeapiModels.VersionGroup) -> List[PokeapiModels.Version]:
+    async def get_versions_in_group(self, grp: PokeapiModels.VersionGroup) -> list[PokeapiModels.Version]:
         statement = """
         SELECT *
         FROM pokemon_v2_version
@@ -733,7 +769,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'vgid': grp.id})
         return result
 
-    async def get_move_attrs(self, move: PokeapiModels.Move) -> List[PokeapiModels.MoveAttribute]:
+    async def get_move_attrs(self, move: PokeapiModels.Move) -> list[PokeapiModels.MoveAttribute]:
         statement = """
         SELECT *
         FROM pokemon_v2_moveattribute
@@ -744,7 +780,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = await conn.execute_fetchall(statement, {'move_id': move.id})
         return result
 
-    async def get_move_description(self, move: PokeapiModels.Move, version: Optional[PokeapiModels.Version] = None) -> Optional[str]:
+    async def get_move_description(
+            self,
+            move: PokeapiModels.Move,
+            version: Optional[PokeapiModels.Version] = None
+    ) -> Optional[str]:
         statement = """
         SELECT flavor_text
         FROM pokemon_v2_moveflavortext
@@ -765,7 +805,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             result = None
         return result
 
-    async def get_machines_teaching_move(self, move: PokeapiModels.Move) -> List[PokeapiModels.Machine]:
+    async def get_machines_teaching_move(self, move: PokeapiModels.Move) -> list[PokeapiModels.Machine]:
         statement = """
         SELECT *
         FROM pokemon_v2_machine
