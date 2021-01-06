@@ -257,7 +257,7 @@ class Poll(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.polls: typing.List[PollManager] = []
+        self.polls: list[PollManager] = []
 
     def cog_unload(self):
         self.cleanup_polls.cancel()

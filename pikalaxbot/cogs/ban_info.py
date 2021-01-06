@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands, menus
 from . import *
-import typing
 import aioitertools
 
 
@@ -9,7 +8,7 @@ class BanInfoPageSource(menus.PageSource):
     def __init__(self, guild: discord.Guild):
         super().__init__()
         self.iterator: discord.guild.AuditLogIterator = guild.audit_logs(limit=None, action=discord.AuditLogAction.ban)
-        self._cache: typing.List[discord.AuditLogEntry] = []
+        self._cache: list[discord.AuditLogEntry] = []
         self._ncache = 0
         self._more = True
         self._n_last_fetched = 0

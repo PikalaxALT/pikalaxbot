@@ -9,9 +9,12 @@ import random
 import nltk
 import asyncio
 from contextlib import asynccontextmanager as acm
-from typing import Tuple, TYPE_CHECKING, Optional, Mapping, Callable, Coroutine, List, Any
+from typing import TYPE_CHECKING, Optional, Callable, Coroutine
 if TYPE_CHECKING:
     from ..ext.pokeapi import PokeApi, NamedPokeapiResource
+
+
+ParseMethod = Callable[[str], Coroutine[None, None, tuple[Optional[str], int, bool, float]]]
 
 
 # Temporary workaround
@@ -92,7 +95,7 @@ class Q20QuestionParser:
         re.compile(r'ho[ -]?oh', re.I): 250,
         re.compile(r'mime ?jr\.?', re.I): 439,
         re.compile(r'(porygon[ -]?z|sim(bot)?)', re.I): 474,
-        re.compile(r'flabebe', re.I): 669, # accents!
+        re.compile(r'flabebe', re.I): 669,  # accents!
         re.compile(r'starly', re.I): 396,
         re.compile(r'[ao]b[oa]ma(snow)?', re.I): 460,
         re.compile(r's(ka|ta){4,}', re.I): 805,
@@ -120,7 +123,7 @@ class Q20QuestionParser:
         re.compile(r'^(c3|ccc)$', re.I): 312,
         re.compile(r'^((lord )?root|potato)$', re.I): 346,
         re.compile(r'^kenya+$', re.I): 383,
-        re.compile(r'^de(le){1,} ?wo{2,}p$', re.I): 402,
+        re.compile(r'^de(le)+ ?wo{2,}p$', re.I): 402,
         re.compile(r'^(sunshine)$', re.I): 403,
         re.compile(r'^(sunbrella)$', re.I): 407,
         re.compile(r'^(dairy queen)$', re.I): 483,
@@ -165,13 +168,13 @@ class Q20QuestionParser:
         self.differ = difflib.SequenceMatcher()
         self.tokenizer = nltk.WordPunctTokenizer()
 
-    async def lookup_name(self, table, q) -> Tuple[Optional[str], 'Optional[NamedPokeapiResource]', float]:
-        def iter_matches(callable: Callable[[str], Any]):
-            yield callable(q)
+    async def lookup_name(self, table, q) -> tuple[Optional[str], 'Optional[NamedPokeapiResource]', float]:
+        def iter_matches(callable_: Callable[[str], ...]):
+            yield callable_(q)
             for bigram in re.findall(r'(?=(\S+\s+\S))', q):
-                yield callable(bigram)
+                yield callable_(bigram)
             for word in q.split():
-                yield callable(word)
+                yield callable_(word)
 
         def get_first_match(lut):
             return discord.utils.find(
@@ -224,7 +227,10 @@ class Q20QuestionParser:
             q = re.sub(r'\s+', ' ', q, flags=re.I)
             found: 'Optional[PokeApi.Move]'
             name, found, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
-            return name, 0, found and await self.bot.pokeapi.mon_can_learn_move(solution, found), confidence * confidence_f
+            return name, \
+                0, \
+                found and await self.bot.pokeapi.mon_can_learn_move(solution, found), \
+                confidence * confidence_f
 
         async def ability(q):
             confidence = len(re.findall(r'\b(have|ability)\b', q, re.I))
@@ -307,7 +313,12 @@ class Q20QuestionParser:
             singletype += len(re.findall(r'\b(pure|single|one)\b', q, re.I))
             dualtype += len(re.findall(r'\b(du[ea]l|duo|two)\b', q, re.I))
             q = self.IGNORE_WORDS_1.sub('', q)
-            q = re.sub(r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b', '', q, flags=re.I)
+            q = re.sub(
+                r'\b(type[ds]?|have|moves?|against|resist|strong|weak|(((not )?very|super) )?effect[ia]ve)\b',
+                '',
+                q,
+                flags=re.I
+            )
             q = re.sub(r'\s+', ' ', q, flags=re.I)
             nunkwords = len(re.findall(r'\w+', q))
             confidence = (nwords - nunkwords) / nwords * 5
@@ -339,11 +350,14 @@ class Q20QuestionParser:
                         assert len(testeffect) in (1, 2)
                         message = 3 + (typeeffect < 0)
                         if len(testeffect) == 2:
-                            if (testeffect[0] < 1 and testeffect[1] > 1 or testeffect[0] > 1 and testeffect[1] < 1):
+                            if testeffect[0] < 1 and testeffect[1] > 1 or testeffect[0] > 1 and testeffect[1] < 1:
                                 result = False
                                 flags |= 0x10000
                             else:
-                                result = testeffect[0] < 1 and typeeffect < 0 or testeffect[0] > 1 and typeeffect > 0 or testeffect[1] < 1 and typeeffect < 0 or testeffect[1] > 1 and typeeffect > 0
+                                result = testeffect[0] < 1 and typeeffect < 0 \
+                                     or testeffect[0] > 1 and typeeffect > 0 \
+                                     or testeffect[1] < 1 and typeeffect < 0 \
+                                     or testeffect[1] > 1 and typeeffect > 0
                         else:
                             result = testeffect[0] < 1 and typeeffect < 0 or testeffect[0] > 1 and typeeffect > 0
                         if 0 in testeffect:
@@ -368,7 +382,10 @@ class Q20QuestionParser:
             q = re.sub(r'\s+', ' ', q, flags=re.I)
             _color: 'Optional[PokeApi.PokemonColor]'
             name, _color, confidence = await self.lookup_name(self.bot.pokeapi.PokemonColor, q)
-            return name, 0, _color and _color == solution.pokemon_color, confidence / len(re.findall(r'\w+', q)) if q else 0
+            return name, \
+                0, \
+                _color and _color == solution.pokemon_color, \
+                confidence / len(re.findall(r'\w+', q)) if q else 0
 
         async def evolution(q):
             nwords = len(re.findall(r'\w+', q))
@@ -399,8 +416,8 @@ class Q20QuestionParser:
                 item = 'found'
             elif stone or trade:
                 message = 4
-                methods = await self.bot.pokeapi.get_mon_evolution_methods(solution)
-                result = any(meth.evolution_trigger.id == 2 + stone for meth in methods)
+                methods_ = await self.bot.pokeapi.get_mon_evolution_methods(solution)
+                result = any(meth.evolution_trigger.id == 2 + stone for meth in methods_)
                 item = 'stone' if stone else 'trade'
             return item, message, result, confidence
 
@@ -428,7 +445,10 @@ class Q20QuestionParser:
                 r'\b(7|7th|seventh|vii)\b',
                 r'\b(8|8th|eighth|viii)\b',
             ]
-            generation, _ = discord.utils.find(lambda pat: re.search(pat[1], q, re.I) is not None, enumerate(patterns, 1)) or (-1, None)
+            generation, _ = discord.utils.find(
+                lambda pat_: re.search(pat_[1], q, re.I) is not None,
+                enumerate(patterns, 1)
+            ) or (-1, None)
             for pat in patterns:
                 q = re.sub(pat, '', q, flags=re.I)
             q = re.sub(r'\s+', '', q)
@@ -641,7 +661,7 @@ class Q20QuestionParser:
                 return None, 0, False, 0
             q = self.IGNORE_WORDS_1.sub('', q)
             q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, flags=re.I)
-            q = re.sub('\s+', '', q)
+            q = re.sub(r'\s+', '', q)
             _habitat: 'Optional[PokeApi.PokemonHabitat]'
             name, _habitat, confidence = await self.lookup_name(self.bot.pokeapi.PokemonHabitat, q)
             return name, 0, _habitat == solution.habitat, confidence
@@ -663,7 +683,12 @@ class Q20QuestionParser:
                     stat_compare *= 0
                 elif re.match(r'^th[ae]n$', word, re.I):
                     stat_compare *= 2
-                elif m := re.match(r'^(base|stats?|total|bst|hp|at(tac)?k|sp(ecial|e?c)?\.?(at(tac)?k|def(en[cs]e)?)?|def(en[cs]e)?|sp(eed|e|d))$', word, re.I):
+                elif m := re.match(
+                        r'^(base|stats?|total|bst|hp|at(tac)?k|sp(ecial|e?c)?\.?'
+                        r'(at(tac)?k|def(en[cs]e)?)?|def(en[cs]e)?|sp(eed|e|d))$',
+                        word,
+                        re.I
+                ):
                     is_this_question = True
                     if re.match(r'^(total|bst)$', word, re.I):
                         stat_name = 'Stat Total'
@@ -705,8 +730,8 @@ class Q20QuestionParser:
             if special:
                 stat_name = f'Special {stat_name}'
 
-            async def get_stat_value(mon: 'PokeApi.PokemonSpecies'):
-                base_stats = await self.bot.pokeapi.get_base_stats(mon)
+            async def get_stat_value(mon_: 'PokeApi.PokemonSpecies'):
+                base_stats = await self.bot.pokeapi.get_base_stats(mon_)
                 if stat_name == 'Stat Total':
                     return sum(base_stats.values())
                 return base_stats.get(stat_name, 0)
@@ -792,32 +817,61 @@ class Q20QuestionParser:
                 flags |= 0x100000
             return name, 0, breedable, confidence + flags
 
-        ParseMethod = Callable[[str], Coroutine[None, None, Tuple[Optional[str], int, bool, float]]]
-
-        methods: Mapping[ParseMethod, List[str]] = {
+        methods: dict[ParseMethod, list[str]] = {
             pokemon: ['Is it {}?'],
             move: ['Can it learn {}?'],
             ability: ['Can it have the ability {}?'],
-            (type_challenge if self.game.challenge_mode else type_): ['Is it {} type?', 'Is it weak to {} type?', 'Does it resist {} type?', 'Is it weak against {}?', 'Does it resist {}?'],
+            (type_challenge if self.game.challenge_mode else type_): [
+                'Is it {} type?',
+                'Is it weak to {} type?',
+                'Does it resist {} type?',
+                'Is it weak against {}?',
+                'Does it resist {}?'
+            ],
             color: ['Is its colour {}?'],
-            evolution: ['Does it evolve into {}?', 'Does it evolve from {}?', 'Does it have a mega evolution?', 'Does it evolve?', 'Does it evolve via {}?', 'Is it in a branching evolution line?'],
+            evolution: [
+                'Does it evolve into {}?',
+                'Does it evolve from {}?',
+                'Does it have a mega evolution?',
+                'Does it evolve?',
+                'Does it evolve via {}?',
+                'Is it in a branching evolution line?'
+            ],
             family: ['Is it part of the {} family?'],
             pokedex: ['Is it a {} Pokemon?', 'Is it in the {} Pokedex?'],
             booleans: ['Is it a {}?'],
-            size: ['Is it smaller than {}?', 'Is it taller than {}?', 'Is it {} tall?', 'Is it as tall as {}?', 'I can only understand height measurements in meters.'],
-            weight: ['Does it weigh less than {}?', 'Does it weigh more than {}?', 'Does it weigh {}?', 'Does it weigh the same as {}', ],
+            size: [
+                'Is it smaller than {}?',
+                'Is it taller than {}?',
+                'Is it {} tall?',
+                'Is it as tall as {}?',
+                'I can only understand height measurements in meters.'
+            ],
+            weight: [
+                'Does it weigh less than {}?',
+                'Does it weigh more than {}?',
+                'Does it weigh {}?',
+                'Does it weigh the same as {}'
+            ],
             habitat: ['Does it live in the {} habitat?'],
-            stats: ['Is its Base {} less than {}?', 'Is its Base {} greater than {}?', 'Is its Base {} {}?', 'Is its Base {} the same as {}?'],
+            stats: [
+                'Is its Base {} less than {}?',
+                'Is its Base {} greater than {}?',
+                'Is its Base {} {}?',
+                'Is its Base {} the same as {}?'
+            ],
             body: ['Is it {}-shaped?', 'Is it the same shape as {}?'],
             egg: ['Is it in the {} egg group?'],
             mating: ['Can it mate with {}?']
         }
 
-        async def work(method: ParseMethod, msgbank: List[str]) -> Optional[Tuple[float, str, bool, bool]]:
+        async def work(method: ParseMethod, msgbank: list[str]) -> Optional[tuple[float, str, bool, bool]]:
             _item, _message, match, _confidence = await method(question)
             _flags, _confidence = divmod(_confidence, 0x10000)
             _flags = int(_flags)
-            self.bot.log_debug(f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence} | {_flags}')
+            self.bot.log_debug(
+                f'Q20: {method.__name__}({question}) --> {_item}, {_message}, {match}, {_confidence} | {_flags}'
+            )
             valid = True
             defered_valid = True
             if _item:
@@ -833,7 +887,15 @@ class Q20QuestionParser:
                         }.get(_item, 'Sometimes')
                         _flags = 1
                     if _flags & 7 and _item not in ('single', 'dual'):
-                        match_t = ['Sometimes', 'It is immune', 'It is sometimes immune', kappa, kappa, 'It is immune', 'It is sometimes immune'][(_flags & 7) - 1]
+                        match_t = [
+                            'Sometimes',
+                            'It is immune',
+                            'It is sometimes immune',
+                            kappa,
+                            kappa,
+                            'It is immune',
+                            'It is sometimes immune'
+                        ][(_flags & 7) - 1]
                 elif method == pokedex and _item == 'National':
                     match_t = 'Duh.'
                 elif method in {size, weight} and _message == 4:
@@ -953,7 +1015,8 @@ class Q20GameObject(GameBase):
                 self._plando_maker = ctx.author
             samples = random.sample(self._sample_questions, 3)
             prefix, *_ = await self.bot.get_prefix(ctx.message)
-            challenge_message = '\n\n**This is a challenge mode where type-related questions are disabled. Also points are worth double.**' if challenge_mode else ''
+            challenge_message = '\n\n**This is a challenge mode where type-related questions are disabled. ' \
+                                'Also points are worth double.**' if challenge_mode else ''
             await ctx.send(f'I am thinking of a Pokemon. You have {self.attempts:d} questions to guess correctly.\n\n'
                            f'Use `{prefix}<question>` to narrow it down.\n\n'
                            f'**Examples:**\n' + '\n'.join(f'`{prefix}{q}`' for q in samples) + challenge_message)
@@ -980,10 +1043,13 @@ class Q20GameObject(GameBase):
                     await increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
                 tries = f'{self._attempts - self.attempts} tries' if self.attempts < 19 else 'a single try'
-                await ctx.send(f'{ctx.author.mention} has guessed the solution! It was {name}!\n'
-                               f'The following players each earn {score:d} points:\n'
-                               f'```{self.get_player_names()}```\n'
-                               f'{ctx.author.mention} gets an extra {bonus} points for getting it right in {tries}!', embed=embed)
+                await ctx.send(
+                    f'{ctx.author.mention} has guessed the solution! It was {name}!\n'
+                    f'The following players each earn {score:d} points:\n'
+                    f'```{self.get_player_names()}```\n'
+                    f'{ctx.author.mention} gets an extra {bonus} points for getting it right in {tries}!',
+                    embed=embed
+                )
                 self._max_score //= self.challenge_mode + 1
             self.reset()
         else:
@@ -1119,7 +1185,11 @@ class Q20Game(GameCogBase):
         solution: 'PokeApi.PokemonSpecies'
         try:
             while True:
-                msg = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.guild is None, timeout=60.0)
+                msg = await self.bot.wait_for(
+                    'message',
+                    check=lambda m: m.author == ctx.author and m.guild is None,
+                    timeout=60.0
+                )
                 _, solution, _ = await self[ctx.channel.id]._parser.lookup_name('PokemonSpecies', msg.content)
                 if solution:
                     break

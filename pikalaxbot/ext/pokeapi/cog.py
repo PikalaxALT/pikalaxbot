@@ -243,13 +243,13 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
         """Gets information about a Pokémon species"""
 
         async with ctx.typing():
-            base_stats: typing.Mapping[str, int] = await self.bot.pokeapi.get_base_stats(pokemon)
-            types: typing.List[PokeapiModels.Type] = await self.bot.pokeapi.get_mon_types(pokemon)
-            egg_groups: typing.List[PokeapiModels.EggGroup] = await self.bot.pokeapi.get_egg_groups(pokemon)
+            base_stats: dict[str, int] = await self.bot.pokeapi.get_base_stats(pokemon)
+            types: list[PokeapiModels.Type] = await self.bot.pokeapi.get_mon_types(pokemon)
+            egg_groups: list[PokeapiModels.EggGroup] = await self.bot.pokeapi.get_egg_groups(pokemon)
             image_url: str = await self.bot.pokeapi.get_species_sprite_url(pokemon)
             flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
-            evos: typing.List[PokeapiModels.PokemonSpecies] = await self.bot.pokeapi.get_evos(pokemon)
-            abilities: typing.List[PokeapiModels.PokemonAbility] = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
+            evos: list[PokeapiModels.PokemonSpecies] = await self.bot.pokeapi.get_evos(pokemon)
+            abilities: list[PokeapiModels.PokemonAbility] = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
             forme: PokeapiModels.PokemonForm = await self.bot.pokeapi.get_default_forme(pokemon)
         embed = discord.Embed(
             title=f'{pokemon.name} (#{pokemon.id})',
@@ -292,9 +292,9 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
 
     async def move_info(self, ctx: MyContext, move: PokeapiModels.Move):
         async with ctx.typing():
-            attrs: typing.List[PokeapiModels.MoveAttribute] = await self.bot.pokeapi.get_move_attrs(move)
+            attrs: list[PokeapiModels.MoveAttribute] = await self.bot.pokeapi.get_move_attrs(move)
             flavor_text: typing.Optional[str] = await self.bot.pokeapi.get_move_description(move)
-            machines: typing.List[PokeapiModels.Machine] = await self.bot.pokeapi.get_machines_teaching_move(move)
+            machines: list[PokeapiModels.Machine] = await self.bot.pokeapi.get_machines_teaching_move(move)
         embed = discord.Embed(
             title=f'{move.name} (#{move.id})',
             description=flavor_text or 'No flavor text',
@@ -425,7 +425,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             flag = 'can' if move in movelearns else 'cannot'
             await ctx.send(f'{mon} **{flag}** learn {move}.')
 
-    async def ds_parse_one(self, fullterm: str) -> typing.Tuple:
+    async def ds_parse_one(self, fullterm: str) -> tuple:
         notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
         if m := re.match(r'^(g(en)?)? ?([1-8])$', term, flags=re.I):
             gen = int(m[3])
@@ -699,7 +699,7 @@ class PokeApiCog(commands.Cog, name='PokeApi'):
             exc = exc.original
         await ctx.send(f'{exc.__class__.__name__}: {exc}', delete_after=10)
 
-    async def ms_parse_one(self, fullterm: str) -> typing.Tuple:
+    async def ms_parse_one(self, fullterm: str) -> tuple:
         notsearch, term = re.match(r'^(!?)(.+?)$', fullterm).groups()
         if m := re.match(r'^(g(en)?)? ?([1-8])$', term, re.I):
             gen = int(m[3])
