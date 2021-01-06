@@ -48,11 +48,11 @@ class NoPollFound(KeyError):
     pass
 
 
-class NotInitialized(Exception):
+class NotInitialized(commands.CheckFailure):
     pass
 
 
-class AlreadyInitialized(Exception):
+class AlreadyInitialized(commands.CheckFailure):
     pass
 
 
