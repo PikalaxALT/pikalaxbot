@@ -52,7 +52,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     # Generic getters
 
     @acm
-    async def replace_row_factory(self, factory: Optional[RowFactory]) -> 'PokeApi':
+    async def replace_row_factory(self, factory: Optional['RowFactory']) -> 'PokeApi':
         if self._connection is None:
             await self._connect()
         async with self._lock:

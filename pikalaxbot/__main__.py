@@ -69,10 +69,10 @@ def init_extensions(bot: PikalaxBOT):
         try:
             bot.load_extension(extn)
         except commands.ExtensionNotFound:
-            bot.logger.error(f'Unable to find extn "{cogname}"')
+            bot.log_error('Unable to find extn "%s"', cogname)
         except commands.ExtensionFailed as e:
             e = e.original
-            bot.logger.warning(f'Failed to load extn "{cogname}"', exc_info=(e.__class__, e, e.__traceback__))
+            bot.log_error('Failed to load extn "%s"', cogname, exc_info=(e.__class__, e, e.__traceback__))
         else:
             bot.log_info(f'Loaded extn "{cogname}"')
 
@@ -80,26 +80,26 @@ def init_extensions(bot: PikalaxBOT):
 def main():
     parser = argparse.ArgumentParser(prog="pikalaxbot", description="A Discord bot. Yeah.",
                                      epilog="For more help, contact PikalaxALT#5823 on the discord.py server.")
-    parser.add_argument('--settings', default='settings.json',
+    parser.add_argument('-s', '--settings', default='settings.json',
                         help="a JSON file denoting the bot's settings. "
                              "See README.md for details. "
                              "Defaults to %(default)s")
-    parser.add_argument('--logfile', default='bot.log',
+    parser.add_argument('-l', '--logfile', default='bot.log',
                         help="the file to which the logging module will output bot events. "
                              "This file will be overwritten. "
                              "Defaults to %(default)s")
-    parser.add_argument('--version', action='store_true',
+    parser.add_argument('-v', '--version', action='store_true',
                         help="Prints the version string and exits.")
-    parser.add_argument('--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO,
+    parser.add_argument('-d', '--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO,
                         help="set debug log level")
     args = parser.parse_args()
     if args.version:
-        print(f'{os.path.basename(os.path.dirname(__file__))} v{__version__}')
+        print(f'{parser.prog} v{__version__}')
         return
 
     bot = PikalaxBOT(
-        args.settings,
-        args.logfile,
+        settings_file=args.settings,
+        logfile=args.logfile,
         command_prefix=_command_prefix,
         case_insensitive=True,
         # d.py 1.5.0: Declare gateway intents

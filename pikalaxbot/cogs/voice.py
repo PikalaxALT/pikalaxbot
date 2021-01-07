@@ -244,7 +244,7 @@ class Voice(BaseCog):
                         await ctx.send(f'{ctx.author.mention}: Argument "{arg}" raised {exc.__class__.__name__}: {exc}',
                                        delete_after=10)
             else:
-                self.bot.log_tb(ctx, exc)
+                self.log_tb(ctx, exc)
 
     @say.before_invoke
     @pikasay.before_invoke

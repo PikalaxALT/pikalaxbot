@@ -81,7 +81,7 @@ class Settings:
 
     def __enter__(self):
         if os.path.getmtime(self._fname) > self._mtime:
-            with self._fname as fp:
+            with open(self._fname) as fp:
                 data = json.load(fp)
             self.update(data)
             self._mtime = os.path.getmtime(self._fname)

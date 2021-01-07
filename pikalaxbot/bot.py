@@ -2,13 +2,12 @@ import discord
 from discord.ext import commands, menus
 import typing
 import os
-import logging
 import asyncpg
 import aiohttp
 import asyncio
 import datetime
 import traceback
-from .utils.logging_mixin import LoggingMixin
+from .utils.logging_mixin import BotLogger
 from .context import MyContext, FakeContext
 from .utils.config_io import Settings
 if typing.TYPE_CHECKING:
@@ -18,27 +17,19 @@ if typing.TYPE_CHECKING:
 __all__ = ('PikalaxBOT',)
 
 
-class PikalaxBOT(LoggingMixin, commands.Bot):
+class PikalaxBOT(BotLogger, commands.Bot):
     def __init__(
             self,
+            *,
             settings_file: typing.Union[str, os.PathLike],
-            logfile: typing.Union[str, os.PathLike],
             **kwargs
     ):
         # Load settings
-        log_level = kwargs.pop('log_level', logging.NOTSET)
         self.settings = Settings(settings_file)
         super().__init__(activity=discord.Game(self.settings.game), **kwargs)
-        self._ctx_cache = {}
-        self.guild_prefixes = {}
+        self._ctx_cache: dict[tuple[int, int], list[MyContext, set[int]]] = {}
+        self.guild_prefixes: dict[int, str] = {}
         self._sql = 'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
-
-        # Set up logger
-        self.logger.setLevel(log_level)
-        handler = logging.FileHandler(logfile, mode='w')
-        fmt = logging.Formatter('%(asctime)s (PID:%(process)s) - %(levelname)s - %(message)s')
-        handler.setFormatter(fmt)
-        self.logger.addHandler(handler)
 
         async def init_client_session():
             self.client_session = aiohttp.ClientSession()
@@ -48,7 +39,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
                 await self.client_session.close()
                 raise
 
-        self.log_info('Creating aiohttp session')
+        self.log_info('Creating aiohttp session and connecting database')
         self.client_session: typing.Optional[aiohttp.ClientSession] = None
         self._pool: typing.Optional[asyncpg.pool.Pool] = None
         self.loop.run_until_complete(init_client_session())
@@ -56,19 +47,22 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         # Reboot handler
         self.reboot_after = True
 
+        # Uptime
         self._alive_since: typing.Optional[datetime.datetime] = None
+
+        # PokeAPI
         self._pokeapi_factory: typing.Optional[typing.Callable[[], 'PokeApi']] = None
         self._pokeapi: typing.Optional['PokeApi'] = None
 
     @property
-    def exc_channel(self):
+    def exc_channel(self) -> typing.Optional[discord.TextChannel]:
         try:
             return self.get_channel(self.settings.exc_channel)
         except AttributeError:
             return None
 
     @property
-    def command_error_emoji(self):
+    def command_error_emoji(self) -> discord.Emoji:
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     @property
@@ -76,7 +70,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
         return self._pool.acquire()
 
     @property
-    def pokeapi(self) -> typing.Optional['PokeApi']:
+    def pokeapi(self):
         return self._pokeapi
 
     @pokeapi.setter
@@ -127,7 +121,7 @@ class PikalaxBOT(LoggingMixin, commands.Bot):
             await self._pool.close()
 
     async def on_ready(self):
-        self.log_info(f'Logged in as {self.user}')
+        self.log_info('Logged in as %s', self.user)
 
     async def get_context(self, message, *, cls=None) -> MyContext:
         ctx = await super().get_context(message, cls=cls or MyContext)
