@@ -125,7 +125,7 @@ class SelfAssignableRole(BaseCog):
                     ctx.guild.id
                 )
             ]
-        msg = '\n'.join([f'Self-assignable roles for {ctx.guild}:'] + role_fmts or '    None')
+        msg = '\n'.join([f'Self-assignable roles for {ctx.guild}:'] + (role_fmts or ['    None']))
         await ctx.send(msg)
 
     @commands.command()
