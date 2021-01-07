@@ -4,7 +4,7 @@ git+https://github.com/Rapptz/discord-ext-menus
 #jishaku[procinfo,voice]
 git+https://github.com/Gorialis/jishaku#egg=jishaku[procinfo,voice]
 discord-flags>=2.1.0
-python-dateutil>=2.8.0
+python-dateutil==2.7.3
 matplotlib>=3.3.0
 parsedatetime>=2.6
 setuptools>=50.3.0
