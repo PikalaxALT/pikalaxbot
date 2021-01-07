@@ -19,6 +19,7 @@ import json
 import os
 import typing
 from ..constants import *
+from types import TracebackType
 
 __all__ = ('Settings',)
 
@@ -55,8 +56,7 @@ class Settings:
 
     def __init__(self, fname='settings.json'):
         self._fname = fname
-        self.__loop = None
-        self._changed = False
+        self.__loop: typing.Optional[asyncio.AbstractEventLoop] = None
         self._lock = asyncio.Lock()
         try:
             with open(fname) as fp:
@@ -68,8 +68,9 @@ class Settings:
         if self.token is None:
             raise ValueError(f'Please set your bot\'s token in {fname}')
         self._mtime = os.path.getmtime(fname)
+        self._changed = False
 
-    def update(self, data: dict[str, typing.Any]):
+    def update(self, data: dict[str, ...]):
         for key, value in data.items():
             setattr(self, key, value)
 
@@ -92,7 +93,7 @@ class Settings:
         await self._loop.run_in_executor(None, self.__enter__)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         if self._changed:
             data = {key: getattr(self, key) for key in self.json_keys}
             with open(self._fname, 'w') as fp:
@@ -100,13 +101,13 @@ class Settings:
             self._changed = False
             self._mtime = os.path.getmtime(self._fname)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         try:
             self._loop.run_in_executor(None, self.__exit__, exc_type, exc_val, exc_tb)
         finally:
             self._lock.release()
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value):
         super().__setattr__(key, value)
         if key in self.json_keys:
             super().__setattr__('_changed', True)
