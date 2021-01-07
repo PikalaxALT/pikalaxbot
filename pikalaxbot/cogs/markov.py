@@ -37,7 +37,7 @@ class Markov(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.initialized = False
-        self.storedMsgsSet = set()
+        self.storedMsgsSet: set[str] = set()
         self.chain = Chain(store_lowercase=True)
         self._init_task = self.bot.loop.create_task(self.init_chain())
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
@@ -72,7 +72,7 @@ class Markov(BaseCog):
         longest = ''
         lng_cnt = 0
         chain = self.chain
-        if chain is not None:
+        if chain:
             for i in range(n_attempts):
                 cur = chain.generate(len_max)
                 if len(cur) > lng_cnt:

@@ -31,9 +31,12 @@ class Chain:
         self.state_size = state_size
         self.store_lowercase = store_lowercase
 
+    def __bool__(self):
+        return bool(self.tbl)
+
     @staticmethod
     def __weighted_choice(items: Counter[term]) -> term:
-        return choices(list(items), weights=items.values())[0]
+        return choices(list(items), weights=list(items.values()))[0]
 
     def __lower(self, obj: str):
         return str(obj).lower() if self.store_lowercase else obj
@@ -42,7 +45,7 @@ class Chain:
         self.tbl[state][obj] += 1
 
     def learn_list(self, objs: typing.Iterable[str]):
-        state = (None,) * self.state_size
+        state: tuple[term] = (None,) * self.state_size
         for obj in objs:
             self.learn(state, obj)
             state = state[1:] + (self.__lower(obj),)
@@ -83,4 +86,4 @@ class Chain:
         return result
 
     def generate_str(self, max_count=64):
-        return str.join(' ', self.generate(max_count))
+        return ' '.join(self.generate(max_count))
