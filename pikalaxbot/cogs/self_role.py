@@ -69,7 +69,7 @@ class SelfAssignableRole(BaseCog):
         if role not in ctx.author.roles:
             await ctx.send(f'You don\'t have the role "{role}"')
         else:
-            self.log_debug(f'Removing role {role} from {ctx.author}')
+            self.log_debug('Removing role %s from %s', role, ctx.author)
             await ctx.author.remove_roles(role, reason='Requested by user')
             await ctx.send(f'You no longer have the role "{role}"')
 

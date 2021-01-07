@@ -124,6 +124,6 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self.log_info('Logged in as %s', self.user)
 
     async def get_context(self, message, *, cls=None) -> MyContext:
-        ctx = await super().get_context(message, cls=cls or MyContext)
+        ctx: MyContext = await super().get_context(message, cls=cls or MyContext)
         self._ctx_cache[(message.channel.id, message.id)] = [ctx, set()]
         return ctx

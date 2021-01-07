@@ -97,9 +97,9 @@ class Markov(BaseCog):
         if channel.permissions_for(channel.guild.me).read_message_history:
             async for msg in channel.history(limit=5000):
                 self.learn_markov(msg)
-            self.log_info(f'Markov: Initialized channel {channel}')
+            self.log_info('Markov: Initialized channel %s', channel)
             return True
-        self.log_error(f'Markov: missing ReadMessageHistory permission for {channel}')
+        self.log_error('Markov: missing ReadMessageHistory permission for %s', channel)
         return False
 
     async def init_chain(self):
@@ -109,7 +109,7 @@ class Markov(BaseCog):
             self.log_debug('%d', ch)
             channel = self.bot.get_channel(ch)
             if channel is None:
-                self.log_error(f'Markov: unable to find text channel {ch:d}')
+                self.log_error('Markov: unable to find text channel %d', ch)
                 self.markov_channels.discard(ch)
             else:
                 await self.learn_markov_from_history(channel)
