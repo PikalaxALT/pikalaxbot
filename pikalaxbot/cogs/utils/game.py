@@ -35,7 +35,11 @@ __all__ = (
 )
 
 
-def find_emoji(guild, name, case_sensitive=True):
+def find_emoji(
+        guild: typing.Union[PikalaxBOT, discord.Guild],
+        name: str,
+        case_sensitive=True
+) -> typing.Optional[discord.Emoji]:
     if case_sensitive:
         return discord.utils.get(guild.emojis, name=name)
     name = name.lower()
@@ -196,7 +200,13 @@ class GameCogBase(BaseCog):
     gamecls = None
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists game (id bigint unique primary key, name varchar(32), score integer default 0)")
+        await sql.execute(
+            "create table if not exists game ("
+            "id bigint unique primary key, "
+            "name varchar(32), "
+            "score integer default 0"
+            ")"
+        )
 
     def _local_check(self, ctx: MyContext):
         if ctx.guild is None:

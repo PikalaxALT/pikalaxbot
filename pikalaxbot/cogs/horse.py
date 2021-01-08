@@ -17,6 +17,7 @@
 
 import discord
 from discord.ext import commands
+import typing
 from . import *
 
 MORSE_CODE_DICT = {'A': '.-', 'B': '-...', 'C': '-.-.',
@@ -33,13 +34,13 @@ MORSE_CODE_DICT = {'A': '.-', 'B': '-...', 'C': '-.-.',
                    '8': '---..', '9': '----.', '0': '-----',
                    ',': '--..--', '.': '.-.-.-', '?': '..--..',
                    '!': '-.-.--', '/': '-..-.', '-': '-....-',
-                   '(': '-.--.', ')': '-.--.-', "'":'.----.',
-                   '&': '.-...', ': ':'---...', ';': '-.-.-.',
+                   '(': '-.--.', ')': '-.--.-', "'": '.----.',
+                   '&': '.-...', ': ': '---...', ';': '-.-.-.',
                    '=': '-...-', '+': '.-.-.', '_': '..--.-',
                    '"': '.-..-.', '$': '...-..-', '@': '.--.-.'}
 
 
-def reverse_horse_lookup(code: str, default=None):
+def reverse_horse_lookup(code: str, default: typing.Optional[str] = None):
     return discord.utils.find(lambda t: t[1] == code, MORSE_CODE_DICT.items()) or default
 
 

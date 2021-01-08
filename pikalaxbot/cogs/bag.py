@@ -38,7 +38,7 @@ class Bag(BaseCog):
     async def bag(self, ctx: MyContext):
         """Get in the bag, Nebby."""
         async with self.bot.sql as sql:  # type: asyncpg.Connection
-            if message := await sql.fetchval('select bag from meme order by random() limit 1'):
+            if message := await sql.fetchval('select bag from meme order by random() limit 1'):  # type: str
                 await ctx.send(f'*{message}*')
             else:
                 emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
