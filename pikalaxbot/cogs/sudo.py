@@ -20,7 +20,7 @@ class Sudo(BaseCog):
 
     @commands.is_owner()
     @commands.command()
-    async def sudo(self, ctx: MyContext, user: discord.Member, *, content: str):
+    async def su(self, ctx: MyContext, user: discord.Member, *, content: str):
         """Run as someone else"""
         with transform_context(ctx, user, content) as message:  # type: discord.Message
             await self.bot.process_commands(message)
