@@ -19,6 +19,7 @@
 from collections import defaultdict, Counter
 from random import choices
 import typing
+import nltk
 
 
 term = typing.Optional[str]
@@ -45,16 +46,13 @@ class Chain:
         self.tbl[state][obj] += 1
 
     def learn_list(self, objs: typing.Iterable[str]):
-        state: tuple[term] = (None,) * self.state_size
-        for obj in objs:
-            self.learn(state, obj)
-            state = state[1:] + (self.__lower(obj),)
-        self.learn(state, None)
+        for *state, word in nltk.ngrams(objs, self.state_size + 1, pad_left=True, pad_right=True):
+            self.learn(tuple(state), word)
 
     def learn_str(self, string: str):
         self.learn_list(string.split())
 
-    def unlearn(self, state: tuple[term], obj: term):
+    def unlearn(self, state: tuple[term, ...], obj: term):
         if obj in self.tbl[state]:
             self.tbl[state][obj] -= 1
             if self.tbl[state][obj] == 0:
@@ -63,18 +61,15 @@ class Chain:
                     self.tbl.pop(state)
 
     def unlearn_list(self, objs: typing.Iterable[str]):
-        state = (None,) * self.state_size
-        for obj in objs:
-            self.unlearn(state, obj)
-            state = state[1:] + (self.__lower(obj),)
-        self.unlearn(state, None)
+        for *state, word in nltk.ngrams(objs, self.state_size + 1, pad_left=True, pad_right=True):
+            self.unlearn(tuple(state), word)
 
     def unlearn_str(self, string: str):
         self.unlearn_list(string.split())
 
     def generate(self, max_count=64):
         result = []
-        state = (None,) * self.state_size
+        state: tuple[term, ...] = (None,) * self.state_size
         for _ in range(max_count):
             if state not in self.tbl:
                 break
