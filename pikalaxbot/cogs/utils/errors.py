@@ -6,7 +6,6 @@ __all__ = (
     'CommandBannedInGuild',
     'NotEnoughOptions',
     'TooManyOptions',
-    'ReactionIntegrityError',
     'NotPollOwner',
     'NoPollFound',
     'NotInitialized',
@@ -28,23 +27,19 @@ class CommandBannedInGuild(commands.CheckFailure):
     pass
 
 
-class NotEnoughOptions(ValueError):
+class NotEnoughOptions(commands.BadArgument):
     pass
 
 
-class TooManyOptions(ValueError):
+class TooManyOptions(commands.BadArgument):
     pass
 
 
-class ReactionIntegrityError(ValueError):
+class NotPollOwner(commands.CheckFailure):
     pass
 
 
-class NotPollOwner(ValueError):
-    pass
-
-
-class NoPollFound(KeyError):
+class NoPollFound(commands.CheckFailure):
     pass
 
 
