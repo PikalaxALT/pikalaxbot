@@ -209,12 +209,12 @@ class ReactionRoles(BaseCog):
                             str(emoji_or_role)
                         )
                     if emoji is None:
-                        raise RoleOrEmojiNotFound
+                        raise RoleOrEmojiNotFound(emoji_or_role)
                     await message.remove_reaction(emoji, ctx.me)
         except discord.HTTPException as e:
             if e.response.reason.endswith('Unknown Message'):
                 raise InitializationInvalid from e
-            raise commands.EmojiNotFound(emoji) from None
+            raise RoleOrEmojiNotFound(emoji)
         embed = await self.make_embed(ctx)
         await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
