@@ -69,7 +69,7 @@ class PokeapiResource:
         return hash((self.__class__, self.id))
 
     def __repr__(self):
-        attrs = ', '.join(f'{key}={value!r}' for key, value in zip(self._row.keys(), self._row))
+        attrs = ', '.join(map('{0}={1!r}'.format,self._row.keys(), self._row))
         return '<{0.__class__.__name__} {1}>'.format(self, attrs)
 
     def get_submodel(self, model: 'ModelType', field: str) -> Optional['Model']:

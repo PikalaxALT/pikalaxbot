@@ -126,7 +126,7 @@ class PollManager:
                   f'The poll author may cancel the poll using ' \
                   f'`{context.prefix}{context.cog.cancel.qualified_name} {this.hash}` ' \
                   f'or by deleting this message.'
-        description = '\n'.join(f'{emoji}: {option}' for emoji, option in zip(this.emojis, options))
+        description = '\n'.join(map('{0}: {1}'.format, this.emojis, options))
         embed = discord.Embed(title=prompt, description=description, colour=0xf47fff)
         embed.set_footer(text='Poll ends at')
         embed.timestamp = this.stop_time
