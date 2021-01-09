@@ -191,7 +191,7 @@ class ReactionRoles(BaseCog):
             async with self.bot.sql as sql:  # type: asyncpg.Connection
                 async with sql.transaction():
                     if isinstance(emoji_or_role, discord.Role):
-                        emoji = await sql.execute(
+                        emoji = await sql.fetchval(
                             "delete from reaction_roles "
                             "where guild = $1 "
                             "and role = $2 "
@@ -200,7 +200,7 @@ class ReactionRoles(BaseCog):
                             emoji_or_role.id
                         )
                     else:
-                        emoji = await sql.execute(
+                        emoji = await sql.fetchval(
                             "delete from reaction_roles "
                             "where guild = $1 "
                             "and emoji = $2 "
@@ -210,10 +210,6 @@ class ReactionRoles(BaseCog):
                         )
                     if emoji is None:
                         raise RoleOrEmojiNotFound
-                    try:
-                        emoji = await commands.EmojiConverter().convert(ctx, emoji)
-                    except commands.EmojiNotFound:
-                        pass
                     await message.remove_reaction(emoji, ctx.me)
         except discord.HTTPException as e:
             if e.response.reason.endswith('Unknown Message'):
