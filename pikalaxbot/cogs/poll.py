@@ -25,6 +25,7 @@ import math
 import aioitertools
 import asyncpg
 import operator
+import functools
 from collections import Counter
 
 from .utils.errors import *
@@ -58,7 +59,7 @@ class PollManager:
         'owner_id',
         'options',
         'votes',
-        'hash',
+        '_hash',
         'start_time',
         'stop_time',
         'emojis',
@@ -85,13 +86,18 @@ class PollManager:
         self.owner_id = owner_id
         self.start_time = start_time
         self.stop_time = stop_time
-        self.hash: str = my_hash or base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
+        if my_hash:
+            assert self.hash == my_hash
         self.votes: dict[int, int] = votes or {}
         self.options: list[str] = options or []
         self.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
         self.task: typing.Optional[asyncio.Task] = None
         self.unloading = False
-        self.message: typing.Optional[discord.Message] = None
+        self.message: typing.Union[discord.Message, discord.PartialMessage, None] = None
+
+    @functools.cached_property
+    def hash(self):
+        return base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
 
     def __iter__(self):
         yield self.hash
@@ -143,7 +149,7 @@ class PollManager:
             start_time: datetime.datetime,
             stop_time: datetime.datetime
     ):
-        message: discord.Message = bot._connection._get_message(message_id) or await bot.http.get_message(channel_id, message_id)
+        message: discord.PartialMessage = bot.get_channel(channel_id).get_partial_message(message_id)
         this = cls(
             bot=bot,
             channel_id=channel_id,
