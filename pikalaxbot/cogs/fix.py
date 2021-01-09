@@ -18,12 +18,8 @@ import re
 import time
 import discord
 from discord.ext import commands
-import operator
 from . import *
 import typing
-
-
-str_lower: typing.Callable[[str], str] = operator.methodcaller('lower')
 
 
 class Fix(BaseCog):
@@ -80,7 +76,7 @@ class Fix(BaseCog):
             await self.fix(ctx)
 
     @fix.command()
-    async def add(self, ctx: MyContext, key: str_lower, owner: str, altname: str = None):
+    async def add(self, ctx: MyContext, key: str.lower, owner: str, altname: str = None):
         """Add a bot to my database"""
         if key not in self.bot_owners:
             self.bot_owners[key] = owner
@@ -101,7 +97,7 @@ class Fix(BaseCog):
             await ctx.message.add_reaction('\N{CROSS MARK}')
 
     @fix.command(name='del')
-    async def delete_key(self, ctx: MyContext, key: str_lower):
+    async def delete_key(self, ctx: MyContext, key: str.lower):
         """Remove a bot from my database"""
         if key in self.bot_owners:
             del self.bot_owners[key]
