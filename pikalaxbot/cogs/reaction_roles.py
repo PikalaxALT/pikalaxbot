@@ -107,9 +107,13 @@ class ReactionRoles(BaseCog):
             colour=0xf47fff
         )
 
+    @commands.group()
+    async def rrole(self, ctx: MyContext):
+        """Commands related to reaction roles"""
+
     @reaction_roles_not_initialized()
     @commands.has_permissions(manage_roles=True)
-    @commands.command(name='register')
+    @rrole.command(name='register')
     async def register_role_bot(self, ctx: MyContext, channel: discord.TextChannel = None):
         """Register the role reaction bot to the specified channel (default: the current channel)"""
 
@@ -129,7 +133,7 @@ class ReactionRoles(BaseCog):
 
     @reaction_roles_initialized()
     @commands.has_permissions(manage_roles=True)
-    @commands.command(name='drop')
+    @rrole.command(name='drop')
     async def unregister_role_bot(self, ctx: MyContext):
         """Drops the role reaction registration in this guild"""
 
@@ -145,7 +149,7 @@ class ReactionRoles(BaseCog):
         await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
-    @commands.command(name='add-role')
+    @rrole.command(name='add')
     async def add_role(self, ctx: MyContext, emoji: typing.Union[discord.Emoji, str], *, role: discord.Role):
         """Register a role to an emoji in the current guild"""
 
@@ -174,7 +178,7 @@ class ReactionRoles(BaseCog):
         await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
-    @commands.command('drop-role')
+    @rrole.command('remove')
     async def drop_role(self, ctx: MyContext, *, emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]):
         """Unregister a role or emoji from the current guild"""
 
