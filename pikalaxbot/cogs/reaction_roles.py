@@ -210,7 +210,11 @@ class ReactionRoles(BaseCog):
                         )
                     if emoji is None:
                         raise RoleOrEmojiNotFound
-                    await message.remove_reaction(emoji.strip('<>'), ctx.me)
+                    try:
+                        emoji = await commands.EmojiConverter().convert(ctx, emoji)
+                    except commands.EmojiNotFound:
+                        pass
+                    await message.remove_reaction(emoji, ctx.me)
         except discord.HTTPException as e:
             if e.response.reason.endswith('Unknown Message'):
                 raise InitializationInvalid from e
