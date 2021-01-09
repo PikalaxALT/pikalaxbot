@@ -2,6 +2,7 @@ import logging
 import typing
 import os
 import sys
+from ..context import *
 
 
 __all__ = ('LoggingMixin', 'BotLogger')
@@ -12,22 +13,22 @@ class LoggingMixin:
         self.logger = logging.getLogger('discord')
         super().__init__(*args, **kwargs)
 
-    def log_info(self, msg, *args, **kwargs):
+    def log_info(self, msg: str, *args, **kwargs):
         self.logger.log(logging.INFO, msg, *args, **kwargs)
 
-    def log_debug(self, msg, *args, **kwargs):
+    def log_debug(self, msg: str, *args, **kwargs):
         self.logger.log(logging.DEBUG, msg, *args, **kwargs)
 
-    def log_warning(self, msg, *args, **kwargs):
+    def log_warning(self, msg: str, *args, **kwargs):
         self.logger.log(logging.WARNING, msg, *args, **kwargs)
 
-    def log_error(self, msg, *args, **kwargs):
+    def log_error(self, msg: str, *args, **kwargs):
         self.logger.log(logging.ERROR, msg, *args, **kwargs)
 
-    def log_critical(self, msg, *args, **kwargs):
+    def log_critical(self, msg: str, *args, **kwargs):
         self.logger.log(logging.CRITICAL, msg, *args, **kwargs)
 
-    def log_tb(self, ctx, exc):
+    def log_tb(self, ctx: typing.Union[MyContext, FakeContext, None], exc: BaseException):
         self.log_error(
             f'Ignoring exception in command {ctx.command}:' if ctx else '',
             exc_info=(exc.__class__, exc, exc.__traceback__)
