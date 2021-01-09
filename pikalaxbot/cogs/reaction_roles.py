@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from . import *
-import collections
 import typing
 import asyncpg
 from .utils.errors import *
@@ -25,11 +24,6 @@ def reaction_roles_not_initialized():
 
 class ReactionRoles(BaseCog):
     """Commands and functionality for reaction roles."""
-
-    def __init__(self, bot):
-        super().__init__(bot)
-        self.reaction_schema: dict[int, tuple[int, int]] = {}
-        self.reaction_roles: dict[int, dict[str, int]] = collections.defaultdict(dict)
     
     def cog_check(self, ctx):
         return all(check.predicate(ctx) for check in {
@@ -52,25 +46,25 @@ class ReactionRoles(BaseCog):
             "role bigint unique not null"
             ")"
         )
-        for guild, channel, message in await sql.fetch('select * from reaction_schema'):
-            self.reaction_schema[guild] = (channel, message)
-        for guild, emoji, role in await sql.fetch('select * from reaction_roles'):
-            self.reaction_roles[guild][emoji] = role
 
-    async def get_reaction_mapping(self, payload: discord.RawReactionActionEvent) -> typing.Optional[int]:
+    async def get_role_id_by_emoji(self, payload: discord.RawReactionActionEvent) -> typing.Optional[int]:
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             return await sql.fetchval(
                 'select role '
-                'from reaction_schema rs '
-                'inner join reaction_roles rr on rs.guild = rr.guild '
-                'where rs.guild = $1 '
-                'and rs.channel = $2 '
-                'and rs.message = $3 '
-                'and rr.emoji = $4',
+                'from reaction_roles '
+                'where guild = $1 '
+                'and emoji = $2',
                 payload.guild_id,
-                payload.channel_id,
-                payload.message_id,
                 str(payload.emoji)
+            )
+
+    async def get_guild_role_mappings(self, guild_id: int) -> list[tuple[str, int]]:
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            return await sql.fetch(
+                'select emoji, role '
+                'from reaction_roles '
+                'where guild = $1',
+                guild_id
             )
 
     async def get_reaction_config(self, guild_id: int) -> typing.Optional[tuple[int, int]]:
@@ -84,7 +78,7 @@ class ReactionRoles(BaseCog):
 
     @BaseCog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if role_id := await self.get_reaction_mapping(payload):
+        if role_id := await self.get_role_id_by_emoji(payload):
             await self.bot.http.add_role(
                 payload.guild_id,
                 payload.user_id,
@@ -94,13 +88,24 @@ class ReactionRoles(BaseCog):
 
     @BaseCog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        if role_id := await self.get_reaction_mapping(payload):
+        if role_id := await self.get_role_id_by_emoji(payload):
             await self.bot.http.remove_role(
                 payload.guild_id,
                 payload.user_id,
                 role_id,
                 reason='Reaction Roles'
             )
+
+    async def make_embed(self, ctx: MyContext):
+        roles_str = '\n'.join(
+            f'{emoji} - {ctx.guild.get_role(role).mention}'
+            for emoji, role in await self.get_guild_role_mappings(ctx.guild.id)
+        ) or 'None configured yet'
+        return discord.Embed(
+            title=f'Reaction Roles in {ctx.guild}',
+            description=f'React to the following emoji to get the associated roles:\n\n{roles_str}',
+            colour=0xf47fff
+        )
 
     @reaction_roles_not_initialized()
     @commands.has_permissions(manage_roles=True)
@@ -110,8 +115,8 @@ class ReactionRoles(BaseCog):
 
         channel = channel or ctx.channel
         if channel.permissions_for(ctx.me).send_messages:
-            message = await channel.send('React to the following emoji to get the associated roles:')
-            self.reaction_schema[ctx.guild.id] = (channel.id, message.id)
+            embed = await self.make_embed(ctx)
+            message = await channel.send(embed=embed)
             async with self.bot.sql as sql:
                 await sql.execute(
                     "insert into reaction_schema "
@@ -129,10 +134,16 @@ class ReactionRoles(BaseCog):
         """Drops the role reaction registration in this guild"""
 
         channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
-        await self.bot.http.delete_message(channel_id, message_id, reason='Requested to unregister roles bot')
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute("delete from reaction_roles where guild = $1", ctx.guild.id)
-            await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
+        channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
+        if channel is None:
+            raise InitializationInvalid
+        message: discord.PartialMessage = channel.get_partial_message(message_id)
+        try:
+            await message.delete(reason='Requested to unregister roles bot')
+        finally:
+            async with self.bot.sql as sql:  # type: asyncpg.Connection
+                await sql.execute("delete from reaction_roles where guild = $1", ctx.guild.id)
+                await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
         await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
@@ -160,6 +171,8 @@ class ReactionRoles(BaseCog):
             raise ReactionAlreadyRegistered from e
         except discord.HTTPException as e:
             raise InitializationInvalid from e
+        embed = await self.make_embed(ctx)
+        await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
@@ -198,6 +211,8 @@ class ReactionRoles(BaseCog):
                     await message.remove_reaction(emoji, ctx.me)
         except discord.HTTPException as e:
             raise InitializationInvalid from e
+        embed = await self.make_embed(ctx)
+        await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
 
     async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
