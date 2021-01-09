@@ -138,12 +138,10 @@ class ReactionRoles(BaseCog):
         if channel is None:
             raise InitializationInvalid
         message: discord.PartialMessage = channel.get_partial_message(message_id)
-        try:
-            await message.delete(reason='Requested to unregister roles bot')
-        finally:
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                await sql.execute("delete from reaction_roles where guild = $1", ctx.guild.id)
-                await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
+        await message.delete()
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            await sql.execute("delete from reaction_roles where guild = $1", ctx.guild.id)
+            await sql.execute("delete from reaction_schema where guild = $1", ctx.guild.id)
         await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()

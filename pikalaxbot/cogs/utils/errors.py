@@ -56,15 +56,15 @@ class AlreadyInitialized(commands.CheckFailure):
     pass
 
 
-class InitializationInvalid(Exception):
+class InitializationInvalid(commands.CommandError):
     pass
 
 
-class ReactionAlreadyRegistered(Exception):
+class ReactionAlreadyRegistered(commands.CommandError):
     pass
 
 
-class RoleOrEmojiNotFound(Exception):
+class RoleOrEmojiNotFound(commands.CommandError):
     pass
 
 
