@@ -217,9 +217,6 @@ class ReactionRoles(BaseCog):
         await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
 
-    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
-        await ctx.send(f'**{error.__class__.__name__}:** {error}')
-
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(ReactionRoles(bot))
