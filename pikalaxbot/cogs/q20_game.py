@@ -978,6 +978,7 @@ class Q20GameObject(GameBase):
 
     def __init__(self, bot):
         super().__init__(bot, timeout=None)
+        self._state: list[str] = []
         self._attempts = 20
         self._parser = Q20QuestionParser(self, bot.pokeapi)
         self.attempts = 0

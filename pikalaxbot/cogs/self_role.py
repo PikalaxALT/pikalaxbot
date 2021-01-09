@@ -41,13 +41,17 @@ class SelfAssignableRole(BaseCog):
         return commands.guild_only().predicate(ctx)
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists self_role ('
-                          'guild_id bigint not null, '
-                          'role_id bigint not null, '
-                          'alias varchar(32)'
-                          ')')
-        await sql.execute('create unique index if not exists self_role_idx '
-                          'on self_role(guild_id, role_id)')
+        await sql.execute(
+            'create table if not exists self_role ('
+            'guild_id bigint not null, '
+            'role_id bigint not null, '
+            'alias varchar(32)'
+            ')'
+        )
+        await sql.execute(
+            'create unique index if not exists self_role_idx '
+            'on self_role(guild_id, role_id)'
+        )
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
