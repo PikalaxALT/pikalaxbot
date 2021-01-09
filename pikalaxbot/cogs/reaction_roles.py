@@ -218,7 +218,7 @@ class ReactionRoles(BaseCog):
         except discord.HTTPException as e:
             if e.response.reason.endswith('Unknown Message'):
                 raise InitializationInvalid from e
-            raise e from None
+            raise commands.EmojiNotFound(emoji) from None
         embed = await self.make_embed(ctx)
         await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
