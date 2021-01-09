@@ -9,7 +9,7 @@ import random
 import nltk
 import asyncio
 from contextlib import asynccontextmanager as acm
-from typing import TYPE_CHECKING, Optional, Callable, Coroutine
+from typing import TYPE_CHECKING, Optional, Callable, Coroutine, Any
 if TYPE_CHECKING:
     from ..ext.pokeapi import PokeApi, NamedPokeapiResource
 
@@ -169,7 +169,7 @@ class Q20QuestionParser:
         self.tokenizer = nltk.WordPunctTokenizer()
 
     async def lookup_name(self, table, q) -> tuple[Optional[str], 'Optional[NamedPokeapiResource]', float]:
-        def iter_matches(callable_: Callable[[str], ...]):
+        def iter_matches(callable_: Callable[[str], Any]):
             yield callable_(q)
             for bigram in re.findall(r'(?=(\S+\s+\S))', q):
                 yield callable_(bigram)
