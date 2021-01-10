@@ -356,7 +356,7 @@ duration, prompt, and options."""
         accepted_emojis = {'\N{CROSS MARK}'}
 
         async def get_poll_options() -> typing.Union[str, bool]:
-            deleted: typing.Optional[str] = 'yes'
+            deleted = True
             my_message: typing.Optional[discord.Message] = None
 
             def msg_check(msg: discord.Message):
@@ -370,7 +370,7 @@ duration, prompt, and options."""
                     my_message = await ctx.send(content, embed=embed)
                     for emo in accepted_emojis:
                         await my_message.add_reaction(emo)
-                    deleted = None
+                    deleted = False
                 futs = {
                     self.bot.loop.create_task(self.bot.wait_for('message', check=msg_check)),
                     self.bot.loop.create_task(self.bot.wait_for('reaction_add', check=rxn_check))
@@ -389,7 +389,8 @@ duration, prompt, and options."""
                 else:
                     response = str(params[0]) == '\N{CROSS MARK}'
                 await my_message.delete()
-                deleted = yield response
+                yield response
+                deleted = True
 
         async for i, resp in aioitertools.zip(range(11), get_poll_options()):
             if isinstance(resp, str):
