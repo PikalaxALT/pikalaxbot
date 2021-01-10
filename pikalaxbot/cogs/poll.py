@@ -95,7 +95,7 @@ class PollManager:
         self.unloading = False
         self.message: typing.Union[discord.Message, discord.PartialMessage, None] = None
 
-    @functools.cached_property
+    @discord.utils.cached_slot_property('_hash')
     def hash(self):
         return base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
 
