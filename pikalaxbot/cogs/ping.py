@@ -83,19 +83,12 @@ class Ping(BaseCog):
     async def plot_ping(
             self,
             ctx: MyContext,
-            hstart: typing.Union[PastTime, int] = 60,
-            hend: typing.Union[PastTime, int] = 0
-    ):
+            hstart: PastTime = None,
+            hend: PastTime = None):
         """Plot the bot's ping history (measured as gateway heartbeat)
-        for the indicated number of minutes (default: 60)"""
-        if isinstance(hstart, int):
-            hstart = ctx.message.created_at - datetime.timedelta(minutes=hstart)
-        else:
-            hstart = hstart.dt
-        if isinstance(hend, int):
-            hend = ctx.message.created_at - datetime.timedelta(minutes=hend)
-        else:
-            hend = hend.dt
+        for the indicated time interval (default: last 60 minutes)"""
+        hstart = hstart.dt or ctx.message.created_at - datetime.timedelta(minutes=60)
+        hend = hend.dt or ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:  # type: asyncpg.Connection
