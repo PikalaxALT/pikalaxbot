@@ -9,7 +9,11 @@ from .utils.errors import *
 def reaction_roles_initialized():
     async def predicate(ctx: MyContext):
         if not await ctx.cog.get_reaction_config(ctx.guild.id):
-            raise NotInitialized
+            raise NotInitialized(
+                'Reaction roles is not configured. To configure, use `{}rrole register`.'.format(
+                    await ctx.bot.get_prefix(ctx.message)
+                )
+            )
         return True
     return commands.check(predicate)
 
@@ -17,7 +21,11 @@ def reaction_roles_initialized():
 def reaction_roles_not_initialized():
     async def predicate(ctx: MyContext):
         if await ctx.cog.get_reaction_config(ctx.guild.id):
-            raise AlreadyInitialized
+            raise AlreadyInitialized(
+                'Reaction roles is already configured. To reconfigure, use `{}rrole drop` first.'.format(
+                    await ctx.bot.get_prefix(ctx.message)
+                )
+            )
         return True
     return commands.check(predicate)
 
@@ -140,7 +148,7 @@ class ReactionRoles(BaseCog):
         channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
         channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
         if channel is None:
-            raise InitializationInvalid
+            raise InitializationInvalid('Reaction roles channel not found')
         message: discord.PartialMessage = channel.get_partial_message(message_id)
         await message.delete()
         async with self.bot.sql as sql:  # type: asyncpg.Connection
@@ -156,7 +164,7 @@ class ReactionRoles(BaseCog):
         channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
         channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
         if channel is None:
-            raise InitializationInvalid
+            raise InitializationInvalid('Reaction roles channel not found')
         message: discord.PartialMessage = channel.get_partial_message(message_id)
         try:
             async with self.bot.sql as sql:  # type: asyncpg.Connection
@@ -169,10 +177,14 @@ class ReactionRoles(BaseCog):
                         role.id
                     )
                     await message.add_reaction(emoji)
-        except asyncpg.UniqueViolationError as e:
-            raise ReactionAlreadyRegistered from e
-        except discord.HTTPException as e:
-            raise InitializationInvalid from e
+        except asyncpg.UniqueViolationError:
+            raise ReactionAlreadyRegistered('Role or emoji already registered with reaction roles') from None
+        except discord.NotFound as e:
+            exc = {
+                10008: InitializationInvalid('Reaction roles message not found'),
+                10014: RoleOrEmojiNotFound(emoji)
+            }.get(e.code, e)
+            raise exc from None
         embed = await self.make_embed(ctx)
         await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
@@ -185,7 +197,7 @@ class ReactionRoles(BaseCog):
         channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
         channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
         if channel is None:
-            raise InitializationInvalid
+            raise InitializationInvalid('Reaction roles channel not found')
         message: discord.PartialMessage = channel.get_partial_message(message_id)
         try:
             async with self.bot.sql as sql:  # type: asyncpg.Connection
@@ -211,10 +223,12 @@ class ReactionRoles(BaseCog):
                     if emoji is None:
                         raise RoleOrEmojiNotFound(emoji_or_role)
                     await message.remove_reaction(emoji, ctx.me)
-        except discord.HTTPException as e:
-            if e.response.reason.endswith('Unknown Message'):
-                raise InitializationInvalid from e
-            raise RoleOrEmojiNotFound(emoji)
+        except discord.NotFound as e:
+            exc = {
+                10008: InitializationInvalid('Reaction roles message not found'),
+                10014: RoleOrEmojiNotFound(emoji_or_role)
+            }.get(e.code, e)
+            raise exc from None
         embed = await self.make_embed(ctx)
         await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
