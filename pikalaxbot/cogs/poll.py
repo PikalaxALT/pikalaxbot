@@ -356,7 +356,7 @@ duration, prompt, and options."""
         accepted_emojis = {'\N{CROSS MARK}'}
 
         async def get_poll_options() -> typing.Union[str, bool]:
-            deleted: typing.Optional[str] = None
+            deleted: typing.Optional[str] = 'yes'
             my_message: typing.Optional[discord.Message] = None
 
             def msg_check(msg: discord.Message):
