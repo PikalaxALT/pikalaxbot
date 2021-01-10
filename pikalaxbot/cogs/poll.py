@@ -25,7 +25,7 @@ import math
 import aioitertools
 import asyncpg
 import operator
-import functools
+import textwrap
 from collections import Counter
 
 from .utils.errors import *
@@ -459,7 +459,7 @@ duration, prompt, and options."""
     async def list(self, ctx: MyContext):
         """Lists all polls"""
 
-        s = '\n'.join(str(poll) for poll in self.polls if not poll.task.done())
+        s = textwrap.indent('\n'.join(str(poll) for poll in self.polls if not poll.task.done()), '  ')
         if s:
             await ctx.send(f'Running polls: [\n{s}\n]')
         else:
