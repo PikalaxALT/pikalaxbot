@@ -483,10 +483,15 @@ duration, prompt, and options."""
             try:
                 winner, count = max(tally.items(), key=operator.itemgetter(1))
                 content = f'Poll closed, the winner is {mgr.emojis[winner]}'
-                content2 = f'Poll `{mgr.hash}` has ended. The winner is {mgr.emojis[winner]} with {tally[winner]} vote(s).\n\nFull results: {mgr.message.jump_url}'
+                content2 = f'Poll `{mgr.hash}` has ended. ' \
+                           f'The winner is {mgr.emojis[winner]} ' \
+                           f'with {tally[winner]} vote(s).\n\n' \
+                           f'Full results: {mgr.message.jump_url}'
             except (ValueError, IndexError):
                 content = f'Poll closed, there is no winner'
-                content2 = f'Poll `{mgr.hash}` has ended. No votes were recorded.\n\nFull results: {mgr.message.jump_url}'
+                content2 = f'Poll `{mgr.hash}` has ended. ' \
+                           f'No votes were recorded.\n\n' \
+                           f'Full results: {mgr.message.jump_url}'
         embed: discord.Embed = mgr.message.embeds[0]
         desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
         embed.description = '\n'.join(desc)
