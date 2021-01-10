@@ -60,6 +60,7 @@ class PollManager:
         'options',
         'votes',
         '_hash',
+        '_message_id',
         'start_time',
         'stop_time',
         'emojis',
@@ -164,7 +165,7 @@ class PollManager:
         this.message = message
         return this
 
-    @discord.utils.cached_property
+    @discord.utils.cached_slot_property('_message_id')
     def message_id(self):
         if self.message:
             return self.message.id
