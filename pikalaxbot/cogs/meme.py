@@ -33,8 +33,12 @@ from ..types import *
 from ..constants import *
 
 
-class HMM:
-    def __init__(self, transition: list[list[int]], emission: str):
+class HMM(typing.Generic[T]):
+    def __init__(self, transition: typing.Sequence[typing.Sequence[float]], emission: typing.Sequence[T]):
+        if len(emission) != len(transition):
+            raise ValueError('Different number of transition and emission states')
+        if any(len(x) != len(emission) for x in transition):
+            raise ValueError('Transition matrix must be square')
         self.transition = transition
         self.emission = emission
         self.state = 0
@@ -48,18 +52,18 @@ class HMM:
         self.state, = random.choices(range(self.n_states), weights=self.transition[self.state])
         return res
 
-    def get_chain(self, length: int, start=0, end=-1):
+    def get_chain(self, length: int, start=0) -> typing.Generator[T, typing.Any, None]:
         self.state = start
         for i in range(length):
             yield self.emit()
-            if self.state == end:
+            if self.state == self.n_states - 1:
                 break
 
 
 class Meme(BaseCog):
     """Random meme commands"""
 
-    _nebby = HMM(
+    _nebby: HMM[str] = HMM(
         [[0, 1, 0, 0, 0],
          [1, 2, 1, 0, 0],
          [0, 0, 1, 1, 0],
@@ -118,7 +122,7 @@ class Meme(BaseCog):
     async def nebby(self, ctx):
         """Pew!"""
 
-        emission = ''.join(self._nebby.get_chain(100, end=4)).title()
+        emission = ''.join(self._nebby.get_chain(100)).title()
         await ctx.send(emission)
 
     @commands.check(lambda ctx: ctx.bot.pokeapi is not None)
