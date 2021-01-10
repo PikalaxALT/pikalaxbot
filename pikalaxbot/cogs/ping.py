@@ -87,8 +87,8 @@ class Ping(BaseCog):
             hend: PastTime = None):
         """Plot the bot's ping history (measured as gateway heartbeat)
         for the indicated time interval (default: last 60 minutes)"""
-        hstart = hstart.dt or ctx.message.created_at - datetime.timedelta(minutes=60)
-        hend = hend.dt or ctx.message.created_at
+        hstart = hstart and hstart.dt or ctx.message.created_at - datetime.timedelta(minutes=60)
+        hend = hstart and hend.dt or ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
             async with self.bot.sql as sql:  # type: asyncpg.Connection
