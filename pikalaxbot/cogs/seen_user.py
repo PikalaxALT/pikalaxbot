@@ -55,6 +55,9 @@ class SeenUser(BaseCog):
             # 1 day is parsed to "a day" but that's bad grammar here
             ndelt = re.sub(r'^an? ', '', ndelt)
             await ctx.send(f'{member.display_name} has not said anything on this server in the last {ndelt}.')
+        if seen_msg.channel == ctx.channel:
+            await seen_msg.reply(f'{member.display_name} was last seen chatting in <#{seen_msg.channel.id}> '
+                                 f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}')
         else:
             await ctx.send(f'{member.display_name} was last seen chatting in <#{seen_msg.channel.id}> '
                            f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}\n'
