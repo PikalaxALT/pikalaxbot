@@ -34,13 +34,10 @@ class SeenUser(BaseCog):
                     continue
                 self.history_cache[channel] = history = sorted(
                     await channel.history(limit=None, after=last).flatten(),
-                    key=operator.attrgetter('created_at')
+                    key=operator.attrgetter('id')
                 )
-            last = getattr(
-                seen_msg := discord.utils.get(reversed(history), author=member) or seen_msg,
-                'created_at',
-                last
-            )
+            seen_msg = discord.utils.get(reversed(history), author=member) or seen_msg
+            last = getattr(seen_msg, 'created_at', last)
         return seen_msg
 
     @commands.command()
