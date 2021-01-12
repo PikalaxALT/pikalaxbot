@@ -56,7 +56,7 @@ class SeenUser(BaseCog):
             ndelt = re.sub(r'^an? ', '', ndelt)
             await ctx.send(f'{member.display_name} has not said anything on this server in the last {ndelt}.')
         else:
-            await ctx.send(f'{member.display_name} was last seen chatting in <#{seen_msg.channel_id}> '
+            await ctx.send(f'{member.display_name} was last seen chatting in <#{seen_msg.channel.id}> '
                            f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}\n'
                            f'{seen_msg.jump_url}')
 
