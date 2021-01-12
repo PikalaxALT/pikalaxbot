@@ -56,10 +56,13 @@ class SeenUser(BaseCog):
             ndelt = re.sub(r'^an? ', '', ndelt)
             await ctx.send(f'{member.display_name} has not said anything on this server in the last {ndelt}.')
         if seen_msg.channel == ctx.channel:
-            await seen_msg.reply(f'{member.display_name} was last seen chatting in <#{seen_msg.channel.id}> '
+            await seen_msg.reply(f'{member.display_name} was last seen chatting in this channel '
                                  f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}')
+        elif seen_msg.channel.is_nsfw() and not ctx.channel.is_nsfw():
+            await ctx.send(f'{member.display_name} was last seen chatting in an NSFW channel'
+                           f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}')
         else:
-            await ctx.send(f'{member.display_name} was last seen chatting in <#{seen_msg.channel.id}> '
+            await ctx.send(f'{member.display_name} was last seen chatting in {seen_msg.channel.mention} '
                            f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}\n'
                            f'{seen_msg.jump_url}')
 
