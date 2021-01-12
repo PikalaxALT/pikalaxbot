@@ -13,3 +13,4 @@ asyncpg>=0.21.0
 nltk>=3.5.0
 pygit2>=1.4.0
 aioitertools>=0.7
+asyncstdlib>=3.9

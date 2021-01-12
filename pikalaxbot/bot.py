@@ -10,6 +10,7 @@ import traceback
 from .utils.logging_mixin import BotLogger
 from .context import MyContext, FakeContext
 from .utils.config_io import Settings
+import asyncstdlib.functools as afunctools
 if typing.TYPE_CHECKING:
     from .ext.pokeapi import PokeApi
 
@@ -77,6 +78,21 @@ class PikalaxBOT(BotLogger, commands.Bot):
     def pokeapi(self, value: typing.Optional['PokeApi']):
         self._pokeapi = value
 
+    @afunctools.cache
+    async def get_owner(self) -> typing.Union[discord.User, set[discord.User], None]:
+        if self.owner_id is not None:
+            return self.get_user(self.owner_id)
+        elif self.owner_ids is not None:
+            return {self.get_user(owner_id) for owner_id in self.owner_ids}
+        else:
+            app = await self.application_info()
+            if app.team:
+                self.owner_ids = {m.id for m in app.team.members}
+                return set(app.team.members)
+            else:
+                self.owner_id = app.owner.id
+                return app.owner
+
     async def send_tb(
             self,
             ctx: typing.Optional[MyContext],
@@ -90,9 +106,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
         if channel is None:
             return
         if ctx is None:
-            if self.owner_id is None:
-                await self.is_owner(discord.Object(id=0))
-            ctx = FakeContext(channel.guild, channel, None, channel.guild.get_member(self.owner_id))
+            ctx = FakeContext(channel.guild, channel, None, await self.get_owner())
         paginator = commands.Paginator()
         msg and paginator.add_line(msg)
         for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):
