@@ -45,8 +45,11 @@ class SeenUser(BaseCog):
         """Returns the last message sent by the given member in the current server.
         Initially looks back up to 24 hours."""
         key = (ctx.guild, member)
-        if (seen_msg := self.member_cache.get(key)) is None:
-            self.member_cache[key] = seen_msg = await self.get_last_seen_msg(member)
+        try:
+            seen_msg = self.member_cache[key]
+        except KeyError:
+            async with ctx.typing():
+                self.member_cache[key] = seen_msg = await self.get_last_seen_msg(member)
         if seen_msg is None:
             ndelt = naturaldelta(SeenUser.MAX_LOOKBACK)
             # 1 day is parsed to "a day" but that's bad grammar here
