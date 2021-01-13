@@ -322,7 +322,7 @@ class Shop(BaseCog):
 
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             bag_items = [
-                (await self.bot.pokeapi.get_model(id_), quantity)
+                (await self.bot.pokeapi.get_model('Item', id_), quantity)
                 for id_, quantity in await sql.fetch(
                     'select item_id, quantity '
                     'from pkmn_inventory '
