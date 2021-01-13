@@ -168,7 +168,7 @@ class Shop(BaseCog):
         await menu.start(ctx, wait=True)
 
     @mart.command()
-    async def buy(self, ctx: MyContext, item: typing.Union[Item, PokeapiModels.Item], quantity: int_range(1, 999) = 1):
+    async def buy(self, ctx: MyContext, item: typing.Union[Item, 'PokeapiModels.Item'], quantity: int_range(1, 999) = 1):
         """Buy items from the shop. There is a limited selection available"""
         if item.id not in self._shop_item_ids:
             prefix, *_ = await self.bot.get_prefix(ctx.message)
@@ -244,7 +244,7 @@ class Shop(BaseCog):
         await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price} points.')
 
     @mart.command()
-    async def sell(self, ctx: MyContext, item: typing.Union[Item, PokeapiModels.Item], quantity: int_range(1, 999) = 1):
+    async def sell(self, ctx: MyContext, item: typing.Union[Item, 'PokeapiModels.Item'], quantity: int_range(1, 999) = 1):
         """Sell items from your inventory"""
 
         if item.cost == 0:
@@ -325,7 +325,7 @@ class Shop(BaseCog):
         await menu.start(ctx, wait=True)
 
     @inventory.command('toss')
-    async def inventory_toss(self, ctx: MyContext, item: typing.Union[Item, PokeapiModels.Item], quantity: int_range(0, 999)):
+    async def inventory_toss(self, ctx: MyContext, item: typing.Union[Item, 'PokeapiModels.Item'], quantity: int_range(0, 999)):
         """Toss items from your bag"""
 
         async with self.bot.sql as sql:  # type: asyncpg.Connection
