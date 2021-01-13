@@ -116,11 +116,14 @@ class NamedPokeapiResource(PokeapiResource):
     async def convert(cls, ctx: MyContext, argument: str) -> 'NamedPokeapiResource':
         try:
             argument = int(argument)
-            obj = await ctx.bot.pokeapi.get_model(cls, argument)
+            methd = ctx.bot.pokeapi.get_model
         except ValueError:
-            obj = await ctx.bot.pokeapi.get_model_named(cls, argument)
-        if obj is None:
-            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}', argument)
+            methd = ctx.bot.pokeapi.get_model_named
+        try:
+            obj = await methd(cls, argument)
+            assert obj is not None
+        except Exception as e:
+            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}', argument) from e
         return obj
 
 

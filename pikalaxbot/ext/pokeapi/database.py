@@ -65,7 +65,8 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     def resolve_model(self, model: Union[str, 'ModelType']) -> 'ModelType':
         if isinstance(model, str):
             model = getattr(self, model)
-        assert issubclass(model, PokeapiResource)
+        if not issubclass(model, PokeapiResource):
+            raise TypeError('Expected PokeapiResource or NamedPokeapiResource, got {0.__name__}'.format(model))
         return model
 
     async def get_model(self, model: 'ModelType', id_: int) -> Optional['Model']:
