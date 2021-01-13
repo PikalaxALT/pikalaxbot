@@ -189,10 +189,8 @@ class Shop(BaseCog):
             balance = await sql.fetchval(
                 'select score '
                 'from game '
-                'where id = $1 '
-                'and name = $2',
-                ctx.author.id,
-                ctx.author.name
+                'where id = $1',
+                ctx.author.id
             )
         balance = balance or 0
         embed = discord.Embed().set_image(
