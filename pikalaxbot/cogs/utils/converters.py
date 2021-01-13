@@ -9,6 +9,8 @@ import parsedatetime as pdt
 import typing
 import operator
 from .. import *
+if typing.TYPE_CHECKING:
+    from ...ext.pokeapi.types import *
 
 
 __all__ = (
@@ -24,6 +26,20 @@ __all__ = (
     'PastTime',
     'ShortPastTime'
 )
+
+
+class NamedPokeapiResource(commands.Converter):
+    async def convert(self, ctx: MyContext, argument: str):
+        model: 'ModelType' = ctx.bot.pokeapi.resolve_model(self.__class__.__name__)
+        return await model.convert(ctx, argument)
+
+
+class PokemonSpecies(NamedPokeapiResource):
+    pass
+
+
+class Item(NamedPokeapiResource):
+    pass
 
 
 class CommandConverter(commands.Command):

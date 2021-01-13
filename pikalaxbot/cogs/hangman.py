@@ -147,13 +147,11 @@ class HangmanGame(GameBase):
                            delete_after=10)
 
 
-class Hangman(GameCogBase):
+class Hangman(GameCogBase[HangmanGame]):
     """Commands for playing a game of Pokemon Hangman.
 
     All commands are under the `hangman` group, or you can use one
     of the shortcuts below."""
-
-    gamecls = HangmanGame
 
     def cog_check(self, ctx: MyContext):
         return self._local_check(ctx) and ctx.bot.pokeapi is not None

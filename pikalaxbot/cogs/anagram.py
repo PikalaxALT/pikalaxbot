@@ -123,13 +123,11 @@ class AnagramGame(GameBase):
                            delete_after=10)
 
 
-class Anagram(GameCogBase):
+class Anagram(GameCogBase[AnagramGame]):
     """Play a Pokemon anagram game.
 
     All commands are under the `anagram` group,
     or you can use one of the shortcuts."""
-
-    gamecls = AnagramGame
 
     def cog_check(self, ctx: MyContext):
         return self._local_check(ctx) and ctx.bot.pokeapi is not None

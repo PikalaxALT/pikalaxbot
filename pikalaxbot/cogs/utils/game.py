@@ -22,7 +22,9 @@ from discord.ext import commands
 from .errors import BadGameArgument
 import typing
 import asyncpg
+import collections
 from .. import *
+from ...types import T
 if typing.TYPE_CHECKING:
     from ...ext.pokeapi import PokeApi
 
@@ -196,8 +198,10 @@ class GameStartCommand(commands.Command):
         pass
 
 
-class GameCogBase(BaseCog):
-    gamecls = None
+class GameCogBase(BaseCog, typing.Generic[T]):
+    @discord.utils.cached_property
+    def _gamecls(self) -> typing.Type[T]:
+        return typing.get_args(self.__orig_bases__[0])[0]
 
     async def init_db(self, sql):
         await sql.execute(
@@ -215,15 +219,11 @@ class GameCogBase(BaseCog):
         return True
 
     def __init__(self, bot):
-        if self.gamecls is None:
-            raise NotImplemented('this class must be subclassed')
         super().__init__(bot)
-        self.channels: dict[int, GameBase] = {}
+        self.channels: typing.Mapping[int, T] = collections.defaultdict(lambda: self._gamecls(self.bot))
         self._max_concurrency = commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False)
 
     def __getitem__(self, channel: int):
-        if channel not in self.channels:
-            self.channels[channel] = self.gamecls(self.bot)
         return self.channels[channel]
 
     async def game_cmd(self, cmd, ctx: MyContext, *args, **kwargs):
@@ -231,7 +231,7 @@ class GameCogBase(BaseCog):
             cb: typing.Callable[[MyContext, ...], typing.Coroutine] = getattr(game, cmd)
             if cb is None:
                 await ctx.send(f'{ctx.author.mention}: Invalid command: '
-                               f'{ctx.prefix}{self.gamecls.__class__.__name__.lower()} {cmd}',
+                               f'{ctx.prefix}{self._gamecls.__name__.lower()} {cmd}',
                                delete_after=10)
             else:
                 await cb(ctx, *args, **kwargs)

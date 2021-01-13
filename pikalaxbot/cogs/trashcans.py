@@ -143,10 +143,8 @@ class TrashcansGame(GameBase):
 converter = board_coords(maxy=3)
 
 
-class Trashcans(GameCogBase):
+class Trashcans(GameCogBase[TrashcansGame]):
     """Commands for playing a game based on the Vermilion Gym puzzle."""
-
-    gamecls = TrashcansGame
 
     def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)

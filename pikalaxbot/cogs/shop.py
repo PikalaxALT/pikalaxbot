@@ -6,15 +6,10 @@ import typing
 import asyncio
 import collections
 from . import *
+from .utils.converters import Item
 if typing.TYPE_CHECKING:
     from ..ext.pokeapi import PokeapiModels
     from .leaderboard import Leaderboard
-
-
-class Item:
-    @classmethod
-    async def convert(cls, ctx: MyContext, argument: str):
-        return await ctx.bot.pokeapi.Item.convert(ctx, argument)
 
 
 def int_range(low: int, high: int):
