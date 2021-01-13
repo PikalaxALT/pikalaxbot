@@ -243,7 +243,7 @@ class Shop(BaseCog):
                 f'Use `{prefix}{lb_cog.show.qualified_name}` to check your balance.',
                 delete_after=10
             )
-        await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price} points.')
+        await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price:,} points.')
 
     @mart.command()
     async def sell(
