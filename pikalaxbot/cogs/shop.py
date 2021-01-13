@@ -6,7 +6,7 @@ import typing
 import asyncio
 import collections
 from . import *
-from ..ext.pokeapi import PokeApi
+from ..ext.pokeapi import PokeapiModels
 if typing.TYPE_CHECKING:
     from .leaderboard import Leaderboard
 
@@ -49,7 +49,7 @@ class ShopConfirmationMenu(menus.Menu):
 
 
 class ShopInventoryPageSource(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, page: list[PokeApi.Item]):
+    async def format_page(self, menu: menus.MenuPages, page: list[PokeapiModels.Item]):
         embed = discord.Embed(
             title='Items available for purchase',
             description=f'Use `{menu.ctx.prefix}mart buy` to make a purchase'
@@ -66,7 +66,7 @@ class ShopInventoryPageSource(menus.ListPageSource):
 
 
 class ItemBagPageSource(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, page: list[tuple[PokeApi.Item, int]]):
+    async def format_page(self, menu: menus.MenuPages, page: list[tuple[PokeapiModels.Item, int]]):
         embed = discord.Embed(
             title='Items in {0.ctx.author.display_name}\'s bag'.format(menu),
             description=f'Use `{menu.ctx.prefix}mart buy` to make a purchase'
@@ -162,7 +162,7 @@ class Shop(BaseCog):
         await menu.start(ctx, wait=True)
 
     @mart.command()
-    async def buy(self, ctx: MyContext, item: PokeApi.Item, quantity: int_range(1, 999) = 1):
+    async def buy(self, ctx: MyContext, item: PokeapiModels.Item, quantity: int_range(1, 999) = 1):
         """Buy items from the shop. There is a limited selection available"""
         if item.id not in self._shop_item_ids:
             prefix, *_ = await self.bot.get_prefix(ctx.message)
@@ -238,7 +238,7 @@ class Shop(BaseCog):
         await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price} points.')
 
     @mart.command()
-    async def sell(self, ctx: MyContext, item: PokeApi.Item, quantity: int_range(1, 999) = 1):
+    async def sell(self, ctx: MyContext, item: PokeapiModels.Item, quantity: int_range(1, 999) = 1):
         """Sell items from your inventory"""
 
         if item.cost == 0:
@@ -319,7 +319,7 @@ class Shop(BaseCog):
         await menu.start(ctx, wait=True)
 
     @inventory.command('toss')
-    async def inventory_toss(self, ctx: MyContext, item: PokeApi.Item, quantity: int_range(0, 999)):
+    async def inventory_toss(self, ctx: MyContext, item: PokeapiModels.Item, quantity: int_range(0, 999)):
         """Toss items from your bag"""
 
         async with self.bot.sql as sql:  # type: asyncpg.Connection
