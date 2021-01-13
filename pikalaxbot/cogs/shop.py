@@ -168,7 +168,12 @@ class Shop(BaseCog):
         await menu.start(ctx, wait=True)
 
     @mart.command()
-    async def buy(self, ctx: MyContext, item: typing.Union[Item, 'PokeapiModels.Item'], quantity: int_range(1, 999) = 1):
+    async def buy(
+        self,
+        ctx: MyContext,
+        item: typing.Union[Item, 'PokeapiModels.Item'],
+        quantity: int_range(1, 999) = 1
+    ):
         """Buy items from the shop. There is a limited selection available"""
         if item.id not in self._shop_item_ids:
             prefix, *_ = await self.bot.get_prefix(ctx.message)
@@ -216,7 +221,7 @@ class Shop(BaseCog):
                 async with sql.transaction():
                     await sql.execute(
                         'update game '
-                        'set score = score - $3 '
+                        'set game.score = game.score - $3 '
                         'where id = $1 '
                         'and name = $2',
                         ctx.author.id,
@@ -226,8 +231,9 @@ class Shop(BaseCog):
                     await sql.execute(
                         'insert into pkmn_inventory '
                         'values ($1, $2, $3) '
-                        'on conflict (member, item_id) do update '
-                        'set quantity = quantity + $3',
+                        'on conflict (member, item_id) '
+                        'do update '
+                        'set pkmn_inventory.quantity = pkmn_inventory.quantity + $3',
                         ctx.author.id,
                         item.id,
                         quantity
@@ -244,7 +250,12 @@ class Shop(BaseCog):
         await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price} points.')
 
     @mart.command()
-    async def sell(self, ctx: MyContext, item: typing.Union[Item, 'PokeapiModels.Item'], quantity: int_range(1, 999) = 1):
+    async def sell(
+        self,
+        ctx: MyContext,
+        item: typing.Union[Item, 'PokeapiModels.Item'],
+        quantity: int_range(1, 999) = 1
+    ):
         """Sell items from your inventory"""
 
         if item.cost == 0:
@@ -283,14 +294,14 @@ class Shop(BaseCog):
                         'values ($1, $2, $3) '
                         'on conflict (id, name) '
                         'do update '
-                        'set score = score + $3',
+                        'set game.score = game.score + $3',
                         ctx.author.id,
                         ctx.author.name,
                         price
                     )
                     await sql.execute(
                         'update pkmn_inventory '
-                        'set quantity = quantity - $3 '
+                        'set pkmn_inventory.quantity = pkmn_inventory.quantity - $3 '
                         'where member = $1 '
                         'and item_id = $2',
                         ctx.author.id,
@@ -325,7 +336,12 @@ class Shop(BaseCog):
         await menu.start(ctx, wait=True)
 
     @inventory.command('toss')
-    async def inventory_toss(self, ctx: MyContext, item: typing.Union[Item, 'PokeapiModels.Item'], quantity: int_range(0, 999)):
+    async def inventory_toss(
+        self,
+        ctx: MyContext,
+        item: typing.Union[Item, 'PokeapiModels.Item'],
+        quantity: int_range(1, 999) = 1
+    ):
         """Toss items from your bag"""
 
         async with self.bot.sql as sql:  # type: asyncpg.Connection
