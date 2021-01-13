@@ -155,7 +155,7 @@ class Q20QuestionParser:
         re.compile(r'land\'?s ?wrath', re.I): 616,
     }
 
-    def __init__(self, game, pokeapi):
+    def __init__(self, game):
         self.game: Q20GameObject = game
         self.bot: PikalaxBOT = game.bot
         self.differ = difflib.SequenceMatcher()
@@ -169,7 +169,7 @@ class Q20QuestionParser:
             for word in q.split():
                 yield callable_(word)
 
-        def get_first_match(lut: dict[re.Pattern, int]) -> tuple[Optional[re.Pattern], Optional[int]]:
+        def get_first_match(lut: dict[re.Pattern, int]) -> tuple[Optional[re.Match], Optional[int]]:
             return discord.utils.find(
                 lambda t: next((m for m in iter_matches(t[0].match) if m is not None), None) is not None,
                 lut.items()
@@ -209,7 +209,7 @@ class Q20QuestionParser:
                 confidence = self.differ.ratio()
         return name, r, confidence
 
-    async def parse(self, question: str):
+    async def parse(self, question: str) -> tuple[str, bool, bool]:
         solution = self.game._solution
 
         async def pokemon(q):
@@ -282,8 +282,6 @@ class Q20QuestionParser:
                         name, _move, confidence_f = await self.lookup_name(self.bot.pokeapi.Move, q)
                         if _move:
                             message = 3 + (typeeffect < 0)
-            elif found:
-                result = await self.bot.pokeapi.mon_has_type(solution, found)
             return name, message, False, confidence * confidence_f
 
         async def type_(q):
@@ -917,8 +915,7 @@ class Q20QuestionParser:
         responses = list(filter(None, (x.result() for x in done)))
         if not responses:
             return 'Huh? I didn\'t understand that', False, False
-        responses.sort(reverse=True)
-        return responses[0][1:]
+        return max(responses)[1:]
 
 
 class Q20GameObject(GameBase):
@@ -959,14 +956,15 @@ class Q20GameObject(GameBase):
         super().__init__(bot, timeout=None)
         self._state: list[str] = []
         self._attempts = 20
-        self._parser = Q20QuestionParser(self, bot.pokeapi)
+        self._parser = Q20QuestionParser(self)
         self.attempts = 0
         self.challenge_mode = False
         self._plando_maker: Optional[discord.Member] = None
+        self._solution: 'Optional[PokeApi.PokemonSpecies]' = None
 
     def reset(self):
         super().reset()
-        self._solution = ''
+        self._solution = None
         self._state = []
         self.attempts = 0
         self.challenge_mode = False
@@ -987,8 +985,7 @@ class Q20GameObject(GameBase):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Q20 is already running here.', delete_after=10)
         else:
-            pokeapi = self.bot.pokeapi
-            self._solution: pokeapi.PokemonSpecies = plando or await pokeapi.random_pokemon()
+            self._solution = plando or await self.bot.pokeapi.random_pokemon()
             self.attempts = self._attempts
             self.challenge_mode = challenge_mode
             if plando:

@@ -226,7 +226,7 @@ class GameCogBase(BaseCog, typing.Generic[T]):
     def __getitem__(self, channel: int):
         return self.channels[channel]
 
-    async def game_cmd(self, cmd, ctx: MyContext, *args, **kwargs):
+    async def game_cmd(self, cmd: str, ctx: MyContext, *args, **kwargs):
         async with self[ctx.channel.id] as game:
             cb: typing.Callable[[MyContext, ...], typing.Coroutine] = getattr(game, cmd)
             if cb is None:
