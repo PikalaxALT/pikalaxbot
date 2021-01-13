@@ -831,5 +831,5 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     async def get_item_icon_url(self, item: PokeapiModels.Item, path='$.default') -> Optional[str]:
         result = await self.get_item_icon(item, path)
         if result:
-            result = re.sub(r'^/media/', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/', path)
+            result = re.sub(r'^/media/', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/', result)
         return result
