@@ -55,8 +55,8 @@ class Leaderboard(BaseCog):
         """Check the top 10 players on the leaderboard"""
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             msg = '\n'.join(
-                '<@{0:d}>: {1:d}'.format(*row) for row in await sql.fetch(
-                    'select * from game '
+                '{0:s}: {1:d}'.format(ctx.guild.get_member(id_), score) for id_, score in await sql.fetch(
+                    'select id, score from game '
                     'order by score desc '
                     'limit 10'
                 )
@@ -64,8 +64,7 @@ class Leaderboard(BaseCog):
         await ctx.send(f'Leaderboard:\n'
                        f'```\n'
                        f'{msg}\n'
-                       f'```',
-                       allowed_mentions=discord.AllowedMentions(users=False))
+                       f'```')
 
     @leaderboard.command(name='clear')
     @commands.is_owner()
