@@ -226,7 +226,7 @@ class Shop(BaseCog):
                     await sql.execute(
                         'insert into pkmn_inventory '
                         'values ($1, $2, $3) '
-                        'on conflict do update '
+                        'on conflict (member, item_id) do update '
                         'set quantity = quantity + $3',
                         ctx.author.id,
                         item.id,
@@ -281,7 +281,7 @@ class Shop(BaseCog):
                     await sql.execute(
                         'insert into game '
                         'values ($1, $2, $3) '
-                        'on conflict '
+                        'on conflict (id, name) '
                         'do update '
                         'set score = score + $3',
                         ctx.author.id,
