@@ -204,7 +204,7 @@ class GameCogBase(BaseCog):
             "create table if not exists game ("
             "id bigint unique primary key, "
             "name varchar(32), "
-            "score integer default 0"
+            "score integer default 0 check (score >= 0)"
             ")"
         )
 

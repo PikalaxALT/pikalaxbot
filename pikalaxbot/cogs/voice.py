@@ -155,11 +155,9 @@ class Voice(BaseCog):
                 discord.opus.load_opus(opus_name)
         return discord.opus.is_loaded()
 
-    @commands.group(name='voice')
+    @commands.group(name='voice', invoke_without_command=True)
     async def pikavoice(self, ctx: MyContext):
         """Commands for interacting with the bot in voice channels"""
-        if ctx.invoked_subcommand is None:
-            raise commands.CommandInvokeError('Invalid subcommand')
 
     @commands.check(voice_cmd_ensure_connected)
     @commands.check(voice_client_not_playing)

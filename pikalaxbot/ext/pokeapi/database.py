@@ -815,3 +815,14 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 return f'{versions[0].name} and {last.name}'
             return ', '.join(v.name for v in versions) + ', and ' + last.name
         return last.name
+
+    async def get_item_icon(self, item: PokeapiModels.Item, path='$.default') -> Optional[str]:
+        statement = """
+        SELECT JSON_EXTRACT(sprites, :path)
+        FROM pokemon_v2_itemsprites
+        WHERE item_id = :id
+        """
+        async with self.replace_row_factory(None) as conn:
+            async with conn.execute(statement, {'path': path, 'id': item.id}) as cur:
+                result, = await cur.fetchone()
+        return result
