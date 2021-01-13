@@ -221,7 +221,7 @@ class Shop(BaseCog):
                 async with sql.transaction():
                     await sql.execute(
                         'update game '
-                        'set game.score = game.score - $3 '
+                        'set score = score - $3 '
                         'where id = $1 '
                         'and name = $2',
                         ctx.author.id,
@@ -233,7 +233,7 @@ class Shop(BaseCog):
                         'values ($1, $2, $3) '
                         'on conflict (member, item_id) '
                         'do update '
-                        'set pkmn_inventory.quantity = pkmn_inventory.quantity + $3',
+                        'set quantity = pkmn_inventory.quantity + $3',
                         ctx.author.id,
                         item.id,
                         quantity
@@ -294,14 +294,14 @@ class Shop(BaseCog):
                         'values ($1, $2, $3) '
                         'on conflict (id, name) '
                         'do update '
-                        'set game.score = game.score + $3',
+                        'set score = game.score + $3',
                         ctx.author.id,
                         ctx.author.name,
                         price
                     )
                     await sql.execute(
                         'update pkmn_inventory '
-                        'set pkmn_inventory.quantity = pkmn_inventory.quantity - $3 '
+                        'set quantity = quantity - $3 '
                         'where member = $1 '
                         'and item_id = $2',
                         ctx.author.id,
