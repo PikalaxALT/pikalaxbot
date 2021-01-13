@@ -185,7 +185,7 @@ class Shop(BaseCog):
             )
         balance = balance or 0
         embed = discord.Embed().set_image(
-            url=await self.bot.pokeapi.get_item_icon(item)
+            url=await self.bot.pokeapi.get_item_icon_url(item)
         ).add_field(
             name='Balance',
             value=str(balance)
