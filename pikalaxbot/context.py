@@ -21,12 +21,12 @@ class MyContext(commands.Context):
         self._message_history: set[int] = set()
         self._task = asyncio.current_task()
 
-    async def send(self, content: Optional[str] = None, **kwargs):
+    async def send(self, content: Optional[str] = None, **kwargs) -> discord.Message:
         msg = await super().send(content, **kwargs)
         self.bot._ctx_cache[(self.channel.id, self.message.id)][1].add(msg.id)
         return msg
 
-    async def reply(self, content: Optional[str] = None, **kwargs):
+    async def reply(self, content: Optional[str] = None, **kwargs) -> discord.Message:
         msg = await super().reply(content, **kwargs)
         self.bot._ctx_cache[(self.channel.id, self.message.id)][1].add(msg.id)
         return msg

@@ -24,7 +24,7 @@ import os
 import time
 import re
 import typing
-from .utils.converters import EspeakParamsConverter
+from .utils.converters import espeak_params
 
 
 class VoiceCommandError(commands.CheckFailure):
@@ -103,7 +103,7 @@ class Voice(BaseCog):
         'g': int,
         'k': int
     }
-    __params_converter = EspeakParamsConverter(**__espeak_valid_keys)
+    __params_converter = espeak_params(**__espeak_valid_keys)
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -234,7 +234,7 @@ class Voice(BaseCog):
             view = ctx.view
             view.index = 0
             if view.skip_string(f'{ctx.prefix}{ctx.invoked_with}'):
-                converter = EspeakParamsConverter(**self.__espeak_valid_keys)
+                converter = espeak_params(**self.__espeak_valid_keys)
                 while not view.eof:
                     view.skip_ws()
                     arg = view.get_word()

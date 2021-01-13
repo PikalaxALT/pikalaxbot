@@ -23,7 +23,7 @@ from discord.ext import commands
 
 from . import *
 from .utils.game import GameBase, GameCogBase, find_emoji, GameStartCommand
-from .utils.converters import BoardCoords
+from .utils.converters import board_coords
 
 
 class VoltorbFlipGame(GameBase):
@@ -280,7 +280,7 @@ class VoltorbFlipGame(GameBase):
                            delete_after=10)
 
 
-converter = BoardCoords()
+converter = board_coords()
 
 
 class VoltorbFlip(GameCogBase):

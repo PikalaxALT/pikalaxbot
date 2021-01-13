@@ -66,6 +66,16 @@ class SeenUser(BaseCog):
                            f'{seen_msg.created_at.strftime("on %d %B %Y at %H:%M:%S UTC")}\n'
                            f'{seen_msg.jump_url}')
 
+    @BaseCog.listener()
+    async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
+        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
+        channel: discord.TextChannel = self.bot.get_channel(payload.channel_id)
+        if channel in self.history_cache:
+            msg: typing.Optional[discord.Message]
+            if (msg := discord.utils.get(self.history_cache[channel], id=payload.message_id)) is not None:
+                self.history_cache[channel].remove(msg)
+                del self.member_cache[(guild, guild.get_member(msg.author.id))]
+
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(SeenUser(bot))

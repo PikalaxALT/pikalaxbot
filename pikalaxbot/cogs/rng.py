@@ -19,7 +19,7 @@ import random
 from discord.ext import commands
 
 from . import *
-from .utils.converters import DiceRollConverter
+from .utils.converters import dice_roll
 
 
 class Rng(BaseCog):
@@ -37,7 +37,7 @@ class Rng(BaseCog):
             await ctx.send(random.choice(options))
 
     @commands.command()
-    async def roll(self, ctx: MyContext, params: DiceRollConverter = (1, 6)):
+    async def roll(self, ctx: MyContext, params: dice_roll = (1, 6)):
         """Roll one or more dice with a given number of sides."""
 
         count, sides = params  # type: int, int

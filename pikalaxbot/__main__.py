@@ -39,8 +39,20 @@ async def _command_prefix(bot: PikalaxBOT, message: discord.Message) -> typing.U
         return ''
     if message.guild.id not in bot.guild_prefixes:
         async with bot.sql as sql:
-            await sql.execute('insert into prefixes values ($1, $2) on conflict (guild) do nothing', message.guild.id, bot.settings.prefix)
-            bot.guild_prefixes[message.guild.id], = await sql.fetchrow('select prefix from prefixes where guild = $1', message.guild.id)
+            await sql.execute(
+                'insert into prefixes '
+                'values ($1, $2) '
+                'on conflict (guild) '
+                'do nothing',
+                message.guild.id,
+                bot.settings.prefix
+            )
+            bot.guild_prefixes[message.guild.id] = await sql.fetchval(
+                'select prefix '
+                'from prefixes '
+                'where guild = $1',
+                message.guild.id
+            )
     ret = [bot.guild_prefixes[message.guild.id]]
     if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author):
         ret.append('')
@@ -90,7 +102,8 @@ def main():
                              "Defaults to %(default)s")
     parser.add_argument('-v', '--version', action='store_true',
                         help="Prints the version string and exits.")
-    parser.add_argument('-d', '--debug', action='store_const', dest='log_level', const=logging.DEBUG, default=logging.INFO,
+    parser.add_argument('-d', '--debug', action='store_const', dest='log_level',
+                        const=logging.DEBUG, default=logging.INFO,
                         help="set debug log level")
     args = parser.parse_args()
     if args.version:

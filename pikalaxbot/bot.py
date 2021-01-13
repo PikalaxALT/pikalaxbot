@@ -79,7 +79,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self._pokeapi = value
 
     @afunctools.cache
-    async def get_owner(self) -> typing.Union[discord.User, set[discord.User], None]:
+    async def get_owner(self) -> typing.Union[discord.User, set[discord.TeamMember], None]:
         if self.owner_id is not None:
             return self.get_user(self.owner_id)
         elif self.owner_ids is not None:
@@ -120,10 +120,10 @@ class PikalaxBOT(BotLogger, commands.Bot):
         menu_ = menus.MenuPages(TracebackPageSource(paginator.pages, per_page=1))
         await menu_.start(ctx, channel=channel)
 
-    def run(self):
+    def run(self, *args, **kwargs):
         self.log_info('Starting bot')
         token = self.settings.token
-        super().run(token)
+        super().run(token, *args, **kwargs)
 
     async def close(self):
         self.log_info('Logout request receeived')

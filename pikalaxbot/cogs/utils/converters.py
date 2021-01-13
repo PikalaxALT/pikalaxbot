@@ -6,15 +6,17 @@ from dateutil.relativedelta import relativedelta
 import datetime
 import asyncpg
 import parsedatetime as pdt
+import typing
+import operator
 from .. import *
 
 
 __all__ = (
     'CommandConverter',
-    'DiceRollConverter',
+    'dice_roll',
     'AliasedRoleConverter',
-    'BoardCoords',
-    'EspeakParamsConverter',
+    'board_coords',
+    'espeak_params',
     'ShortTime',
     'HumanTime',
     'Time',
@@ -33,18 +35,14 @@ class CommandConverter(commands.Command):
         return cmd
 
 
-class DiceRollConverter(tuple[int, int]):
-    _pattern = re.compile(r'(?P<count>\d+)?(d(?P<sides>\d+))?')
-
-    @classmethod
-    async def convert(cls, ctx: MyContext, argument: str):
-        match = cls._pattern.match(argument)
-        if match is None:
-            raise ValueError
-        count = int(match['count'] or 1)
-        sides = int(match['sides'] or 6)
-        assert 1 <= count <= 200 and 2 <= sides <= 100
-        return count, sides
+def dice_roll(argument: str):
+    match = re.match(r'(?P<count>\d+)?(d(?P<sides>\d+))?', argument)
+    if match is None:
+        raise ValueError
+    count = int(match['count'] or 1)
+    sides = int(match['sides'] or 6)
+    assert 1 <= count <= 200 and 2 <= sides <= 100
+    return count, sides
 
 
 class AliasedRoleConverter(discord.Role):
@@ -64,44 +62,38 @@ class AliasedRoleConverter(discord.Role):
         return await commands.RoleConverter().convert(ctx, role_id)
 
 
-def BoardCoords(minx=1, maxx=5, miny=1, maxy=5):
-    class RealConverter(tuple[int, int]):
-        @classmethod
-        async def convert(cls, ctx: MyContext, argument: str):
-            if isinstance(argument, tuple):
-                return argument
-            try:
-                argument = argument.lower()
-                if argument.startswith(tuple('abcde')):
-                    y = ord(argument[0]) - 0x60
-                    x = int(argument[1])
-                else:
-                    y, x = map(int, argument.split())
-                assert minx <= x <= maxx and miny <= y <= maxy
-                return x - 1, y - 1
-            except (ValueError, AssertionError, IndexError) as e:
-                raise BadGameArgument from e
-
-    return RealConverter
-
-
-def EspeakParamsConverter(**valid_keys):
-    class RealConverter(tuple[str, str]):
-        @classmethod
-        async def convert(cls, ctx: MyContext, argument: str):
-            if isinstance(argument, str):
-                # Convert from a string
-                key, value = argument.split('=')
-                value = valid_keys[key](value)
+def board_coords(minx=1, maxx=5, miny=1, maxy=5):
+    def real_converter(argument: typing.Union[str, tuple]):
+        if isinstance(argument, tuple):
+            return argument
+        try:
+            argument = argument.lower()
+            if argument.startswith(tuple('abcde')):
+                y = ord(argument[0]) - 0x60
+                x = int(argument[1])
             else:
-                # Make sure this is an iterable of length 2
-                key, value = argument
-            return key, value
+                y, x = map(int, argument.split())
+            assert minx <= x <= maxx and miny <= y <= maxy
+            return x - 1, y - 1
+        except (ValueError, AssertionError, IndexError) as e:
+            raise BadGameArgument from e
+    return real_converter
 
-    return RealConverter
+
+def espeak_params(**valid_keys):
+    def real_converter(argument: str):
+        if isinstance(argument, str):
+            # Convert from a string
+            key, value = argument.split('=')
+            value = valid_keys[key](value)
+        else:
+            # Make sure this is an iterable of length 2
+            key, value = argument
+        return key, value
+
+    return real_converter
 
 
-# Thanks Danny#0007/Rapptz for these handy converters
 class ShortTime:
     compiled = re.compile("""(?:(?P<years>[0-9])(?:years?|y))?             # e.g. 2y
                              (?:(?P<months>[0-9]{1,2})(?:months?|mo))?     # e.g. 2months
@@ -112,14 +104,21 @@ class ShortTime:
                              (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
                           """, re.VERBOSE)
 
-    def __init__(self, argument: str, *, now=None):
+    init_op = staticmethod(operator.add)
+
+    def __init__(
+            self,
+            argument: str,
+            *,
+            now: datetime.datetime = None
+    ):
         match = self.compiled.fullmatch(argument)
         if match is None or not match.group(0):
             raise commands.BadArgument('invalid time provided')
 
-        data = { k: int(v) for k, v in match.groupdict(default=0).items() }
+        data = {k: int(v) for k, v in match.groupdict(default='0').items()}
         now = now or datetime.datetime.utcnow()
-        self.dt = now + relativedelta(**data)
+        self.dt = self.init_op(now, relativedelta(**data))
 
     @classmethod
     async def convert(cls, ctx: MyContext, argument: str):
@@ -129,7 +128,7 @@ class ShortTime:
 class HumanTime:
     calendar = pdt.Calendar(version=pdt.VERSION_CONTEXT_STYLE)
 
-    def __init__(self, argument: str, *, now=None):
+    def __init__(self, argument: str, *, now: datetime.datetime = None):
         now = now or datetime.datetime.utcnow()
         dt, status = self.calendar.parseDT(argument, sourceTime=now)
         if not status.hasDateOrTime:
@@ -148,7 +147,7 @@ class HumanTime:
 
 
 class Time(HumanTime):
-    def __init__(self, argument: str, *, now=None):
+    def __init__(self, argument: str, *, now: datetime.datetime = None):
         try:
             o = ShortTime(argument, now=now)
         except Exception as e:
@@ -159,7 +158,7 @@ class Time(HumanTime):
 
 
 class FutureTime(Time):
-    def __init__(self, argument: str, *, now=None):
+    def __init__(self, argument: str, *, now: datetime.datetime = None):
         super().__init__(argument, now=now)
 
         if self._past:
@@ -167,18 +166,11 @@ class FutureTime(Time):
 
 
 class ShortPastTime(ShortTime):
-    def __init__(self, argument: str, *, now=None):
-        match = self.compiled.fullmatch(argument)
-        if match is None or not match.group(0):
-            raise commands.BadArgument('invalid time provided')
-
-        data = { k: int(v) for k, v in match.groupdict(default=0).items() }
-        now = now or datetime.datetime.utcnow()
-        self.dt = now - relativedelta(**data)
+    init_op = staticmethod(operator.sub)
 
 
 class PastTime(HumanTime):
-    def __init__(self, argument: str, *, now=None):
+    def __init__(self, argument: str, *, now: datetime.datetime = None):
         try:
             o = ShortPastTime(argument, now=now)
         except Exception as e:
