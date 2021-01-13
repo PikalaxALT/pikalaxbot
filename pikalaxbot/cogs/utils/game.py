@@ -49,11 +49,11 @@ def find_emoji(
 async def increment_score(sql: asyncpg.Connection, player: discord.Member, *, by=1):
     await sql.execute(
         'insert into game '
-        'values ($1, $2, $3) '
+        'values ($1, $2) '
         'on conflict(id) '
         'do update '
-        'set score = game.score + $3',
-        player.id, player.name, by)
+        'set score = game.score + $2',
+        player.id, by)
 
 
 class NoInvokeOnEdit(commands.CheckFailure):
@@ -203,7 +203,6 @@ class GameCogBase(BaseCog):
         await sql.execute(
             "create table if not exists game ("
             "id bigint unique primary key, "
-            "name varchar(32), "
             "score integer default 0 check (score >= 0)"
             ")"
         )
