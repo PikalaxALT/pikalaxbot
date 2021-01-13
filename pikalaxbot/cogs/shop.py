@@ -197,11 +197,11 @@ class Shop(BaseCog):
             url=await self.bot.pokeapi.get_item_icon_url(item)
         ).add_field(
             name='Balance',
-            value=str(balance)
+            value='{:,}'.format(balance)
         )
         msg = await ctx.reply(
             f'Okay, {item}, and you wanted {quantity}? '
-            f'That will cost you {price} leaderboard points. '
+            f'That will cost you {price:,} leaderboard points. '
             f'Is that okay?',
             embed=embed
         )
@@ -271,7 +271,7 @@ class Shop(BaseCog):
             return await ctx.reply('You don\'t have nearly that many of these to sell.', delete_after=10)
         msg = await ctx.reply(
             f'Okay, {item.name}, and you want to sell {quantity}? '
-            f'I can give you {price} for those. Okay?'
+            f'I can give you {price:,} for those. Okay?'
         )
         menu = ShopConfirmationMenu(
             message=msg,
