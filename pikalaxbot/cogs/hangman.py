@@ -22,8 +22,6 @@ from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
 import typing
 from . import *
 from ..types import *
-if typing.TYPE_CHECKING:
-    from ..ext.pokeapi import PokeapiModels
 
 
 def where(predicate: typing.Callable[[T], bool], iterable: typing.Iterable[T]) -> list[int]:
@@ -41,7 +39,7 @@ class HangmanGame(GameBase):
     def reset(self):
         super().reset()
         self._state: list[str] = []
-        self._solution: typing.Optional['PokeapiModels.PokemonSpecies'] = None
+        self._solution = None
         self._solution_name = ''
         self._incorrect.clear()
         self.attempts = 0

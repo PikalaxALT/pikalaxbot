@@ -20,7 +20,7 @@ import textwrap
 import traceback
 from asyncio.subprocess import PIPE
 from contextlib import redirect_stdout
-from pikalaxbot.utils.hastebin import mystbin
+from ..utils.hastebin import mystbin
 
 import aiohttp
 from import_expression import exec

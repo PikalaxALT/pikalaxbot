@@ -6,9 +6,8 @@ import typing
 import asyncio
 import collections
 from . import *
-from .utils.converters import Item
+from ..pokeapi import PokeapiModels
 if typing.TYPE_CHECKING:
-    from ..ext.pokeapi import PokeapiModels
     from .leaderboard import Leaderboard
 
 
@@ -166,7 +165,7 @@ class Shop(BaseCog):
     async def buy(
         self,
         ctx: MyContext,
-        item: typing.Union[Item, 'PokeapiModels.Item'],
+        item: PokeapiModels.Item,
         quantity: int_range(1, 999) = 1
     ):
         """Buy items from the shop. There is a limited selection available"""
@@ -244,7 +243,7 @@ class Shop(BaseCog):
     async def sell(
         self,
         ctx: MyContext,
-        item: typing.Union[Item, 'PokeapiModels.Item'],
+        item: PokeapiModels.Item,
         quantity: int_range(1, 999) = 1
     ):
         """Sell items from your inventory"""
@@ -329,7 +328,7 @@ class Shop(BaseCog):
     async def inventory_toss(
         self,
         ctx: MyContext,
-        item: typing.Union[Item, 'PokeapiModels.Item'],
+        item: PokeapiModels.Item,
         quantity: int_range(1, 999) = 1
     ):
         """Toss items from your bag"""

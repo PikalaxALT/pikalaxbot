@@ -25,8 +25,7 @@ import asyncpg
 import collections
 from .. import *
 from ...types import T
-if typing.TYPE_CHECKING:
-    from ...ext.pokeapi import PokeApi
+from ...pokeapi import PokeApi
 
 __all__ = (
     'find_emoji',
@@ -80,7 +79,7 @@ class GameBase:
         self._task: typing.Union[None, asyncio.Task, asyncio.Future] = None
         self.start_time = -1
         self._players: set[discord.Member] = set()
-        self._solution: typing.Optional['PokeApi.PokemonSpecies'] = None
+        self._solution: typing.Optional[PokeApi.PokemonSpecies] = None
 
     async def __aenter__(self):
         await self._lock.acquire()
@@ -96,7 +95,7 @@ class GameBase:
         self._task = None
         self.start_time = -1
         self._players.clear()
-        self._solution: typing.Optional['PokeApi.PokemonSpecies'] = None
+        self._solution = None
 
     @property
     def state(self):

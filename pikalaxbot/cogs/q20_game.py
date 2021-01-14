@@ -3,7 +3,6 @@ import math
 from discord.ext import commands
 from . import *
 from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
-from .utils.converters import PokemonSpecies
 from ..types import *
 import re
 import difflib
@@ -11,10 +10,8 @@ import random
 import nltk
 import asyncio
 from contextlib import asynccontextmanager as acm
-from typing import TYPE_CHECKING, Optional, Callable, Coroutine, Any
-if TYPE_CHECKING:
-    from ..ext.pokeapi import PokeApi
-    from ..ext.pokeapi.types import Model, ModelType
+from typing import Optional, Callable, Coroutine, Any
+from ..pokeapi import PokeapiModels, Model, ModelType
 
 
 ParseMethod = Callable[[str], Coroutine[None, None, tuple[Optional[str], int, bool, float]]]
@@ -161,7 +158,7 @@ class Q20QuestionParser:
         self.differ = difflib.SequenceMatcher()
         self.tokenizer = nltk.WordPunctTokenizer()
 
-    async def lookup_name(self, table: 'ModelType', q: str) -> tuple[Optional[str], 'Optional[Model]', float]:
+    async def lookup_name(self, table: ModelType, q: str) -> tuple[Optional[str], Optional[Model], float]:
         def iter_matches(callable_: Callable[[str], R]) -> R:
             yield callable_(q)
             for bigram in re.findall(r'(?=(\S+\s+\S))', q):
@@ -180,9 +177,10 @@ class Q20QuestionParser:
         name: Optional[str]
         orig: Optional[str]
 
-        if table in (self.bot.pokeapi.Pokemon, self.bot.pokeapi.PokemonSpecies):
+        table = self.bot.pokeapi.resolve_model(table)
+        if table in (PokeapiModels.Pokemon, PokeapiModels.PokemonSpecies):
             _, id_ = get_first_match(Q20QuestionParser.mon_search)
-        elif table is self.bot.pokeapi.Move:
+        elif table is PokeapiModels.Move:
             _, id_ = get_first_match(Q20QuestionParser.move_search)
         else:
             id_ = None
@@ -197,7 +195,7 @@ class Q20QuestionParser:
             name = None
             for coro, orig in iter_matches(
                 lambda s: (self.bot.pokeapi.get_model_named(table, s), s)
-            ):  # type: Coroutine[Any, Any, 'Optional[Model]'], str
+            ):  # type: Coroutine[Any, Any, Optional[Model]], str
                 r = await coro
                 if r:
                     break
@@ -537,7 +535,7 @@ class Q20QuestionParser:
                 else:
                     name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon: 'Optional[PokeApi.PokemonForm]' = await self.bot.pokeapi.get_default_forme(mon)
+                        mon: Optional[PokeapiModels.PokemonForm] = await self.bot.pokeapi.get_default_forme(mon)
                         size_literal = mon.pokemon.height / 10
                         confidence = confidence_f
             if size_literal > 0:
@@ -615,7 +613,7 @@ class Q20QuestionParser:
                 else:
                     name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon: 'Optional[PokeApi.PokemonForm]' = await self.bot.pokeapi.get_default_forme(mon)
+                        mon: Optional[PokeapiModels.PokemonForm] = await self.bot.pokeapi.get_default_forme(mon)
                         size_literal = mon.pokemon.weight / 10
                         confidence = confidence_f
             if size_literal > 0:
@@ -712,7 +710,7 @@ class Q20QuestionParser:
             if special:
                 stat_name = f'Special {stat_name}'
 
-            async def get_stat_value(mon_: 'PokeApi.PokemonSpecies'):
+            async def get_stat_value(mon_: PokeapiModels.PokemonSpecies):
                 base_stats = await self.bot.pokeapi.get_base_stats(mon_)
                 if stat_name == 'Stat Total':
                     return sum(base_stats.values())
@@ -960,7 +958,7 @@ class Q20GameObject(GameBase):
         self.attempts = 0
         self.challenge_mode = False
         self._plando_maker: Optional[discord.Member] = None
-        self._solution: 'Optional[PokeApi.PokemonSpecies]' = None
+        self._solution: Optional[PokeapiModels.PokemonSpecies] = None
 
     def reset(self):
         super().reset()
@@ -981,7 +979,13 @@ class Q20GameObject(GameBase):
                f'{self.state}\n' \
                f'```'
 
-    async def start(self, ctx: MyContext, *, challenge_mode=False, plando: 'Optional[PokeApi.PokemonSpecies]' = None):
+    async def start(
+            self,
+            ctx: MyContext,
+            *,
+            challenge_mode=False,
+            plando: Optional[PokeapiModels.PokemonSpecies] = None
+    ):
         if self.running:
             await ctx.send(f'{ctx.author.mention}: Q20 is already running here.', delete_after=10)
         else:
@@ -1130,7 +1134,7 @@ class Q20Game(GameCogBase[Q20GameObject]):
     @q20.command(name='debug')
     @commands.is_owner()
     @commands.check(lambda ctx: ctx.cog[ctx.channel.id].running)
-    async def q20_debug(self, ctx: MyContext, mon: PokemonSpecies):
+    async def q20_debug(self, ctx: MyContext, mon: PokeapiModels.PokemonSpecies):
         """Set the solution of the running game to the specified mon."""
 
         self[ctx.channel.id]._solution = mon
@@ -1157,7 +1161,7 @@ class Q20Game(GameCogBase[Q20GameObject]):
             )
         await ctx.reply('Check your DMs!')
 
-        solution: 'PokeApi.PokemonSpecies'
+        solution: PokeapiModels.PokemonSpecies
         try:
             while True:
                 msg = await self.bot.wait_for(

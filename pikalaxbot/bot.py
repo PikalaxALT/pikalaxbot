@@ -11,8 +11,7 @@ from .utils.logging_mixin import BotLogger
 from .context import MyContext, FakeContext
 from .utils.config_io import Settings
 import asyncstdlib.functools as afunctools
-if typing.TYPE_CHECKING:
-    from .ext.pokeapi import PokeApi
+from .pokeapi import *
 
 
 __all__ = ('PikalaxBOT',)
@@ -23,6 +22,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
             self,
             *,
             settings_file: typing.Union[str, os.PathLike],
+            pokeapi_file: typing.Union[str, os.PathLike] = None,
             **kwargs
     ):
         # Load settings
@@ -52,8 +52,15 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self._alive_since: typing.Optional[datetime.datetime] = None
 
         # PokeAPI
-        self._pokeapi_factory: typing.Optional[typing.Callable[[], 'PokeApi']] = None
-        self._pokeapi: typing.Optional['PokeApi'] = None
+        self._pokeapi: typing.Optional[PokeApi]
+        if pokeapi_file:
+            self._pokeapi = PokeApi(
+                pokeapi_file,
+                factory=PokeApiConnection,
+                uri=True
+            )
+        else:
+            self._pokeapi = None
 
     @property
     def exc_channel(self) -> typing.Optional[discord.TextChannel]:
@@ -71,12 +78,8 @@ class PikalaxBOT(BotLogger, commands.Bot):
         return self._pool.acquire()
 
     @property
-    def pokeapi(self):
+    def pokeapi(self) -> PokeApi:
         return self._pokeapi
-
-    @pokeapi.setter
-    def pokeapi(self, value: typing.Optional['PokeApi']):
-        self._pokeapi = value
 
     @afunctools.cache
     async def get_owner(self) -> typing.Union[discord.User, set[discord.TeamMember], None]:

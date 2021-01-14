@@ -69,8 +69,6 @@ def filter_extensions(bot: PikalaxBOT) -> typing.Generator[tuple[str, str], typi
             if cogname not in disabled_cogs:
                 extn = f'pikalaxbot.cogs.{cogname}'
                 yield extn, cogname.title().replace('_', '')
-    if 'ext.pokeapi' not in disabled_cogs:
-        yield 'pikalaxbot.ext.pokeapi', 'PokeAPI'
 
 
 def init_extensions(bot: PikalaxBOT):
@@ -114,6 +112,7 @@ def main():
         settings_file=args.settings,
         logfile=args.logfile,
         command_prefix=_command_prefix,
+        pokeapi_file='file:{}?mode=ro'.format(os.path.join(os.path.dirname(__dirname__), 'pokeapi', 'db.sqlite3')),
         case_insensitive=True,
         # d.py 1.5.0: Declare gateway intents
         intents=discord.Intents(

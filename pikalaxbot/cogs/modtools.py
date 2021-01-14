@@ -248,8 +248,6 @@ class Modtools(BaseCog):
         method = getattr(self.bot, f'{mode}_extension', default_method)
         if cog == 'jishaku':
             extension = cog
-        elif cog.startswith('ext.'):
-            extension = f'pikalaxbot.{cog}'
         else:
             extension = f'pikalaxbot.cogs.{cog}'
         real_cog = cog.title().replace('_', '')
@@ -323,7 +321,7 @@ class Modtools(BaseCog):
 
         if not cogs:
             cogs = tuple(
-                extn.replace('pikalaxbot.cogs.', '').replace('pikalaxbot.ext.', 'ext.')
+                extn.replace('pikalaxbot.cogs.', '')
                 for extn in self.bot.extensions
             )
 
@@ -334,8 +332,6 @@ class Modtools(BaseCog):
         for cog in cogs:
             if cog == 'jishaku':
                 extn = cog
-            elif cog.startswith('ext.'):
-                extn = f'pikalaxbot.{cog}'
             else:
                 extn = f'pikalaxbot.cogs.{cog}'
             if extn in self.bot.extensions:

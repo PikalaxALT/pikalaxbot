@@ -19,7 +19,7 @@ import collections
 import asyncpg
 
 from discord.ext import commands
-from pikalaxbot.utils.logging_mixin import LoggingMixin
+from ..utils.logging_mixin import LoggingMixin
 from .. import *
 
 

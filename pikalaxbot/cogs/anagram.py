@@ -15,14 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import random
-import typing
 
 from discord.ext import commands
 
 from . import *
 from .utils.game import GameBase, GameCogBase, GameStartCommand
-if typing.TYPE_CHECKING:
-    from ..ext.pokeapi import PokeapiModels
 
 
 class AnagramGame(GameBase):
@@ -30,7 +27,6 @@ class AnagramGame(GameBase):
         super().__init__(bot)
         self._attempts = attempts
         self._state = ''
-        self._solution: typing.Optional['PokeapiModels.PokemonSpecies']
         self._solution_name = ''
         self._incorrect: list[str] = []
         self.attempts = 0

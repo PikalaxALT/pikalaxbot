@@ -2,9 +2,10 @@ import asqlite3
 import re
 from typing import Optional, Callable, Union, TYPE_CHECKING
 from .models import *
+from .errors import *
 from contextlib import asynccontextmanager as acm
 import difflib
-from ... import __dirname__
+import os
 import asyncio
 from operator import attrgetter
 import functools
@@ -19,8 +20,17 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._lock = asyncio.Lock()
-        self.differ = difflib.SequenceMatcher(re.compile(r'[. \t-\'"]').match)
+        self._enabled = True
+
+        _garbage_pat = re.compile(r'[. \t-\'"]')
+
+        self.differ = difflib.SequenceMatcher(lambda s: _garbage_pat.match(s) is not None)
         self._connection: Optional[PokeApiConnection]
+
+    async def _execute(self, fn, *args, **kwargs):
+        if not self._enabled:
+            raise PokeapiDisabled('PokeAPI resource is disabled')
+        return await super()._execute(fn, *args, **kwargs)
 
     async def _connect(self) -> "PokeApi":
         class Product:
@@ -124,7 +134,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                     for attr, value in attrs.items()
                 ]
 
-                async for elem in iterable:  # type: 'Model'
+                async for elem in iterable:  # type: Model
                     if _all(pred(elem) == value for pred, value in converted):
                         yield elem
 
@@ -132,7 +142,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         async for item in self.filter(model, **attrs):
             return item
 
-    async def get_model_named(self, model: 'ModelType', name: str, *, cutoff=0.9) -> Optional['Model']:
+    async def get_model_named(self, model: Union[str, 'ModelType'], name: str, *, cutoff=0.9) -> Optional['Model']:
         model = self.resolve_model(model)
         statement = """
         SELECT *, CASE
@@ -599,9 +609,10 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         return path
 
     async def get_sprite_local_path(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
+        pokeapi_path = os.path.dirname(self._db_path)
         path = await self.get_sprite_path(mon, name)
         if path:
-            path = re.sub(r'^/media/', f'{__dirname__}/../pokeapi/data/v2/sprites/', path)
+            path = re.sub(r'^/media/', f'{pokeapi_path}/data/v2/sprites/', path)
         return path
 
     async def get_sprite_url(self, mon: PokeapiModels.Pokemon, name: str) -> Optional[str]:
@@ -703,7 +714,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             self,
             mon: PokeapiModels.PokemonSpecies,
             version: Optional[PokeapiModels.Version] = None
-    ) -> PokeapiModels.PokemonSpeciesFlavorText:
+    ) -> str:
         statement = """
         SELECT flavor_text
         FROM pokemon_v2_pokemonspeciesflavortext
