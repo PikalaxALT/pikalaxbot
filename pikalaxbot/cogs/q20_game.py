@@ -535,8 +535,8 @@ class Q20QuestionParser:
                 else:
                     name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon: Optional[PokeapiModels.PokemonForm] = await self.bot.pokeapi.get_default_forme(mon)
-                        size_literal = mon.pokemon.height / 10
+                        forme = await self.bot.pokeapi.get_default_forme(mon)
+                        size_literal = forme.pokemon.height / 10
                         confidence = confidence_f
             if size_literal > 0:
                 if wrong_scale_error:
@@ -613,8 +613,8 @@ class Q20QuestionParser:
                 else:
                     name, mon, confidence_f = await self.lookup_name(self.bot.pokeapi.PokemonSpecies, conglom)
                     if mon:
-                        mon: Optional[PokeapiModels.PokemonForm] = await self.bot.pokeapi.get_default_forme(mon)
-                        size_literal = mon.pokemon.weight / 10
+                        forme = await self.bot.pokeapi.get_default_forme(mon)
+                        size_literal = forme.pokemon.weight / 10
                         confidence = confidence_f
             if size_literal > 0:
                 if wrong_scale_error:

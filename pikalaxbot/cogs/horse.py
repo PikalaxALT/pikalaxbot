@@ -1,6 +1,5 @@
-    
 # PikalaxBOT - A Discord bot in discord.py
-# Copyright (C) 2018  PikalaxALT
+# Copyright (C) 2018-2021  PikalaxALT
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,7 +39,7 @@ MORSE_CODE_DICT = {'A': '.-', 'B': '-...', 'C': '-.-.',
                    '"': '.-..-.', '$': '...-..-', '@': '.--.-.'}
 
 
-def reverse_horse_lookup(code: str, default: typing.Optional[str] = None):
+def reverse_horse_lookup(code: str, default: str = None):
     return discord.utils.find(lambda t: t[1] == code, MORSE_CODE_DICT.items()) or default
 
 

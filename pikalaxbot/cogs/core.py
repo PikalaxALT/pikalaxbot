@@ -1,5 +1,5 @@
 # PikalaxBOT - A Discord bot in discord.py
-# Copyright (C) 2018  PikalaxALT
+# Copyright (C) 2018-2021  PikalaxALT
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -1,5 +1,5 @@
 # PikalaxBOT - A Discord bot in discord.py
-# Copyright (C) 2018  PikalaxALT
+# Copyright (C) 2018-2021  PikalaxALT
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,13 +19,7 @@ import math
 from discord.ext import commands
 
 from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
-import typing
 from . import *
-from ..types import *
-
-
-def where(predicate: typing.Callable[[T], bool], iterable: typing.Iterable[T]) -> list[int]:
-    return [i for i, item in enumerate(iterable) if predicate(item)]
 
 
 class HangmanGame(GameBase):
@@ -111,9 +105,8 @@ class HangmanGame(GameBase):
                 await ctx.send(f'{ctx.author.mention}: Character or solution already guessed: {guess}',
                                delete_after=10)
             elif len(guess) == 1:
-                found = guess in self._solution_name
-                if found:
-                    for i in where(lambda x: x == guess, self._solution_name):
+                if guess in self._solution_name:
+                    for i, _ in filter(guess.__eq__, enumerate(self._solution_name)):
                         self._state[i] = guess
                     self.add_player(ctx.author)
                     if ''.join(self._state) == self._solution_name:
