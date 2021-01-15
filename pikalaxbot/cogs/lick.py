@@ -25,7 +25,7 @@ import math
 
 class cycleseq(tuple):
     """
-    Implements an itertools.cycler that can be indexed. This is immutable.
+    Implements a cycler that can be indexed. Objects of this type are immutable.
 
     Indexing with an integer returns the value at that index as though the underlying
     tuple were extended to accommodate that index as necessary.
@@ -44,9 +44,15 @@ class cycleseq(tuple):
                 if start == 0 and step == 1:
                     return self
                 lcm = math.lcm(len(self), step)
-                return cycleseq((self[i] for i in range(start, start + lcm, step)))
+                ret = tuple(self[i] for i in range(start, start + lcm, abs(step)))
+                if step < 0:
+                    ret = reversed(ret)
+                return cycleseq(ret)
             return tuple(self[i] for i in range(start, stop, step))
         return super().__getitem__(item % len(self))
+
+    def __repr__(self):
+        return '{0.__class__.__name__}{1}'.format(self, super().__repr__())
 
 
 class Lick(BaseCog):
