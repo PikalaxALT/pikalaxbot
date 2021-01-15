@@ -83,12 +83,12 @@ class BaseCog(LoggingMixin, commands.Cog):
 
     async def prepare(self):
         """Async init"""
+        await self.fetch()
         try:
             _ = self.__prepared
         except AttributeError:
             await self.prepare_once()
             self.__prepared = True
-        await self.fetch()
 
     async def cog_before_invoke(self, ctx):
         await self.prepare()

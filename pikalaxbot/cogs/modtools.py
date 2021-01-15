@@ -82,11 +82,16 @@ class Modtools(BaseCog):
                 self.disabled_commands.discard(name)
 
     async def init_db(self, sql):
-        await sql.execute(f"create table if not exists prefixes (guild bigint not null primary key, prefix text not null default '{self.bot.settings.prefix}')")
+        await sql.execute(
+            f"create table if not exists prefixes ("
+            f"guild bigint not null primary key, "
+            f"prefix text not null default '{self.prefix}'"
+            f")"
+        )
 
     def cog_unload(self):
         for name in list(self.disabled_commands):
-            cmd = self.bot.get_command(name)
+            cmd: typing.Optional[commands.Command] = self.bot.get_command(name)
             if cmd:
                 cmd.enabled = True
             else:
@@ -150,7 +155,8 @@ class Modtools(BaseCog):
                         pag.add_line('-' * len(header))
                     to_add = '|'.join(map(str, row))
                     if len(header) * 2 + len(to_add) > 2040:
-                        raise ValueError('At least one page of results is too long to fit. Try returning fewer columns?')
+                        raise ValueError('At least one page of results is too long to fit. '
+                                         'Try returning fewer columns?')
                     if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
                         counts.append(i - 1)
                         pag.close_page()
