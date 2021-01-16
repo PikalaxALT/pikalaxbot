@@ -463,8 +463,10 @@ duration, prompt, and options."""
     async def poll_create_error(self, ctx: MyContext, error: commands.CommandError):
         if isinstance(error, BadPollTimeArgument):
             await ctx.send('Invalid txt for timeout. Try something like `300`, `60m`, `1w`, ...')
+        elif isinstance(error, (NotEnoughOptions, TooManyOptions)):
+            await ctx.send(str(error))
         else:
-            await self.bot.send_tb(ctx, error, origin='poll new')
+            await self.bot.send_tb(ctx, error, origin=ctx.command.qualified_name)
 
     @poll_cmd.command()
     async def cancel(self, ctx: MyContext, mgr: PollManager):
