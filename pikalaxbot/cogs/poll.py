@@ -566,7 +566,7 @@ duration, prompt, and options."""
             event
         )
         method = getattr(poll, 'on_raw_' + event.lower().replace(' ', '_'))
-        await method(poll, payload)
+        await method(payload)
         await ctx.reply(f'Dispatched a {event} event')
 
 
