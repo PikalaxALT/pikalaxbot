@@ -387,7 +387,7 @@ class Core(BaseCog):
                 and channel.permissions_for(channel.guild.me).manage_messages \
                 and payload.data['content'] == '[Original Message Deleted]' \
                 and 'webhook_id' in payload.data:
-            await self.bot.http.delete_message(payload.channel_id, payload.message_id)
+            await channel.get_partial_message(payload.message_id).delete()
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
@@ -536,23 +536,15 @@ class Core(BaseCog):
 
     async def delete_response(self, ctx: MyContext, history: set[int]):
         # Try bulk delete first
+        partials: list[discord.PartialMessage] = [ctx.channel.get_partial_message(msg_id) for msg_id in history]
         try:
-            await self.bot.http.delete_messages(
-                ctx.channel.id,
-                list(history),
-                reason='Message edited to delete prior response'
-            )
+            await ctx.channel.delete_messages(partials)
         except discord.HTTPException:
             # Bulk delete failed for some reason, so try deleting them one by one
-            for msg_id in history:
-                try:
-                    await self.bot.http.delete_message(
-                        ctx.channel.id,
-                        msg_id,
-                        reason='Message edited to delete prior response'
-                    )
-                except discord.HTTPException:
-                    pass
+            try:
+                await asyncio.gather(*[msg.delete() for msg in partials])
+            except discord.HTTPException:
+                pass
 
     @BaseCog.listener('on_message_delete')
     @BaseCog.listener('on_message_edit')

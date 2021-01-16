@@ -59,7 +59,7 @@ class Eval(BaseCog):
         return content.strip('` \n')
 
     def mask_token(self, value: str):
-        return value.replace(self.bot.http.token, '{TOKEN}')
+        return value.replace(self.bot.settings.token, '{TOKEN}')
     
     @staticmethod
     async def try_add_reaction(message: discord.Message, emoji: MaybeEmoji):

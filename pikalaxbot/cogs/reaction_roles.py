@@ -100,25 +100,23 @@ class ReactionRoles(BaseCog):
                 guild_id
             )
 
+    async def resolve_payload(self, payload: discord.RawReactionActionEvent):
+        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
+        member: typing.Optional[discord.Member] = guild.get_member(payload.user_id)
+        role: typing.Optional[discord.Role] = guild.get_role(await self.get_role_id_by_emoji(payload))
+        return member, role
+
     @BaseCog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if role_id := await self.get_role_id_by_emoji(payload):
-            await self.bot.http.add_role(
-                payload.guild_id,
-                payload.user_id,
-                role_id,
-                reason='Reaction Roles'
-            )
+        member, role = await self.resolve_payload(payload)
+        if member and role:
+            await member.add_roles(role, reason='Reaction Roles')
 
     @BaseCog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        if role_id := await self.get_role_id_by_emoji(payload):
-            await self.bot.http.remove_role(
-                payload.guild_id,
-                payload.user_id,
-                role_id,
-                reason='Reaction Roles'
-            )
+        member, role = await self.resolve_payload(payload)
+        if member and role:
+            await member.remove_roles(role, reason='Reaction Roles')
 
     async def make_embed(self, ctx: MyContext):
         roles_str = '\n'.join(
