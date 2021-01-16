@@ -553,7 +553,7 @@ duration, prompt, and options."""
         ])
         if user_id in poll.votes:
             event = 'REACTION REMOVE'
-            emoji = poll.votes[user_id]
+            emoji = poll.emojis[poll.votes[user_id]]
         else:
             event = 'REACTION ADD'
             emoji = random.choice(poll.emojis)
@@ -564,7 +564,7 @@ duration, prompt, and options."""
                 'message_id': poll.message_id,
                 'user_id': user_id
             },
-            emoji,
+            discord.PartialEmoji(name=emoji),
             event
         )
         method = getattr(poll, 'on_raw_' + event.lower().replace(' ', '_'))
