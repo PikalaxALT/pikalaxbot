@@ -57,6 +57,7 @@ class PollManager:
         'context_id',
         'message',
         'owner_id',
+        'prompt',
         'options',
         'option_ids',
         'votes',
@@ -81,6 +82,7 @@ class PollManager:
             stop_time: datetime.datetime,
             id_: int = None,
             votes: dict[int, int] = None,
+            prompt: str = None,
             options: typing.Sequence[str] = None,
             option_ids: typing.Sequence[int] = None,
     ):
@@ -91,6 +93,7 @@ class PollManager:
         self.start_time = start_time
         self.stop_time = stop_time
         self.id = id_
+        self.prompt = prompt
         self.votes: dict[int, int] = votes or {}
         self.options: list[str] = options or []
         self.option_ids: list[int] = option_ids or []
@@ -120,6 +123,7 @@ class PollManager:
             owner_id=context.author.id,
             start_time=context.message.created_at,
             stop_time=context.message.created_at + datetime.timedelta(seconds=timeout),
+            prompt=prompt,
             options=options
         )
         content = f'Vote using emoji reactions. ' \
@@ -164,7 +168,8 @@ class PollManager:
             context_id: int,
             message_id: int,
             start_time: datetime.datetime,
-            stop_time: datetime.datetime
+            stop_time: datetime.datetime,
+            prompt: str
     ):
         message: discord.PartialMessage = bot.get_channel(channel_id).get_partial_message(message_id)
         option_ids, options = zip(*(await sql.fetch(
@@ -188,6 +193,7 @@ class PollManager:
                 'where pv.poll_id = $1',
                 id_
             )),
+            prompt=prompt,
             options=options,
             option_ids=option_ids
         )
@@ -316,7 +322,8 @@ class Poll(BaseCog):
             'context bigint not null, '
             'message bigint not null, '
             'started timestamp not null, '
-            'closes timestamp not null'
+            'closes timestamp not null, '
+            'prompt text not null'
             ')'
         )
         await sql.execute(
@@ -523,20 +530,25 @@ duration, prompt, and options."""
                 content2 = f'Poll `{mgr.hash}` has ended. ' \
                            f'No votes were recorded.\n\n' \
                            f'Full results: {mgr.message.jump_url}'
+        owner: discord.Member = channel.guild.get_member(mgr.owner_id)
+        desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
+        embed = discord.Embed(title=mgr.prompt, description='\n'.join(desc), colour=0xf47fff)
+        embed.set_footer(text='Poll ends at')
+        embed.timestamp = mgr.stop_time
+        embed.set_author(name=owner.display_name, icon_url=owner.avatar_url)
+        embed.description = '\n'.join(desc)
+        try:
+            await mgr.message.edit(content=content, embed=embed)
+            await channel.send(content2)
+        except RuntimeError:
+            return
+        except discord.HTTPException:
+            pass
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             async with sql.transaction():
                 await sql.execute('delete from poll_votes where poll_id = $1', mgr.id)
                 await sql.execute('delete from poll_options where poll_id = $1', mgr.id)
                 await sql.execute('delete from polls where id = $1', mgr.id)
-        try:
-            msg = await mgr.message.fetch()
-            embed: discord.Embed = msg.embeds[0]
-            desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
-            embed.description = '\n'.join(desc)
-            await mgr.message.edit(content=content, embed=embed)
-            await channel.send(content2)
-        except RuntimeError:
-            pass
 
 
 def setup(bot: PikalaxBOT):
