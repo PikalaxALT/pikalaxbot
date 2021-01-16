@@ -40,14 +40,14 @@ class PollTime(FutureTime, float):
     @classmethod
     async def convert(cls, ctx, argument):
         try:
-            value = await FutureTime.convert(ctx, argument)
+            txt = await FutureTime.convert(ctx, argument)
         except commands.ConversionError:
-            value = float(argument)
+            txt = float(argument)
         else:
-            value = (value.dt - ctx.message.created_at).total_seconds()
-        if value <= 0 or not math.isfinite(value):
+            txt = (txt.dt - ctx.message.created_at).total_seconds()
+        if txt <= 0 or not math.isfinite(txt):
             raise BadPollTimeArgument
-        return value
+        return txt
 
 
 class PollManager:
@@ -58,7 +58,9 @@ class PollManager:
         'message',
         'owner_id',
         'options',
+        'option_ids',
         'votes',
+        'id',
         '_hash',
         '_message_id',
         'start_time',
@@ -77,9 +79,10 @@ class PollManager:
             owner_id: int,
             start_time: datetime.datetime,
             stop_time: datetime.datetime,
-            my_hash: typing.Optional[str] = None,
-            votes: typing.Optional[dict[int, int]] = None,
-            options: typing.Optional[typing.Sequence[str]] = None
+            id_: int = None,
+            votes: dict[int, int] = None,
+            options: typing.Sequence[str] = None,
+            option_ids: typing.Sequence[int] = None,
     ):
         self.bot = bot
         self.channel_id = channel_id
@@ -87,10 +90,10 @@ class PollManager:
         self.owner_id = owner_id
         self.start_time = start_time
         self.stop_time = stop_time
-        if my_hash:
-            assert self.hash == my_hash
+        self.id = id_
         self.votes: dict[int, int] = votes or {}
         self.options: list[str] = options or []
+        self.option_ids: list[int] = option_ids or []
         self.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
         self.task: typing.Optional[asyncio.Task] = None
         self.unloading = False
@@ -101,7 +104,6 @@ class PollManager:
         return base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
 
     def __iter__(self):
-        yield self.hash
         yield self.channel_id
         yield self.owner_id
         yield self.context_id
@@ -135,6 +137,20 @@ class PollManager:
         this.message = await context.send(content, embed=embed)
         for emoji in this.emojis:
             await this.message.add_reaction(emoji)
+        async with context.bot.sql as sql:  # type: asyncpg.Connection
+            async with sql.transaction():
+                this.id = await sql.fetchval(
+                    'insert into polls (channel, owner, context, message, started, closes) '
+                    'values ($1, $2, $3, $4, $5, $6) '
+                    'returning id',
+                    *this
+                )
+                this.option_ids = [await sql.fetchval(
+                    'insert into poll_options (poll_id, index, txt) '
+                    'values ($1, $2, $3) '
+                    'returning id',
+                    this.id, i, option
+                ) for i, option in enumerate(options, 1)]
         return this
 
     @classmethod
@@ -142,7 +158,7 @@ class PollManager:
             cls,
             bot: PikalaxBOT,
             sql: asyncpg.Connection,
-            my_hash: str,
+            id_: int,
             channel_id: int,
             owner_id: int,
             context_id: int,
@@ -151,6 +167,13 @@ class PollManager:
             stop_time: datetime.datetime
     ):
         message: discord.PartialMessage = bot.get_channel(channel_id).get_partial_message(message_id)
+        option_ids, options = zip(*(await sql.fetch(
+            'select id, txt '
+            'from poll_options '
+            'where poll_id = $1 '
+            'order by index',
+            id_
+        )))
         this = cls(
             bot=bot,
             channel_id=channel_id,
@@ -158,9 +181,15 @@ class PollManager:
             owner_id=owner_id,
             start_time=start_time,
             stop_time=stop_time,
-            my_hash=my_hash,
-            votes=dict(await sql.fetch('select voter, option from poll_options where code = $1', my_hash)),
-            options=[option.split(' ', 1)[1] for option in message.embeds[0].description.splitlines()]
+            id_=id_,
+            votes=dict(await sql.fetch(
+                'select pv.voter, po.index '
+                'from poll_votes pv inner join poll_options po on pv.option_id = po.id '
+                'where pv.poll_id = $1',
+                id_
+            )),
+            options=options,
+            option_ids=option_ids
         )
         this.message = message
         return this
@@ -198,10 +227,17 @@ class PollManager:
         selection = self.emojis.index(payload.emoji.name)
         self.votes[payload.user_id] = selection
         async with self.bot.sql as sql:  # type: asyncpg.Connection
+            option_id = await sql.execute(
+                'select id '
+                'from poll_options '
+                'where poll_id = $1 '
+                'and index = $2',
+                self.id, selection
+            )
             await sql.execute(
-                'insert into poll_options (code, voter, option)'
-                ' values ($1, $2, $3)',
-                self.hash, payload.user_id, selection
+                'insert into poll_votes (poll_id, voter, option_id) '
+                'values ($1, $2, $3)',
+                self.id, payload.user_id, option_id
             )
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -216,7 +252,7 @@ class PollManager:
             return
         self.votes.pop(payload.user_id)
         async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute('delete from poll_options where code = $1 and voter = $2', self.hash, payload.user_id)
+            await sql.execute('delete from poll_votes where poll_id = $1 and voter = $2', self.id, payload.user_id)
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
         if payload.message_id == self.message_id:
@@ -274,20 +310,29 @@ class Poll(BaseCog):
     async def init_db(self, sql):
         await sql.execute(
             'create table if not exists polls ('
-            'code varchar(8) unique primary key, '
-            'channel bigint, '
-            'owner bigint, '
-            'context bigint, '
-            'message bigint, '
-            'started timestamp, '
-            'closes timestamp'
+            'id serial unique not null primary key, '
+            'channel bigint not null, '
+            'owner bigint not null, '
+            'context bigint not null, '
+            'message bigint not null, '
+            'started timestamp not null, '
+            'closes timestamp not null'
             ')'
         )
         await sql.execute(
             'create table if not exists poll_options ('
-            'code varchar(8) references polls(code), '
-            'voter bigint, '
-            'option integer'
+            'id serial unique not null primary key,'
+            'poll_id int references polls(id) deferrable initially deferred, '
+            'index int not null, '
+            'txt text not null'
+            ')'
+        )
+        await sql.execute(
+            'create table if not exists poll_votes ('
+            'id serial unique not null primary key, '
+            'poll_id int references polls(id) deferrable initially deferred, '
+            'option_id int references poll_options(id) deferrable initially deferred, '
+            'voter bigint not null'
             ')'
         )
         self.cleanup_polls.start()
@@ -333,12 +378,6 @@ duration, prompt, and options."""
         if nopts < 2:
             raise NotEnoughOptions('Not enough unique options!')
         mgr = await PollManager.from_command(ctx, timeout, prompt, *options)
-        async with ctx.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute(
-                'insert into polls (code, channel, owner, context, message, started, closes) '
-                'values ($1, $2, $3, $4, $5, $6, $7)',
-                *mgr
-            )
         self.polls.append(mgr)
         mgr.start()
 
@@ -356,7 +395,7 @@ duration, prompt, and options."""
         content = 'Hello, you\'ve entered the interactive poll maker. Please enter your question below.'
         accepted_emojis = {'\N{CROSS MARK}'}
 
-        async def get_poll_options() -> typing.Union[str, bool]:
+        async def get_poll_votes() -> typing.Union[str, bool]:
             deleted = True
             my_message: typing.Optional[discord.Message] = None
 
@@ -384,7 +423,7 @@ duration, prompt, and options."""
                     if not response:
                         await ctx.send('Message has no content', delete_after=10)
                         continue
-                    if discord.utils.get(embed.fields, value=response):
+                    if discord.utils.get(embed.fields, txt=response):
                         await ctx.send('Duplicate options are not allowed')
                         continue
                 else:
@@ -393,7 +432,7 @@ duration, prompt, and options."""
                 yield response
                 deleted = True
 
-        async for i, resp in aioitertools.zip(range(11), get_poll_options()):
+        async for i, resp in aioitertools.zip(range(11), get_poll_votes()):
             if isinstance(resp, str):
                 content = f'Hello, you\'ve entered the interactive poll maker. ' \
                           f'Please enter option {i + 1} below.'
@@ -409,13 +448,8 @@ duration, prompt, and options."""
             else:
                 break
         timeout += (datetime.datetime.utcnow() - ctx.message.created_at).total_seconds()
-        mgr = await PollManager.from_command(ctx, timeout, *[field.value for field in embed.fields])
-        async with ctx.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute(
-                'insert into polls (code, channel, owner, context, message, started, closes) '
-                'values ($1, $2, $3, $4, $5, $6, $7)',
-                *mgr
-            )
+        options = [field.value for field in embed.fields]
+        mgr = await PollManager.from_command(ctx, timeout, *options)
         self.polls.append(mgr)
         mgr.start()
 
@@ -423,7 +457,7 @@ duration, prompt, and options."""
     @interactive_poll_maker.error
     async def poll_create_error(self, ctx: MyContext, error: commands.CommandError):
         if isinstance(error, BadPollTimeArgument):
-            await ctx.send('Invalid value for timeout. Try something like `300`, `60m`, `1w`, ...')
+            await ctx.send('Invalid txt for timeout. Try something like `300`, `60m`, `1w`, ...')
         else:
             await self.bot.send_tb(ctx, error, origin='poll new')
 
@@ -468,9 +502,6 @@ duration, prompt, and options."""
     @BaseCog.listener()
     async def on_poll_end(self, mgr: PollManager):
         now = datetime.datetime.utcnow()
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute('delete from poll_options where code = $1', mgr.hash)
-            await sql.execute('delete from polls where code = $1', mgr.hash)
         if mgr in self.polls:
             self.polls.remove(mgr)
         channel = self.bot.get_channel(mgr.channel_id)
@@ -492,11 +523,20 @@ duration, prompt, and options."""
                 content2 = f'Poll `{mgr.hash}` has ended. ' \
                            f'No votes were recorded.\n\n' \
                            f'Full results: {mgr.message.jump_url}'
-        embed: discord.Embed = mgr.message.embeds[0]
-        desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
-        embed.description = '\n'.join(desc)
-        await mgr.message.edit(content=content, embed=embed)
-        await channel.send(content2)
+        async with self.bot.sql as sql:  # type: asyncpg.Connection
+            async with sql.transaction():
+                await sql.execute('delete from poll_votes where poll_id = $1', mgr.id)
+                await sql.execute('delete from poll_options where poll_id = $1', mgr.id)
+                await sql.execute('delete from polls where id = $1', mgr.id)
+        try:
+            msg = await mgr.message.fetch()
+            embed: discord.Embed = msg.embeds[0]
+            desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
+            embed.description = '\n'.join(desc)
+            await mgr.message.edit(content=content, embed=embed)
+            await channel.send(content2)
+        except RuntimeError:
+            pass
 
 
 def setup(bot: PikalaxBOT):

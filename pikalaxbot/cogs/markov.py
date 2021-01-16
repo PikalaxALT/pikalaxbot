@@ -40,7 +40,6 @@ class Markov(BaseCog):
         self.initialized = False
         self.storedMsgsSet: set[str] = set()
         self.chain = Chain(store_lowercase=True)
-        self._init_task = asyncio.create_task(self.init_chain())
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
         self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
 
@@ -103,9 +102,9 @@ class Markov(BaseCog):
         self.log_error('Markov: missing ReadMessageHistory permission for %s', channel)
         return False
 
-    async def init_chain(self):
+    async def prepare_once(self):
+        await super().prepare_once()
         await self.bot.wait_until_ready()
-        await self.fetch()
         for ch in list(self.markov_channels):
             self.log_debug('%d', ch)
             channel = self.bot.get_channel(ch)
