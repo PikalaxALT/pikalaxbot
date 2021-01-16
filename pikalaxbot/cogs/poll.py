@@ -113,6 +113,7 @@ class PollManager:
         yield self.message_id
         yield self.start_time
         yield self.stop_time
+        yield self.prompt
 
     @classmethod
     async def from_command(cls, context: MyContext, timeout: float, prompt: str, *options: str):
@@ -141,20 +142,24 @@ class PollManager:
         this.message = await context.send(content, embed=embed)
         for emoji in this.emojis:
             await this.message.add_reaction(emoji)
-        async with context.bot.sql as sql:  # type: asyncpg.Connection
-            async with sql.transaction():
-                this.id = await sql.fetchval(
-                    'insert into polls (channel, owner, context, message, started, closes) '
-                    'values ($1, $2, $3, $4, $5, $6) '
-                    'returning id',
-                    *this
-                )
-                this.option_ids = [await sql.fetchval(
-                    'insert into poll_options (poll_id, index, txt) '
-                    'values ($1, $2, $3) '
-                    'returning id',
-                    this.id, i, option
-                ) for i, option in enumerate(options, 1)]
+        try:
+            async with context.bot.sql as sql:  # type: asyncpg.Connection
+                async with sql.transaction():
+                    this.id = await sql.fetchval(
+                        'insert into polls (channel, owner, context, message, started, closes, prompt) '
+                        'values ($1, $2, $3, $4, $5, $6, $7) '
+                        'returning id',
+                        *this
+                    )
+                    this.option_ids = [await sql.fetchval(
+                        'insert into poll_options (poll_id, index, txt) '
+                        'values ($1, $2, $3) '
+                        'returning id',
+                        this.id, i, option
+                    ) for i, option in enumerate(options, 1)]
+        except asyncpg.PostgresError:
+            await this.message.edit(content='An error occurred, the poll was cancelled.', embed=None)
+            raise
         return this
 
     @classmethod
