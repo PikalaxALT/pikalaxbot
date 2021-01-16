@@ -264,18 +264,9 @@ class Modtools(BaseCog):
             raise
 
     @BaseCog.listener()
-    async def on_cog_db_init(self, cog: BaseCog):
-        tasks = [
-            asyncio.create_task(self.bot.wait_for('cog_db_init_error', check=lambda c, e: c == cog)),
-            asyncio.create_task(self.bot.wait_for('cog_db_init_complete', check=lambda c: c == cog))
-        ]
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
-        [task.cancel() for task in pending]
-        result = done.pop().result()
-        if isinstance(result, tuple):
-            _, error = result
-            await self.bot.wait_until_ready()
-            await self.bot.send_tb(None, error, origin=f'db init for cog {cog}:')
+    async def on_cog_db_init_error(self, cog: BaseCog, error: Exception):
+        await self.bot.wait_until_ready()
+        await self.bot.send_tb(None, error, origin=f'db init for cog {cog}:')
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx: MyContext, *cogs: clean_lower):

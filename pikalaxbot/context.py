@@ -18,6 +18,8 @@ import discord
 from discord.ext import commands
 import asyncio
 from typing import *
+if TYPE_CHECKING:
+    from .bot import PikalaxBOT
 
 
 __all__ = ('FakeContext', 'MyContext')
@@ -28,6 +30,7 @@ class FakeContext(NamedTuple):
     channel: discord.TextChannel
     message: Optional[discord.Message]
     author: Union[discord.Member, discord.User]
+    bot: 'PikalaxBOT'
     command: Optional[commands.Command] = None
 
 

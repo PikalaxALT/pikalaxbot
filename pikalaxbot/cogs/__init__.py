@@ -80,9 +80,16 @@ class BaseCog(LoggingMixin, commands.Cog):
 
     async def prepare_once(self):
         if BaseCog._get_overridden_method(self.init_db) is not None:
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                async with sql.transaction():
-                    await self.init_db(sql)
+            self.bot.dispatch('cog_db_init', self)
+            try:
+                async with self.bot.sql as sql:  # type: asyncpg.Connection
+                    async with sql.transaction():
+                        await self.init_db(sql)
+            except Exception as e:
+                e.__suppress_context__ = True
+                self.bot.dispatch('cog_db_init_error', self, e)
+            else:
+                self.bot.dispatch('cog_db_init_complete', self)
 
     async def prepare(self):
         """Async init"""

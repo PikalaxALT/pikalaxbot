@@ -101,7 +101,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
     async def get_owner(self) -> typing.Union[discord.User, set[discord.TeamMember], None]:
         if self.owner_id is not None:
             return self.get_user(self.owner_id)
-        elif self.owner_ids is not None:
+        elif self.owner_ids:
             return {self.get_user(owner_id) for owner_id in self.owner_ids}
         else:
             app = await self.application_info()
@@ -125,7 +125,10 @@ class PikalaxBOT(BotLogger, commands.Bot):
         if channel is None:
             return
         if ctx is None:
-            ctx = FakeContext(channel.guild, channel, None, await self.get_owner())
+            owner = await self.get_owner()
+            if isinstance(owner, set):
+                owner = owner.pop()
+            ctx = FakeContext(channel.guild, channel, None, owner, self)
         paginator = commands.Paginator()
         msg and paginator.add_line(msg)
         for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):
