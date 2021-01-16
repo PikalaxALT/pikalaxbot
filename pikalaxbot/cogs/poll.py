@@ -235,13 +235,14 @@ class PollManager:
             return
         if payload.user_id in self.votes:
             return
-        self.votes[payload.user_id] = selection = self.emojis.index(payload.emoji.name)
+        selection = self.emojis.index(payload.emoji.name)
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             await sql.execute(
                 'insert into poll_votes (poll_id, voter, option_id) '
                 'values ($1, $2, $3)',
                 self.id, payload.user_id, self.option_ids[selection]
             )
+        self.votes[payload.user_id] = selection
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if payload.message_id != self.message_id:
@@ -253,9 +254,9 @@ class PollManager:
         selection = self.emojis.index(payload.emoji.name)
         if self.votes.get(payload.user_id) != selection:
             return
-        self.votes.pop(payload.user_id)
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             await sql.execute('delete from poll_votes where poll_id = $1 and voter = $2', self.id, payload.user_id)
+        self.votes.pop(payload.user_id)
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
         if payload.message_id == self.message_id:
@@ -564,7 +565,8 @@ duration, prompt, and options."""
             emoji,
             event
         )
-        self.bot.dispatch('raw_' + event.lower().replace(' ', '_'), payload)
+        method = getattr(poll, 'on_raw_' + event.lower().replace(' ', '_'))
+        await method(poll, payload)
         await ctx.reply(f'Dispatched a {event} event')
 
 
