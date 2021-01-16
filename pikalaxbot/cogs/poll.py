@@ -26,6 +26,7 @@ import aioitertools
 import asyncpg
 import operator
 import textwrap
+import random
 from collections import Counter
 
 from .utils.errors import *
@@ -207,8 +208,7 @@ class PollManager:
 
     @discord.utils.cached_slot_property('_message_id')
     def message_id(self):
-        if self.message:
-            return self.message.id
+        return self.message.id
 
     def __eq__(self, other):
         if isinstance(other, PollManager):
@@ -235,20 +235,12 @@ class PollManager:
             return
         if payload.user_id in self.votes:
             return
-        selection = self.emojis.index(payload.emoji.name)
-        self.votes[payload.user_id] = selection
+        self.votes[payload.user_id] = selection = self.emojis.index(payload.emoji.name)
         async with self.bot.sql as sql:  # type: asyncpg.Connection
-            option_id = await sql.execute(
-                'select id '
-                'from poll_options '
-                'where poll_id = $1 '
-                'and index = $2',
-                self.id, selection
-            )
             await sql.execute(
                 'insert into poll_votes (poll_id, voter, option_id) '
                 'values ($1, $2, $3)',
-                self.id, payload.user_id, option_id
+                self.id, payload.user_id, self.option_ids[selection]
             )
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -486,14 +478,7 @@ duration, prompt, and options."""
     async def show(self, ctx: MyContext, mgr: PollManager):
         """Gets poll info using a code."""
 
-        if mgr.message is not None:
-            await ctx.send(mgr.message.jump_url)
-        else:
-            if (channel := self.bot.get_channel(mgr.channel_id)) is None:
-                mgr.cancel()
-                raise NoPollFound('Channel not found')
-            await ctx.send(f'https://discord.gg/channels/{channel.guild.id}/{mgr.channel_id}/{mgr.message_id}\n'
-                           f'⚠ This jump URL may be invalid ⚠')
+        await ctx.send(mgr.message.jump_url)
     
     @show.error
     @cancel.error
@@ -516,8 +501,7 @@ duration, prompt, and options."""
         now = datetime.datetime.utcnow()
         if mgr in self.polls:
             self.polls.remove(mgr)
-        channel = self.bot.get_channel(mgr.channel_id)
-        if channel is None or mgr.message is None:
+        if (channel := mgr.message.channel) is None:
             return
         tally = Counter(mgr.votes.values())
         if now < mgr.stop_time:
@@ -554,6 +538,34 @@ duration, prompt, and options."""
                 await sql.execute('delete from poll_votes where poll_id = $1', mgr.id)
                 await sql.execute('delete from poll_options where poll_id = $1', mgr.id)
                 await sql.execute('delete from polls where id = $1', mgr.id)
+
+    @commands.is_owner()
+    @poll_cmd.command('debug')
+    async def poll_debug(self, ctx: MyContext, poll: PollManager):
+        """Create a dummy reaction on a running poll"""
+
+        user_id = random.choice([
+            member.id for member in poll.message.guild.members
+            if not member.bot
+        ])
+        if user_id in poll.votes:
+            event = 'REACTION REMOVE'
+            emoji = poll.votes[user_id]
+        else:
+            event = 'REACTION ADD'
+            emoji = random.choice(poll.emojis)
+        payload = discord.RawReactionActionEvent(
+            {
+                'guild_id': poll.message.guild.id,
+                'channel_id': poll.channel_id,
+                'message_id': poll.message_id,
+                'user_id': user_id
+            },
+            emoji,
+            event
+        )
+        self.bot.dispatch('raw_' + event.lower().replace(' ', '_'), payload)
+        await ctx.reply(f'Dispatched a {event} event')
 
 
 def setup(bot: PikalaxBOT):
