@@ -58,7 +58,7 @@ class NavMenuPages(menus.MenuPages):
             embed.add_field(name='What are these reactions for?', value=value)
             embed.set_footer(text=f'We were on page {self.current_page + 1} before this message.')
             await self.message.edit(embed=embed)
-            task = self.bot.loop.create_task(self.go_back_to_current_page())
+            task = asyncio.create_task(self.go_back_to_current_page())
 
             def on_done():
                 self._in_info = False

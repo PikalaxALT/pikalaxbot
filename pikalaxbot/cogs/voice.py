@@ -136,7 +136,7 @@ class Voice(BaseCog):
         def done(unused):
             self.timeout_tasks.pop(ctx.guild.id, None)
 
-        task = self.bot.loop.create_task(Voice.idle_timeout(ctx))
+        task = asyncio.create_task(Voice.idle_timeout(ctx))
         task.add_done_callback(done)
         self.timeout_tasks[ctx.guild.id] = task
 

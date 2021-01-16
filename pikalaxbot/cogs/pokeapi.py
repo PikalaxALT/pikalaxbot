@@ -175,7 +175,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             await asyncio.sleep(10)
 
         done, pending = await asyncio.wait(
-            {update_msg.start(), self.bot.loop.create_task(shell.wait)},
+            {update_msg.start(), asyncio.create_task(shell.wait)},
             return_when=asyncio.FIRST_COMPLETED
         )
         [task.cancel() for task in pending]

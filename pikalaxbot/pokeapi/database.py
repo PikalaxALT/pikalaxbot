@@ -95,7 +95,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             raise TypeError('Expected PokeapiResource or NamedPokeapiResource, got {0.__name__}'.format(model))
         return model
 
-    async def get_model(self, model: 'ModelType', id_: int) -> Optional['Model']:
+    async def get_model(self, model: Union[str, 'ModelType'], id_: int) -> Optional['Model']:
         model = self.resolve_model(model)
         if id_ is None:
             return
@@ -110,7 +110,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
         return result
 
     @acm
-    async def all_models_cursor(self, model: 'ModelType') -> asqlite3.Cursor:
+    async def all_models_cursor(self, model: Union[str, 'ModelType']) -> asqlite3.Cursor:
         model = self.resolve_model(model)
         statement = """
         SELECT *
@@ -120,20 +120,19 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
             async with conn.execute(statement) as cur:
                 yield cur
 
-    async def get_all_models(self, model: 'ModelType') -> list['Model']:
-        model = self.resolve_model(model)
+    async def get_all_models(self, model: Union[str, 'ModelType']) -> list['Model']:
         async with self.all_models_cursor(model) as cur:
             result = await cur.fetchall()
         return result
 
-    async def find(self, predicate: Callable[..., bool], model: 'ModelType') -> Optional['Model']:
+    async def find(self, predicate: Callable[..., bool], model: Union[str, 'ModelType']) -> Optional['Model']:
         async with self.all_models_cursor(model) as seq:
             async for element in seq:  # type: PokeapiResource
                 if predicate(element):
                     return element
             return None
 
-    async def filter(self, model: 'ModelType', **attrs):
+    async def filter(self, model: Union[str, 'ModelType'], **attrs):
         _all = all
         attrget = attrgetter
         async with self.all_models_cursor(model) as iterable:
@@ -154,7 +153,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                     if _all(pred(elem) == value for pred, value in converted):
                         yield elem
 
-    async def get(self, model: 'ModelType', **attrs) -> Optional['Model']:
+    async def get(self, model: Union[str, 'ModelType'], **attrs) -> Optional['Model']:
         async for item in self.filter(model, **attrs):
             return item
 
@@ -187,7 +186,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
 
-    async def get_names_from(self, table: 'ModelType', *, clean=False):
+    async def get_names_from(self, table: Union[str, 'ModelType'], *, clean=False):
         """Generic method to get a list of all names from a PokeApi table."""
         async with self.all_models_cursor(table) as cur:
             async for obj in cur:
@@ -196,12 +195,12 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
     def get_name(self, item: NamedPokeapiResource, *, clean=False) -> str:
         return self._clean_name(item.name) if clean else item.name
 
-    async def get_name_by_id(self, model: 'ModelType', id_: int, *, clean=False):
+    async def get_name_by_id(self, model: Union[str, 'ModelType'], id_: int, *, clean=False):
         """Generic method to get the name of a PokeApi object given only its ID."""
         obj = await self.get_model(model, id_)
         return obj and self.get_name(obj, clean=clean)
 
-    async def get_random(self, model: 'ModelType') -> Optional['Model']:
+    async def get_random(self, model: Union[str, 'ModelType']) -> Optional['Model']:
         """Generic method to get a random PokeApi object."""
         model = self.resolve_model(model)
         statement = """
@@ -214,7 +213,7 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 obj = await cur.fetchone()
         return obj
     
-    async def get_random_name(self, table: 'ModelType', *, clean=False) -> Optional[str]:
+    async def get_random_name(self, table: Union[str, 'ModelType'], *, clean=False) -> Optional[str]:
         """Generic method to get a random PokeApi object name."""
         obj = await self.get_random(table)
         return obj and self.get_name(obj, clean=clean)

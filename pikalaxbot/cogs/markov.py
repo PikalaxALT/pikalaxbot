@@ -16,6 +16,7 @@
 
 import re
 import typing
+import asyncio
 
 import discord
 from discord.ext import commands
@@ -39,7 +40,7 @@ class Markov(BaseCog):
         self.initialized = False
         self.storedMsgsSet: set[str] = set()
         self.chain = Chain(store_lowercase=True)
-        self._init_task = self.bot.loop.create_task(self.init_chain())
+        self._init_task = asyncio.create_task(self.init_chain())
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
         self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
 

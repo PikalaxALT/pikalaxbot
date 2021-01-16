@@ -137,7 +137,7 @@ class Eval(BaseCog):
             try:
                 with redirect_stdout(stdout):
                     fut = func()
-                    wait = asyncio.create_task(asyncio.wait_for(fut, 60, loop=self.bot.loop))
+                    wait = asyncio.create_task(asyncio.wait_for(fut, 60))
                     self._running_evals[ctx.channel.id] = wait
                     ret = await wait
             except Exception as e:
@@ -175,12 +175,12 @@ class Eval(BaseCog):
         stdout = b''
         stderr = b''
 
-        process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE, loop=self.bot.loop)
+        process = await asyncio.create_subprocess_shell(body, stdout=PIPE, stderr=PIPE)
         exc: typing.Optional[BaseException] = None
         async with ctx.typing():
             try:
                 fut = process.communicate()
-                wait = asyncio.create_task(asyncio.wait_for(fut, 60, loop=self.bot.loop))
+                wait = asyncio.create_task(asyncio.wait_for(fut, 60))
                 self._running_shells[ctx.channel.id] = wait
                 stdout, stderr = await wait
             except Exception as e:

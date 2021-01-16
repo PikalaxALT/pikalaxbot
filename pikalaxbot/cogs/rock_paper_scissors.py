@@ -131,8 +131,8 @@ class RockPaperScissors(BaseCog):
             await ctx.send(f'Rock Paper Scissors between {ctx.author.mention} and {opponent.mention}! '
                            f'Check your DMs!')
             tasks = [
-                self.bot.loop.create_task(menu1.start(ctx, channel=ctx.author.dm_channel, wait=True)),
-                self.bot.loop.create_task(menu2.start(ctx, channel=opponent.dm_channel, wait=True))
+                asyncio.create_task(menu1.start(ctx, channel=ctx.author.dm_channel, wait=True)),
+                asyncio.create_task(menu2.start(ctx, channel=opponent.dm_channel, wait=True))
             ]
             try:
                 await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
@@ -140,7 +140,7 @@ class RockPaperScissors(BaseCog):
                 [task.cancel() for task in tasks]
                 raise
             content_return = f'Game finished, go back to {ctx.channel.mention} for the results'
-            [self.bot.loop.create_task(user.send(content_return)) for user in (ctx.author, opponent)]
+            [asyncio.create_task(user.send(content_return)) for user in (ctx.author, opponent)]
             if menu1.timed_out:
                 return await ctx.send(f'{ctx.author} took too long to respond...')
             elif menu1.player_move == 3:
@@ -170,7 +170,7 @@ class RockPaperScissors(BaseCog):
     async def rock_paper_scissors(self, ctx: MyContext, *, opponent: discord.Member = None):
         """Play a game of Rock-Paper-Scissors with someone, or with the bot"""
         coro = self.do_rps(ctx, opponent=opponent)
-        task = self.bot.loop.create_task(coro)
+        task = asyncio.create_task(coro)
         self.rps_tasks[(ctx.guild.id, ctx.channel.id, ctx.author.id)] = task
         try:
             await task

@@ -68,7 +68,7 @@ class ConfirmationMenu(menus.Menu):
             await asyncio.sleep(3)
             await self.bot.logout()
 
-        self.bot.loop.create_task(do_logout())
+        asyncio.create_task(do_logout())
 
     async def finalize(self, timed_out):
         if timed_out:

@@ -23,7 +23,7 @@ async def thinking(ctx):
         await asyncio.sleep(10)
         await ctx.message.add_reaction('🤔')
 
-    task = ctx.bot.loop.create_task(inner())
+    task = asyncio.create_task(inner())
     yield
     task.cancel()
 

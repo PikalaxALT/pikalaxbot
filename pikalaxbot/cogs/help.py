@@ -19,6 +19,7 @@
 
 import discord
 from discord.ext import commands, menus
+import asyncio
 
 import typing
 import collections
@@ -65,7 +66,7 @@ class HelpMenu(NavMenuPages):
             text=f'We were on page {self.current_page + 1} before this message.'
         )
         await self.message.edit(embed=embed)
-        self.bot.loop.create_task(self.go_back_to_current_page())
+        asyncio.create_task(self.go_back_to_current_page())
 
 
 class BotHelpPageSource(menus.ListPageSource):

@@ -175,7 +175,7 @@ class Meme(BaseCog):
 
         paginator = commands.Paginator()
         partial = functools.partial(pyfiglet.figlet_format, message, width=37)
-        block_text = await self.bot.loop.run_in_executor(None, partial)
+        block_text = await asyncio.get_running_loop().run_in_executor(None, partial)
         for i, line in enumerate(block_text.splitlines(), 1):
             paginator.add_line(line)
             if i % 30 == 0:
@@ -227,7 +227,7 @@ class Meme(BaseCog):
             self.bot.remove_listener(on_reaction_add)
 
         await countdown.start()
-        self.bot.loop.create_task(msg.add_reaction(emoji))
+        asyncio.create_task(msg.add_reaction(emoji))
         start = time.perf_counter()
         try:
             rxn, usr = await self.bot.wait_for(

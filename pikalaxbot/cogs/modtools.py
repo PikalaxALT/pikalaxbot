@@ -243,7 +243,7 @@ class Modtools(BaseCog):
 
     async def git_pull(self, ctx: MyContext):
         async with ctx.typing():
-            fut = await asyncio.create_subprocess_shell('git pull', loop=self.bot.loop)
+            fut = await asyncio.create_subprocess_shell('git pull')
             await fut.wait()
         return fut.returncode == 0
     
@@ -266,8 +266,8 @@ class Modtools(BaseCog):
     @BaseCog.listener()
     async def on_cog_db_init(self, cog: BaseCog):
         tasks = [
-            self.bot.loop.create_task(self.bot.wait_for('cog_db_init_error', check=lambda c, e: c == cog)),
-            self.bot.loop.create_task(self.bot.wait_for('cog_db_init_complete', check=lambda c: c == cog))
+            asyncio.create_task(self.bot.wait_for('cog_db_init_error', check=lambda c, e: c == cog)),
+            asyncio.create_task(self.bot.wait_for('cog_db_init_complete', check=lambda c: c == cog))
         ]
         done, pending = await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
         [task.cancel() for task in pending]

@@ -48,6 +48,8 @@ class BaseCog(LoggingMixin, commands.Cog):
         super().__init__()
         self.bot = bot
         self._dirty = False
+        # Use bot.loop explicitly because it might not be running yet
+        # such as when the bot is first started. Avoids RuntimeError.
         bot.loop.create_task(self.prepare())
 
     @_cog_special_method

@@ -65,17 +65,18 @@ class PokeapiResource:
         self._row = Row(cursor, row)
         self._connection: PokeApiConnection = cursor.connection
         self.id = self._row['id']
+        self._name: Optional[str]
         if 'name' in self._row:
             self._name = self._row['name']
         else:
             self._name = None
 
     @property
-    def name(self):
+    def name(self) -> Optional[str]:
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: Optional[str]):
         self._name = value
 
     def __eq__(self, other):
@@ -138,8 +139,8 @@ class NamedPokeapiResource(PokeapiResource):
         try:
             obj = await methd(cls, argument)
             assert obj is not None
-        except Exception as e:
-            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}', argument) from e
+        except Exception:
+            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}', argument) from None
         return obj
 
 

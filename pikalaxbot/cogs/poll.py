@@ -373,8 +373,8 @@ duration, prompt, and options."""
                         await my_message.add_reaction(emo)
                     deleted = False
                 futs = {
-                    self.bot.loop.create_task(self.bot.wait_for('message', check=msg_check)),
-                    self.bot.loop.create_task(self.bot.wait_for('reaction_add', check=rxn_check))
+                    asyncio.create_task(self.bot.wait_for('message', check=msg_check)),
+                    asyncio.create_task(self.bot.wait_for('reaction_add', check=rxn_check))
                 }
                 done, pending = await asyncio.wait(futs, timeout=60.0, return_when=asyncio.FIRST_COMPLETED)
                 [fut.cancel() for fut in pending]

@@ -142,7 +142,7 @@ class GameBase:
         await asyncio.sleep(self._timeout)
         if self.running:
             await ctx.send('Time\'s up!')
-            self.bot.loop.create_task(self.end(ctx, failed=True))
+            asyncio.create_task(self.end(ctx, failed=True))
 
     async def start(self, ctx: MyContext):
         def destroy_self(task: asyncio.Task):
@@ -153,7 +153,7 @@ class GameBase:
         if self._timeout is None:
             self.task = self.bot.loop.create_future()
         else:
-            self.task = self.bot.loop.create_task(self.timeout(ctx))
+            self.task = asyncio.create_task(self.timeout(ctx))
         self.task.add_done_callback(destroy_self)
         self.start_time = time.time()
 
