@@ -567,8 +567,7 @@ duration, prompt, and options."""
             discord.PartialEmoji(name=emoji),
             event
         )
-        method = getattr(poll, 'on_raw_' + event.lower().replace(' ', '_'))
-        await method(payload)
+        self.bot.dispatch('raw_' + event.lower().replace(' ', '_'), payload)
         await ctx.reply(f'Dispatched a {event} event')
 
 
