@@ -46,6 +46,7 @@ class VoltorbFlipGame(GameBase):
     def __init__(self, bot):
         super().__init__(bot, timeout=180)
         self._level: typing.Optional[int] = None
+        self._state = [[1 for _ in range(5)] for _ in range(5)]
         self._score = 0
         self._ended = False
         self._coin_total = 1
