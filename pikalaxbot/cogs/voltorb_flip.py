@@ -27,6 +27,7 @@ import numbers
 from . import *
 from .utils.game import GameBase, GameCogBase, find_emoji, GameStartCommand
 from .utils.converters import board_coords
+from jishaku.functools import executor_function
 
 
 def prod(it: typing.Iterable[numbers.Number]):
@@ -122,6 +123,7 @@ class VoltorbFlipGame(GameBase):
                 channel.id, new_level
             )
 
+    @executor_function
     def build_board(self):
         _min, _max = VoltorbFlipGame._minmax[self.level - 1:self.level + 1]  # type: int, int
         _num_voltorb = 6 + self.level // 2
@@ -129,7 +131,7 @@ class VoltorbFlipGame(GameBase):
         _coin_sq_ct = 25 - _num_voltorb
 
         while not _max >= (_coin_total := prod(coins := random.choices(
-            range(3),
+            range(1, 4),
             cum_weights=_cum_weights,
             k=_coin_sq_ct
         ))) >= _min:
@@ -140,7 +142,7 @@ class VoltorbFlipGame(GameBase):
         coins_iter: typing.Iterator[int] = iter(coins)
         for i in range(25):
             y, x = divmod(i, 5)
-            self._state[y][x] = (VoltorbFlipGame.VTB if i in _voltorbs else next(coins_iter)) + 1
+            self._state[y][x] = VoltorbFlipGame.VTB | 1 if i in _voltorbs else next(coins_iter)
 
     def found_all_coins(self):
         return self._score == self._coin_total
@@ -181,7 +183,7 @@ class VoltorbFlipGame(GameBase):
             await self.get_level(ctx.channel)
             self._players = set()
             self._score = 1
-            self.build_board()
+            await self.build_board()
             await ctx.send(f'New game of Voltorb Flip! Use `{ctx.prefix}voltorb guess y x` to reveal a square, '
                            f'`{ctx.prefix}voltorb flag y x` to flag a square. You have {self._timeout} seconds '
                            f'to find all the coins!')
