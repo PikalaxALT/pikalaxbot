@@ -52,3 +52,11 @@ class MyContext(commands.Context):
 
     def cancel(self, msg=None):
         self._task.cancel(msg)
+
+    def prepare_command_error_embed(self):
+        embed = discord.Embed(title='Command error details')
+        embed.add_field(name='Author', value=self.author.mention, inline=False)
+        if self.guild:
+            embed.add_field(name='Channel', value=self.channel.mention, inline=False)
+        embed.add_field(name='Invoked with', value='`' + self.message.content + '`', inline=False)
+        embed.add_field(name='Invoking message', value=self.message.jump_url if self.guild else "is a dm", inline=False)

@@ -119,12 +119,7 @@ class ErrorHandling(BaseCog):
         if isinstance(exc, self.handle_excs):
             return await self.handle_command_error(ctx, exc)
 
-        embed = discord.Embed(title='Command error details')
-        embed.add_field(name='Author', value=ctx.author.mention, inline=False)
-        if ctx.guild:
-            embed.add_field(name='Channel', value=ctx.channel.mention, inline=False)
-        embed.add_field(name='Invoked with', value='`' + ctx.message.content + '`', inline=False)
-        embed.add_field(name='Invoking message', value=ctx.message.jump_url if ctx.guild else "is a dm", inline=False)
+        embed = ctx.prepare_command_error_embed()
         await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
 
 

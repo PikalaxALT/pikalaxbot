@@ -73,15 +73,16 @@ class Meme(BaseCog):
     )
 
     @functools.cache
-    def _calc_gayness(self, member):
+    def _calc_gayness(self, member: discord.Member):
         return random.Random(member).random()
 
-    async def cog_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         if isinstance(error, commands.CheckFailure):
             return
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-            await self.bot.send_tb(ctx, error, origin=f'command {ctx.command}')
+            embed = ctx.prepare_command_error_embed()
+            await self.bot.send_tb(ctx, error, origin=f'command {ctx.command}', embed=embed)
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command(ignore_extra=False)
@@ -105,7 +106,14 @@ class Meme(BaseCog):
             res = res.replace(true_subj1, str(subj1))
         if not isinstance(subj2, str):
             res = res.replace(true_subj2, str(subj2))
-        await ctx.send(res)
+        if len(res) > 2000:
+            paginator = commands.Paginator('', '')
+            for line in res.rstrip('.').split('. '):
+                paginator.add_line(line + '.')
+            for page in paginator.pages:
+                await ctx.send(page)
+        else:
+            await ctx.send(res)
 
     @commands.command()
     async def riot(self, ctx: MyContext, *, reason=''):

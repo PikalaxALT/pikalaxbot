@@ -49,7 +49,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self._sql = 'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
 
         async def init_client_session():
-            self.client_session = aiohttp.ClientSession()
+            self.client_session = aiohttp.ClientSession(raise_for_status=True)
             try:
                 self._pool = await asyncpg.create_pool(self._sql)
             except Exception:
