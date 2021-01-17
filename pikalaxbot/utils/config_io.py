@@ -26,14 +26,14 @@ __all__ = ('Settings',)
 
 class Settings:
     token: str = None
-    prefix: str = 'p!'
+    prefix = 'p!'
     markov_channels: list[int] = []
-    debug: bool = False
+    debug = False
     disabled_commands: list[str] = []
     disabled_cogs: list[str] = []
-    help_name: str = 'help'
-    game: str = 'Q20, Anagram, Hangman'
-    espeak_kw: dict[str, typing.Union[str, int]] = {
+    help_name = 'help'
+    game = 'Q20, Anagram, Hangman'
+    espeak_kw = {
         'a': 100,
         's': 150,
         'v': 'en-us+f3',
@@ -42,10 +42,10 @@ class Settings:
         'k': 2,
     }
     banlist: list[int] = []
-    error_emoji: str = 'pikalaOwO'
-    exc_channel: int = EXC_CHANNEL_ID
+    error_emoji = 'pikalaOwO'
+    exc_channel = EXC_CHANNEL_ID
     banned_guilds: list[int] = []
-    database: dict[str, str] = {
+    database = {
         'username': 'root',
         'password': 'raspberrypi',
         'host': 'localhost',
@@ -56,7 +56,6 @@ class Settings:
 
     def __init__(self, fname='settings.json'):
         self._fname = fname
-        self.__loop: typing.Optional[asyncio.AbstractEventLoop] = None
         self._lock = asyncio.Lock()
         try:
             with open(fname) as fp:
@@ -74,12 +73,6 @@ class Settings:
         for key, value in data.items():
             setattr(self, key, value)
 
-    @property
-    def _loop(self):
-        if self.__loop is None:
-            self.__loop = asyncio.get_running_loop()
-        return self.__loop
-
     def __enter__(self):
         if os.path.getmtime(self._fname) > self._mtime:
             with open(self._fname) as fp:
@@ -90,7 +83,7 @@ class Settings:
 
     async def __aenter__(self):
         await self._lock.acquire()
-        await self._loop.run_in_executor(None, self.__enter__)
+        await asyncio.get_running_loop().run_in_executor(None, self.__enter__)
         return self
 
     def __exit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
@@ -103,7 +96,7 @@ class Settings:
 
     async def __aexit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         try:
-            self._loop.run_in_executor(None, self.__exit__, exc_type, exc_val, exc_tb)
+            asyncio.get_running_loop().run_in_executor(None, self.__exit__, exc_type, exc_val, exc_tb)
         finally:
             self._lock.release()
 

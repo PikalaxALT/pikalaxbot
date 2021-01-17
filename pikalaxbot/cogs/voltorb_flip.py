@@ -20,10 +20,17 @@ import asyncpg
 
 import discord
 from discord.ext import commands
+import operator
+import functools
+import numbers
 
 from . import *
 from .utils.game import GameBase, GameCogBase, find_emoji, GameStartCommand
 from .utils.converters import board_coords
+
+
+def prod(it: typing.Iterable[numbers.Number]):
+    return functools.reduce(operator.mul, it, 1)
 
 
 class VoltorbFlipGame(GameBase):
@@ -33,18 +40,23 @@ class VoltorbFlipGame(GameBase):
     FLG = 4
     RVL = 8
     VTB = 16
+    _minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
 
     def __init__(self, bot):
         super().__init__(bot, timeout=180)
         self._level: typing.Optional[int] = None
         self._score = 0
         self._ended = False
+        self._coin_total = 1
+        self._revealed_total = 1
 
     def reset(self):
         super().reset()
-        self._state = [[1 for x in range(5)] for y in range(5)]
+        self._state = [[1 for _ in range(5)] for _ in range(5)]
         self._score = 0
         self._ended = False
+        self._coin_total = 1
+        self._revealed_total = 1
 
     def is_flagged(self, x: int, y: int):
         return self.state[y][x] & VoltorbFlipGame.FLG != 0
@@ -61,7 +73,10 @@ class VoltorbFlipGame(GameBase):
     def non_bomb_coin_value(self, x: int, y: int):
         return 0 if self.is_bomb(x, y) else self.coin_value(x, y)
 
-    def get_add_method(self, do_coins=False) -> typing.Callable[[int, int], typing.Union[int, bool]]:
+    def get_add_method(
+            self,
+            do_coins=False
+    ) -> typing.Union[typing.Callable[[int, int], bool], typing.Callable[[int, int], int]]:
         return self.non_bomb_coin_value if do_coins else self.is_bomb
 
     def colsum(self, x: int, do_coins=False):
@@ -84,32 +99,18 @@ class VoltorbFlipGame(GameBase):
     def set_coins(self, x: int, y: int, coins):
         self.state[y][x] &= ~3
         self.state[y][x] |= coins
-
-    def get_coin_total(self, condition: typing.Callable[[int, int], bool] = lambda x, y: True):
-        res = 1
-        for y in range(5):
-            for x in range(5):
-                if condition(x, y):
-                    res *= self.coin_value(x, y)
-        return res
-
-    def get_revealed_coins(self):
-        return self.get_coin_total(self.is_revealed)
-
-    @property
-    def score(self):
-        return self.get_coin_total()
     
     @property
     def level(self):
         return self._level
     
     async def get_level(self, channel: discord.TextChannel):
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            self._level = (await sql.fetchval('select level from voltorb where id = $1', channel.id)) or 1
+        if self._level is None:
+            async with self.bot.sql as sql:  # type: asyncpg.Connection
+                self._level = (await sql.fetchval('select level from voltorb where id = $1', channel.id)) or 1
         return self._level
 
-    async def update_level(self, channel: discord.TextChannel, new_level):
+    async def update_level(self, channel: discord.TextChannel, new_level: int):
         self._level = new_level
         async with self.bot.sql as sql:  # type: asyncpg.Connection
             await sql.execute(
@@ -118,35 +119,31 @@ class VoltorbFlipGame(GameBase):
                 "on conflict (id) "
                 "do update "
                 "set level = $2",
-                channel.id, new_level)
+                channel.id, new_level
+            )
 
     def build_board(self):
-        minmax = (20, 50, 100, 200, 500, 1000, 2000, 3000, 5000, 7000, 10000)
-        _min: int = minmax[self.level - 1]
-        _max: int = minmax[self.level]
+        _min, _max = VoltorbFlipGame._minmax[self.level - 1:self.level + 1]  # type: int, int
         _num_voltorb = 6 + self.level // 2
-        self._state = [[1 for x in range(5)] for y in range(5)]
-        for i in range(_num_voltorb):
-            y, x = divmod(random.randrange(25), 5)
-            while self.is_bomb(x, y):
-                y, x = divmod(random.randrange(25), 5)
-            self._state[y][x] |= VoltorbFlipGame.VTB
-        while not _min <= self.get_coin_total() <= _max:
-            for i in range(25):
-                y, x = divmod(i, 5)
-                if self.is_bomb(x, y):
-                    self.set_coins(x, y, 1)
-                else:
-                    rv = random.random()
-                    if rv < .8 - 0.05 * self.level:
-                        self.set_coins(x, y, 1)
-                    elif rv < 0.96 - 0.04 * self.level:
-                        self.set_coins(x, y, 2)
-                    else:
-                        self.set_coins(x, y, 3)
+        _cum_weights = [0.8 - 0.05 * self.level, 0.96 - 0.04 * self.level, 1.]
+        _coin_sq_ct = 25 - _num_voltorb
+
+        while not _max >= (_coin_total := prod(coins := random.choices(
+            range(3),
+            cum_weights=_cum_weights,
+            k=_coin_sq_ct
+        ))) >= _min:
+            pass
+        self._coin_total = _coin_total
+
+        _voltorbs: list[int] = random.sample(range(25), _num_voltorb)
+        coins_iter: typing.Iterator[int] = iter(coins)
+        for i in range(25):
+            y, x = divmod(i, 5)
+            self._state[y][x] = (VoltorbFlipGame.VTB if i in _voltorbs else next(coins_iter)) + 1
 
     def found_all_coins(self):
-        return self.get_revealed_coins() == self.get_coin_total()
+        return self._score == self._coin_total
 
     def reveal_all(self):
         for y in range(5):
@@ -181,8 +178,7 @@ class VoltorbFlipGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is already running here.',
                            delete_after=10)
         else:
-            if self.level is None:
-                self._level = await self.get_level(ctx.channel)
+            await self.get_level(ctx.channel)
             self._players = set()
             self._score = 1
             self.build_board()
@@ -232,7 +228,7 @@ class VoltorbFlipGame(GameBase):
                 if multiplier > 1:
                     self._score *= multiplier
                     await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
-                    emoji = find_emoji(ctx.bot, 'PogChamp', case_sensitive=False)
+                    emoji = find_emoji(ctx.bot, 'RaccAttack', case_sensitive=False)
                     await ctx.message.add_reaction(emoji)
                 if self.found_all_coins():
                     await self.end(ctx)
