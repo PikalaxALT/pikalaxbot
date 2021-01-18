@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import random
 import typing
 import asyncpg
 
@@ -22,15 +21,16 @@ import discord
 from discord.ext import commands
 import operator
 import functools
-import numbers
+import numpy as np
 
 from . import *
-from .utils.game import GameBase, GameCogBase, find_emoji, GameStartCommand
+from .utils.game import GameBase, GameCogBase, GameStartCommand
 from .utils.converters import board_coords
+from ..types import T
 from jishaku.functools import executor_function
 
 
-def prod(it: typing.Iterable[numbers.Number]):
+def prod(it: typing.Iterable[T]) -> T:
     return functools.reduce(operator.mul, it, 1)
 
 
@@ -46,7 +46,7 @@ class VoltorbFlipGame(GameBase):
     def __init__(self, bot):
         super().__init__(bot, timeout=180)
         self._level: typing.Optional[int] = None
-        self._state = [[1 for _ in range(5)] for _ in range(5)]
+        self._state = np.ones((5, 5), dtype=np.uint8)
         self._score = 0
         self._ended = False
         self._coin_total = 1
@@ -54,53 +54,11 @@ class VoltorbFlipGame(GameBase):
 
     def reset(self):
         super().reset()
-        self._state = [[1 for _ in range(5)] for _ in range(5)]
+        self._state = np.ones((5, 5), dtype=np.uint8)
         self._score = 0
         self._ended = False
         self._coin_total = 1
         self._revealed_total = 1
-
-    def is_flagged(self, x: int, y: int):
-        return self.state[y][x] & VoltorbFlipGame.FLG != 0
-
-    def is_revealed(self, x: int, y: int):
-        return self.state[y][x] & VoltorbFlipGame.RVL != 0
-
-    def is_bomb(self, x: int, y: int):
-        return self.state[y][x] & VoltorbFlipGame.VTB != 0
-
-    def coin_value(self, x: int, y: int):
-        return self.state[y][x] & 3
-
-    def non_bomb_coin_value(self, x: int, y: int):
-        return 0 if self.is_bomb(x, y) else self.coin_value(x, y)
-
-    def get_add_method(
-            self,
-            do_coins=False
-    ) -> typing.Union[typing.Callable[[int, int], bool], typing.Callable[[int, int], int]]:
-        return self.non_bomb_coin_value if do_coins else self.is_bomb
-
-    def colsum(self, x: int, do_coins=False):
-        method = self.get_add_method(do_coins)
-        return sum(method(x, y) for y in range(5))
-
-    def rowsum(self, y, do_coins=False):
-        method = self.get_add_method(do_coins)
-        return sum(method(x, y) for x in range(5))
-
-    def set_flag(self, x: int, y: int):
-        self.state[y][x] |= VoltorbFlipGame.FLG
-
-    def clear_flag(self, x: int, y: int):
-        self.state[y][x] &= ~VoltorbFlipGame.FLG
-
-    def set_revealed(self, x: int, y: int):
-        self.state[y][x] |= VoltorbFlipGame.RVL
-
-    def set_coins(self, x: int, y: int, coins):
-        self.state[y][x] &= ~3
-        self.state[y][x] |= coins
     
     @property
     def level(self):
@@ -129,51 +87,49 @@ class VoltorbFlipGame(GameBase):
         _min, _max = VoltorbFlipGame._minmax[self.level - 1:self.level + 1]  # type: int, int
         _num_voltorb = 6 + self.level // 2
         _cum_weights = [0.8 - 0.05 * self.level, 0.96 - 0.04 * self.level, 1.]
+        _weights = [0.8 - 0.05 * self.level, 0.16 + 0.01 * self.level, 0.04 + 0.04 * self.level]
         _coin_sq_ct = 25 - _num_voltorb
 
-        while not _max >= (_coin_total := prod(coins := random.choices(
-            range(1, 4),
-            cum_weights=_cum_weights,
-            k=_coin_sq_ct
-        ))) >= _min:
+        while not _max >= (_coin_total := (coins := np.random.choice(
+            np.arange(3, dtype=np.uint8),
+            _coin_sq_ct,
+            p=_weights
+        ) + 1).prod()) >= _min:
             pass
         self._coin_total = _coin_total
 
-        _voltorbs: list[int] = random.sample(range(25), _num_voltorb)
-        coins_iter: typing.Iterator[int] = iter(coins)
-        for i in range(25):
-            y, x = divmod(i, 5)
-            self._state[y][x] = VoltorbFlipGame.VTB | 1 if i in _voltorbs else next(coins_iter)
-
-    def found_all_coins(self):
-        return self._score == self._coin_total
-
-    def reveal_all(self):
-        for y in range(5):
-            for x in range(5):
-                self.set_revealed(x, y)
-
-    def get_element_char(self, x: int, y: int):
-        if self.is_revealed(x, y):
-            idx = 0 if self.is_bomb(x, y) else self.coin_value(x, y)
-            return (':bomb:', ':one:', ':two:', ':three:')[idx]
-        if self.is_flagged(x, y):
-            return ':triangular_flag_on_post:'
-        return ':white_square_button:'
+        board_flat = np.append(coins, np.full((_num_voltorb,), VoltorbFlipGame.VTB | 1, dtype=np.uint8))
+        np.random.shuffle(board_flat)
+        self._state = board_flat.reshape((5, 5))
 
     def __str__(self):
-        colbombcounts = [f'　{self.colsum(x):d}' for x in range(5)]
-        colcoincounts = [f'x{self.colsum(x, True):d}' for x in range(5)]
-        rowbombcounts = [f':bomb:{self.rowsum(y):d}' for y in range(5)]
-        rowcoincounts = [f'x{self.rowsum(y, True):d}' for y in range(5)]
+        bombs: np.ndarray[bool] = self._state & VoltorbFlipGame.VTB != 0
+        coins: np.ndarray[np.uint8] = (self._state & 3) * ~bombs
+        colbombcounts = [f'　{x:d}' for x in bombs.sum(0)]
+        colcoincounts = [f'x{x:d}' for x in coins.sum(0)]
+        rowbombcounts = [f':bomb:{y:d}' for y in bombs.sum(1)]
+        rowcoincounts = [f'x{y:d}' for y in coins.sum(1)]
         state = f'LEVEL: {self.level}\n' \
                 f'BOARD STATE:\n'
         state += '{}|{}|{}|{}|{}:bomb:\n'.format(*colbombcounts)
         state += ' {} | {} | {} | {} | {}\n'.format(*colcoincounts)
-        for y in range(5):
-            state += ''.join(self.get_element_char(x, y) for x in range(5))
-            state += ' | {} | {}\n'.format(rowbombcounts[y], rowcoincounts[y])
-        state += f'SCORE: {0 if self._ended else self._score:d}'
+        unr = ':white_square_button:'
+        flg = ':triangular_flag_on_post:'
+        charmap: np.ndarray[str] = np.array([
+            unr, unr, unr, unr,
+            flg, flg, flg, flg,
+            unr, ':one:', ':two:', ':three:',
+            unr, ':one:', ':two:', ':three:',
+            unr, unr, unr, unr,
+            flg, flg, flg, flg,
+            unr, ':bomb:', unr, unr,
+            unr, ':bomb:', unr, unr,
+        ])
+        char_array: np.ndarray[str] = charmap[self._state]
+        state += '\n'.join(
+            ''.join(row) + ' | {} | {}'.format(bomby, coiny)
+            for row, bomby, coiny in zip(char_array, rowbombcounts, rowcoincounts)
+        ) + f'\nSCORE: {0 if self._ended else self._score:d}'
         return state
 
     async def start(self, ctx):
@@ -193,7 +149,7 @@ class VoltorbFlipGame(GameBase):
     async def end(self, ctx: MyContext, failed=False, aborted=False):
         if await super().end(ctx, failed=failed, aborted=aborted):
             new_level = self.level
-            self.reveal_all()
+            self._state |= VoltorbFlipGame.RVL
             await self._message.edit(content=self)
             if aborted:
                 await ctx.send(f'Game terminated by {ctx.author.mention}')
@@ -217,23 +173,23 @@ class VoltorbFlipGame(GameBase):
 
     async def guess(self, ctx: MyContext, x: int, y: int):
         if self.running:
-            if self.is_bomb(x, y):
+            if self._state[y, x] & VoltorbFlipGame.VTB:
                 await ctx.send('KAPOW')
                 await self.end(ctx, failed=True)
-            elif self.is_revealed(x, y):
+            elif self._state[y, x] & VoltorbFlipGame.RVL:
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed.',
                                delete_after=10)
             else:
                 self.add_player(ctx.author)
-                self.set_revealed(x, y)
-                multiplier = self.coin_value(x, y)
+                self._state[y, x] |= VoltorbFlipGame.RVL
                 await self._message.edit(content=self.__str__())
-                if multiplier > 1:
+                if (multiplier := self._state[y, x] & 3) > 1:
                     self._score *= multiplier
                     await ctx.send(f'Got x{multiplier:d}!', delete_after=10)
-                    emoji = find_emoji(ctx.bot, 'RaccAttack', case_sensitive=False)
-                    await ctx.message.add_reaction(emoji)
-                if self.found_all_coins():
+                    emoji = discord.utils.get(self.bot.emojis, name='RaccAttack')
+                    if emoji is not None:
+                        await ctx.message.add_reaction(emoji)
+                if self._score == self._coin_total:
                     await self.end(ctx)
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
@@ -242,14 +198,14 @@ class VoltorbFlipGame(GameBase):
 
     async def flag(self, ctx: MyContext, x: int, y: int):
         if self.running:
-            if self.is_revealed(x, y):
+            if self._state[y, x] & VoltorbFlipGame.RVL:
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed',
                                delete_after=10)
-            elif self.is_flagged(x, y):
+            elif self._state[y, x] & VoltorbFlipGame.FLG:
                 await ctx.send(f'{ctx.author.mention}: Tile already flagged',
                                delete_after=10)
             else:
-                self.set_flag(x, y)
+                self._state[y, x] |= VoltorbFlipGame.FLG
                 await self._message.edit(content=self)
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
@@ -258,14 +214,14 @@ class VoltorbFlipGame(GameBase):
 
     async def unflag(self, ctx: MyContext, x: int, y: int):
         if self.running:
-            if self.is_revealed(x, y):
+            if self._state[y, x] & VoltorbFlipGame.RVL:
                 await ctx.send(f'{ctx.author.mention}: Tile already revealed',
                                delete_after=10)
-            elif not self.is_flagged(x, y):
+            elif not self._state[y, x] & VoltorbFlipGame.FLG:
                 await ctx.send(f'{ctx.author.mention}: Tile not flagged',
                                delete_after=10)
             else:
-                self.clear_flag(x, y)
+                self._state[y, x] &= ~VoltorbFlipGame.FLG
                 await self._message.edit(content=self)
         else:
             await ctx.send(f'{ctx.author.mention}: Voltorb Flip is not running here. '
@@ -288,7 +244,10 @@ class VoltorbFlip(GameCogBase[VoltorbFlipGame]):
 
     async def init_db(self, sql):
         await super().init_db(sql)
-        await sql.execute("create table if not exists voltorb (id bigint primary key, level integer default 1)")
+        await sql.execute("create table if not exists voltorb ("
+                          "id bigint unique not null primary key, "
+                          "level integer not null default 1 check (level between 1 and 10)"
+                          ")")
 
     def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)

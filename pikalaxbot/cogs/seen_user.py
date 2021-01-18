@@ -90,7 +90,10 @@ class SeenUser(BaseCog):
             msg: typing.Optional[discord.Message]
             if (msg := discord.utils.get(self.history_cache[channel], id=payload.message_id)) is not None:
                 self.history_cache[channel].remove(msg)
-                del self.member_cache[(guild, guild.get_member(msg.author.id))]
+                try:
+                    del self.member_cache[(guild, guild.get_member(msg.author.id))]
+                except KeyError:
+                    pass
 
 
 def setup(bot: PikalaxBOT):
