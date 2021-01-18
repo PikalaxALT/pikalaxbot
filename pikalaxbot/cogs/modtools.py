@@ -169,6 +169,7 @@ class Modtools(BaseCog):
                         pag.add_line(header)
                         pag.add_line('-' * len(header))
                     pag.add_line(to_add)
+                    await asyncio.sleep(0)  # prevents blocking
 
         if pag and pag.pages:
             counts.append(i)
