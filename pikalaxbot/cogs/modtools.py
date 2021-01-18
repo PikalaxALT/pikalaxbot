@@ -62,7 +62,10 @@ class clean_lower(str):
 def filter_history(channel: discord.TextChannel, **kwargs) -> typing.Coroutine[typing.Any, None, list[discord.Message]]:
     check = kwargs.pop('check', lambda m: True)
     limit = kwargs.pop('limit', sys.maxsize)
-    return aioitertools.list(aioitertools.map(operator.itemgetter(1), aioitertools.zip(range(limit), channel.history(limit=None, **kwargs).filter(check))))
+    return aioitertools.list(aioitertools.map(
+        operator.itemgetter(1),
+        aioitertools.zip(range(limit), channel.history(limit=None, **kwargs).filter(check))
+    ))
 
 
 class Modtools(BaseCog):
@@ -249,7 +252,8 @@ class Modtools(BaseCog):
     async def cog(self, ctx: MyContext):
         """Manage bot cogs"""
 
-    async def git_pull(self, ctx: MyContext):
+    @staticmethod
+    async def git_pull(ctx: MyContext):
         async with ctx.typing():
             fut = await asyncio.create_subprocess_shell('git pull')
             await fut.wait()
@@ -300,7 +304,7 @@ class Modtools(BaseCog):
     async def enable_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Enable cogs"""
 
-        await self.git_pull(ctx)
+        await Modtools.git_pull(ctx)
         failures = {}
         for cog in cogs:
             if cog not in self.disabled_cogs:
@@ -319,7 +323,7 @@ class Modtools(BaseCog):
     async def reload_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Reload cogs"""
 
-        await self.git_pull(ctx)
+        await Modtools.git_pull(ctx)
         failures = {}
 
         cooldown = commands.CooldownMapping.from_cooldown(1, 1, commands.BucketType.default)
@@ -359,7 +363,7 @@ class Modtools(BaseCog):
     async def load_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Load cogs that aren't already loaded"""
 
-        await self.git_pull(ctx)
+        await Modtools.git_pull(ctx)
         failures = {}
         for cog in cogs:
             if cog in self.disabled_cogs:
