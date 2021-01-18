@@ -150,26 +150,25 @@ class Modtools(BaseCog):
         header: typing.Optional[str] = None
         counts = []
         async with ctx.typing():
-            sql_start = time.perf_counter()
-            async with self.bot.sql as sql:
-                it = await sql.fetch(script)
-                sql_end = time.perf_counter()
-                for i, row in enumerate(it, 1):  # type: [int, asyncpg.Record]
-                    if header is None:
-                        header = '|'.join(row.keys())
-                        pag.add_line(header)
-                        pag.add_line('-' * len(header))
-                    to_add = '|'.join(map(str, row))
-                    if len(header) * 2 + len(to_add) > 2040:
-                        raise ValueError('At least one page of results is too long to fit. '
-                                         'Try returning fewer columns?')
-                    if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
-                        counts.append(i - 1)
-                        pag.close_page()
-                        pag.add_line(header)
-                        pag.add_line('-' * len(header))
-                    pag.add_line(to_add)
-                    await asyncio.sleep(0)  # prevents blocking
+            async with self.bot.sql as sql:  # type: asyncpg.Connection
+                async with sql.transaction():
+                    sql_start = time.perf_counter()
+                    async for i, row in aioitertools.enumerate(sql.cursor(script), 1):
+                        if header is None:
+                            header = '|'.join(row.keys())
+                            pag.add_line(header)
+                            pag.add_line('-' * len(header))
+                        to_add = '|'.join(map(str, row))
+                        if len(header) * 2 + len(to_add) > 2040:
+                            raise ValueError('At least one page of results is too long to fit. '
+                                             'Try returning fewer columns?')
+                        if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
+                            counts.append(i - 1)
+                            pag.close_page()
+                            pag.add_line(header)
+                            pag.add_line('-' * len(header))
+                        pag.add_line(to_add)
+                    sql_end = time.perf_counter()
 
         if pag and pag.pages:
             counts.append(i)
