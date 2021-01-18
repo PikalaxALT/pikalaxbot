@@ -22,6 +22,7 @@ import logging
 import typing
 import aioitertools
 import sys
+import time
 import operator
 from discord.ext import commands, menus
 from . import *
@@ -33,6 +34,7 @@ from .utils.menus import NavMenuPages
 class SqlResponseMenu(NavMenuPages):
     _cumsums: list[int]
     sql_cmd: str
+    _exec_time: float
 
 
 class SqlResponseEmbed(menus.ListPageSource):
@@ -45,7 +47,8 @@ class SqlResponseEmbed(menus.ListPageSource):
             colour=0xf47fff
         ).set_footer(
             text=f'Rows {first}-{last} of {menu._cumsums[-1]}\n'
-                 f'Page {menu.current_page + 1}/{self.get_max_pages()}'
+                 f'Page {menu.current_page + 1}/{self.get_max_pages()}\n'
+                 f'Query completed in {menu._exec_time * 1000:.3f}ms'
         )
 
 
@@ -147,8 +150,11 @@ class Modtools(BaseCog):
         header: typing.Optional[str] = None
         counts = []
         async with ctx.typing():
+            sql_start = time.perf_counter()
             async with self.bot.sql as sql:
-                for i, row in enumerate(await sql.fetch(script), 1):  # type: [int, asyncpg.Record]
+                it = await sql.fetch(script)
+                sql_end = time.perf_counter()
+                for i, row in enumerate(it, 1):  # type: [int, asyncpg.Record]
                     if header is None:
                         header = '|'.join(row.keys())
                         pag.add_line(header)
@@ -173,9 +179,11 @@ class Modtools(BaseCog):
             )
             menu.sql_cmd = script
             menu._cumsums = counts
+            menu._exec_time = sql_end - sql_start
             await menu.start(ctx)
         else:
-            await ctx.send('Operation completed, no rows returned.', delete_after=10)
+            await ctx.send(f'Operation completed, no rows returned.\n'
+                           f'Query completed in {(sql_end - sql_start) * 1000:.3f}ms', delete_after=10)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.command(name='sql')
