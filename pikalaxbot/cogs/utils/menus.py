@@ -60,7 +60,7 @@ class NavMenuPages(menus.MenuPages):
             await self.message.edit(embed=embed)
             task = asyncio.create_task(self.go_back_to_current_page())
 
-            def on_done():
+            def on_done(fut):
                 self._in_info = False
 
             task.add_done_callback(on_done)
