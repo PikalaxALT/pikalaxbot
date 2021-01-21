@@ -129,6 +129,8 @@ class PikalaxBOT(BotLogger, commands.Bot):
             if isinstance(owner, set):
                 owner = owner.pop()
             ctx = FakeContext(channel.guild, channel, None, owner, self)
+        elif embed is None:
+            embed = ctx.prepare_command_error_embed()
         paginator = commands.Paginator()
         msg and paginator.add_line(msg)
         for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):

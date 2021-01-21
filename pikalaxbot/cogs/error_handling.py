@@ -29,35 +29,14 @@ class ErrorHandling(BaseCog):
 
     @BaseCog.listener()
     async def on_error(self, event: str, *args, **kwargs):
-        exc_info = sys.exc_info()
-        exc: BaseException = exc_info[1]
+        _, exc, _ = sys.exc_info()  # type: BaseException
         await self.bot.wait_until_ready()
-        embed = None
         if event == 'on_message':
-            message: discord.Message
-            message, = args
-            embed = discord.Embed(
-                colour=discord.Colour.red()
-            ).add_field(
-                name='Author',
-                value=message.author.mention,
-                inline=False
-            ).add_field(
-                name='Channel',
-                value=message.channel.mention,
-                inline=False
-            ).add_field(
-                name='Invoked with',
-                value='`'
-                      + (message.content if len(message.content) < 100 else message.content[:97] + '...')
-                      + '`',
-                inline=False
-            ).add_field(
-                name='Invoking message',
-                value=message.jump_url,
-                inline=False
-            )
-        await self.bot.send_tb(None, exc, origin=event, embed=embed)
+            ctx = await self.bot.get_context(*args)
+            embed = ctx.prepare_command_error_embed()
+        else:
+            ctx = embed = None
+        await self.bot.send_tb(ctx, exc, origin=event, embed=embed)
 
     async def handle_command_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.MissingRequiredArgument):
