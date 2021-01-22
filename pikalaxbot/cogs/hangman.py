@@ -106,7 +106,7 @@ class HangmanGame(GameBase):
                                delete_after=10)
             elif len(guess) == 1:
                 if guess in self._solution_name:
-                    for i, _ in filter(guess.__eq__, enumerate(self._solution_name)):
+                    for i, _ in filter(lambda t: guess == t[1], enumerate(self._solution_name)):
                         self._state[i] = guess
                     self.add_player(ctx.author)
                     if ''.join(self._state) == self._solution_name:
