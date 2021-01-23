@@ -30,8 +30,8 @@ class Onehand(BaseCog):
     banned_guilds: set[int] = set()
     global_blacklist = {'cub', 'shota', 'loli', 'young'}
     my_blacklist: set[str] = set()
-    e6_api_key = ''
-    config_attrs = 'banned_guilds', 'my_blacklist', 'e6_api_key'
+    e6_api_auth: dict[str, str] = {}
+    config_attrs = 'banned_guilds', 'my_blacklist', 'e6_api_auth'
 
     async def cog_check(self, ctx: MyContext):
         if ctx.command == self.oklewd:
@@ -60,7 +60,7 @@ class Onehand(BaseCog):
         async with self.bot.client_session.get(
                 f'https://{name}.net/posts.json',
                 headers={'User-Agent': self.bot.user.name},
-                params={'tags': ' '.join(params), 'limit': 100, 'login': 'pikalaxalt', 'api_key': self.e6_api_key}
+                params={'tags': ' '.join(params), 'limit': 100, **self.e6_api_auth}
         ) as r:
             resp = (await r.json())['posts']
             j = [post for i, post in zip(range(num), (await r.json())['posts']) if not any(blacklist & set(value) for value in post['tags'].values())]
