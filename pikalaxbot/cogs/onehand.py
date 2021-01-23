@@ -67,9 +67,13 @@ class Onehand(BaseCog):
         upvote_emoji = discord.utils.get(self.bot.emojis, name='upvote')
         downvote_emoji = discord.utils.get(self.bot.emojis, name='downvote')
         num_sent = 0
+        get_filespecs = operator.itemgetter('file', 'sample', 'preview')
         for imagespec in resp:
             if not any(blacklist & set(value) for value in imagespec['tags'].values()):
-                filespec = discord.utils.find(operator.itemgetter('url'), (imagespec['file'], imagespec['sample'], imagespec['preview']))
+                filespec = discord.utils.find(
+                    lambda fs: all(map(fs.get, ('url', 'width', 'height'))),
+                    get_filespecs(imagespec)
+                )
                 if not filespec:
                     print(imagespec['id'])
                     continue
