@@ -20,13 +20,14 @@ from ..context import MyContext
 import typing
 import asyncpg
 import asyncstdlib.functools as afunctools
+from ..constants import DPY_GUILD_ID
 
 
 __all__ = ('command_prefix', 'set_guild_prefix')
 
 
 @afunctools.cache
-async def _guild_prefix(bot: PikalaxBOT, guild: typing.Optional[discord.Guild]) -> typing.Union[str, list[str]]:
+async def _guild_prefix(bot: PikalaxBOT, guild: typing.Optional[discord.Guild]) -> str:
     if guild is None:
         return ''
     async with bot.sql as sql:  # type: asyncpg.Connection
@@ -39,8 +40,11 @@ async def _guild_prefix(bot: PikalaxBOT, guild: typing.Optional[discord.Guild]) 
     return prefix or bot.settings.prefix
 
 
-def command_prefix(bot: PikalaxBOT, message: discord.Message):
-    return _guild_prefix(bot, message.guild)
+async def command_prefix(bot: PikalaxBOT, message: discord.Message):
+    prefix = await _guild_prefix(bot, message.guild)
+    if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author):
+        prefix = (prefix, '')
+    return prefix
 
 
 async def set_guild_prefix(ctx: MyContext, prefix: str):
