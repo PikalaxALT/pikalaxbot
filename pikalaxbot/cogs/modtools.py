@@ -29,6 +29,7 @@ from . import *
 from .utils.converters import CommandConverter
 from .utils.errors import CogOperationError
 from .utils.menus import NavMenuPages
+from ..utils.prefix import set_guild_prefix
 
 
 class SqlResponseMenu(NavMenuPages):
@@ -401,17 +402,7 @@ class Modtools(BaseCog):
     async def change_prefix(self, ctx: MyContext, prefix='p!'):
         """Update the bot's command prefix"""
 
-        async with self.bot.sql as sql:
-            await sql.execute(
-                "insert into prefixes "
-                "values ($1, $2) "
-                "on conflict (guild) "
-                "do update "
-                "set prefix = $2",
-                ctx.guild.id,
-                prefix
-            )
-        self.bot.guild_prefixes[ctx.guild.id] = prefix
+        await set_guild_prefix(ctx, prefix)
         await ctx.message.add_reaction('✅')
 
     @admin.command()

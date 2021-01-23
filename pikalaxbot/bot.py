@@ -45,7 +45,6 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self.settings = Settings(settings_file)
         super().__init__(activity=discord.Game(self.settings.game), **kwargs)
         self._ctx_cache: dict[tuple[int, int], list[MyContext, set[int]]] = {}
-        self.guild_prefixes: dict[int, str] = {}
         self._sql = 'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
 
         async def init_client_session():

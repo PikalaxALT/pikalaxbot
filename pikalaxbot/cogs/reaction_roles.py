@@ -49,11 +49,11 @@ def reaction_roles_not_initialized():
 class ReactionRoles(BaseCog):
     """Commands and functionality for reaction roles."""
     
-    def cog_check(self, ctx):
-        return all(check.predicate(ctx) for check in {
+    async def cog_check(self, ctx):
+        return all([await check.predicate(ctx) for check in {
             commands.guild_only(),
             commands.bot_has_guild_permissions(manage_roles=True)
-        })
+        }])
 
     async def init_db(self, sql):
         await sql.execute(

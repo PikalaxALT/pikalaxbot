@@ -28,35 +28,10 @@ import os
 import glob
 import typing
 import logging
+from .utils.prefix import *
 
 from . import __dirname__, __version__
 from .bot import PikalaxBOT
-from .constants import *
-
-
-async def _command_prefix(bot: PikalaxBOT, message: discord.Message) -> typing.Union[str, list[str]]:
-    if message.guild is None:
-        return ''
-    if message.guild.id not in bot.guild_prefixes:
-        async with bot.sql as sql:
-            await sql.execute(
-                'insert into prefixes '
-                'values ($1, $2) '
-                'on conflict (guild) '
-                'do nothing',
-                message.guild.id,
-                bot.settings.prefix
-            )
-            bot.guild_prefixes[message.guild.id] = await sql.fetchval(
-                'select prefix '
-                'from prefixes '
-                'where guild = $1',
-                message.guild.id
-            )
-    ret = [bot.guild_prefixes[message.guild.id]]
-    if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author):
-        ret.append('')
-    return ret
 
 
 def filter_extensions(bot: PikalaxBOT) -> typing.Generator[tuple[str, str], typing.Any, None]:
@@ -111,7 +86,7 @@ def main():
     bot = PikalaxBOT(
         settings_file=args.settings,
         logfile=args.logfile,
-        command_prefix=_command_prefix,
+        command_prefix=command_prefix,
         pokeapi_file='file:{}?mode=ro'.format(os.path.join(os.path.dirname(__dirname__), 'pokeapi', 'db.sqlite3')),
         case_insensitive=True,
         # d.py 1.5.0: Declare gateway intents
