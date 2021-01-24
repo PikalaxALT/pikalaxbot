@@ -40,9 +40,9 @@ async def _guild_prefix(bot: PikalaxBOT, guild: typing.Optional[discord.Guild]) 
     return prefix or bot.settings.prefix
 
 
-async def command_prefix(bot: PikalaxBOT, message: discord.Message):
+async def command_prefix(bot: PikalaxBOT, message: discord.Message) -> tuple[str]:
     prefix = await _guild_prefix(bot, message.guild)
-    return (prefix, '') if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author) else prefix
+    return (prefix, '') if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author) else (prefix,)
 
 
 async def set_guild_prefix(ctx: MyContext, prefix: str):
