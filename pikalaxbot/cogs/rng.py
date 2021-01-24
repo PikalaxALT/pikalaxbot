@@ -112,7 +112,7 @@ class Rng(BaseCog):
     @staticmethod
     def get_keycap_emoji(i: int):
         assert 10 >= i >= 0
-        if i == 0:
+        if i < 10:
             return '{:d}\ufe0f\u20e3'.format(i)
         return '\U0001f51f'
 
