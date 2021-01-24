@@ -18,6 +18,9 @@ from discord.ext import commands
 from . import *
 from .utils.game import find_emoji
 import asyncpg
+import typing
+from ..types import *
+import random
 
 
 class HMM(typing.Generic[T]):
