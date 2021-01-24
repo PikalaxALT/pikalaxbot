@@ -16,10 +16,14 @@
 
 import random
 
+import discord
 from discord.ext import commands
 
 from . import *
 from .utils.converters import dice_roll
+import typing
+import collections
+from jishaku.functools import executor_function
 
 
 class Rng(BaseCog):
@@ -99,6 +103,43 @@ class Rng(BaseCog):
             await ctx.send(f'**{exc.__class__.__name__}:** {exc} {self.bot.command_error_emoji}',
                            delete_after=10)
         self.log_tb(ctx, exc)
+
+    @staticmethod
+    @executor_function
+    def sample_random(k: int, choices: typing.Sequence[str]):
+        return collections.Counter(random.choices(choices, k=k))
+
+    @staticmethod
+    def get_keycap_emoji(i: int):
+        assert 10 >= i >= 0
+        if i == 0:
+            return '{:d}\ufe0f\u20e3'.format(i)
+        return '\U0001f51f'
+
+    @commands.command(aliases=['randvote'])
+    async def choosebestof(self, ctx: MyContext, k: typing.Optional[int], *choices: str):
+        """Sample k times and report the results"""
+
+        response = discord.Embed(colour=0xf47fff)
+        nitems = len(choices)
+        if k is None:
+            k = 1000
+            response.title = f'Simulating 1000 (default) votes among {nitems} items'
+        else:
+            old_k = k
+            k = min(10000, max(k, 1))
+            if k != old_k:
+                response.title = f'Simulating {k} votes (clamped) among {nitems} items'
+            else:
+                response.title = f'Simulating {k} votes among {nitems} items'
+        results: collections.Counter[str] = await Rng.sample_random(k, choices)
+        if len(results) > 10:
+            response.set_footer(text='Only showing the top 10 results')
+        response.description = '\n'.join(
+            f'{Rng.get_keycap_emoji(i)} {item} ({count} times, {count * 100 / k:.2f}%)'
+            for i, (item, count) in enumerate(results.most_common(10), 1)
+        )
+        await ctx.send(embed=response)
 
 
 def setup(bot: PikalaxBOT):
