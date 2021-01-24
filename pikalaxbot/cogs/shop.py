@@ -152,14 +152,9 @@ class Shop(BaseCog):
             'pkmn_inventory ('
             'member bigint not null, '
             'item_id int not null, '
-            'quantity int not null default 0 check (quantity >= 0)'
+            'quantity int not null default 0 check (quantity >= 0), '
+            'unique (member, item_id)'
             ')'
-        )
-        await sql.execute(
-            'create unique index '
-            'if not exists '
-            'pkmn_inventory_idx '
-            'on pkmn_inventory(member, item_id)'
         )
 
     @wares_concurrency

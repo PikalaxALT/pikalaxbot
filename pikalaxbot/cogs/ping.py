@@ -36,8 +36,7 @@ class Ping(BaseCog):
         self.build_ping_history.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists ping_history (timestamp timestamp, latency real)')
-        await sql.execute('create unique index if not exists ping_history_idx on ping_history (timestamp)')
+        await sql.execute('create table if not exists ping_history (timestamp timestamp unique, latency real)')
         self.build_ping_history.start()
 
     @tasks.loop(seconds=30)

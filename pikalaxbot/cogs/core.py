@@ -89,9 +89,9 @@ class Core(BaseCog):
             'commandstats ('
             'command text not null, '
             'guild bigint not null, '
-            'uses integer default 0'
+            'uses integer default 0, '
+            'unique (command, guild)'
             ')')
-        await sql.execute('create unique index if not exists guild_command_idx on commandstats(command, guild)')
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):

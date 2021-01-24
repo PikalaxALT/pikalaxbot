@@ -45,12 +45,9 @@ class SelfAssignableRole(BaseCog):
             'create table if not exists self_role ('
             'guild_id bigint not null, '
             'role_id bigint not null, '
-            'alias varchar(32)'
+            'alias varchar(32), '
+            'unique (guild_id, role_id)'
             ')'
-        )
-        await sql.execute(
-            'create unique index if not exists self_role_idx '
-            'on self_role(guild_id, role_id)'
         )
 
     @commands.command()

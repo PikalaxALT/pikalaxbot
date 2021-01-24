@@ -52,10 +52,10 @@ class MemberStatus(BaseCog):
             'online integer, '
             'offline integer, '
             'dnd integer, '
-            'idle integer'
+            'idle integer, '
+            'unique (guild_id, timestamp)'
             ')'
         )
-        await sql.execute('create unique index if not exists memberstatus_idx on memberstatus (guild_id, timestamp)')
         self.update_counters.start()
 
     @tasks.loop(seconds=30)
