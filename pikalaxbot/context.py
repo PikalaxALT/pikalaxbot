@@ -60,3 +60,4 @@ class MyContext(commands.Context):
             embed.add_field(name='Channel', value=self.channel.mention, inline=False)
         embed.add_field(name='Invoked with', value='`' + self.message.content + '`', inline=False)
         embed.add_field(name='Invoking message', value=self.message.jump_url if self.guild else "is a dm", inline=False)
+        return embed
