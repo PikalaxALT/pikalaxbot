@@ -27,7 +27,7 @@ def reaction_roles_initialized():
         if not await ctx.cog.get_reaction_config(ctx.guild.id):
             raise NotInitialized(
                 'Reaction roles is not configured. To configure, use `{}rrole register`.'.format(
-                    await ctx.bot.get_prefix(ctx.message)
+                    (await ctx.bot.get_prefix(ctx.message))[0]
                 )
             )
         return True
@@ -39,7 +39,7 @@ def reaction_roles_not_initialized():
         if await ctx.cog.get_reaction_config(ctx.guild.id):
             raise AlreadyInitialized(
                 'Reaction roles is already configured. To reconfigure, use `{}rrole drop` first.'.format(
-                    await ctx.bot.get_prefix(ctx.message)
+                    (await ctx.bot.get_prefix(ctx.message))[0]
                 )
             )
         return True
