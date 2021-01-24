@@ -122,6 +122,8 @@ class Rng(BaseCog):
 
         response = discord.Embed(colour=0xf47fff)
         nitems = len(choices)
+        if nitems < 2:
+            raise commands.MissingRequiredArgument('need at least 2 choices to choose from')
         if k is None:
             k = 1000
             response.title = f'Simulating 1000 (default) votes among {nitems} items'
