@@ -34,9 +34,9 @@ class ChatDeathIndex(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.cdi_samples: dict[int, list[float]] = defaultdict(list)
-        self.calculations: dict[int, list[int]] = defaultdict(list)
-        self.cumcharcount: Counter[int] = Counter()
+        self.cdi_samples: dict[discord.TextChannel, list[float]] = defaultdict(list)
+        self.calculations: dict[discord.TextChannel, list[int]] = defaultdict(list)
+        self.cumcharcount: Counter[discord.TextChannel] = Counter()
         self.save_message_count.start()
 
     def cog_unload(self):
@@ -46,7 +46,7 @@ class ChatDeathIndex(BaseCog):
     def plot(self, channels: frozenset[discord.TextChannel], buffer: typing.BinaryIO):
         plt.figure()
         for channel in channels:
-            samples = self.calculations[channel.id]
+            samples = self.calculations[channel]
             plt.plot(list(range(1 - len(samples), 1)), samples, label=f'#{channel}')
         plt.xlabel('Minutes ago')
         plt.ylabel('CDI')
@@ -73,30 +73,30 @@ class ChatDeathIndex(BaseCog):
     @tasks.loop(seconds=60)
     async def save_message_count(self):
         for channel in self.bot.get_all_channels():
-            self.cdi_samples[channel.id].append(self.cumcharcount[channel.id])
-            self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
-            self.calculations[channel.id].append(ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel.id]))
-            self.calculations[channel.id] = self.calculations[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
-            self.cumcharcount[channel.id] = 0
+            self.cdi_samples[channel].append(self.cumcharcount[channel])
+            self.cdi_samples[channel] = self.cdi_samples[channel][-ChatDeathIndex.MAX_SAMPLES:]
+            self.calculations[channel].append(ChatDeathIndex.samples_to_cdi(self.cdi_samples[channel]))
+            self.calculations[channel] = self.calculations[channel][-ChatDeathIndex.MAX_SAMPLES:]
+            self.cumcharcount[channel] = 0
 
     async def init_channel(self, channel: discord.TextChannel, now: datetime.datetime):
         start = now - datetime.timedelta(minutes=2 * ChatDeathIndex.MAX_SAMPLES - 1)
         if ChatDeathIndex.can_get_messages(channel):
-            self.cdi_samples[channel.id] = [0. for _ in range(2 * ChatDeathIndex.MAX_SAMPLES - 1)]
+            self.cdi_samples[channel] = [0. for _ in range(2 * ChatDeathIndex.MAX_SAMPLES - 1)]
             async for message in channel.history(
                     before=now,
                     after=start
             ).filter(self.msg_counts_against_chat_death):  # type: discord.Message
                 idx = int((message.created_at - start).total_seconds()) // 60
-                self.cdi_samples[channel.id][idx] += ChatDeathIndex.get_message_cdi_effect(message)
+                self.cdi_samples[channel][idx] += ChatDeathIndex.get_message_cdi_effect(message)
         for i in range(ChatDeathIndex.MAX_SAMPLES):
-            self.calculations[channel.id].append(
+            self.calculations[channel].append(
                 ChatDeathIndex.samples_to_cdi(
-                    self.cdi_samples[channel.id][i:i + ChatDeathIndex.MAX_SAMPLES]
+                    self.cdi_samples[channel][i:i + ChatDeathIndex.MAX_SAMPLES]
                 )
             )
-        self.cdi_samples[channel.id] = self.cdi_samples[channel.id][-ChatDeathIndex.MAX_SAMPLES:]
-        self.cumcharcount[channel.id] = 0
+        self.cdi_samples[channel] = self.cdi_samples[channel][-ChatDeathIndex.MAX_SAMPLES:]
+        self.cumcharcount[channel] = 0
 
     @save_message_count.before_loop
     async def start_message_count(self):
@@ -136,7 +136,7 @@ class ChatDeathIndex(BaseCog):
         """Returns the Chat Death Index of the given channel (if not specified, uses the current channel)"""
 
         channel = channel or ctx.channel
-        chat_avg = self.cdi_samples[channel.id]
+        chat_avg = self.cdi_samples[channel]
         n = len(chat_avg)
         if n < ChatDeathIndex.MIN_SAMPLES:
             await ctx.send(f'I cannot determine the Chat Death Index of {channel.mention} at this time.')
