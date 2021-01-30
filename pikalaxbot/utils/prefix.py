@@ -29,20 +29,33 @@ __all__ = ('command_prefix', 'set_guild_prefix')
 @afunctools.cache
 async def _guild_prefix(bot: PikalaxBOT, guild: typing.Optional[discord.Guild]) -> str:
     if guild is None:
-        return ''
-    async with bot.sql as sql:  # type: asyncpg.Connection
-        prefix = await sql.fetchval(
-            'select prefix '
-            'from prefixes '
-            'where guild = $1',
-            guild.id
-        )
-    return prefix or bot.settings.prefix
+        prefix = ''
+    else:
+        async with bot.sql as sql:  # type: asyncpg.Connection
+            prefix = await sql.fetchval(
+                'select prefix '
+                'from prefixes '
+                'where guild = $1',
+                guild.id
+            )
+        if prefix is None:
+            prefix = bot.settings.prefix
+    return prefix
+
+
+@afunctools.cache
+async def is_owner_in_dpy_guild(bot: PikalaxBOT, guild: typing.Optional[discord.Guild], author: discord.abc.User):
+    if guild is None:
+        return False
+    if guild.id != DPY_GUILD_ID:
+        return False
+    return await bot.is_owner(author)
 
 
 async def command_prefix(bot: PikalaxBOT, message: discord.Message) -> tuple[str]:
     prefix = await _guild_prefix(bot, message.guild)
-    return (prefix, '') if message.guild.id == DPY_GUILD_ID and await bot.is_owner(message.author) else (prefix,)
+    use_blank = await is_owner_in_dpy_guild(bot, message.guild, message.author)
+    return (prefix, '') if use_blank else (prefix,)
 
 
 async def set_guild_prefix(ctx: MyContext, prefix: str):
