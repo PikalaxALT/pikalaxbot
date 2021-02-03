@@ -75,7 +75,10 @@ class AliasedRoleConverter(discord.Role):
             )
         if role_id is None:
             raise commands.RoleNotFound(f'No alias "{argument}" has been registered to a role')
-        return await commands.RoleConverter().convert(ctx, role_id)
+        role = ctx.guild.get_role(role_id)
+        if role is None:
+            raise commands.RoleNotFound('Role aliased to "{argument}" does not exist')
+        return role
 
 
 def board_coords(minx=1, maxx=5, miny=1, maxy=5):
