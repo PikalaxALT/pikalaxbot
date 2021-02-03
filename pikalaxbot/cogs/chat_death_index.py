@@ -89,12 +89,9 @@ class ChatDeathIndex(BaseCog):
             ).filter(self.msg_counts_against_chat_death):  # type: discord.Message
                 idx = int((message.created_at - start).total_seconds()) // 60
                 self.cdi_samples[channel][idx] += ChatDeathIndex.get_message_cdi_effect(message)
-        for i in range(ChatDeathIndex.MAX_SAMPLES):
-            self.calculations[channel].append(
-                ChatDeathIndex.samples_to_cdi(
+            self.calculations[channel] = [ChatDeathIndex.samples_to_cdi(
                     self.cdi_samples[channel][i:i + ChatDeathIndex.MAX_SAMPLES]
-                )
-            )
+                ) for i in range(ChatDeathIndex.MAX_SAMPLES)]
         self.cdi_samples[channel] = self.cdi_samples[channel][-ChatDeathIndex.MAX_SAMPLES:]
         self.cumcharcount[channel] = 0
 
