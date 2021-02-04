@@ -87,8 +87,7 @@ class Settings:
 
     async def __aenter__(self):
         await self._lock.acquire()
-        await asyncio.get_running_loop().run_in_executor(None, self.__enter__)
-        return self
+        return await asyncio.to_thread(self.__enter__)
 
     def __exit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         if self._changed:
@@ -100,7 +99,7 @@ class Settings:
 
     async def __aexit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         try:
-            asyncio.get_running_loop().run_in_executor(None, self.__exit__, exc_type, exc_val, exc_tb)
+            await asyncio.to_thread(self.__exit__, exc_type, exc_val, exc_tb)
         finally:
             self._lock.release()
 
