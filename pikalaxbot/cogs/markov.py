@@ -95,8 +95,7 @@ class Markov(BaseCog):
 
     async def learn_markov_from_history(self, channel: discord.TextChannel):
         if channel.permissions_for(channel.guild.me).read_message_history:
-            async for msg in channel.history(limit=5000):
-                self.learn_markov(msg)
+            await channel.history(limit=5000).map(self.learn_markov).flatten()
             self.log_info('Markov: Initialized channel %s', channel)
             return True
         self.log_error('Markov: missing ReadMessageHistory permission for %s', channel)

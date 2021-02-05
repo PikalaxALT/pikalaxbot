@@ -45,20 +45,12 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self.settings = Settings(settings_file)
         super().__init__(activity=discord.Game(self.settings.game), **kwargs)
         self._ctx_cache: dict[tuple[int, int], list[MyContext, set[int]]] = {}
-        self._sql = 'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
 
-        async def init_client_session():
-            self.client_session = aiohttp.ClientSession(raise_for_status=True)
-            try:
-                self._pool = await asyncpg.create_pool(self._sql)
-            except Exception:
-                await self.client_session.close()
-                raise
-
-        self.log_info('Creating aiohttp session and connecting database')
-        self.client_session: typing.Optional[aiohttp.ClientSession] = None
-        self._pool: typing.Optional[asyncpg.pool.Pool] = None
-        self.loop.run_until_complete(init_client_session())
+        self.log_info('Connecting database')
+        self._pool = asyncpg.create_pool(
+            'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
+        )
+        self.loop.run_until_complete(self._pool)
 
         # Reboot handler
         self.reboot_after = True
@@ -95,6 +87,10 @@ class PikalaxBOT(BotLogger, commands.Bot):
     @property
     def pokeapi(self) -> PokeApi:
         return self._pokeapi
+
+    @discord.utils.cached_slot_property('_client_session')
+    def client_session(self):
+        return aiohttp.ClientSession(raise_for_status=True)
 
     @afunctools.cache
     async def get_owner(self) -> typing.Union[discord.User, set[discord.TeamMember], None]:
@@ -154,7 +150,10 @@ class PikalaxBOT(BotLogger, commands.Bot):
         try:
             await super().close()
         finally:
-            await self.client_session.close()
+            try:
+                await self._client_session.close()
+            except AttributeError:
+                pass
             await self._pool.close()
 
     async def on_ready(self):

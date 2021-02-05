@@ -79,16 +79,24 @@ class ChatDeathIndex(BaseCog):
             self.calculations[channel] = self.calculations[channel][-ChatDeathIndex.MAX_SAMPLES:]
             self.cumcharcount[channel] = 0
 
+    def account_for_message(self, channel: discord.TextChannel, start: datetime.datetime):
+        def inner(message: discord.Message):
+            idx = int((message.created_at - start).total_seconds()) // 60
+            self.cdi_samples[channel][idx] += ChatDeathIndex.get_message_cdi_effect(message)
+        return inner
+
     async def init_channel(self, channel: discord.TextChannel, now: datetime.datetime):
         start = now - datetime.timedelta(minutes=2 * ChatDeathIndex.MAX_SAMPLES - 1)
         if ChatDeathIndex.can_get_messages(channel):
             self.cdi_samples[channel] = [0. for _ in range(2 * ChatDeathIndex.MAX_SAMPLES - 1)]
-            async for message in channel.history(
-                    before=now,
-                    after=start
-            ).filter(self.msg_counts_against_chat_death):  # type: discord.Message
-                idx = int((message.created_at - start).total_seconds()) // 60
-                self.cdi_samples[channel][idx] += ChatDeathIndex.get_message_cdi_effect(message)
+            await channel.history(
+                before=now,
+                after=start
+            ).filter(
+                self.msg_counts_against_chat_death
+            ).map(
+                self.account_for_message(channel, start)
+            ).flatten()
             self.calculations[channel] = [ChatDeathIndex.samples_to_cdi(
                     self.cdi_samples[channel][i:i + ChatDeathIndex.MAX_SAMPLES]
                 ) for i in range(ChatDeathIndex.MAX_SAMPLES)]
