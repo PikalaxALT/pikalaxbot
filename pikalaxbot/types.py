@@ -18,7 +18,7 @@ import discord
 import typing
 
 
-__all__ = ('MaybeEmoji', 'T', 'R', 'EmbedStr', 'MaybePartialEmoji')
+__all__ = ('MaybeEmoji', 'T', 'R', 'EmbedStr', 'MaybePartialEmoji', 'GuildChannel')
 
 
 T = typing.TypeVar('T')
@@ -26,3 +26,4 @@ R = typing.TypeVar('R')
 EmbedStr = typing.Union[str, type(discord.Embed.Empty)]
 MaybeEmoji = typing.Union[discord.Emoji, discord.PartialEmoji, str]
 MaybePartialEmoji = typing.Union[discord.PartialEmoji, str]
+GuildChannel = typing.Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel]

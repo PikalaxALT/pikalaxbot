@@ -37,9 +37,7 @@ from .. import __dirname__, __version__
 from .utils.errors import *
 from .utils.converters import CommandConverter
 from .utils.game import GameCogBase
-
-
-GuildChannel = typing.Union[discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel]
+from ..types import *
 
 
 class ConfirmationMenu(menus.Menu):
