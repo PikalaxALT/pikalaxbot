@@ -16,14 +16,16 @@
 
 import typing
 import collections
-import asyncpg
 
 from discord.ext import commands
 from ..utils.logging_mixin import LoggingMixin
 from .. import *
+from ..utils.pg_orm import BaseTable
+
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-__all__ = ('BaseCog', 'PikalaxBOT', 'MyContext')
+__all__ = ('BaseCog', 'PikalaxBOT', 'MyContext', 'BaseTable')
 
 
 def _cog_special_method(func):
@@ -53,7 +55,7 @@ class BaseCog(LoggingMixin, commands.Cog):
         bot.loop.create_task(self.prepare())
 
     @_cog_special_method
-    async def init_db(self, sql: asyncpg.Connection):
+    async def init_db(self, sql: AsyncConnection):
         """Override this"""
         pass
 
@@ -82,9 +84,8 @@ class BaseCog(LoggingMixin, commands.Cog):
         if BaseCog._get_overridden_method(self.init_db) is not None:
             self.bot.dispatch('cog_db_init', self)
             try:
-                async with self.bot.sql as sql:  # type: asyncpg.Connection
-                    async with sql.transaction():
-                        await self.init_db(sql)
+                async with self.bot.sql as sql:  # type: AsyncConnection
+                    await self.init_db(sql)
             except Exception as e:
                 e.__suppress_context__ = True
                 self.bot.dispatch('cog_db_init_error', self, e)

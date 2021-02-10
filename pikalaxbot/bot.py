@@ -18,7 +18,6 @@ import discord
 from discord.ext import commands, menus
 import typing
 import os
-import asyncpg
 import aiohttp
 import asyncio
 import datetime
@@ -28,6 +27,7 @@ from .context import MyContext, FakeContext
 from .utils.config_io import Settings
 import asyncstdlib.functools as afunctools
 from .pokeapi import *
+from .utils.pg_orm import *
 
 
 __all__ = ('PikalaxBOT',)
@@ -47,10 +47,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self._ctx_cache: dict[tuple[int, int], list[MyContext, set[int]]] = {}
 
         self.log_info('Connecting database')
-        self._pool = asyncpg.create_pool(
-            'postgres://{username}:{password}@{host}/{dbname}'.format(**self.settings.database)
-        )
-        self.loop.run_until_complete(self._pool)
+        self.engine = async_engine_parameterized(**self.settings.database)
 
         # Reboot handler
         self.reboot_after = True
@@ -82,7 +79,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
 
     @property
     def sql(self):
-        return self._pool.acquire()
+        return self.engine.begin()
 
     @property
     def pokeapi(self) -> PokeApi:
@@ -154,7 +151,6 @@ class PikalaxBOT(BotLogger, commands.Bot):
                 await self._client_session.close()
             except AttributeError:
                 pass
-            await self._pool.close()
 
     async def on_ready(self):
         self.log_info('Logged in as %s', self.user)

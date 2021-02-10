@@ -21,11 +21,14 @@ import time
 from discord.ext import commands
 from .errors import BadGameArgument
 import typing
-import asyncpg
 import collections
 from .. import *
 from ...types import T
 from ...pokeapi import PokeApi
+
+from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select, func, desc, delete
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
 
 __all__ = (
     'find_emoji',
@@ -33,7 +36,39 @@ __all__ = (
     'GameBase',
     'GameStartCommand',
     'GameCogBase',
+    'Game'
 )
+
+
+class Game(BaseTable):
+    id = Column(BIGINT, primary_key=True)
+    score = Column(INTEGER, nullable=False)
+
+    __table_args__ = (CheckConstraint(score >= 0),)
+
+    @classmethod
+    async def increment_score(cls, connection: AsyncConnection, player: discord.Member, *, by=1):
+        statement = insert(cls).values(id=player.id, score=by)
+        upsert = statement.on_conflict_do_update(index_elements=['id'], set_={'score': statement.excluded.score + by})
+        return await connection.execute(upsert)
+
+    @classmethod
+    async def check_score(cls, connection: AsyncConnection, player: discord.Member):
+        ranking = func.rank().over(order_by=desc(cls.score))
+        table = select([cls.id, cls.score, ranking])
+        statement = select([table.columns[2]]).where(table.columns[0] == player.id)
+        return await connection.scalar(statement)
+
+    @classmethod
+    async def check_all_scores(cls, connection: AsyncConnection):
+        ranking = func.rank().over(order_by=desc(cls.score))
+        statement = select([cls.id, cls.score, ranking])
+        result = await connection.execute(statement)
+        return result.all()
+
+    @classmethod
+    async def clear(cls, connection: AsyncConnection):
+        return await connection.execute(delete(cls).where(True))
 
 
 def find_emoji(
@@ -47,14 +82,8 @@ def find_emoji(
     return discord.utils.find(lambda e: e.name.lower() == name, guild.emojis)
 
 
-async def increment_score(sql: asyncpg.Connection, player: discord.Member, *, by=1):
-    await sql.execute(
-        'insert into game '
-        'values ($1, $2) '
-        'on conflict(id) '
-        'do update '
-        'set score = game.score + $2',
-        player.id, by)
+async def increment_score(sql: AsyncConnection, player: discord.Member, *, by=1):
+    await Game.increment_score(sql, player, by=by)
 
 
 class NoInvokeOnEdit(commands.CheckFailure):
@@ -173,9 +202,9 @@ class GameBase:
 
     async def award_points(self):
         score = round(max(math.ceil(self.score / len(self._players)), 1))
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
+        async with self.bot.sql as sql:
             for player in self._players:
-                await increment_score(sql, player, by=score)
+                await Game.increment_score(sql, player, by=score)
         return score
 
     async def get_solution_embed(self, *, failed=False, aborted=False):
@@ -203,12 +232,7 @@ class GameCogBase(BaseCog, typing.Generic[T]):
         return typing.get_args(self.__orig_bases__[0])[0]
 
     async def init_db(self, sql):
-        await sql.execute(
-            "create table if not exists game ("
-            "id bigint unique primary key, "
-            "score integer default 0 check (score >= 0)"
-            ")"
-        )
+        await Game.create(sql)
 
     def _local_check(self, ctx: MyContext):
         if ctx.guild is None:

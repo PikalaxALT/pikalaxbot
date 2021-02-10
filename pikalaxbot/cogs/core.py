@@ -39,6 +39,30 @@ from .utils.converters import CommandConverter
 from .utils.game import GameCogBase
 from ..types import *
 
+from sqlalchemy import Column, TEXT, BIGINT, INTEGER, UniqueConstraint, select
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
+
+
+class Commandstats(BaseTable):
+    command = Column(TEXT, nullable=False)
+    guild = Column(BIGINT, nullable=False)
+    uses = Column(INTEGER, default=0)
+
+    __table_args__ = (UniqueConstraint(command, guild),)
+
+    @classmethod
+    async def count_command(cls, conn: AsyncConnection, ctx: MyContext):
+        statement = insert(cls).values(command=ctx.command.qualified_name, guild=ctx.guild.id, uses=1)
+        upsert = statement.on_conflict_do_update(index_elements=['command', 'guild'], set_={'uses': statement.excluded.uses + 1})
+        await conn.execute(upsert)
+
+    @classmethod
+    async def get_guild_uses(cls, conn: AsyncConnection, ctx: MyContext):
+        statement = select([cls.command, cls.uses]).where(cls.guild == ctx.guild.id).order_by(cls.uses).desc()
+        result = await conn.execute(statement)
+        return result.all()
+
 
 class ConfirmationMenu(menus.Menu):
     def __init__(self, mode, **kwargs):
@@ -93,28 +117,14 @@ class Core(BaseCog):
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute(
-                'insert into commandstats '
-                'values ($1, $2, 1) '
-                'on conflict (command, guild) '
-                'do update '
-                'set uses = commandstats.uses + 1',
-                ctx.command.qualified_name,
-                ctx.guild.id
-            )
+        async with self.bot.sql as sql:
+            await Commandstats.count_command(sql, ctx)
 
     async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
         lost_cmds: list[tuple[str]] = []
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            for name, uses in await sql.fetch(
-                    'select command, uses '
-                    'from commandstats '
-                    'where guild = $1 '
-                    'order by uses desc',
-                    ctx.guild.id
-            ):
+        async with self.bot.sql as sql:
+            for name, uses in await Commandstats.get_guild_uses(sql, ctx):
                 cmd: commands.Command = self.bot.get_command(name)
                 if cmd is None:
                     lost_cmds.append((name,))
