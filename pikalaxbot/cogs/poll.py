@@ -327,7 +327,7 @@ class Poll(BaseCog):
         await sql.execute(
             'create table if not exists poll_options ('
             'id serial unique not null primary key,'
-            'poll_id int references polls(id) deferrable initially deferred, '
+            'poll_id int references polls(id) on delete cascade, '
             'index int not null, '
             'txt text not null'
             ')'
@@ -335,8 +335,8 @@ class Poll(BaseCog):
         await sql.execute(
             'create table if not exists poll_votes ('
             'id serial unique not null primary key, '
-            'poll_id int references polls(id) deferrable initially deferred, '
-            'option_id int references poll_options(id) deferrable initially deferred, '
+            'poll_id int references polls(id) on delete cascade, '
+            'option_id int references poll_options(id) on delete cascade, '
             'voter bigint not null'
             ')'
         )
