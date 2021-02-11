@@ -17,10 +17,56 @@
 from discord.ext import commands
 from . import *
 from .utils.game import find_emoji
-import asyncpg
 import typing
 from ..types import *
 import random
+
+from sqlalchemy import Column, TEXT, bindparam, func, select, delete
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import StatementError
+
+
+class Meme(BaseTable):
+    __default_bag = (
+        'happily jumped into the bag!',
+        'reluctantly clambored into the bag.',
+        'turned away!',
+        'let out a cry in protest!'
+    )
+
+    bag = Column(TEXT, unique=True)
+
+    @classmethod
+    async def init(cls, conn: AsyncConnection):
+        statement = insert(cls).values(bag=bindparam('bag'))
+        upsert = statement.on_conflict_do_nothing(index_elements=['bag'])
+        await conn.execute(upsert, [{'bag': msg} for msg in cls.__default_bag])
+
+    @classmethod
+    async def create(cls, connection: AsyncConnection):
+        await super().create(connection)
+        await cls.init(connection)
+
+    @classmethod
+    async def get(cls, conn: AsyncConnection) -> str:
+        statement = select(cls.bag).order_by(func.random())
+        return await conn.scalar(statement)
+
+    @classmethod
+    async def put(cls, conn: AsyncConnection, msg: str):
+        statement = insert(cls).values(bag=msg)
+        await conn.execute(statement)
+
+    @classmethod
+    async def drop(cls, conn: AsyncConnection, msg: str):
+        statement = delete(cls).where(cls.bag == msg)
+        await conn.execute(statement)
+
+    @classmethod
+    async def reset(cls, conn: AsyncConnection):
+        await conn.execute(delete(cls).where(True))
+        await cls.init(conn)
 
 
 class HMM(typing.Generic[T]):
@@ -70,14 +116,13 @@ class Nebby(BaseCog):
     )
 
     async def init_db(self, sql):
-        await sql.execute("create table if not exists meme (bag text unique)")
-        await sql.executemany("insert into meme values ($1) on conflict (bag) do nothing", self.default_bag)
+        await Meme.create(sql)
 
     @commands.group(invoke_without_command=True)
     async def bag(self, ctx: MyContext):
         """Get in the bag, Nebby."""
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            if message := await sql.fetchval('select bag from meme order by random() limit 1'):  # type: str
+        async with self.bot.sql as sql:
+            if message := await Meme.get(sql):
                 await ctx.send(f'*{message}*')
             else:
                 emoji = find_emoji(ctx.bot, 'BibleThump', case_sensitive=False)
@@ -87,9 +132,9 @@ class Nebby(BaseCog):
     async def add(self, ctx: MyContext, *, fmtstr: str):
         """Add a message to the bag."""
         try:
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                await sql.execute('insert into meme values ($1)', fmtstr)
-        except asyncpg.PostgresError:
+            async with self.bot.sql as sql:
+                await Meme.put(sql, fmtstr)
+        except StatementError:
             await ctx.send('That message is already in the bag')
         else:
             await ctx.send('Message was successfully placed in the bag')
@@ -101,9 +146,9 @@ class Nebby(BaseCog):
         if msg in self.default_bag:
             return await ctx.send('Cannot remove default message from bag')
         try:
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                await sql.execute('delete from meme where bag = $1', msg)
-        except asyncpg.PostgresError:
+            async with self.bot.sql as sql:
+                await Meme.drop(sql, msg)
+        except StatementError:
             await ctx.send('Cannot remove message from the bag')
         else:
             await ctx.send('Removed message from bag')
@@ -112,9 +157,8 @@ class Nebby(BaseCog):
     @commands.is_owner()
     async def reset_bag(self, ctx: MyContext):
         """Reset the bag"""
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute('drop table meme')
-            await self.init_db(sql)
+        async with self.bot.sql as sql:
+            await Meme.reset(sql)
         await ctx.send('Reset the bag')
 
     @commands.command()

@@ -18,7 +18,6 @@ import discord
 from discord.ext import commands, tasks
 from . import *
 import io
-import asyncpg
 import time
 import datetime
 import matplotlib.pyplot as plt
@@ -28,6 +27,26 @@ from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 from jishaku.functools import executor_function
 
+from sqlalchemy import Column, TIMESTAMP, REAL, select
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncConnection
+
+
+class PingHistory(BaseTable):
+    timestamp = Column(TIMESTAMP)
+    latency = Column(REAL)
+
+    @classmethod
+    async def insert(cls, conn: AsyncConnection, now: datetime.datetime, latency: float):
+        statement = insert(cls).values(timestamp=now, latency=latency)
+        await conn.execute(statement)
+
+    @classmethod
+    async def fetch(cls, conn: AsyncConnection, start: datetime.datetime, end: datetime.datetime):
+        statement = select(cls).where(cls.timestamp.between(start, end)).order_by(cls.timestamp)
+        result = await conn.execute(statement)
+        return result.all()
+
 
 class Ping(BaseCog):
     """Commands for testing the bot's ping, and for reporting history."""
@@ -36,15 +55,15 @@ class Ping(BaseCog):
         self.build_ping_history.cancel()
 
     async def init_db(self, sql):
-        await sql.execute('create table if not exists ping_history (timestamp timestamp unique, latency real)')
+        await PingHistory.create(sql)
         self.build_ping_history.start()
 
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
         now = self.build_ping_history._last_iteration.replace(tzinfo=None)
         ping = self.bot.latency * 1000
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute('insert into ping_history values ($1, $2) on conflict (timestamp) do nothing', now, ping)
+        async with self.bot.sql as sql:
+            await PingHistory.insert(sql, now, ping)
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
@@ -106,14 +125,8 @@ class Ping(BaseCog):
         hend = hend.dt if hend else ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                ping_history: dict[datetime.datetime, float] = dict(await sql.fetch(
-                    'select * from ping_history '
-                    'where timestamp between $1 and $2 '
-                    'order by timestamp',
-                    hstart,
-                    hend
-                ))
+            async with self.bot.sql as sql:
+                ping_history: dict[datetime.datetime, float] = dict(await PingHistory.fetch(sql, hstart, hend))
             fetch_end = time.perf_counter()
             if len(ping_history) > 1:
                 buffer = io.BytesIO()

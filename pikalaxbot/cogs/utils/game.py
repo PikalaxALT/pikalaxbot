@@ -56,13 +56,13 @@ class Game(BaseTable):
     async def check_score(cls, connection: AsyncConnection, player: discord.Member):
         ranking = func.rank().over(order_by=desc(cls.score))
         table = select([cls.id, cls.score, ranking])
-        statement = select([table.columns[2]]).where(table.columns[0] == player.id)
-        return await connection.scalar(statement)
+        statement = select([table.columns[1], table.columns[2]]).where(table.columns[0] == player.id)
+        result = await connection.execute(statement)
+        return result.first()
 
     @classmethod
     async def check_all_scores(cls, connection: AsyncConnection):
-        ranking = func.rank().over(order_by=desc(cls.score))
-        statement = select([cls.id, cls.score, ranking])
+        statement = select([cls.id, cls.score]).order_by(cls.score).desc().limit(10)
         result = await connection.execute(statement)
         return result.all()
 

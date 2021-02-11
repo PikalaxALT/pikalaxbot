@@ -17,7 +17,6 @@
 import asyncio
 import discord
 import traceback
-import asyncpg
 import logging
 import typing
 import aioitertools
@@ -29,7 +28,10 @@ from . import *
 from .utils.converters import CommandConverter
 from .utils.errors import CogOperationError
 from .utils.menus import NavMenuPages
-from ..utils.prefix import set_guild_prefix
+from ..utils.prefix import set_guild_prefix, Prefixes
+
+from sqlalchemy import text
+from sqlalchemy.exc import StatementError
 
 
 class SqlResponseMenu(NavMenuPages):
@@ -89,12 +91,7 @@ class Modtools(BaseCog):
                 self.disabled_commands.discard(name)
 
     async def init_db(self, sql):
-        await sql.execute(
-            f"create table if not exists prefixes ("
-            f"guild bigint not null primary key, "
-            f"prefix text not null default '{self.prefix}'"
-            f")"
-        )
+        await Prefixes.create(sql)
 
     def cog_unload(self):
         for name in list(self.disabled_commands):
@@ -154,25 +151,24 @@ class Modtools(BaseCog):
         header: typing.Optional[str] = None
         counts = []
         async with ctx.typing():
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                async with sql.transaction():
-                    sql_start = time.perf_counter()
-                    async for i, row in aioitertools.enumerate(sql.cursor(script), 1):
-                        if header is None:
-                            header = '|'.join(row.keys())
-                            pag.add_line(header)
-                            pag.add_line('-' * len(header))
-                        to_add = '|'.join(map(str, row))
-                        if len(header) * 2 + len(to_add) > 2040:
-                            raise ValueError('At least one page of results is too long to fit. '
-                                             'Try returning fewer columns?')
-                        if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
-                            counts.append(i - 1)
-                            pag.close_page()
-                            pag.add_line(header)
-                            pag.add_line('-' * len(header))
-                        pag.add_line(to_add)
-                    sql_end = time.perf_counter()
+            async with self.bot.sql as sql:
+                sql_start = time.perf_counter()
+                async for i, row in aioitertools.enumerate(sql.stream(text(script)), 1):
+                    if header is None:
+                        header = '|'.join(row.keys())
+                        pag.add_line(header)
+                        pag.add_line('-' * len(header))
+                    to_add = '|'.join(map(str, row))
+                    if len(header) * 2 + len(to_add) > 2040:
+                        raise ValueError('At least one page of results is too long to fit. '
+                                         'Try returning fewer columns?')
+                    if pag._count + len(to_add) + 1 > 2045 or len(pag._current_page) >= 21:
+                        counts.append(i - 1)
+                        pag.close_page()
+                        pag.add_line(header)
+                        pag.add_line('-' * len(header))
+                    pag.add_line(to_add)
+                sql_end = time.perf_counter()
 
         if pag and pag.pages:
             counts.append(i)
@@ -203,7 +199,7 @@ class Modtools(BaseCog):
         tb = ''.join(traceback.format_exception(exc.__class__, exc, exc.__traceback__, limit=3))
         embed = discord.Embed(color=discord.Color.red())
         embed.add_field(name='Traceback', value=f'```{tb}```')
-        if isinstance(exc, asyncpg.PostgresError):
+        if isinstance(exc, StatementError):
             msg = 'The script failed with an error (check your syntax?)'
         else:
             msg = 'An unexpected error has occurred, my husbando is on the case'

@@ -16,10 +16,9 @@
 
 import discord
 from discord.ext import commands
-import asyncpg
 
 from . import *
-from .utils.game import increment_score
+from .utils.game import Game
 
 
 class Leaderboard(BaseCog):
@@ -32,17 +31,13 @@ class Leaderboard(BaseCog):
             await self.check(ctx)
 
     @leaderboard.command()
-    async def check(self, ctx: MyContext, person: discord.Member = None):
+    async def check(self, ctx: MyContext, *, person: discord.Member = None):
         """Check your leaderboard score, or the leaderboard score of another user"""
         person = person or ctx.author
 
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
+        async with self.bot.sql as sql:
             try:
-                score, rank = await sql.fetchrow(
-                    'select score, ranking from ('
-                    'select id, score, rank () over (order by score desc) ranking from game) foo '
-                    'where id = $1',
-                    person.id)
+                score, rank = await Game.check_score(sql, person)
             except TypeError:
                 msg = f'{person.name} is not yet on the leaderboard.'
             else:
@@ -53,13 +48,9 @@ class Leaderboard(BaseCog):
     @leaderboard.command()
     async def show(self, ctx: MyContext):
         """Check the top 10 players on the leaderboard"""
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
+        async with self.bot.sql as sql:
             msg = '\n'.join(
-                '{0}: {1:d}'.format(self.bot.get_user(id_), score) for id_, score in await sql.fetch(
-                    'select id, score from game '
-                    'order by score desc '
-                    'limit 10'
-                )
+                '{0}: {1:d}'.format(self.bot.get_user(id_), score) for id_, score in await Game.check_all_scores(sql)
             ) or 'Wumpus: 0'
         await ctx.send(f'Leaderboard:\n'
                        f'```\n'
@@ -70,17 +61,16 @@ class Leaderboard(BaseCog):
     @commands.is_owner()
     async def clear_leaderboard(self, ctx: MyContext):
         """Reset the leaderboard"""
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute('delete from game where 1')
-            await sql.execute('vacuum')
+        async with self.bot.sql as sql:
+            await Game.clear(sql)
         await ctx.send('Leaderboard reset')
 
     @leaderboard.command(name='give')
     @commands.is_owner()
     async def give_points(self, ctx: MyContext, person: discord.Member, score: int):
         """Give points to a player"""
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await increment_score(sql, person, by=score)
+        async with self.bot.sql as sql:
+            await Game.increment_score(sql, person, by=score)
         await ctx.send(f'Gave {score:d} points to {person.name}')
 
 

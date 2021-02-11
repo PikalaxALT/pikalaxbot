@@ -27,7 +27,46 @@ from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 import numpy as np
 from jishaku.functools import executor_function
-import asyncpg
+
+from sqlalchemy import Column, BIGINT, INTEGER, TIMESTAMP, select, bindparam
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
+
+
+class Memberstatus(BaseTable):
+    guild_id = Column(BIGINT)
+    timestamp = Column(TIMESTAMP)
+    online = Column(INTEGER)
+    offline = Column(INTEGER)
+    dnd = Column(INTEGER)
+    idle = Column(INTEGER)
+
+    @classmethod
+    async def update_counters(cls, sql: AsyncConnection, bot: PikalaxBOT, now: datetime.datetime):
+        to_insert = [
+            {'guild_id': guild.id, 'timestamp': now} | Counter(m.status for m in guild.members)
+            for guild in bot.guilds
+        ]
+        statement = insert(cls).values(
+            guild_id=bindparam('guild_id'),
+            timestamp=bindparam('timestamp'),
+            online=bindparam('online'),
+            offline=bindparam('offline'),
+            dnd=bindparam('dnd'),
+            idle=bindparam('idle')
+        )
+        await sql.execute(statement, to_insert)
+
+    @classmethod
+    async def retrieve_counters(cls, sql: AsyncConnection, guild: discord.Guild, start: datetime.datetime, end: datetime.datetime):
+        statement = select(
+            [cls.timestamp, cls.online, cls.offline, cls.dnd, cls.idle]
+        ).where(
+            cls.guild_id == guild.id,
+            cls.timestamp.between(start, end)
+        ).order_by(cls.timestamp)
+        result = await sql.execute(statement)
+        return result.all()
 
 
 class MemberStatus(BaseCog):
@@ -45,40 +84,14 @@ class MemberStatus(BaseCog):
         self.update_counters.cancel()
 
     async def init_db(self, sql):
-        await sql.execute(
-            'create table if not exists memberstatus ('
-            'guild_id bigint, '
-            'timestamp timestamp, '
-            'online integer, '
-            'offline integer, '
-            'dnd integer, '
-            'idle integer, '
-            'unique (guild_id, timestamp)'
-            ')'
-        )
+        await Memberstatus.create(sql)
         self.update_counters.start()
 
     @tasks.loop(seconds=30)
     async def update_counters(self):
         now = self.update_counters._last_iteration.replace(tzinfo=None)
-        to_insert = []
-        for guild in self.bot.guilds:
-            counts = Counter(m.status for m in guild.members)
-            to_insert.append([
-                guild.id,
-                now,
-                counts[discord.Status.online],
-                counts[discord.Status.offline],
-                counts[discord.Status.dnd],
-                counts[discord.Status.idle]
-            ])
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.executemany(
-                'insert into memberstatus '
-                'values ($1, $2, $3, $4, $5, $6) '
-                'on conflict (guild_id, timestamp) do nothing',
-                to_insert
-            )
+        async with self.bot.sql as sql:
+            await Memberstatus.update_counters(sql, self.bot, now)
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
@@ -121,21 +134,12 @@ class MemberStatus(BaseCog):
         hend = hend.dt if hend else ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
+            async with self.bot.sql as sql:
                 counts: dict[datetime.datetime, Counter[discord.Status]] = {
                     row[0]: {
                         name: count
                         for name, count in zip(discord.Status, row[1:])
-                    } for row in await sql.fetch(
-                        'select timestamp, online, offline, dnd, idle '
-                        'from memberstatus '
-                        'where guild_id = $1 '
-                        'and timestamp between $2 and $3 '
-                        'order by timestamp',
-                        ctx.guild.id,
-                        hstart,
-                        hend
-                    )
+                    } for row in await Memberstatus.retrieve_counters(sql, ctx.guild, hstart, hend)
                 }
             fetch_end = time.perf_counter()
             if len(counts) > 1:
