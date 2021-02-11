@@ -23,7 +23,6 @@ import typing
 import base64
 import math
 import aioitertools
-import asyncpg
 import operator
 import textwrap
 import random
@@ -31,6 +30,134 @@ from collections import Counter
 
 from .utils.errors import *
 from .utils.converters import FutureTime
+
+from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bindparam, select, delete
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import StatementError
+
+
+class Polls(BaseTable):
+    id = Column(INTEGER, primary_key=True)
+    channel = Column(BIGINT, nullable=False)
+    owner = Column(BIGINT, nullable=False)
+    context = Column(BIGINT, nullable=False)
+    message = Column(BIGINT, nullable=False)
+    started = Column(TIMESTAMP, nullable=False)
+    closes = Column(TIMESTAMP, nullable=False)
+    prompt = Column(TEXT, nullable=False)
+
+    @classmethod
+    async def new_poll(
+            cls,
+            conn: AsyncConnection,
+            context: MyContext,
+            message: discord.Message,
+            started: datetime.datetime,
+            closes: datetime.datetime,
+            prompt: str,
+            *options: str
+    ):
+        statement = insert(cls).values(
+            channel=context.channel.id,
+            owner=context.author.id,
+            context=context.message.id,
+            message=message.id,
+            started=started,
+            closes=closes,
+            prompt=prompt
+        ).returning(cls.id)
+        poll_id = await conn.scalar(statement)
+        option_ids = await PollOptions.add_options(conn, poll_id, *options)
+        return poll_id, option_ids
+
+    @classmethod
+    async def fetchall(cls, conn: AsyncConnection, bot: PikalaxBOT):
+        statement = select(cls)
+        result = await conn.execute(statement)
+        for row in result.all():
+            try:
+                option_ids, options = zip(*(await PollOptions.get_options(conn, row.id)))
+                votes = {vote.voter: options[option_ids.index(vote.option_id)] for vote in await PollVotes.get_votes(conn, row.id)}
+                message = bot.get_channel(row.channel).get_partial_message(row.message)
+                mgr = PollManager(
+                    bot=bot,
+                    channel_id=row.channel,
+                    context_id=row.context,
+                    owner_id=row.owner,
+                    start_time=row.started,
+                    stop_time=row.closes,
+                    id_=row.id,
+                    prompt=row.prompt,
+                    options=options,
+                    option_ids=option_ids,
+                    votes=votes
+                )
+                mgr.message = message
+                mgr.start()
+                yield mgr
+            except StatementError:
+                pass
+
+    @classmethod
+    async def delete(cls, conn: AsyncConnection, poll_id: int):
+        statement = delete(cls).where(cls.id == poll_id)
+        await conn.execute(statement)
+
+
+class PollOptions(BaseTable):
+    id = Column(INTEGER, primary_key=True)
+    poll_id = Column(INTEGER, ForeignKey(Polls.id, ondelete='CASCADE'))
+    index = Column(INTEGER, nullable=False)
+    txt = Column(TEXT, nullable=False)
+
+    @classmethod
+    async def add_options(cls, conn: AsyncConnection, poll_id: int, *options: str):
+        params = [{'poll_id': poll_id, 'index': i, 'txt': opt} for i, opt in enumerate(options, 1)]
+        statement = insert(cls).values(
+            poll_id=bindparam('poll_id'),
+            index=bindparam('index'),
+            txt=bindparam('txt')
+        )
+        result = await conn.execute(statement, params)
+        return result.scalars().all()
+
+    @classmethod
+    async def get_options(cls, conn: AsyncConnection, poll_id: int):
+        statement = select([cls.index, cls.txt]).where(cls.poll_id == poll_id).order_by(cls.index)
+        result = await conn.execute(statement)
+        return zip(*result.all())
+
+
+class PollVotes(BaseTable):
+    id = Column(INTEGER, primary_key=True)
+    poll_id = Column(INTEGER, ForeignKey(Polls, ondelete='CASCADE'))
+    option_id = Column(INTEGER, ForeignKey(PollOptions, ondelete='CASCADE'))
+    voter = Column(BIGINT, nullable=False)
+
+    @classmethod
+    async def add_vote(cls, conn: AsyncConnection, poll_id: int, option_id: int, voter: int):
+        statement = insert(cls).values(
+            poll_id=poll_id,
+            option_id=option_id,
+            voter=voter
+        ).on_conflict_do_nothing()
+        await conn.execute(statement)
+
+    @classmethod
+    async def remove_vote(cls, conn: AsyncConnection, poll_id: int, option_id: int, voter: int):
+        statement = delete(cls).where(
+            cls.poll_id == poll_id,
+            cls.option_id == option_id,
+            cls.voter == voter
+        )
+        await conn.execute(statement)
+
+    @classmethod
+    async def get_votes(cls, conn: AsyncConnection, poll_id: int):
+        statement = select(cls).where(cls.poll_id == poll_id)
+        result = await conn.execute(statement)
+        return result.all()
 
 
 class BadPollTimeArgument(commands.BadArgument):
@@ -144,66 +271,19 @@ class PollManager:
         for emoji in this.emojis:
             await this.message.add_reaction(emoji)
         try:
-            async with context.bot.sql as sql:  # type: asyncpg.Connection
-                async with sql.transaction():
-                    this.id = await sql.fetchval(
-                        'insert into polls (channel, owner, context, message, started, closes, prompt) '
-                        'values ($1, $2, $3, $4, $5, $6, $7) '
-                        'returning id',
-                        *this
-                    )
-                    this.option_ids = [await sql.fetchval(
-                        'insert into poll_options (poll_id, index, txt) '
-                        'values ($1, $2, $3) '
-                        'returning id',
-                        this.id, i, option
-                    ) for i, option in enumerate(options, 1)]
-        except asyncpg.PostgresError:
+            async with context.bot.sql as sql:
+                this.id, this.option_ids = await Polls.new_poll(
+                    sql,
+                    context,
+                    this.message,
+                    this.start_time,
+                    this.stop_time,
+                    prompt,
+                    *options
+                )
+        except StatementError:
             await this.message.edit(content='An error occurred, the poll was cancelled.', embed=None)
             raise
-        return this
-
-    @classmethod
-    async def from_sql(
-            cls,
-            bot: PikalaxBOT,
-            sql: asyncpg.Connection,
-            id_: int,
-            channel_id: int,
-            owner_id: int,
-            context_id: int,
-            message_id: int,
-            start_time: datetime.datetime,
-            stop_time: datetime.datetime,
-            prompt: str
-    ):
-        message: discord.PartialMessage = bot.get_channel(channel_id).get_partial_message(message_id)
-        option_ids, options = zip(*(await sql.fetch(
-            'select id, txt '
-            'from poll_options '
-            'where poll_id = $1 '
-            'order by index',
-            id_
-        )))
-        this = cls(
-            bot=bot,
-            channel_id=channel_id,
-            context_id=context_id,
-            owner_id=owner_id,
-            start_time=start_time,
-            stop_time=stop_time,
-            id_=id_,
-            votes=dict(await sql.fetch(
-                'select pv.voter, po.index '
-                'from poll_votes pv inner join poll_options po on pv.option_id = po.id '
-                'where pv.poll_id = $1',
-                id_
-            )),
-            prompt=prompt,
-            options=options,
-            option_ids=option_ids
-        )
-        this.message = message
         return this
 
     @discord.utils.cached_slot_property('_message_id')
@@ -236,12 +316,8 @@ class PollManager:
         if payload.user_id in self.votes:
             return
         selection = self.emojis.index(payload.emoji.name)
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute(
-                'insert into poll_votes (poll_id, voter, option_id) '
-                'values ($1, $2, $3)',
-                self.id, payload.user_id, self.option_ids[selection]
-            )
+        async with self.bot.sql as sql:
+            await PollVotes.add_vote(sql, self.id, self.option_ids[selection], payload.user_id)
         self.votes[payload.user_id] = selection
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -254,8 +330,8 @@ class PollManager:
         selection = self.emojis.index(payload.emoji.name)
         if self.votes.get(payload.user_id) != selection:
             return
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute('delete from poll_votes where poll_id = $1 and voter = $2', self.id, payload.user_id)
+        async with self.bot.sql as sql:
+            await PollVotes.remove_vote(sql, self.id, self.option_ids[selection], payload.user_id)
         self.votes.pop(payload.user_id)
 
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
@@ -312,34 +388,9 @@ class Poll(BaseCog):
             mgr.cancel(True)
 
     async def init_db(self, sql):
-        await sql.execute(
-            'create table if not exists polls ('
-            'id serial unique not null primary key, '
-            'channel bigint not null, '
-            'owner bigint not null, '
-            'context bigint not null, '
-            'message bigint not null, '
-            'started timestamp not null, '
-            'closes timestamp not null, '
-            'prompt text not null'
-            ')'
-        )
-        await sql.execute(
-            'create table if not exists poll_options ('
-            'id serial unique not null primary key,'
-            'poll_id int references polls(id) deferrable initially deferred, '
-            'index int not null, '
-            'txt text not null'
-            ')'
-        )
-        await sql.execute(
-            'create table if not exists poll_votes ('
-            'id serial unique not null primary key, '
-            'poll_id int references polls(id) deferrable initially deferred, '
-            'option_id int references poll_options(id) deferrable initially deferred, '
-            'voter bigint not null'
-            ')'
-        )
+        await Polls.create(sql)
+        await PollOptions.create(sql)
+        await PollVotes.create(sql)
         self.cleanup_polls.start()
 
     @tasks.loop(seconds=60)
@@ -354,14 +405,8 @@ class Poll(BaseCog):
     async def cache_polls(self):
         await self.bot.wait_until_ready()
         try:
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                for row in await sql.fetch('select * from polls'):
-                    try:
-                        mgr = await PollManager.from_sql(self.bot, sql, *row)
-                        self.polls.append(mgr)
-                        mgr.start()
-                    except discord.HTTPException:
-                        pass
+            async with self.bot.sql as sql:
+                self.polls = [mgr async for mgr in Polls.fetchall(sql, self.bot)]
         except Exception as e:
             await self.bot.send_tb(None, e, origin='Poll.cache_polls')
 
@@ -536,11 +581,8 @@ duration, prompt, and options."""
             return
         except discord.HTTPException:
             pass
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            async with sql.transaction():
-                await sql.execute('delete from poll_votes where poll_id = $1', mgr.id)
-                await sql.execute('delete from poll_options where poll_id = $1', mgr.id)
-                await sql.execute('delete from polls where id = $1', mgr.id)
+        async with self.bot.sql as sql:
+            await Polls.delete(sql, mgr.id)
 
     @commands.is_owner()
     @poll_cmd.command('debug')
