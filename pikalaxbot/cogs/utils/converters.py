@@ -20,7 +20,6 @@ import re
 from .errors import BadGameArgument
 from dateutil.relativedelta import relativedelta
 import datetime
-import asyncpg
 import parsedatetime as pdt
 import typing
 import operator
@@ -30,7 +29,6 @@ from .. import *
 __all__ = (
     'CommandConverter',
     'dice_roll',
-    'AliasedRoleConverter',
     'board_coords',
     'espeak_params',
     'ShortTime',
@@ -59,26 +57,6 @@ def dice_roll(argument: str):
     sides = int(match['sides'] or 6)
     assert 1 <= count <= 200 and 2 <= sides <= 100
     return count, sides
-
-
-class AliasedRoleConverter(discord.Role):
-    @classmethod
-    async def convert(cls, ctx: MyContext, argument: str):
-        async with ctx.bot.sql as sql:  # type: asyncpg.Connection
-            role_id = await sql.fetchval(
-                'select role_id '
-                'from self_role '
-                'where guild_id = $1 '
-                'and alias = $2',
-                ctx.guild.id,
-                argument
-            )
-        if role_id is None:
-            raise commands.RoleNotFound(f'No alias "{argument}" has been registered to a role')
-        role = ctx.guild.get_role(role_id)
-        if role is None:
-            raise commands.RoleNotFound('Role aliased to "{argument}" does not exist')
-        return role
 
 
 def board_coords(minx=1, maxx=5, miny=1, maxy=5):

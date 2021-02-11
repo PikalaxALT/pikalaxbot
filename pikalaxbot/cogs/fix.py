@@ -20,9 +20,71 @@ import discord
 from discord.ext import commands
 from . import *
 import typing
+from sqlalchemy import Column, TEXT, select, delete, bindparam
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
 
 
-class Fix(BaseCog):
+class Fix(BaseTable):
+    _initial_bot_owners = {
+        'pika': 'PikalaxALT',
+        'groudon': 'chfoo',
+        'yay': 'azum and tustin',
+        'updater': 'tustin',
+        'starmie': 'Danny',
+        'danny': 'Danny',
+        'meme': 'Jet'
+    }
+    _initial_bot_names = {
+        'yay': 'xfix\'s bot'
+    }
+
+    name = Column(TEXT, primary_key=True)
+    owner = Column(TEXT, nullable=False)
+    altname = Column(TEXT)
+
+    @classmethod
+    async def init(cls, conn: AsyncConnection):
+        statement = insert(cls).values(
+            name=bindparam('name'),
+            owner=bindparam('owner'),
+            altname=bindparam('altname')
+        ).on_conflict_do_nothing(index_elements=['name'])
+        await conn.execute(statement, [{
+            'name': key,
+            'owner': value,
+            'altname': cls._initial_bot_names.get(key)
+        } for key, value in cls._initial_bot_owners.items()])
+
+    @classmethod
+    async def fetchall(cls, conn: AsyncConnection):
+        statement = select(cls)
+        result = await conn.execute(statement)
+        return result.all()
+
+    @classmethod
+    async def set_alias(cls, conn: AsyncConnection, name: str, owner: str, altname: str = None):
+        statement = insert(cls).values(
+            name=name,
+            owner=owner,
+            altname=altname
+        )
+        upsert = statement.on_conflict_do_update(
+            index_elements=['name'],
+            set_={
+                'owner': statement.excluded.owner,
+                'altname': statement.excluded.altname
+            }
+        )
+        await conn.execute(statement)
+
+    @classmethod
+    async def remove_alias(cls, conn: AsyncConnection, name: str):
+        statement = delete(cls).where(cls.name == name)
+        await conn.execute(statement)
+
+
+class FixCog(BaseCog, name='Fix'):
     """Use these commands to yell at bot developers."""
 
     initial_bot_owners = {
@@ -44,10 +106,9 @@ class Fix(BaseCog):
         self.bot_names: dict[str, str] = {}
 
     async def init_db(self, sql):
-        await sql.execute('CREATE TABLE IF NOT EXISTS fix (name TEXT PRIMARY KEY, owner TEXT NOT NULL, altname TEXT)')
-        values = [(key, value, self.initial_bot_names.get(key)) for key, value in self.initial_bot_owners.items()]
-        await sql.executemany('INSERT INTO fix VALUES ($1, $2, $3) ON CONFLICT (name) DO NOTHING', values)
-        for name, owner, altname in await sql.fetch('SELECT * FROM fix'):
+        await Fix.create(sql)
+        await Fix.init(sql)
+        for name, owner, altname in await Fix.fetchall(sql):
             self.bot_owners[name] = owner
             if altname:
                 self.bot_names[name] = altname
@@ -71,7 +132,7 @@ class Fix(BaseCog):
         ctx: MyContext = await self.bot.get_context(message)
         if ctx.prefix is not None \
                 and not ctx.valid \
-                and Fix.get_fix_alias(ctx) \
+                and FixCog.get_fix_alias(ctx) \
                 and await self.fix.can_run(ctx):
             await self.fix(ctx)
 
@@ -85,13 +146,7 @@ class Fix(BaseCog):
             elif key in self.bot_names:
                 del self.bot_names[key]
             async with self.bot.sql as sql:
-                await sql.execute(
-                    'INSERT INTO fix '
-                    'VALUES ($1, $2, $3) '
-                    'ON CONFLICT (name) '
-                    'DO UPDATE '
-                    'SET owner = $2, altname = $3',
-                    key, owner, altname)
+                await Fix.set_alias(sql, key, owner, altname)
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
@@ -104,11 +159,11 @@ class Fix(BaseCog):
             if key in self.bot_names:
                 del self.bot_names[key]
             async with self.bot.sql as sql:
-                await sql.execute('DELETE FROM fix WHERE name = $1', key)
+                await Fix.remove_alias(sql, key)
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
 
 
 def setup(bot: PikalaxBOT):
-    bot.add_cog(Fix(bot))
+    bot.add_cog(FixCog(bot))

@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import typing
-import asyncpg
 
 import discord
 from discord.ext import commands
@@ -29,9 +28,34 @@ from .utils.converters import board_coords
 from ..types import T
 from jishaku.functools import executor_function
 
+from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select
+from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import insert
+
 
 def prod(it: typing.Iterable[T]) -> T:
     return functools.reduce(operator.mul, it, 1)
+
+
+class Voltorb(BaseTable):
+    id = Column(BIGINT, primary_key=True)
+    level = Column(INTEGER, nullable=False, default=1)
+
+    __table_args__ = (CheckConstraint(level.between(1, 10)),)
+
+    @classmethod
+    async def getlevel(cls, conn: AsyncConnection, channel: discord.TextChannel):
+        statement = select(cls.level).where(cls.id == channel.id)
+        return (await conn.scalar(statement)) or 1
+
+    @classmethod
+    async def updatelevel(cls, conn: AsyncConnection, channel: discord.TextChannel, new_level: int):
+        statement = insert(cls).values(id=channel.id, level=new_level)
+        upsert = statement.on_conflict_do_update(
+            index_elements=['id'],
+            set_={'level': statement.excluded.level}
+        )
+        await conn.execute(upsert)
 
 
 class VoltorbFlipGame(GameBase):
@@ -59,28 +83,21 @@ class VoltorbFlipGame(GameBase):
         self._ended = False
         self._coin_total = 1
         self._revealed_total = 1
-    
+
     @property
     def level(self):
         return self._level
-    
+
     async def get_level(self, channel: discord.TextChannel):
         if self._level is None:
-            async with self.bot.sql as sql:  # type: asyncpg.Connection
-                self._level = (await sql.fetchval('select level from voltorb where id = $1', channel.id)) or 1
+            async with self.bot.sql as sql:
+                self._level = await Voltorb.getlevel(sql, channel)
         return self._level
 
     async def update_level(self, channel: discord.TextChannel, new_level: int):
         self._level = new_level
-        async with self.bot.sql as sql:  # type: asyncpg.Connection
-            await sql.execute(
-                "insert into voltorb "
-                "values ($1, $2) "
-                "on conflict (id) "
-                "do update "
-                "set level = $2",
-                channel.id, new_level
-            )
+        async with self.bot.sql as sql:
+            await Voltorb.updatelevel(sql, channel, new_level)
 
     @executor_function
     def build_board(self):
@@ -244,10 +261,7 @@ class VoltorbFlip(GameCogBase[VoltorbFlipGame]):
 
     async def init_db(self, sql):
         await super().init_db(sql)
-        await sql.execute("create table if not exists voltorb ("
-                          "id bigint unique not null primary key, "
-                          "level integer not null default 1 check (level between 1 and 10)"
-                          ")")
+        await Voltorb.create(sql)
 
     def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)

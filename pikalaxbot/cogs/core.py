@@ -29,7 +29,6 @@ import time
 import glob
 import collections
 import asyncio
-import asyncpg
 from jishaku.meta import __version__ as jsk_ver
 
 from . import *
@@ -39,7 +38,7 @@ from .utils.converters import CommandConverter
 from .utils.game import GameCogBase
 from ..types import *
 
-from sqlalchemy import Column, TEXT, BIGINT, INTEGER, UniqueConstraint, select
+from sqlalchemy import Column, TEXT, BIGINT, INTEGER, UniqueConstraint, select, delete, bindparam
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
 
@@ -62,6 +61,11 @@ class Commandstats(BaseTable):
         statement = select([cls.command, cls.uses]).where(cls.guild == ctx.guild.id).order_by(cls.uses).desc()
         result = await conn.execute(statement)
         return result.all()
+
+    @classmethod
+    async def delete_lost(cls, conn: AsyncConnection, lost_cmds: list[str]):
+        statement = delete(cls).where(cls.command == bindparam('cmd'))
+        await conn.execute(statement, [{'cmd': cmd} for cmd in lost_cmds])
 
 
 class ConfirmationMenu(menus.Menu):
@@ -106,14 +110,7 @@ class Core(BaseCog):
     LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
 
     async def init_db(self, sql):
-        await sql.execute(
-            'create table if not exists '
-            'commandstats ('
-            'command text not null, '
-            'guild bigint not null, '
-            'uses integer default 0, '
-            'unique (command, guild)'
-            ')')
+        await Commandstats.create(sql)
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
@@ -122,12 +119,12 @@ class Core(BaseCog):
 
     async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
-        lost_cmds: list[tuple[str]] = []
+        lost_cmds: list[str] = []
         async with self.bot.sql as sql:
             for name, uses in await Commandstats.get_guild_uses(sql, ctx):
                 cmd: commands.Command = self.bot.get_command(name)
                 if cmd is None:
-                    lost_cmds.append((name,))
+                    lost_cmds.append(name)
                     continue
                 try:
                     valid = await cmd.can_run(ctx)
@@ -136,7 +133,7 @@ class Core(BaseCog):
                 except commands.CommandError:
                     continue
             if lost_cmds:
-                await sql.executemany('delete from commandstats where command = $1', lost_cmds)
+                await Commandstats.delete_lost(sql, lost_cmds)
         return cmds
 
     @commands.command()

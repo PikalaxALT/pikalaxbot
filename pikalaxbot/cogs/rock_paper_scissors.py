@@ -22,8 +22,7 @@ import asyncio
 import re
 import traceback
 import typing
-import asyncpg
-from .utils.game import increment_score
+from .utils.game import Game
 
 
 _emojis = '\u270a', '\u270b', '\u270c', '\u274c'
@@ -160,8 +159,8 @@ class RockPaperScissors(BaseCog):
                       f'{opponent.mention}\'s move: {opponent_emoji}\n\n'
             content += '**' + ('It\'s a draw!', f'{opponent.mention} wins!', f'{ctx.author.mention} wins!')[diff] + '**'
             if winner := [None, opponent, ctx.author][diff]:
-                async with self.bot.sql as sql:  # type: asyncpg.Connection
-                    await increment_score(sql, winner, by=69)
+                async with self.bot.sql as sql:
+                    await Game.increment_score(sql, winner, by=69)
                 content += f'\n\n{winner.mention} earns 69 points for winning!'
             await ctx.send(content)
 

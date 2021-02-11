@@ -32,10 +32,6 @@ class BaseTable(object):
     async def create(cls, connection: AsyncConnection):
         return await connection.run_sync(cls.__table__.create, checkfirst=True)
 
-    @classmethod
-    def remove(cls):
-        cls.metadata.remove(cls.__table__)
-
 
 def get_database_url(*, username: str, password: str, host: str, port=5432, dbname: str):
     return f'postgresql+asyncpg://{username}:{password}@{host}:{port}/{dbname}'
