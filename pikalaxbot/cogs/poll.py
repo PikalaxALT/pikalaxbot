@@ -32,7 +32,7 @@ from .utils.errors import *
 from .utils.converters import FutureTime
 
 from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bindparam, select, delete
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import relationship
@@ -48,8 +48,8 @@ class Polls(BaseTable):
     closes = Column(TIMESTAMP, nullable=False)
     prompt = Column(TEXT, nullable=False)
 
-    options = relationship('PollOptions', order_by='PollOptions.index', cascade='all, delete-orphan', backref='poll')
-    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='poll')
+    options = relationship('PollOptions', order_by='PollOptions.index', cascade='all, delete-orphan', backref='poll', lazy='immediate')
+    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='poll', lazy='immediate')
 
     @classmethod
     async def new_poll(
@@ -72,7 +72,7 @@ class Polls(BaseTable):
             prompt=prompt
         ).returning(cls.id)
         poll_id = await conn.scalar(statement)
-        option_ids = await PollOptions.add_options(conn, poll_id, *options)
+        option_ids = [x async for x in PollOptions.add_options(conn, poll_id, *options)]
         return poll_id, option_ids
 
     @classmethod
@@ -115,7 +115,7 @@ class PollOptions(BaseTable):
     index = Column(INTEGER, nullable=False)
     txt = Column(TEXT, nullable=False)
 
-    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='option')
+    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='option', lazy='immediate')
 
     @classmethod
     async def add_options(cls, conn: AsyncConnection, poll_id: int, *options: str):
@@ -124,9 +124,9 @@ class PollOptions(BaseTable):
             poll_id=bindparam('poll_id'),
             index=bindparam('index'),
             txt=bindparam('txt')
-        )
-        result = await conn.execute(statement, params)
-        return result.scalars().all()
+        ).returning(cls.id)
+        for param in params:
+            yield await conn.scalar(statement, param)
 
     @classmethod
     async def get_options(cls, conn: AsyncConnection, poll_id: int):
