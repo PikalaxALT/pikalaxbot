@@ -46,6 +46,7 @@ class ErrorHandling(BaseCog):
         elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
             msg = f'Got a bad argument for `{ctx.command}`: {exc}'
             await ctx.send_help(ctx.command)
+            await self.bot.send_tb(ctx, exc)
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
         elif isinstance(exc, commands.CommandNotFound):

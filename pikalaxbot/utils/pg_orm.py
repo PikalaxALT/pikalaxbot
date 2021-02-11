@@ -35,6 +35,7 @@ class BaseTable(object):
     @classmethod
     def unlink(cls):
         cls.metadata.remove(cls.__table__)
+        cls.registry._dispose_cls(cls)
 
 
 def get_database_url(*, username: str, password: str, host: str, port=5432, dbname: str):

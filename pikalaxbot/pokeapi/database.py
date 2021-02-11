@@ -166,11 +166,11 @@ class PokeApi(asqlite3.Connection, PokeapiModels):
                 FROM pragma_table_info('pokemon_v2_{0}')
                 WHERE name = 'name'
             ) THEN FUZZY_RATIO(pv2t.name, :name)
-            ELSE FUZZY_RATIO(pv2n.name, :name)
-        END ratio
+            ELSE 0
+        END ratio, FUZZY_RATIO(pv2n.name, :name) ratio2
         FROM pokemon_v2_{0} pv2t
         INNER JOIN pokemon_v2_{0}name pv2n ON pv2t.id = pv2n.{1}_id
-        WHERE ratio > :cutoff
+        WHERE (ratio > :cutoff OR ratio2 > :cutoff)
         AND pv2n.language_id = :language
         ORDER BY ratio DESC
         """.format(model.__name__.lower(), re.sub(r'([a-z])([A-Z])', r'\1_\2', model.__name__).lower())

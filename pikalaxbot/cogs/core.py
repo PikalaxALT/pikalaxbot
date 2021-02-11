@@ -55,13 +55,13 @@ class Commandstats(BaseTable):
         statement = insert(cls).values(command=ctx.command.qualified_name, guild=ctx.guild.id, uses=1)
         upsert = statement.on_conflict_do_update(
             index_elements=['command', 'guild'],
-            set_={'uses': statement.excluded.uses + 1}
+            set_={'uses': cls.uses + statement.excluded.uses}
         )
         await conn.execute(upsert)
 
     @classmethod
     async def get_guild_uses(cls, conn: AsyncConnection, ctx: MyContext):
-        statement = select([cls.command, cls.uses]).where(cls.guild == ctx.guild.id).order_by(cls.uses).desc()
+        statement = select([cls.command, cls.uses]).where(cls.guild == ctx.guild.id).order_by(cls.uses.desc())
         result = await conn.execute(statement)
         return result.all()
 

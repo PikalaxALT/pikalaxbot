@@ -26,7 +26,7 @@ from .. import *
 from ...types import T
 from ...pokeapi import PokeApi
 
-from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select, func, desc, delete
+from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select, func, delete, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
 
@@ -49,12 +49,20 @@ class Game(BaseTable):
     @classmethod
     async def increment_score(cls, connection: AsyncConnection, player: discord.Member, *, by=1):
         statement = insert(cls).values(id=player.id, score=by)
-        upsert = statement.on_conflict_do_update(index_elements=['id'], set_={'score': statement.excluded.score + by})
-        return await connection.execute(upsert)
+        upsert = statement.on_conflict_do_update(
+            index_elements=['id'],
+            set_={'score': cls.score + statement.excluded.score}
+        )
+        await connection.execute(upsert)
+
+    @classmethod
+    async def decrement_score(cls, connection: AsyncConnection, player: discord.Member, *, by=1):
+        statement = update(cls).values(score=cls.score - by).where(cls.id == player.id)
+        await connection.execute(statement)
 
     @classmethod
     async def check_score(cls, connection: AsyncConnection, player: discord.Member):
-        ranking = func.rank().over(order_by=desc(cls.score))
+        ranking = func.rank().over(order_by=cls.score.desc())
         table = select([cls.id, cls.score, ranking])
         statement = select([table.columns[1], table.columns[2]]).where(table.columns[0] == player.id)
         result = await connection.execute(statement)
@@ -62,7 +70,7 @@ class Game(BaseTable):
 
     @classmethod
     async def check_all_scores(cls, connection: AsyncConnection):
-        statement = select([cls.id, cls.score]).order_by(cls.score).desc().limit(10)
+        statement = select([cls.id, cls.score]).order_by(cls.score.desc()).limit(10)
         result = await connection.execute(statement)
         return result.all()
 

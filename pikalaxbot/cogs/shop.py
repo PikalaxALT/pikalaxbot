@@ -54,7 +54,7 @@ class PkmnInventory(BaseTable):
             index_elements=['member', 'item_id'],
             set_={'quantity': statement.excluded.quantity + quantity}
         )
-        await conn.execute(statement)
+        await conn.execute(upsert)
 
     @classmethod
     async def take(cls, conn: AsyncConnection, person: discord.Member, item: PokeapiModels.Item, quantity: int):
@@ -77,7 +77,7 @@ class PkmnInventory(BaseTable):
 
     @classmethod
     async def retrieve(cls, conn: AsyncConnection, person: discord.Member):
-        statement = select([cls.item_id, cls.quantity]).where(cls.member == person.id)
+        statement = select([cls.item_id, cls.quantity]).where(cls.member == person.id, cls.quantity != 0)
         result = await conn.execute(statement)
         return result.all()
 
@@ -222,8 +222,9 @@ class Shop(BaseCog):
     async def buy(
         self,
         ctx: MyContext,
-        item: PokeapiModels.Item,
-        quantity: int_range(1, 999) = 1
+        quantity: typing.Optional[int_range(1, 999)] = 1,
+        *,
+        item: PokeapiModels.Item
     ):
         """Buy items from the shop. There is a limited selection available"""
         if item.id not in self._shop_item_ids:
@@ -238,7 +239,7 @@ class Shop(BaseCog):
         price = item.cost * quantity
         async with self.bot.sql as sql:
             balance = await Game.check_score(sql, ctx.author)
-        balance = balance or 0
+        balance = balance and balance.score or 0
         embed = discord.Embed().set_image(
             url=await self.bot.pokeapi.get_item_icon_url(item)
         ).add_field(
@@ -262,7 +263,7 @@ class Shop(BaseCog):
             return await ctx.send('Transaction cancelled.', delete_after=10)
         try:
             async with self.bot.sql as sql:
-                await Game.increment_score(sql, ctx.author, by=-price)
+                await Game.decrement_score(sql, ctx.author, by=price)
                 await PkmnInventory.give(sql, ctx.author, item, quantity)
         except StatementError as e:
             if isinstance(e.orig, asyncpg.CheckViolationError):
@@ -274,15 +275,16 @@ class Shop(BaseCog):
                     f'Use `{prefix}{lb_cog.show.qualified_name}` to check your balance.',
                     delete_after=10
                 )
-            raise e.orig from None
+            raise e.orig
         await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price:,} points.')
 
     @mart.command()
     async def sell(
         self,
         ctx: MyContext,
-        item: PokeapiModels.Item,
-        quantity: int_range(1, 999) = 1
+        quantity: typing.Optional[int_range(1, 999)] = 1,
+        *,
+        item: PokeapiModels.Item
     ):
         """Sell items from your inventory"""
 
@@ -336,8 +338,9 @@ class Shop(BaseCog):
     async def inventory_toss(
         self,
         ctx: MyContext,
-        item: PokeapiModels.Item,
-        quantity: int_range(1, 999) = 1
+        quantity: typing.Optional[int_range(1, 999)] = 1,
+        *,
+        item: PokeapiModels.Item
     ):
         """Toss items from your bag"""
 

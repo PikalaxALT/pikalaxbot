@@ -139,8 +139,8 @@ class NamedPokeapiResource(PokeapiResource):
         try:
             obj = await methd(cls, argument)
             assert obj is not None
-        except Exception:
-            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}', argument) from None
+        except Exception as e:
+            raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}') from e
         return obj
 
 

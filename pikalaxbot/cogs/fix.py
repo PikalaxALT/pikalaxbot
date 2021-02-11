@@ -76,7 +76,7 @@ class Fix(BaseTable):
                 'altname': statement.excluded.altname
             }
         )
-        await conn.execute(statement)
+        await conn.execute(upsert)
 
     @classmethod
     async def remove_alias(cls, conn: AsyncConnection, name: str):
