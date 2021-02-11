@@ -34,8 +34,8 @@ from sqlalchemy.exc import StatementError
 
 
 class PkmnInventory(BaseTable):
-    member = Column(BIGINT, nullable=False)
-    item_id = Column(INTEGER, nullable=False)
+    member = Column(BIGINT, primary_key=True)
+    item_id = Column(INTEGER, primary_key=True)
     quantity = Column(INTEGER, nullable=False, default=0)
 
     __table_args__ = (
@@ -368,3 +368,7 @@ class Shop(BaseCog):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Shop(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    PkmnInventory.unlink()

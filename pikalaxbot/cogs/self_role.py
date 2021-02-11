@@ -26,8 +26,8 @@ from sqlalchemy.exc import DBAPIError
 
 
 class SelfRole(BaseTable):
-    guild_id = Column(BIGINT, nullable=False)
-    role_id = Column(BIGINT, nullable=False)
+    guild_id = Column(BIGINT, primary_key=True)
+    role_id = Column(BIGINT, primary_key=True)
     alias = Column(VARCHAR(32))
 
     __table_args__ = (UniqueConstraint(guild_id, role_id),)
@@ -181,3 +181,7 @@ class SelfAssignableRole(BaseCog, name='SelfRole'):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(SelfAssignableRole(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    SelfRole.unlink()

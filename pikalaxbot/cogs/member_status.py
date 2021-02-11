@@ -34,8 +34,8 @@ from sqlalchemy.dialects.postgresql import insert
 
 
 class Memberstatus(BaseTable):
-    guild_id = Column(BIGINT)
-    timestamp = Column(TIMESTAMP)
+    guild_id = Column(BIGINT, primary_key=True)
+    timestamp = Column(TIMESTAMP, primary_key=True)
     online = Column(INTEGER)
     offline = Column(INTEGER)
     dnd = Column(INTEGER)
@@ -44,7 +44,7 @@ class Memberstatus(BaseTable):
     @classmethod
     async def update_counters(cls, sql: AsyncConnection, bot: PikalaxBOT, now: datetime.datetime):
         to_insert = [
-            {'guild_id': guild.id, 'timestamp': now} | Counter(m.status for m in guild.members)
+            {'guild_id': guild.id, 'timestamp': now} | Counter(m.status.name for m in guild.members)
             for guild in bot.guilds
         ]
         statement = insert(cls).values(
@@ -160,3 +160,7 @@ class MemberStatus(BaseCog):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(MemberStatus(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    Memberstatus.unlink()

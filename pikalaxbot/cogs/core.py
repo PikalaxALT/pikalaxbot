@@ -44,8 +44,8 @@ from sqlalchemy.dialects.postgresql import insert
 
 
 class Commandstats(BaseTable):
-    command = Column(TEXT, nullable=False)
-    guild = Column(BIGINT, nullable=False)
+    command = Column(TEXT, primary_key=True)
+    guild = Column(BIGINT, primary_key=True)
     uses = Column(INTEGER, default=0)
 
     __table_args__ = (UniqueConstraint(command, guild),)
@@ -53,7 +53,10 @@ class Commandstats(BaseTable):
     @classmethod
     async def count_command(cls, conn: AsyncConnection, ctx: MyContext):
         statement = insert(cls).values(command=ctx.command.qualified_name, guild=ctx.guild.id, uses=1)
-        upsert = statement.on_conflict_do_update(index_elements=['command', 'guild'], set_={'uses': statement.excluded.uses + 1})
+        upsert = statement.on_conflict_do_update(
+            index_elements=['command', 'guild'],
+            set_={'uses': statement.excluded.uses + 1}
+        )
         await conn.execute(upsert)
 
     @classmethod
@@ -111,6 +114,11 @@ class Core(BaseCog):
 
     async def init_db(self, sql):
         await Commandstats.create(sql)
+
+    @BaseCog.listener()
+    async def on_cog_db_init_error(self, cog: BaseCog, error: Exception):
+        await self.bot.wait_until_ready()
+        await self.bot.send_tb(None, error, origin=f'db init for cog {cog.qualified_name}:')
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
@@ -569,3 +577,7 @@ class Core(BaseCog):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Core(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    Commandstats.unlink()

@@ -31,7 +31,7 @@ from .utils.menus import NavMenuPages
 from ..utils.prefix import set_guild_prefix, Prefixes
 
 from sqlalchemy import text
-from sqlalchemy.exc import StatementError
+from sqlalchemy.exc import StatementError, ResourceClosedError
 
 
 class SqlResponseMenu(NavMenuPages):
@@ -150,10 +150,10 @@ class Modtools(BaseCog):
         pag = commands.Paginator(max_size=2048)
         header: typing.Optional[str] = None
         counts = []
-        async with ctx.typing():
-            async with self.bot.sql as sql:
-                sql_start = time.perf_counter()
-                async for i, row in aioitertools.enumerate(sql.stream(text(script)), 1):
+        async with ctx.typing(), self.bot.sql as sql:
+            sql_start = time.perf_counter()
+            try:
+                async for i, row in aioitertools.enumerate(await sql.stream(text(script)), 1):
                     if header is None:
                         header = '|'.join(row.keys())
                         pag.add_line(header)
@@ -168,7 +168,9 @@ class Modtools(BaseCog):
                         pag.add_line(header)
                         pag.add_line('-' * len(header))
                     pag.add_line(to_add)
-                sql_end = time.perf_counter()
+            except ResourceClosedError:
+                pass
+            sql_end = time.perf_counter()
 
         if pag and pag.pages:
             counts.append(i)
@@ -271,11 +273,6 @@ class Modtools(BaseCog):
         except commands.ExtensionError:
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
-
-    @BaseCog.listener()
-    async def on_cog_db_init_error(self, cog: BaseCog, error: Exception):
-        await self.bot.wait_until_ready()
-        await self.bot.send_tb(None, error, origin=f'db init for cog {cog}:')
 
     @cog.command(name='disable')
     async def disable_cog(self, ctx: MyContext, *cogs: clean_lower):

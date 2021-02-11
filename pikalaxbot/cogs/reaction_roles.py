@@ -24,12 +24,15 @@ from sqlalchemy import Column, ForeignKey, BIGINT, TEXT, select, delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.exc import StatementError, NoResultFound
+from sqlalchemy.orm import relationship
 
 
 class ReactionSchema(BaseTable):
     guild = Column(BIGINT, primary_key=True)
     channel = Column(BIGINT)
     message = Column(BIGINT)
+
+    roles = relationship('ReactionRoles', backref='schema', cascade='all, delete-orphan')
 
     @classmethod
     async def register(
@@ -59,7 +62,7 @@ class ReactionSchema(BaseTable):
 
 
 class ReactionRoles(BaseTable):
-    guild = Column(BIGINT, ForeignKey(ReactionSchema, ondelete='CASCADE'))
+    guild = Column(BIGINT, ForeignKey(ReactionSchema.guild, ondelete='CASCADE'), primary_key=True)
     emoji = Column(TEXT, nullable=False)
     role = Column(BIGINT, unique=True, nullable=False)
 
@@ -272,3 +275,8 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(ReactionRolesCog(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    ReactionRoles.unlink()
+    ReactionSchema.unlink()

@@ -33,7 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 class PingHistory(BaseTable):
-    timestamp = Column(TIMESTAMP)
+    timestamp = Column(TIMESTAMP, primary_key=True)
     latency = Column(REAL)
 
     @classmethod

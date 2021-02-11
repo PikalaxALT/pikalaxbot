@@ -339,3 +339,7 @@ class VoltorbFlip(GameCogBase[VoltorbFlipGame]):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(VoltorbFlip(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    Voltorb.unlink()

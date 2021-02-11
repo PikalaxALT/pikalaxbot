@@ -35,7 +35,7 @@ class Meme(BaseTable):
         'let out a cry in protest!'
     )
 
-    bag = Column(TEXT, unique=True)
+    bag = Column(TEXT, primary_key=True)
 
     @classmethod
     async def init(cls, conn: AsyncConnection):
@@ -171,3 +171,7 @@ class Nebby(BaseCog):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Nebby(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    Meme.unlink()

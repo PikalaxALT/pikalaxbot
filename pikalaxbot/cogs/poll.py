@@ -35,6 +35,7 @@ from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bin
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import StatementError
+from sqlalchemy.orm import relationship
 
 
 class Polls(BaseTable):
@@ -46,6 +47,9 @@ class Polls(BaseTable):
     started = Column(TIMESTAMP, nullable=False)
     closes = Column(TIMESTAMP, nullable=False)
     prompt = Column(TEXT, nullable=False)
+
+    options = relationship('PollOptions', order_by='PollOptions.index', cascade='all, delete-orphan', backref='poll')
+    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='poll')
 
     @classmethod
     async def new_poll(
@@ -111,6 +115,8 @@ class PollOptions(BaseTable):
     index = Column(INTEGER, nullable=False)
     txt = Column(TEXT, nullable=False)
 
+    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='option')
+
     @classmethod
     async def add_options(cls, conn: AsyncConnection, poll_id: int, *options: str):
         params = [{'poll_id': poll_id, 'index': i, 'txt': opt} for i, opt in enumerate(options, 1)]
@@ -131,8 +137,8 @@ class PollOptions(BaseTable):
 
 class PollVotes(BaseTable):
     id = Column(INTEGER, primary_key=True)
-    poll_id = Column(INTEGER, ForeignKey(Polls, ondelete='CASCADE'))
-    option_id = Column(INTEGER, ForeignKey(PollOptions, ondelete='CASCADE'))
+    poll_id = Column(INTEGER, ForeignKey(Polls.id, ondelete='CASCADE'))
+    option_id = Column(INTEGER, ForeignKey(PollOptions.id, ondelete='CASCADE'))
     voter = Column(BIGINT, nullable=False)
 
     @classmethod
@@ -615,3 +621,9 @@ duration, prompt, and options."""
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Poll(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    PollVotes.unlink()
+    PollOptions.unlink()
+    Polls.unlink()

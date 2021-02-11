@@ -167,3 +167,7 @@ class FixCog(BaseCog, name='Fix'):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(FixCog(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    Fix.unlink()
