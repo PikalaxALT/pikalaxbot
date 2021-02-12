@@ -147,6 +147,8 @@ class StarWhoPageSource(menus.ListPageSource):
 
 
 class Stars(BaseCog):
+    """Commands related to the starboard."""
+
     MEDALS = '\N{FIRST PLACE MEDAL}', '\N{SECOND PLACE MEDAL}', '\N{THIRD PLACE MEDAL}'
 
     async def init_db(self, sql: AsyncConnection):
@@ -204,14 +206,16 @@ class Stars(BaseCog):
     async def star_grp(self, ctx: MyContext, message: discord.Message):
         """Stars a message by ID."""
 
-        assert ctx.guild == message.guild
+        if ctx.guild != message.guild:
+            return await ctx.send('Attempting to star a message not in this server')
         async with self.bot.sql_session as sess:
             cfg = await self.get_star_cfg(sess, ctx.guild.id)
             if cfg is not None:
                 post = await self.get_or_create_post(cfg, message.channel.id, message.id)
                 await post.add_user(ctx.author.id)
 
-    @commands.bot_has_permissions(add_reactions=True)
+    @commands.bot_has_permissions(add_reactions=True, manage_channels=True)
+    @commands.has_permissions(manage_guild=True)
     @star_grp.command('config')
     async def star_config(
             self,
@@ -229,10 +233,22 @@ class Stars(BaseCog):
             if not perms.send_messages:
                 return await ctx.send('I cannot send messages in that channel!')
         async with self.bot.sql_session as sess:
+            if emoji:
+                try:
+                    await ctx.message.add_reaction(emoji)
+                except discord.HTTPException:
+                    return await ctx.send(f'Invalid emoji: {emoji}')
             cfg = await self.get_star_cfg(sess, ctx.guild.id)
             if cfg is None:
                 if channel is None:
-                    return await ctx.send('No existing config for this guild and no channel specified.')
+                    channel = await ctx.guild.create_text_channel(
+                        'starboard',
+                        overwrites={
+                            ctx.guild.default_role: discord.PermissionOverwrite(send_messages=False),
+                            ctx.guild.me: discord.PermissionOverwrite(send_messages=True)
+                        },
+                        reason='Create starboard'
+                    )
                 cfg = StarConfig(
                     guild=ctx.guild.id,
                     channel=channel.id,
@@ -243,11 +259,7 @@ class Stars(BaseCog):
                 cfg.channel = channel.id
             if threshold is not None:
                 cfg.threshold = threshold
-            if emoji:
-                try:
-                    await ctx.message.add_reaction(emoji)
-                except discord.HTTPException:
-                    return await ctx.send(f'Invalid emoji: {emoji}')
+            if emoji is not None:
                 cfg.emoji = emoji
         await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
