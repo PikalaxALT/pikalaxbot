@@ -32,7 +32,7 @@ from .utils.errors import *
 from .utils.converters import FutureTime
 
 from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bindparam, select, delete
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import relationship
