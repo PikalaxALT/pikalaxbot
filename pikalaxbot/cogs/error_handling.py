@@ -15,10 +15,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 import sys
 import difflib
 from . import *
+from ..constants import *
+from ..context import FakeContext
+import typing
+import traceback
 
 
 class ErrorHandling(BaseCog):
@@ -26,6 +30,41 @@ class ErrorHandling(BaseCog):
 
     filter_excs = commands.CheckFailure, commands.MaxConcurrencyReached
     handle_excs = commands.UserInputError, commands.DisabledCommand, commands.CommandNotFound
+
+    exc_channel = EXC_CHANNEL_ID
+    config_attrs = 'exc_channel',
+
+    async def send_tb(
+            self,
+            ctx: typing.Optional[MyContext],
+            exc: BaseException,
+            *,
+            origin: typing.Optional[str] = None,
+            embed: typing.Optional[discord.Embed] = None
+    ):
+        msg = f'Ignoring exception in {origin}' if origin is not None else ''
+        self.log_error(msg, exc_info=(exc.__class__, exc, exc.__traceback__))
+        channel = self.bot.get_channel(self.exc_channel)
+        if channel is None:
+            return
+        if ctx is None:
+            owner = await self.bot.get_owner()
+            if isinstance(owner, set):
+                owner = owner.pop()
+            ctx = FakeContext(channel.guild, channel, None, owner, self.bot)
+        elif embed is None:
+            embed = ctx.prepare_command_error_embed()
+        paginator = commands.Paginator()
+        msg and paginator.add_line(msg)
+        for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):
+            paginator.add_line(line.rstrip('\n'))
+
+        class TracebackPageSource(menus.ListPageSource):
+            def format_page(self, menu: menus.MenuPages, page: str):
+                return {'content': page, 'embed': embed}
+
+        menu_ = menus.MenuPages(TracebackPageSource(paginator.pages, per_page=1))
+        await menu_.start(ctx, channel=channel)
 
     @BaseCog.listener()
     async def on_error(self, event: str, *args, **kwargs):
@@ -36,7 +75,7 @@ class ErrorHandling(BaseCog):
             embed = ctx.prepare_command_error_embed()
         else:
             ctx = embed = None
-        await self.bot.send_tb(ctx, exc, origin=event, embed=embed)
+        await self.send_tb(ctx, exc, origin=event, embed=embed)
 
     async def handle_command_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.MissingRequiredArgument):
@@ -46,7 +85,7 @@ class ErrorHandling(BaseCog):
         elif isinstance(exc, (commands.BadArgument, commands.BadUnionArgument, commands.ArgumentParsingError)):
             msg = f'Got a bad argument for `{ctx.command}`: {exc}'
             await ctx.send_help(ctx.command)
-            await self.bot.send_tb(ctx, exc)
+            await self.send_tb(ctx, exc)
         elif isinstance(exc, commands.DisabledCommand):
             msg = f'Command "{ctx.command}" is disabled.'
         elif isinstance(exc, commands.CommandNotFound):
@@ -100,7 +139,14 @@ class ErrorHandling(BaseCog):
             return await self.handle_command_error(ctx, exc)
 
         embed = ctx.prepare_command_error_embed()
-        await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
+        await self.send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
+
+    @BaseCog.listener()
+    async def on_cog_db_init_error(self, cog: BaseCog, error: Exception):
+        # await self.bot.wait_until_ready()
+        # await self.send_tb(None, error, origin=f'db init for cog {cog.qualified_name}:')
+        msg = f'Ignoring exception in db init for cog {cog.qualified_name}:'
+        self.log_error(msg, exc_info=(error.__class__, error, error.__traceback__))
 
 
 def setup(bot: PikalaxBOT):

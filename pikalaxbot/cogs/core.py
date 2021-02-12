@@ -116,11 +116,6 @@ class Core(BaseCog):
         await Commandstats.create(sql)
 
     @BaseCog.listener()
-    async def on_cog_db_init_error(self, cog: BaseCog, error: Exception):
-        await self.bot.wait_until_ready()
-        await self.bot.send_tb(None, error, origin=f'db init for cog {cog.qualified_name}:')
-
-    @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
         async with self.bot.sql as sql:
             await Commandstats.count_command(sql, ctx)

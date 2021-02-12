@@ -31,7 +31,7 @@ from collections import Counter
 from .utils.errors import *
 from .utils.converters import FutureTime
 
-from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bindparam, select, delete
+from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bindparam, select, delete, UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import StatementError
@@ -48,8 +48,19 @@ class Polls(BaseTable):
     closes = Column(TIMESTAMP, nullable=False)
     prompt = Column(TEXT, nullable=False)
 
-    options = relationship('PollOptions', order_by='PollOptions.index', cascade='all, delete-orphan', backref='poll', lazy='immediate')
-    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='poll', lazy='immediate')
+    options = relationship(
+        'PollOptions',
+        order_by='PollOptions.index',
+        cascade='all, delete-orphan',
+        backref='poll',
+        lazy='immediate'
+    )
+    votes = relationship(
+        'PollVotes',
+        cascade='all, delete-orphan',
+        backref='poll',
+        lazy='immediate'
+    )
 
     @classmethod
     async def new_poll(
@@ -82,7 +93,10 @@ class Polls(BaseTable):
         for row in result.all():
             try:
                 option_ids, options = zip(*(await PollOptions.get_options(conn, row.id)))
-                votes = {vote.voter: options[option_ids.index(vote.option_id)] for vote in await PollVotes.get_votes(conn, row.id)}
+                votes = {
+                    vote.voter: options[option_ids.index(vote.option_id)]
+                    for vote in await PollVotes.get_votes(conn, row.id)
+                }
                 message = bot.get_channel(row.channel).get_partial_message(row.message)
                 mgr = PollManager(
                     bot=bot,
@@ -140,6 +154,8 @@ class PollVotes(BaseTable):
     poll_id = Column(INTEGER, ForeignKey(Polls.id, ondelete='CASCADE'))
     option_id = Column(INTEGER, ForeignKey(PollOptions.id, ondelete='CASCADE'))
     voter = Column(BIGINT, nullable=False)
+
+    __table_args__ = (UniqueConstraint(poll_id, voter),)
 
     @classmethod
     async def add_vote(cls, conn: AsyncConnection, poll_id: int, option_id: int, voter: int):

@@ -15,19 +15,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import discord
-from discord.ext import commands, menus
+from discord.ext import commands
 import typing
 import os
 import aiohttp
 import asyncio
 import datetime
-import traceback
 from .utils.logging_mixin import BotLogger
-from .context import MyContext, FakeContext
+from .context import MyContext
 from .utils.config_io import Settings
 import asyncstdlib.functools as afunctools
 from .pokeapi import *
 from .utils.pg_orm import *
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 __all__ = ('PikalaxBOT',)
@@ -67,19 +68,16 @@ class PikalaxBOT(BotLogger, commands.Bot):
             self._pokeapi = None
 
     @property
-    def exc_channel(self) -> typing.Optional[discord.TextChannel]:
-        try:
-            return self.get_channel(self.settings.exc_channel)
-        except AttributeError:
-            return None
-
-    @property
     def command_error_emoji(self) -> discord.Emoji:
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     @property
     def sql(self):
         return self.engine.begin()
+
+    @property
+    def sql_session(self):
+        return AsyncSession(self.engine)
 
     @property
     def pokeapi(self) -> PokeApi:
@@ -103,38 +101,6 @@ class PikalaxBOT(BotLogger, commands.Bot):
             else:
                 self.owner_id = app.owner.id
                 return app.owner
-
-    async def send_tb(
-            self,
-            ctx: typing.Optional[MyContext],
-            exc: BaseException,
-            *,
-            origin: typing.Optional[str] = None,
-            embed: typing.Optional[discord.Embed] = None
-    ):
-        msg = f'Ignoring exception in {origin}' if origin is not None else ''
-        channel = self.exc_channel
-        if channel is None:
-            return
-        if ctx is None:
-            owner = await self.get_owner()
-            if isinstance(owner, set):
-                owner = owner.pop()
-            ctx = FakeContext(channel.guild, channel, None, owner, self)
-        elif embed is None:
-            embed = ctx.prepare_command_error_embed()
-        paginator = commands.Paginator()
-        msg and paginator.add_line(msg)
-        for line in traceback.format_exception(exc.__class__, exc, exc.__traceback__):
-            paginator.add_line(line.rstrip('\n'))
-        self.log_error(msg, exc_info=(exc.__class__, exc, exc.__traceback__))
-
-        class TracebackPageSource(menus.ListPageSource):
-            def format_page(self, menu: menus.MenuPages, page: str):
-                return {'content': page, 'embed': embed}
-
-        menu_ = menus.MenuPages(TracebackPageSource(paginator.pages, per_page=1))
-        await menu_.start(ctx, channel=channel)
 
     def run(self, *args, **kwargs):
         self.log_info('Starting bot')
