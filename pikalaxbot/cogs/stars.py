@@ -105,11 +105,11 @@ class StarPosts(BaseTable):
             else:
                 self.board_post = (await board_channel.send(**fields)).id
 
-    async def remove_user(self, user_id: int):
+    async def remove_user(self, sess: AsyncSession, user_id: int):
         user = discord.utils.get(self.users, person=user_id)
         if user is None:
             return
-        self.users.remove(user)
+        sess.expunge(user)
         if self.board_post:
             msg: discord.PartialMessage = self.bot.get_channel(self.channel).get_partial_message(self.board_post)
             fields = self.prepare_message()
@@ -200,7 +200,7 @@ class Stars(BaseCog):
             conf = await self.get_star_cfg(sess, payload.guild_id)
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
-                await post.remove_user(payload.user_id)
+                await post.remove_user(sess, payload.user_id)
 
     @commands.group('star', invoke_without_command=True)
     async def star_grp(self, ctx: MyContext, message: discord.Message):

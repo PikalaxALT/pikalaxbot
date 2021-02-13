@@ -26,16 +26,17 @@ import aioitertools
 import operator
 import textwrap
 import random
-from collections import Counter
 
 from .utils.errors import *
 from .utils.converters import FutureTime
 
-from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, bindparam, select, delete, UniqueConstraint
-from sqlalchemy.ext.asyncio import AsyncConnection
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import StatementError
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, ForeignKey, INTEGER, BIGINT, TIMESTAMP, TEXT, select, UniqueConstraint
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import relationship, Session
+
+
+class PollNotStarted(commands.CommandError):
+    pass
 
 
 class Polls(BaseTable):
@@ -62,65 +63,147 @@ class Polls(BaseTable):
         lazy='immediate'
     )
 
+    EMOJIS = [
+        '1\N{COMBINING ENCLOSING KEYCAP}',
+        '2\N{COMBINING ENCLOSING KEYCAP}',
+        '3\N{COMBINING ENCLOSING KEYCAP}',
+        '4\N{COMBINING ENCLOSING KEYCAP}',
+        '5\N{COMBINING ENCLOSING KEYCAP}',
+        '6\N{COMBINING ENCLOSING KEYCAP}',
+        '7\N{COMBINING ENCLOSING KEYCAP}',
+        '8\N{COMBINING ENCLOSING KEYCAP}',
+        '9\N{COMBINING ENCLOSING KEYCAP}',
+        '\N{KEYCAP TEN}',
+    ]
+
+    def start(self, bot: PikalaxBOT):
+        task = asyncio.create_task(discord.utils.sleep_until(self.closes))
+
+        def raw_reaction_check(payload: discord.RawReactionActionEvent):
+            if payload.message_id != self.message:
+                return False
+            if str(payload.emoji) not in self.EMOJIS[:len(self.options)]:
+                return False
+            if payload.user_id in {self.owner, bot.user.id}:
+                return False
+            return True
+
+        @bot.listen()
+        async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+            async with bot.sql_session as sess:
+                await sess.refresh(self)
+                if not raw_reaction_check(payload):
+                    return
+                if discord.utils.get(self.votes, voter=payload.user_id) is not None:
+                    return
+                selection = self.EMOJIS.index(str(payload.emoji))
+                self.options[selection].votes.append(PollVotes(voter=payload.user_id))
+
+        @bot.listen()
+        async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
+            async with bot.sql_session as sess:
+                await sess.refresh(self)
+                if not raw_reaction_check(payload):
+                    return
+                selection = self.EMOJIS.index(str(payload.emoji))
+                option = self.options[selection]
+                if (vote := discord.utils.get(option.votes, voter=payload.user_id)) is None:
+                    return
+                sess.expunge(vote)
+
+        @bot.listen()
+        async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
+            if payload.message_id == self.message:
+                task.cancel()
+
+        def on_task_done(t: asyncio.Task):
+            bot.remove_listener(on_raw_reaction_add)
+            bot.remove_listener(on_raw_reaction_remove)
+            bot.remove_listener(on_raw_message_delete)
+            try:
+                t.result()
+            except asyncio.CancelledError:
+                if t._cancel_message == 'unloading':
+                    return
+            bot.dispatch('poll_end', self)
+
+        task.add_done_callback(on_task_done)
+        self._task = task
+
+    def cancel(self, unloading=False):
+        try:
+            return self._task.cancel('unloading' if unloading else None)
+        except AttributeError:
+            raise PollNotStarted(f'Poll {self} has not started') from None
+
+    @discord.utils.cached_slot_property('_hash')
+    def hash(self):
+        return base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
+
+    def __hash__(self):
+        return hash((self.started, self.closes, self.channel_id, self.owner_id))
+
+    def __str__(self):
+        return '<{0.__class__.__name__} hash={0.hash}>'.format(self)
+
     @classmethod
-    async def new_poll(
+    async def from_command(
             cls,
-            conn: AsyncConnection,
-            context: MyContext,
-            message: discord.Message,
-            started: datetime.datetime,
-            closes: datetime.datetime,
+            ctx: MyContext,
+            duration: float,
             prompt: str,
             *options: str
     ):
-        statement = insert(cls).values(
-            channel=context.channel.id,
-            owner=context.author.id,
-            context=context.message.id,
+        started = datetime.datetime.utcnow()
+        closes = started + datetime.timedelta(seconds=duration)
+        hash_ = hash((started, closes, ctx.channel.id, ctx.author.id))
+        prefix, *_ = await ctx.bot.get_prefix(ctx.message)
+        content = f'Vote using emoji reactions. ' \
+                  f'Max one vote per user. ' \
+                  f'To change your vote, clear your original selection first. ' \
+                  f'The poll author may not cast a vote. ' \
+                  f'The poll author may cancel the poll using ' \
+                  f'`{prefix}{ctx.cog.cancel.qualified_name} {hash_}` ' \
+                  f'or by deleting this message.'
+        embed = discord.Embed(
+            title=prompt,
+            description='\n'.join(map('{0}: {1}'.format, cls.EMOJIS, options)),
+            colour=0xF47FFF,
+            timestamp=closes
+        ).set_footer(
+            text='Poll ends at'
+        ).set_author(
+            name=ctx.author.display_name,
+            icon_url=ctx.author.avatar_url
+        )
+        message = await ctx.send(content, embed=embed)
+        for emoji, option in zip(cls.EMOJIS, options):
+            await message.add_reaction(emoji)
+        self = Polls(
+            channel=ctx.channel.id,
+            owner=ctx.author.id,
+            context=ctx.message.id,
             message=message.id,
             started=started,
             closes=closes,
-            prompt=prompt
-        ).returning(cls.id)
-        poll_id = await conn.scalar(statement)
-        option_ids = [x async for x in PollOptions.add_options(conn, poll_id, *options)]
-        return poll_id, option_ids
+            prompt=prompt,
+            options=[
+                PollOptions(
+                    index=i,
+                    txt=option
+                ) for i, option in enumerate(options, 1)
+            ]
+        )
+        async with ctx.bot.sql_session as sess:  # type: AsyncSession
+            sess.add(self)
+        return self
 
     @classmethod
-    async def fetchall(cls, conn: AsyncConnection, bot: PikalaxBOT):
-        statement = select(cls)
-        result = await conn.execute(statement)
-        for row in result.all():
-            try:
-                option_ids, options = zip(*(await PollOptions.get_options(conn, row.id)))
-                votes = {
-                    vote.voter: options[option_ids.index(vote.option_id)]
-                    for vote in await PollVotes.get_votes(conn, row.id)
-                }
-                message = bot.get_channel(row.channel).get_partial_message(row.message)
-                mgr = PollManager(
-                    bot=bot,
-                    channel_id=row.channel,
-                    context_id=row.context,
-                    owner_id=row.owner,
-                    start_time=row.started,
-                    stop_time=row.closes,
-                    id_=row.id,
-                    prompt=row.prompt,
-                    options=options,
-                    option_ids=option_ids,
-                    votes=votes
-                )
-                mgr.message = message
-                mgr.start()
-                yield mgr
-            except StatementError:
-                pass
-
-    @classmethod
-    async def delete(cls, conn: AsyncConnection, poll_id: int):
-        statement = delete(cls).where(cls.id == poll_id)
-        await conn.execute(statement)
+    async def convert(cls, ctx: MyContext, argument: str):
+        self: typing.Optional[cls] = discord.utils.get(ctx.cog.polls, hash=argument)
+        if self is None:
+            raise NoPollFound('The supplied code does not correspond to a running poll')
+        return self
 
 
 class PollOptions(BaseTable):
@@ -131,23 +214,6 @@ class PollOptions(BaseTable):
 
     votes = relationship('PollVotes', cascade='all, delete-orphan', backref='option', lazy='immediate')
 
-    @classmethod
-    async def add_options(cls, conn: AsyncConnection, poll_id: int, *options: str):
-        params = [{'poll_id': poll_id, 'index': i, 'txt': opt} for i, opt in enumerate(options, 1)]
-        statement = insert(cls).values(
-            poll_id=bindparam('poll_id'),
-            index=bindparam('index'),
-            txt=bindparam('txt')
-        ).returning(cls.id)
-        for param in params:
-            yield await conn.scalar(statement, param)
-
-    @classmethod
-    async def get_options(cls, conn: AsyncConnection, poll_id: int):
-        statement = select([cls.index, cls.txt]).where(cls.poll_id == poll_id).order_by(cls.index)
-        result = await conn.execute(statement)
-        return zip(*result.all())
-
 
 class PollVotes(BaseTable):
     id = Column(INTEGER, primary_key=True)
@@ -156,30 +222,6 @@ class PollVotes(BaseTable):
     voter = Column(BIGINT, nullable=False)
 
     __table_args__ = (UniqueConstraint(poll_id, voter),)
-
-    @classmethod
-    async def add_vote(cls, conn: AsyncConnection, poll_id: int, option_id: int, voter: int):
-        statement = insert(cls).values(
-            poll_id=poll_id,
-            option_id=option_id,
-            voter=voter
-        ).on_conflict_do_nothing()
-        await conn.execute(statement)
-
-    @classmethod
-    async def remove_vote(cls, conn: AsyncConnection, poll_id: int, option_id: int, voter: int):
-        statement = delete(cls).where(
-            cls.poll_id == poll_id,
-            cls.option_id == option_id,
-            cls.voter == voter
-        )
-        await conn.execute(statement)
-
-    @classmethod
-    async def get_votes(cls, conn: AsyncConnection, poll_id: int):
-        statement = select(cls).where(cls.poll_id == poll_id)
-        result = await conn.execute(statement)
-        return result.all()
 
 
 class BadPollTimeArgument(commands.BadArgument):
@@ -200,201 +242,6 @@ class PollTime(FutureTime, float):
         return txt
 
 
-class PollManager:
-    __slots__ = (
-        'bot',
-        'channel_id',
-        'context_id',
-        'message',
-        'owner_id',
-        'prompt',
-        'options',
-        'option_ids',
-        'votes',
-        'id',
-        '_hash',
-        '_message_id',
-        'start_time',
-        'stop_time',
-        'emojis',
-        'task',
-        'unloading'
-    )
-
-    def __init__(
-            self,
-            *,
-            bot: PikalaxBOT,
-            channel_id: int,
-            context_id: int,
-            owner_id: int,
-            start_time: datetime.datetime,
-            stop_time: datetime.datetime,
-            id_: int = None,
-            votes: dict[int, int] = None,
-            prompt: str = None,
-            options: typing.Sequence[str] = None,
-            option_ids: typing.Sequence[int] = None,
-    ):
-        self.bot = bot
-        self.channel_id = channel_id
-        self.context_id = context_id
-        self.owner_id = owner_id
-        self.start_time = start_time
-        self.stop_time = stop_time
-        self.id = id_
-        self.prompt = prompt
-        self.votes: dict[int, int] = votes or {}
-        self.options: list[str] = options or []
-        self.option_ids: list[int] = option_ids or []
-        self.emojis = [f'{i + 1}\u20e3' if i < 9 else '\U0001f51f' for i in range(len(options))]
-        self.task: typing.Optional[asyncio.Task] = None
-        self.unloading = False
-        self.message: typing.Union[discord.Message, discord.PartialMessage, None] = None
-
-    @discord.utils.cached_slot_property('_hash')
-    def hash(self):
-        return base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
-
-    def __iter__(self):
-        yield self.channel_id
-        yield self.owner_id
-        yield self.context_id
-        yield self.message_id
-        yield self.start_time
-        yield self.stop_time
-        yield self.prompt
-
-    @classmethod
-    async def from_command(cls, context: MyContext, timeout: float, prompt: str, *options: str):
-        this = cls(
-            bot=context.bot,
-            channel_id=context.channel.id,
-            context_id=context.message.id,
-            owner_id=context.author.id,
-            start_time=context.message.created_at,
-            stop_time=context.message.created_at + datetime.timedelta(seconds=timeout),
-            prompt=prompt,
-            options=options
-        )
-        content = f'Vote using emoji reactions. ' \
-                  f'Max one vote per user. ' \
-                  f'To change your vote, clear your original selection first. ' \
-                  f'The poll author may not cast a vote. ' \
-                  f'The poll author may cancel the poll using ' \
-                  f'`{context.prefix}{context.cog.cancel.qualified_name} {this.hash}` ' \
-                  f'or by deleting this message.'
-        description = '\n'.join(map('{0}: {1}'.format, this.emojis, options))
-        embed = discord.Embed(title=prompt, description=description, colour=0xf47fff)
-        embed.set_footer(text='Poll ends at')
-        embed.timestamp = this.stop_time
-        embed.set_author(name=context.author.display_name, icon_url=context.author.avatar_url)
-        this.message = await context.send(content, embed=embed)
-        for emoji in this.emojis:
-            await this.message.add_reaction(emoji)
-        try:
-            async with context.bot.sql as sql:
-                this.id, this.option_ids = await Polls.new_poll(
-                    sql,
-                    context,
-                    this.message,
-                    this.start_time,
-                    this.stop_time,
-                    prompt,
-                    *options
-                )
-        except StatementError:
-            await this.message.edit(content='An error occurred, the poll was cancelled.', embed=None)
-            raise
-        return this
-
-    @discord.utils.cached_slot_property('_message_id')
-    def message_id(self):
-        return self.message.id
-
-    def __eq__(self, other):
-        if isinstance(other, PollManager):
-            return hash(self) == hash(other)
-        if isinstance(other, str):
-            return self.hash == other
-        raise NotImplementedError
-
-    def __repr__(self):
-        return f'<{self.__class__.__name__} object with code {self.hash} and {len(self.options)} options>'
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash((self.start_time.timestamp(), self.stop_time.timestamp(), self.channel_id, self.owner_id))
-
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        if payload.message_id != self.message_id:
-            return
-        if payload.emoji.name not in self.emojis:
-            return
-        if payload.user_id in {self.owner_id, self.bot.user.id}:
-            return
-        if payload.user_id in self.votes:
-            return
-        selection = self.emojis.index(payload.emoji.name)
-        async with self.bot.sql as sql:
-            await PollVotes.add_vote(sql, self.id, self.option_ids[selection], payload.user_id)
-        self.votes[payload.user_id] = selection
-
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        if payload.message_id != self.message_id:
-            return
-        if payload.emoji.name not in self.emojis:
-            return
-        if payload.user_id in {self.owner_id, self.bot.user.id}:
-            return
-        selection = self.emojis.index(payload.emoji.name)
-        if self.votes.get(payload.user_id) != selection:
-            return
-        async with self.bot.sql as sql:
-            await PollVotes.remove_vote(sql, self.id, self.option_ids[selection], payload.user_id)
-        self.votes.pop(payload.user_id)
-
-    async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent):
-        if payload.message_id == self.message_id:
-            self.message = None
-            self.cancel()
-
-    def start(self):
-        self.unloading = False
-        now = datetime.datetime.utcnow()
-        if now > self.stop_time:
-            self.bot.dispatch('poll_end', self)
-            return
-        self.bot.add_listener(self.on_raw_reaction_add)
-        self.bot.add_listener(self.on_raw_reaction_remove)
-        self.bot.add_listener(self.on_raw_message_delete)
-
-        async def run():
-            try:
-                await asyncio.sleep((self.stop_time - datetime.datetime.utcnow()).total_seconds())
-            finally:
-                self.bot.remove_listener(self.on_raw_reaction_add)
-                self.bot.remove_listener(self.on_raw_reaction_remove)
-                self.bot.remove_listener(self.on_raw_message_delete)
-                if not self.unloading:
-                    self.bot.dispatch('poll_end', self)
-
-        self.task = asyncio.create_task(run())
-
-    def cancel(self, unloading=False):
-        self.unloading = unloading
-        self.task.cancel()
-
-    @classmethod
-    async def convert(cls, ctx: MyContext, argument: str):
-        mgr: typing.Optional['PollManager'] = discord.utils.get(ctx.cog.polls, hash=argument)
-        if mgr is None:
-            raise NoPollFound('The supplied code does not correspond to a running poll')
-        return mgr
-
-
 class Poll(BaseCog):
     """Commands for starting and managing opinion polls"""
 
@@ -402,12 +249,12 @@ class Poll(BaseCog):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.polls: list[PollManager] = []
+        self.polls: list[Polls] = []
 
     def cog_unload(self):
         self.cleanup_polls.cancel()
-        for mgr in self.polls:
-            mgr.cancel(True)
+        for poll in self.polls:
+            poll.cancel(True)
 
     async def init_db(self, sql):
         await Polls.create(sql)
@@ -421,16 +268,21 @@ class Poll(BaseCog):
 
     @cleanup_polls.error
     async def cleanup_polls_error(self, error: BaseException):
-        await self.bot.send_tb(None, error, origin='Poll.cleanup_polls')
+        await self.bot.get_cog('ErrorHandling').send_tb(None, error, origin='Poll.cleanup_polls')
 
     @cleanup_polls.before_loop
     async def cache_polls(self):
         await self.bot.wait_until_ready()
         try:
-            async with self.bot.sql as sql:
-                self.polls = [mgr async for mgr in Polls.fetchall(sql, self.bot)]
+            async with self.bot.sql_session as sess:
+                def fetch_polls(sync_sess: Session):
+                    return sess.execute(select(Polls)).scalars().all()
+                
+                self.polls = await sess.run_sync(fetch_polls)
+            for poll in self.polls:
+                poll.start()
         except Exception as e:
-            await self.bot.send_tb(None, e, origin='Poll.cache_polls')
+            await self.bot.get_cog('ErrorHandling').send_tb(None, e, origin='Poll.cache_polls')
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: MyContext, timeout: typing.Optional[PollTime], prompt, *opts):
@@ -449,9 +301,9 @@ duration, prompt, and options."""
             raise TooManyOptions('Too many options!')
         if nopts < 2:
             raise NotEnoughOptions('Not enough unique options!')
-        mgr = await PollManager.from_command(ctx, timeout, prompt, *options)
-        self.polls.append(mgr)
-        mgr.start()
+        poll = await Polls.from_command(ctx, timeout, prompt, *options)
+        self.polls.append(poll)
+        poll.start(self.bot)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @poll_cmd.command(name='new')
@@ -521,9 +373,9 @@ duration, prompt, and options."""
                 break
         timeout += (datetime.datetime.utcnow() - ctx.message.created_at).total_seconds()
         options = [field.value for field in embed.fields]
-        mgr = await PollManager.from_command(ctx, timeout, *options)
-        self.polls.append(mgr)
-        mgr.start()
+        poll = await Polls.from_command(ctx, timeout, *options)
+        self.polls.append(poll)
+        poll.start(self.bot)
 
     @poll_cmd.error
     @interactive_poll_maker.error
@@ -533,22 +385,23 @@ duration, prompt, and options."""
         elif isinstance(error, (NotEnoughOptions, TooManyOptions)):
             await ctx.send(str(error))
         else:
-            await self.bot.send_tb(ctx, error, origin=ctx.command.qualified_name)
+            await self.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin=ctx.command.qualified_name)
 
     @poll_cmd.command()
-    async def cancel(self, ctx: MyContext, mgr: PollManager):
+    async def cancel(self, ctx: MyContext, poll: Polls):
         """Cancel a running poll using a code. You must be the one who started the poll
         in the first place."""
 
-        if ctx.author.id not in {mgr.owner_id, ctx.bot.owner_id}:
+        if ctx.author.id not in {poll.owner, ctx.bot.owner_id}:
             raise NotPollOwner('You may not cancel this poll')
-        mgr.cancel()
+        poll.cancel()
 
     @poll_cmd.command()
-    async def show(self, ctx: MyContext, mgr: PollManager):
+    async def show(self, ctx: MyContext, poll: Polls):
         """Gets poll info using a code."""
 
-        await ctx.send(mgr.message.jump_url)
+        message: discord.PartialMessage = self.bot.get_channel(poll.channel).get_partial_message(poll.message)
+        await ctx.send(message.jump_url)
     
     @show.error
     @cancel.error
@@ -567,65 +420,74 @@ duration, prompt, and options."""
             await ctx.send('No running polls')
 
     @BaseCog.listener()
-    async def on_poll_end(self, mgr: PollManager):
-        now = datetime.datetime.utcnow()
-        if mgr in self.polls:
-            self.polls.remove(mgr)
-        if (channel := mgr.message.channel) is None:
-            return
-        tally = Counter(mgr.votes.values())
-        if now < mgr.stop_time:
-            content2 = content = 'The poll was cancelled.'
-        else:
+    async def on_poll_end(self, poll: Polls):
+        async with self.bot.sql_session as sess:
+            await sess.refresh(poll)
+            now = datetime.datetime.utcnow()
+            if poll in self.polls:
+                self.polls.remove(poll)
+            if (channel := self.bot.get_channel(poll.channel)) is None:
+                return
+            tally = [len(option.votes) for option in poll.options]
+            message = channel.get_partial_message(poll.message)
+            if now < poll.closes:
+                content2 = content = 'The poll was cancelled.'
+            else:
+                try:
+                    winner, count = max(enumerate(tally), key=operator.itemgetter(1))
+                    content = f'Poll closed, the winner is {poll.EMOJIS[winner]}'
+                    content2 = f'Poll `{poll.hash}` has ended. ' \
+                               f'The winner is {poll.EMOJIS[winner]} ' \
+                               f'with {tally[winner]} vote(s).\n\n' \
+                               f'Full results: {message.jump_url}'
+                except (ValueError, IndexError):
+                    content = f'Poll closed, there is no winner'
+                    content2 = f'Poll `{poll.hash}` has ended. ' \
+                               f'No votes were recorded.\n\n' \
+                               f'Full results: {message.jump_url}'
+            owner: discord.Member = channel.guild.get_member(poll.owner)
+            embed = discord.Embed(
+                title=poll.prompt,
+                description='\n'.join(map('{} ({})'.format, poll.options, tally)),
+                colour=0xf47fff,
+                timestamp=poll.closes
+            ).set_footer(
+                text='Poll ended at'
+            ).set_author(
+                name=owner.display_name,
+                icon_url=owner.avatar_url
+            )
             try:
-                winner, count = max(tally.items(), key=operator.itemgetter(1))
-                content = f'Poll closed, the winner is {mgr.emojis[winner]}'
-                content2 = f'Poll `{mgr.hash}` has ended. ' \
-                           f'The winner is {mgr.emojis[winner]} ' \
-                           f'with {tally[winner]} vote(s).\n\n' \
-                           f'Full results: {mgr.message.jump_url}'
-            except (ValueError, IndexError):
-                content = f'Poll closed, there is no winner'
-                content2 = f'Poll `{mgr.hash}` has ended. ' \
-                           f'No votes were recorded.\n\n' \
-                           f'Full results: {mgr.message.jump_url}'
-        owner: discord.Member = channel.guild.get_member(mgr.owner_id)
-        desc = [f'{line} ({tally[i]})' for i, line in enumerate(mgr.options)]
-        embed = discord.Embed(title=mgr.prompt, description='\n'.join(desc), colour=0xf47fff)
-        embed.set_footer(text='Poll ends at')
-        embed.timestamp = mgr.stop_time
-        embed.set_author(name=owner.display_name, icon_url=owner.avatar_url)
-        embed.description = '\n'.join(desc)
-        try:
-            await mgr.message.edit(content=content, embed=embed)
-            await channel.send(content2)
-        except RuntimeError:
-            return
-        except discord.HTTPException:
-            pass
-        async with self.bot.sql as sql:
-            await Polls.delete(sql, mgr.id)
+                await message.edit(content=content, embed=embed)
+                await channel.send(content2)
+            except RuntimeError:
+                return
+            except discord.HTTPException:
+                pass
+            sess.expunge(poll)
 
     @commands.is_owner()
     @poll_cmd.command('debug')
-    async def poll_debug(self, ctx: MyContext, poll: PollManager):
+    async def poll_debug(self, ctx: MyContext, poll: Polls):
         """Create a dummy reaction on a running poll"""
 
+        guild = self.bot.get_channel(poll.channel).guild
         user_id = random.choice([
-            member.id for member in poll.message.guild.members
+            member.id for member in guild.members
             if not member.bot
         ])
+        vote = discord.utils.get(poll.votes, voter=user_id)
         if user_id in poll.votes:
             event = 'REACTION REMOVE'
-            emoji = poll.emojis[poll.votes[user_id]]
+            emoji = poll.EMOJIS[vote.option.index - 1]
         else:
             event = 'REACTION ADD'
-            emoji = random.choice(poll.emojis)
+            emoji = random.choice(poll.EMOJIS[:len(poll.options)])
         payload = discord.RawReactionActionEvent(
             {
-                'guild_id': poll.message.guild.id,
-                'channel_id': poll.channel_id,
-                'message_id': poll.message_id,
+                'guild_id': guild.id,
+                'channel_id': poll.channel,
+                'message_id': poll.message,
                 'user_id': user_id
             },
             discord.PartialEmoji(name=emoji),
