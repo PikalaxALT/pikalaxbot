@@ -27,6 +27,7 @@ from .utils.config_io import Settings
 import asyncstdlib.functools as afunctools
 from .pokeapi import *
 from .utils.pg_orm import *
+from contextlib import asynccontextmanager as acm
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,6 +50,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
 
         self.log_info('Connecting database')
         self.engine = async_engine_parameterized(**self.settings.database)
+        self._sql_session = AsyncSession(self.engine)
 
         # Reboot handler
         self.reboot_after = True
@@ -77,7 +79,14 @@ class PikalaxBOT(BotLogger, commands.Bot):
 
     @property
     def sql_session(self):
-        return AsyncSession(self.engine)
+        @acm
+        async def begin():
+            while self._sql_session.in_transaction():
+                await asyncio.sleep(0)
+            async with self._sql_session.begin():
+                yield self._sql_session
+
+        return begin()
 
     @property
     def pokeapi(self) -> PokeApi:

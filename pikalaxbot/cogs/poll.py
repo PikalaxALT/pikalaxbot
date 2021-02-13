@@ -77,6 +77,7 @@ class Polls(BaseTable):
     ]
 
     def start(self, bot: PikalaxBOT):
+        self._bot = bot
         task = asyncio.create_task(discord.utils.sleep_until(self.closes))
 
         def raw_reaction_check(payload: discord.RawReactionActionEvent):
@@ -109,7 +110,7 @@ class Polls(BaseTable):
                 option = self.options[selection]
                 if (vote := discord.utils.get(option.votes, voter=payload.user_id)) is None:
                     return
-                sess.expunge(vote)
+                sess.delete(vote)
 
         @bot.listen()
         async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
@@ -141,10 +142,10 @@ class Polls(BaseTable):
         return base64.b32encode((hash(self) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
 
     def __hash__(self):
-        return hash((self.started, self.closes, self.channel_id, self.owner_id))
+        return hash((self.started.timestamp(), self.closes.timestamp(), self.channel, self.owner))
 
     def __str__(self):
-        return '<{0.__class__.__name__} hash={0.hash}>'.format(self)
+        return '<{0.__class__.__name__} hash={0.hash}, channel={1}>'.format(self, self._bot.get_channel(self.channel))
 
     @classmethod
     async def from_command(
@@ -156,7 +157,12 @@ class Polls(BaseTable):
     ):
         started = datetime.datetime.utcnow()
         closes = started + datetime.timedelta(seconds=duration)
-        hash_ = hash((started, closes, ctx.channel.id, ctx.author.id))
+        hash_ = base64.b32encode((hash((
+            started.timestamp(),
+            closes.timestamp(),
+            ctx.channel.id,
+            ctx.author.id
+        )) & 0xFFFFFFFF).to_bytes(4, 'little')).decode().rstrip('=')
         prefix, *_ = await ctx.bot.get_prefix(ctx.message)
         content = f'Vote using emoji reactions. ' \
                   f'Max one vote per user. ' \
@@ -196,6 +202,8 @@ class Polls(BaseTable):
         )
         async with ctx.bot.sql_session as sess:  # type: AsyncSession
             sess.add(self)
+            await sess.flush()
+            self.start(ctx.bot)
         return self
 
     @classmethod
@@ -260,11 +268,12 @@ class Poll(BaseCog):
         await Polls.create(sql)
         await PollOptions.create(sql)
         await PollVotes.create(sql)
+
         self.cleanup_polls.start()
 
     @tasks.loop(seconds=60)
     async def cleanup_polls(self):
-        self.polls = [poll for poll in self.polls if not poll.task or not poll.task.done()]
+        self.polls = [poll for poll in self.polls if not hasattr(poll, '_task') or not poll._task.done()]
 
     @cleanup_polls.error
     async def cleanup_polls_error(self, error: BaseException):
@@ -276,11 +285,11 @@ class Poll(BaseCog):
         try:
             async with self.bot.sql_session as sess:
                 def fetch_polls(sync_sess: Session):
-                    return sess.execute(select(Polls)).scalars().all()
+                    return sync_sess.execute(select(Polls)).scalars().all()
                 
                 self.polls = await sess.run_sync(fetch_polls)
-            for poll in self.polls:
-                poll.start()
+                for poll in self.polls:
+                    poll.start(self.bot)
         except Exception as e:
             await self.bot.get_cog('ErrorHandling').send_tb(None, e, origin='Poll.cache_polls')
 
@@ -303,7 +312,6 @@ duration, prompt, and options."""
             raise NotEnoughOptions('Not enough unique options!')
         poll = await Polls.from_command(ctx, timeout, prompt, *options)
         self.polls.append(poll)
-        poll.start(self.bot)
 
     @commands.max_concurrency(1, commands.BucketType.channel)
     @poll_cmd.command(name='new')
@@ -375,7 +383,6 @@ duration, prompt, and options."""
         options = [field.value for field in embed.fields]
         poll = await Polls.from_command(ctx, timeout, *options)
         self.polls.append(poll)
-        poll.start(self.bot)
 
     @poll_cmd.error
     @interactive_poll_maker.error
@@ -413,7 +420,9 @@ duration, prompt, and options."""
     async def list(self, ctx: MyContext):
         """Lists all polls"""
 
-        s = textwrap.indent('\n'.join(str(poll) for poll in self.polls if not poll.task.done()), '  ')
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            [await sess.refresh(poll) for poll in self.polls]
+            s = textwrap.indent('\n'.join(str(poll) for poll in self.polls if hasattr(poll, '_task') and not poll._task.done()), '  ')
         if s:
             await ctx.send(f'Running polls: [\n{s}\n]')
         else:
@@ -421,7 +430,7 @@ duration, prompt, and options."""
 
     @BaseCog.listener()
     async def on_poll_end(self, poll: Polls):
-        async with self.bot.sql_session as sess:
+        async with self.bot.sql_session as sess:  # type: AsyncSession
             await sess.refresh(poll)
             now = datetime.datetime.utcnow()
             if poll in self.polls:
@@ -433,14 +442,14 @@ duration, prompt, and options."""
             if now < poll.closes:
                 content2 = content = 'The poll was cancelled.'
             else:
-                try:
+                if poll.votes:
                     winner, count = max(enumerate(tally), key=operator.itemgetter(1))
                     content = f'Poll closed, the winner is {poll.EMOJIS[winner]}'
                     content2 = f'Poll `{poll.hash}` has ended. ' \
                                f'The winner is {poll.EMOJIS[winner]} ' \
                                f'with {tally[winner]} vote(s).\n\n' \
                                f'Full results: {message.jump_url}'
-                except (ValueError, IndexError):
+                else:
                     content = f'Poll closed, there is no winner'
                     content2 = f'Poll `{poll.hash}` has ended. ' \
                                f'No votes were recorded.\n\n' \
@@ -448,7 +457,7 @@ duration, prompt, and options."""
             owner: discord.Member = channel.guild.get_member(poll.owner)
             embed = discord.Embed(
                 title=poll.prompt,
-                description='\n'.join(map('{} ({})'.format, poll.options, tally)),
+                description='\n'.join(map('{.txt} ({})'.format, poll.options, tally)),
                 colour=0xf47fff,
                 timestamp=poll.closes
             ).set_footer(
@@ -464,7 +473,7 @@ duration, prompt, and options."""
                 return
             except discord.HTTPException:
                 pass
-            sess.expunge(poll)
+            sess.delete(poll)
 
     @commands.is_owner()
     @poll_cmd.command('debug')

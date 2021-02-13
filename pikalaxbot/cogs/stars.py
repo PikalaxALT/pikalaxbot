@@ -109,7 +109,7 @@ class StarPosts(BaseTable):
         user = discord.utils.get(self.users, person=user_id)
         if user is None:
             return
-        sess.expunge(user)
+        sess.delete(user)
         if self.board_post:
             msg: discord.PartialMessage = self.bot.get_channel(self.channel).get_partial_message(self.board_post)
             fields = self.prepare_message()
