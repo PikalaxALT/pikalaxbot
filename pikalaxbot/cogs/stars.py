@@ -255,6 +255,7 @@ class Stars(BaseCog):
                     created_at=ctx.message.created_at
                 )
                 sess.add(cfg)
+                await sess.refresh(cfg)
             elif channel is not None:
                 cfg.channel = channel.id
             if threshold is not None:
@@ -293,6 +294,79 @@ class Stars(BaseCog):
                 return await ctx.send('No starred post found with that ID')
         await ctx.send(**fields)
 
+    async def guild_stats(self, cfg: StarConfig, ctx: MyContext):
+        posts = sorted(cfg.posts, lambda p: len(p.users), reverse=True)
+        all_users = [user for post in posts for user in post.users]
+        givers = sorted(Counter(all_users).items(), key=lambda t: t[1], reverse=True)
+        receivers = sorted(
+            Counter(user.post.author for user in all_users).items(),
+            key=lambda t: t[1],
+            reverse=True
+        )
+        embed = discord.Embed(
+            title='Server Starboard Stats',
+            description=f'{len(posts)} messages starred with a total of {len(all_users)} stars.',
+            timestamp=cfg.created_at,
+            colour=0xF8D66A
+        ).set_footer(
+            text='Adding stars since'
+        )
+        if posts:
+            embed.add_field(
+                name='Top Starred Posts',
+                value='\n'.join(
+                    f'{medal}: {post.id} ({len(post.users)} stars)'
+                    for medal, post in zip(self.MEDALS, posts)
+                ),
+                inline=False
+            ).add_field(
+                name='Top Star Receivers',
+                value='\n'.join(
+                    f'{medal}: <@!{x[0]}> ({x[1]} stars)'
+                    for medal, x in zip(self.MEDALS, receivers)
+                ),
+                inline=False
+            ).add_field(
+                name='Top Star Givers',
+                value='\n'.join(
+                    f'{medal}: <@!{x[0]}> ({x[1]} stars)'
+                    for medal, x in zip(self.MEDALS, givers)
+                ),
+                inline=False
+            )
+        await ctx.send(embed=embed)
+
+    async def member_stats(self, cfg: StarConfig, ctx: MyContext, member: discord.Member):
+        nstars_given = sum(1 for post in cfg.posts for star in post.users if star.person == member.id)
+        messages_starred: list[StarPosts] = sorted(
+            [post for post in cfg.posts if post.author == member.id],
+            key=lambda x: len(x.users),
+            reverse=True
+        )
+        nstars_received = sum(1 for post in messages_starred for _ in post.users)
+        embed = discord.Embed(
+            colour=0xF8D66A
+        ).set_author(
+            name=member.display_name,
+            icon_url=member.avatar_url
+        ).add_field(
+            name='Messages Starred',
+            value=str(len(messages_starred))
+        ).add_field(
+            name='Stars Received',
+            value=str(nstars_received)
+        ).add_field(
+            name='Stars Given',
+            value=str(nstars_given)
+        ).add_field(
+            name='Top Starred Posts',
+            value='\n'.join(
+                f'{medal}: {post.message} ({len(post.users)})'
+                for medal, post in zip(self.MEDALS, messages_starred)
+            )
+        )
+        await ctx.send(embed=embed)
+
     @star_grp.command('stats')
     async def star_stats(self, ctx: MyContext, member: discord.Member = None):
         """Show starboard stats for this server or for a specific member."""
@@ -300,46 +374,10 @@ class Stars(BaseCog):
             cfg = await self.get_star_cfg(sess, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
-            posts = sorted(cfg.posts, lambda p: len(p.users), reverse=True)
-            all_users = [user for post in posts for user in post.users]
-            givers = sorted(Counter(all_users).items(), key=lambda t: t[1], reverse=True)
-            receivers = sorted(
-                Counter(user.post.author for user in all_users).items(),
-                key=lambda t: t[1],
-                reverse=True
-            )
-            embed = discord.Embed(
-                title='Server Starboard Stats',
-                description=f'{len(posts)} messages starred with a total of {len(all_users)} stars.',
-                timestamp=cfg.created_at,
-                colour=0xF8D66A
-            ).set_footer(
-                text='Adding stars since'
-            )
-            if posts:
-                embed.add_field(
-                    name='Top Starred Posts',
-                    value='\n'.join(
-                        f'{medal}: {post.id} ({len(post.users)} stars)'
-                        for medal, post in zip(self.MEDALS, posts)
-                    ),
-                    inline=False
-                ).add_field(
-                    name='Top Star Receivers',
-                    value='\n'.join(
-                        f'{medal}: <@!{x[0]}> ({x[1]} stars)'
-                        for medal, x in zip(self.MEDALS, receivers)
-                    ),
-                    inline=False
-                ).add_field(
-                    name='Top Star Givers',
-                    value='\n'.join(
-                        f'{medal}: <@!{x[0]}> ({x[1]} stars)'
-                        for medal, x in zip(self.MEDALS, givers)
-                    ),
-                    inline=False
-                )
-        await ctx.send(embed=embed)
+            if member is None:
+                await self.guild_stats(cfg, ctx)
+            else:
+                await self.member_stats(cfg, ctx, member)
 
     @star_grp.command('who')
     async def star_who(self, ctx: MyContext, message_id: int):
