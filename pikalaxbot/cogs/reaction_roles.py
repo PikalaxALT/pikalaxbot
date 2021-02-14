@@ -20,11 +20,10 @@ from . import *
 import typing
 from .utils.errors import *
 
-from sqlalchemy import Column, ForeignKey, BIGINT, TEXT, select, delete
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncConnection
-from sqlalchemy.exc import StatementError, NoResultFound
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, BIGINT, TEXT, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import StatementError
+from sqlalchemy.orm import relationship, Session
 
 
 class ReactionSchema(BaseTable):
@@ -34,100 +33,43 @@ class ReactionSchema(BaseTable):
 
     roles = relationship('ReactionRoles', backref='schema', cascade='all, delete-orphan')
 
-    @classmethod
-    async def register(
-            cls,
-            conn: AsyncConnection,
-            guild: discord.Guild,
-            channel: discord.TextChannel,
-            message: discord.Message
-    ):
-        statement = insert(cls).values(
-            guild=guild.id,
-            channel=channel.id,
-            message=message.id
-        )
-        await conn.execute(statement)
-
-    @classmethod
-    async def unregister(cls, conn: AsyncConnection, guild: discord.Guild):
-        statement = delete(cls).where(cls.guild == guild.id)
-        await conn.execute(statement)
-
-    @classmethod
-    async def get_cfg(cls, conn: AsyncConnection, guild_id: int):
-        statement = select([cls.channel, cls.message]).where(cls.guild == guild_id)
-        result = await conn.execute(statement)
-        return result.one()
-
 
 class ReactionRoles(BaseTable):
     guild = Column(BIGINT, ForeignKey(ReactionSchema.guild, ondelete='CASCADE'), primary_key=True)
     emoji = Column(TEXT, nullable=False)
-    role = Column(BIGINT, unique=True, nullable=False)
+    role = Column(BIGINT, nullable=False)
 
-    @classmethod
-    async def from_emoji(cls, conn: AsyncConnection, emoji: str):
-        statement = select(cls.role).where(cls.emoji == emoji)
-        return await conn.scalar(statement)
+    __table_args__ = (UniqueConstraint(guild, emoji, role),)
 
-    @classmethod
-    async def mappings(cls, conn: AsyncConnection, guild_id: int):
-        statement = select([cls.emoji, cls.role]).where(cls.guild == guild_id)
-        result = await conn.execute(statement)
-        return result.all()
 
-    @classmethod
-    async def add(cls, conn: AsyncConnection, guild: discord.Guild, emoji: str, role: discord.Role):
-        statement = insert(cls).values(
-            guild=guild.id,
-            emoji=emoji,
-            role=role.id
-        )
-        await conn.execute(statement)
-
-    @classmethod
-    async def remove(
-            cls,
-            conn: AsyncConnection,
-            guild: discord.Guild,
-            emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]
-    ):
-        kwargs = {cls.guild: guild.id}
-        if isinstance(emoji_or_role, discord.Role):
-            kwargs[cls.role] = emoji_or_role.id
-        else:
-            kwargs[cls.emoji] = str(emoji_or_role)
-        statement = delete(cls).where(**kwargs).returning(cls.emoji)
-        return await conn.scalar(statement)
+def get_config_sync(sess: Session, guild_id: discord.Guild):
+    return sess.scalar(select(ReactionSchema).where(ReactionSchema.guild == guild_id))
 
 
 def reaction_roles_initialized():
     async def predicate(ctx: MyContext):
-        try:
-            await ctx.cog.get_reaction_config(ctx.guild.id)
-        except NoResultFound:
-            raise NotInitialized(
-                'Reaction roles is not configured. To configure, use `{}rrole register`.'.format(
-                    (await ctx.bot.get_prefix(ctx.message))[0]
+        async with ctx.bot.sql_session as sess:  # type: AsyncSession
+            ctx.rroles_cfg = await sess.run_sync(get_config_sync, ctx.guild.id)
+            if ctx.rroles_cfg is None:
+                raise NotInitialized(
+                    'Reaction roles is not configured. To configure, use `{}rrole register`.'.format(
+                        (await ctx.bot.get_prefix(ctx.message))[0]
+                    )
                 )
-            ) from None
         return True
     return commands.check(predicate)
 
 
 def reaction_roles_not_initialized():
     async def predicate(ctx: MyContext):
-        try:
-            await ctx.cog.get_reaction_config(ctx.guild.id)
-        except NoResultFound:
-            pass
-        else:
-            raise AlreadyInitialized(
-                'Reaction roles is already configured. To reconfigure, use `{}rrole drop` first.'.format(
-                    (await ctx.bot.get_prefix(ctx.message))[0]
+        async with ctx.bot.sql_session as sess:  # type: AsyncSession
+            cfg = await sess.run_sync(get_config_sync, ctx.guild.id)
+            if cfg is not None:
+                raise AlreadyInitialized(
+                    'Reaction roles is already configured. To reconfigure, use `{}rrole drop` first.'.format(
+                        (await ctx.bot.get_prefix(ctx.message))[0]
+                    )
                 )
-            )
         return True
     return commands.check(predicate)
 
@@ -145,22 +87,15 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
         await ReactionSchema.create(sql)
         await ReactionRoles.create(sql)
 
-    async def get_role_id_by_emoji(self, payload: discord.RawReactionActionEvent) -> typing.Optional[int]:
-        async with self.bot.sql as sql:
-            return await ReactionRoles.from_emoji(sql, str(payload.emoji))
-
-    async def get_guild_role_mappings(self, guild_id: int):
-        async with self.bot.sql as sql:
-            return await ReactionRoles.mappings(sql, guild_id)
-
-    async def get_reaction_config(self, guild_id: int):
-        async with self.bot.sql as sql:
-            return await ReactionSchema.get_cfg(sql, guild_id)
-
     async def resolve_payload(self, payload: discord.RawReactionActionEvent):
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
         member: typing.Optional[discord.Member] = guild.get_member(payload.user_id)
-        role: typing.Optional[discord.Role] = guild.get_role(await self.get_role_id_by_emoji(payload))
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            cfg = await sess.run_sync(get_config_sync, payload.guild_id)
+            if cfg is None:
+                role = None
+            else:
+                role: typing.Optional[discord.Role] = guild.get_role(discord.utils.get(cfg.roles, emoji=str(payload.emoji)))
         return member, role
 
     @BaseCog.listener()
@@ -177,8 +112,8 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
 
     async def make_embed(self, ctx: MyContext):
         roles_str = '\n'.join(
-            f'{emoji} - {ctx.guild.get_role(role).mention}'
-            for emoji, role in await self.get_guild_role_mappings(ctx.guild.id)
+            f'{role.emoji} - {ctx.guild.get_role(role.role).mention}'
+            for role in ctx.rroles_cfg.roles
         ) or 'None configured yet'
         return discord.Embed(
             title=f'Reaction Roles in {ctx.guild}',
@@ -198,10 +133,15 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
 
         channel = channel or ctx.channel
         if channel.permissions_for(ctx.me).send_messages:
-            embed = await self.make_embed(ctx)
-            message = await channel.send(embed=embed)
-            async with self.bot.sql as sql:
-                await ReactionSchema.register(sql, ctx.guild, channel, message)
+            async with self.bot.sql_session as sess:  # type: AsyncSession
+                embed = await self.make_embed(ctx)
+                message = await channel.send(embed=embed)
+                cfg = ReactionSchema(
+                    guild=ctx.guild.id,
+                    channel=channel.id,
+                    message=message.id
+                )
+                sess.add(cfg)
             await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
@@ -210,14 +150,14 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def unregister_role_bot(self, ctx: MyContext):
         """Drops the role reaction registration in this guild"""
 
-        channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
-        channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
-        if channel is None:
-            raise InitializationInvalid('Reaction roles channel not found')
-        message: discord.PartialMessage = channel.get_partial_message(message_id)
-        await message.delete()
-        async with self.bot.sql as sql:
-            await ReactionSchema.unregister(sql, ctx.guild)
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            await sess.refresh(ctx.rroles_cfg)
+            channel: discord.TextChannel = ctx.guild.get_channel(ctx.rroles_cfg.channel)
+            if channel is None:
+                raise InitializationInvalid('Reaction roles channel not found')
+            message: discord.PartialMessage = channel.get_partial_message(ctx.rroles_cfg.message)
+            sess.delete(ctx.rroles_cfg)
+            await message.delete()
         await ctx.message.add_reaction('✅')
 
     @reaction_roles_initialized()
@@ -225,14 +165,19 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def add_role(self, ctx: MyContext, emoji: typing.Union[discord.Emoji, str], *, role: discord.Role):
         """Register a role to an emoji in the current guild"""
 
-        channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
-        channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
-        if channel is None:
-            raise InitializationInvalid('Reaction roles channel not found')
-        message: discord.PartialMessage = channel.get_partial_message(message_id)
-        async with self.bot.sql as sql:
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            channel: discord.TextChannel = ctx.guild.get_channel(ctx.rroles_cfg.channel)
+            if channel is None:
+                raise InitializationInvalid('Reaction roles channel not found')
+            message: discord.PartialMessage = channel.get_partial_message(ctx.rroles_cfg.message)
             try:
-                await ReactionRoles.add(sql, ctx.guild, str(emoji), role)
+                await sess.refresh(ctx.rroles_cfg)
+                ctx.rroles_cfg.roles.append(
+                    ReactionRoles(
+                        emoji=str(emoji),
+                        role=role.id
+                    )
+                )
                 await message.add_reaction(emoji)
             except StatementError:
                 raise ReactionAlreadyRegistered('Role or emoji already registered with reaction roles') from None
@@ -251,17 +196,21 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def drop_role(self, ctx: MyContext, *, emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]):
         """Unregister a role or emoji from the current guild"""
 
-        channel_id, message_id = await self.get_reaction_config(ctx.guild.id)
-        channel: discord.TextChannel = ctx.guild.get_channel(channel_id)
-        if channel is None:
-            raise InitializationInvalid('Reaction roles channel not found')
-        message: discord.PartialMessage = channel.get_partial_message(message_id)
-        async with self.bot.sql as sql:
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            await sess.refresh(ctx.rroles_cfg)
+            channel: discord.TextChannel = ctx.guild.get_channel(ctx.rroles_cfg.channel)
+            if channel is None:
+                raise InitializationInvalid('Reaction roles channel not found')
+            message: discord.PartialMessage = channel.get_partial_message(ctx.rroles_cfg.message)
+            if isinstance(emoji_or_role, discord.Role):
+                kw = {'role': emoji_or_role.id}
+            else:
+                kw = {'emoji': str(emoji_or_role)}
+            rrole: typing.Optional[ReactionRoles] = discord.utils.get(ctx.rroles_cfg.roles, **kw)
+            if rrole is None:
+                raise RoleOrEmojiNotFound(emoji_or_role)
             try:
-                emoji = await ReactionRoles.remove(sql, ctx.guild, emoji_or_role)
-                if emoji is None:
-                    raise RoleOrEmojiNotFound(emoji_or_role)
-                await message.remove_reaction(emoji, ctx.me)
+                await message.remove_reaction(rrole.emoji, ctx.me)
             except discord.NotFound as e:
                 exc = {
                     10008: InitializationInvalid('Reaction roles message not found'),
