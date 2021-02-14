@@ -18,7 +18,7 @@ import math
 
 from discord.ext import commands
 
-from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
+from .utils.game import GameBase, GameCogBase, Game, GameStartCommand
 from . import *
 
 
@@ -84,7 +84,7 @@ class HangmanGame(GameBase):
             else:
                 bonus = math.ceil(self._max_score / 10)
                 async with self.bot.sql as sql:
-                    await increment_score(sql, ctx.author, by=bonus)
+                    await Game.increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
                 await ctx.send(f'{ctx.author.mention} has solved the puzzle!\n'
                                f'Solution: {self._solution_name}\n'

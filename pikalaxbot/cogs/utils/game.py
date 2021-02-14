@@ -32,7 +32,6 @@ from sqlalchemy.dialects.postgresql import insert
 
 __all__ = (
     'find_emoji',
-    'increment_score',
     'GameBase',
     'GameStartCommand',
     'GameCogBase',
@@ -88,10 +87,6 @@ def find_emoji(
         return discord.utils.get(guild.emojis, name=name)
     name = name.lower()
     return discord.utils.find(lambda e: e.name.lower() == name, guild.emojis)
-
-
-async def increment_score(sql: AsyncConnection, player: discord.Member, *, by=1):
-    await Game.increment_score(sql, player, by=by)
 
 
 class NoInvokeOnEdit(commands.CheckFailure):

@@ -2,7 +2,7 @@ import discord
 import math
 from discord.ext import commands
 from . import *
-from .utils.game import GameBase, GameCogBase, increment_score, GameStartCommand
+from .utils.game import GameBase, GameCogBase, Game, GameStartCommand
 from ..types import *
 import re
 import difflib
@@ -1021,7 +1021,7 @@ class Q20GameObject(GameBase):
                 self._max_score *= self.challenge_mode + 1
                 bonus = math.ceil(self._max_score / 200 * (self.attempts + 1))
                 async with self.bot.sql as sql:
-                    await increment_score(sql, ctx.author, by=bonus)
+                    await Game.increment_score(sql, ctx.author, by=bonus)
                 score = await self.award_points()
                 tries = f'{self._attempts - self.attempts} tries' if self.attempts < 19 else 'a single try'
                 await ctx.send(
