@@ -268,7 +268,6 @@ class Poll(BaseCog):
         await Polls.create(sql)
         await PollOptions.create(sql)
         await PollVotes.create(sql)
-
         self.cleanup_polls.start()
 
     @tasks.loop(seconds=60)
