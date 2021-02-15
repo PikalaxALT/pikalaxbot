@@ -284,12 +284,10 @@ class Poll(BaseCog):
         await self.bot.wait_until_ready()
         try:
             async with self.bot.sql_session as sess:
-                def fetch_polls(sync_sess: Session):
-                    return sync_sess.execute(select(Polls)).scalars().all()
-                
-                self.polls = await sess.run_sync(fetch_polls)
-                for poll in self.polls:
+                result = await sess.stream(select(Polls))
+                async for poll in result.scalars():
                     poll.start(self.bot)
+                    self.polls.append(poll)
         except Exception as e:
             await self.bot.get_cog('ErrorHandling').send_tb(None, e, origin='Poll.cache_polls')
 

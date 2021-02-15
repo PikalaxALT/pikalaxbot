@@ -42,14 +42,10 @@ class ReactionRoles(BaseTable):
     __table_args__ = (UniqueConstraint(guild, emoji, role),)
 
 
-def get_config_sync(sess: Session, guild_id: discord.Guild):
-    return sess.scalar(select(ReactionSchema).where(ReactionSchema.guild == guild_id))
-
-
 def reaction_roles_initialized():
     async def predicate(ctx: MyContext):
         async with ctx.bot.sql_session as sess:  # type: AsyncSession
-            ctx.rroles_cfg = await sess.run_sync(get_config_sync, ctx.guild.id)
+            ctx.rroles_cfg = await sess.get(ReactionSchema, ctx.guild.id)
             if ctx.rroles_cfg is None:
                 raise NotInitialized(
                     'Reaction roles is not configured. To configure, use `{}rrole register`.'.format(
@@ -63,7 +59,7 @@ def reaction_roles_initialized():
 def reaction_roles_not_initialized():
     async def predicate(ctx: MyContext):
         async with ctx.bot.sql_session as sess:  # type: AsyncSession
-            cfg = await sess.run_sync(get_config_sync, ctx.guild.id)
+            cfg = await sess.get(ReactionSchema, ctx.guild.id)
             if cfg is not None:
                 raise AlreadyInitialized(
                     'Reaction roles is already configured. To reconfigure, use `{}rrole drop` first.'.format(
@@ -91,7 +87,7 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
         member: typing.Optional[discord.Member] = guild.get_member(payload.user_id)
         async with self.bot.sql_session as sess:  # type: AsyncSession
-            cfg = await sess.run_sync(get_config_sync, payload.guild_id)
+            cfg = await sess.get(ReactionSchema, payload.guild_id)
             if cfg is None:
                 role = None
             else:

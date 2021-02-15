@@ -15,6 +15,18 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 AnyMessage = typing.Union[discord.Message, discord.PartialMessage]
 
 
+class StarboardError(commands.CommandError):
+    pass
+
+
+class NoStarConfig(StarboardError):
+    pass
+
+
+class MessageNotFound(StarboardError):
+    pass
+
+
 class StarConfig(BaseTable):
     id = Column(INTEGER, primary_key=True)
     guild = Column(BIGINT, unique=True)
@@ -61,7 +73,7 @@ class StarPosts(BaseTable):
     )
 
     @staticmethod
-    def star_emoji(stars):
+    def star_emoji(stars: int):
         if 5 > stars >= 0:
             return '\N{WHITE MEDIUM STAR}'
         elif 10 > stars >= 5:
@@ -91,6 +103,8 @@ class StarPosts(BaseTable):
             }
 
     async def add_user(self, user_id: int):
+        if user_id == self.author:
+            return
         if discord.utils.get(self.users, person=user_id):
             return
         self.users.append(StarUsers(
@@ -157,11 +171,11 @@ class Stars(BaseCog):
         await StarUsers.create(sql)
 
     async def get_or_create_post(self, conf: StarConfig, channel_id: int, message_id: int):
-        post: typing.Optional[StarPosts] = discord.utils.get(conf.posts, message=message_id)
+        post: typing.Optional[StarPosts] = discord.utils.get(conf.posts, message=message_id) \
+                                           or discord.utils.get(conf.posts, board_post=message_id)
         if post is None:
             message: discord.Message = await self.bot.get_channel(channel_id).fetch_message(message_id)
             post = StarPosts(
-                conf_id=conf.id,
                 channel=channel_id,
                 message=message_id,
                 author=message.author.id,
@@ -174,20 +188,12 @@ class Stars(BaseCog):
             conf.posts.append(post)
         return post
 
-    @staticmethod
-    def get_star_cfg_sync(session: Session, guild_id: int) -> typing.Optional[StarConfig]:
-        statement = select(StarConfig).where(StarConfig.guild == guild_id)
-        return session.scalar(statement)
-
-    async def get_star_cfg(self, session: AsyncSession, guild_id: int):
-        return await session.run_sync(self.get_star_cfg_sync, guild_id)
-
     @BaseCog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.guild_id is None:
             return
         async with self.bot.sql_session as sess:
-            conf = await self.get_star_cfg(sess, payload.guild_id)
+            conf = await sess.get(StarConfig, payload.guild_id)
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
                 await post.add_user(payload.user_id)
@@ -197,7 +203,7 @@ class Stars(BaseCog):
         if payload.guild_id is None:
             return
         async with self.bot.sql_session as sess:
-            conf = await self.get_star_cfg(sess, payload.guild_id)
+            conf = await sess.get(StarConfig, payload.guild_id)
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
                 await post.remove_user(sess, payload.user_id)
@@ -209,9 +215,11 @@ class Stars(BaseCog):
         if ctx.guild != message.guild:
             return await ctx.send('Attempting to star a message not in this server')
         async with self.bot.sql_session as sess:
-            cfg = await self.get_star_cfg(sess, ctx.guild.id)
+            cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is not None:
                 post = await self.get_or_create_post(cfg, message.channel.id, message.id)
+                if post.author == ctx.author.id:
+                    return await ctx.send('You cannot star your own message.')
                 await post.add_user(ctx.author.id)
 
     @commands.bot_has_permissions(add_reactions=True, manage_channels=True)
@@ -238,7 +246,7 @@ class Stars(BaseCog):
                     await ctx.message.add_reaction(emoji)
                 except discord.HTTPException:
                     return await ctx.send(f'Invalid emoji: {emoji}')
-            cfg = await self.get_star_cfg(sess, ctx.guild.id)
+            cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 if channel is None:
                     channel = await ctx.guild.create_text_channel(
@@ -269,7 +277,7 @@ class Stars(BaseCog):
         """Show a random starred post on this server."""
 
         async with self.bot.sql_session as sess:
-            cfg = await self.get_star_cfg(sess, ctx.guild.id)
+            cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
             posts: list[StarPosts] = [post for post in cfg.posts if len(post.users) >= cfg.threshold]
@@ -283,7 +291,7 @@ class Stars(BaseCog):
         """Show a starred post by message ID."""
 
         async with self.bot.sql_session as sess:
-            cfg = await self.get_star_cfg(sess, ctx.guild.id)
+            cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
             post: typing.Optional[StarPosts] = discord.utils.get(cfg.posts, message=message_id)
@@ -371,7 +379,7 @@ class Stars(BaseCog):
     async def star_stats(self, ctx: MyContext, member: discord.Member = None):
         """Show starboard stats for this server or for a specific member."""
         async with self.bot.sql_session as sess:
-            cfg = await self.get_star_cfg(sess, ctx.guild.id)
+            cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
             if member is None:
@@ -384,7 +392,7 @@ class Stars(BaseCog):
         """Show who starred a specific post."""
 
         async with self.bot.sql_session as sess:
-            cfg = await self.get_star_cfg(sess, ctx.guild.id)
+            cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
             post: typing.Optional[StarPosts] = discord.utils.get(cfg.posts, message=message_id)
