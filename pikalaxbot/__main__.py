@@ -62,6 +62,13 @@ def init_extensions(bot: PikalaxBOT):
             bot.log_info(f'Loaded extn "{cogname}"')
 
 
+class BotArgs(argparse.Namespace):
+    settings: str
+    logfile: str
+    version: bool
+    log_level: int
+
+
 def main():
     parser = argparse.ArgumentParser(prog="pikalaxbot", description="A Discord bot. Yeah.",
                                      epilog="For more help, contact PikalaxALT#5823 on the discord.py server.")
@@ -78,7 +85,7 @@ def main():
     parser.add_argument('-d', '--debug', action='store_const', dest='log_level',
                         const=logging.DEBUG, default=logging.INFO,
                         help="set debug log level")
-    args = parser.parse_args()
+    args = parser.parse_args(namespace=BotArgs())
     if args.version:
         print(f'{parser.prog} v{__version__}')
         return
