@@ -426,7 +426,7 @@ class Modtools(BaseCog):
                 if not original:
                     continue
                 orig = getattr(original, 'original', original) or original
-                await self.bot.send_tb(ctx, orig, origin=f'{error.mode}ing {cog}')
+                await self.bot.get_cog('ErrorHandling').send_tb(ctx, orig, origin=f'{error.mode}ing {cog}')
         else:
             await ctx.send(f'**{error.__class__.__name__}**: {error}', delete_after=10)
             self.log_tb(ctx, error)

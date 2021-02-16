@@ -1051,7 +1051,7 @@ class Q20GameObject(GameBase):
         except Exception as e:
             await ctx.message.add_reaction('\N{CROSS MARK}')
             await ctx.send('Something fucked up, imma tell pika daddy')
-            await self.bot.send_tb(ctx, e, origin='q20 ask')
+            await self.bot.get_cog('ErrorHandling').send_tb(ctx, e, origin='q20 ask')
             raise
         if message in self._state:
             return await ctx.send('You\'ve already asked that!', delete_after=10)

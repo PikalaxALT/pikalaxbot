@@ -278,7 +278,7 @@ class GameCogBase(BaseCog, typing.Generic[T]):
         elif isinstance(exc, commands.MaxConcurrencyReached):
             await ctx.send(f'{self.qualified_name} is already running here')
         else:
-            await self.bot.send_tb(ctx, exc, origin=f'command {ctx.command}')
+            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc, origin=f'command {ctx.command}')
         self.log_tb(ctx, exc)
 
     async def end_quietly(self, ctx: MyContext, history: set[int]):

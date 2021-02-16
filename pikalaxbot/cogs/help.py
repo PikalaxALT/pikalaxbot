@@ -168,7 +168,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
                                   f'Try again in {error.retry_after}s.', delete_after=10)
         elif isinstance(error, commands.MaxConcurrencyReached):
             return await ctx.send('Too many people are using a Help menu in this channel.', delete_after=10)
-        await ctx.bot.send_tb(ctx, error, origin='help command')
+        await ctx.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin='help command')
 
     def get_command_signature(self, command):
         parent = command.full_parent_name
