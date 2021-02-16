@@ -21,8 +21,17 @@ class DpyGuild(BaseCog):
     def testing(self) -> typing.Optional[discord.TextChannel]:
         return self.bot.get_channel(DpyGuild.TESTING_CHANNEL_ID)
 
-    @staticmethod
-    def make_embed(key: typing.Union[discord.Role, discord.Member], is_remove: bool):
+    def make_embed(self, key: typing.Union[discord.Role, discord.Member], is_remove: bool):
+        entity = discord.Object(0)
+        if isinstance(key, discord.Role):
+            entity.author = discord.Object(0)
+            entity.author.top_role = key
+        else:
+            entity.author = key
+        bucket = self._mappings[key.__class__].get_bucket(entity)
+        retry_after = bucket.update_rate_limit()
+        if retry_after:
+            raise commands.CommandOnCooldown(bucket, retry_after)
         embed = discord.Embed(
             colour=discord.Colour.red(),
             title='Tempblock {}'.format('removed' if is_remove else 'added')
@@ -49,10 +58,13 @@ class DpyGuild(BaseCog):
         for key in before.overwrites | after.overwrites:  # type: typing.Union[discord.Role, discord.Member]
             before_ow: typing.Optional[bool] = before.overwrites_for(key).send_messages
             after_ow: typing.Optional[bool] = after.overwrites_for(key).send_messages
-            if before_ow is not False and after_ow is False:
-                await self.log_tempblock_add(key)
-            elif before_ow is False and after_ow is not False:
-                await self.log_tempblock_remove(key)
+            try:
+                if before_ow is not False and after_ow is False:
+                    await self.log_tempblock_add(key)
+                elif before_ow is False and after_ow is not False:
+                    await self.log_tempblock_remove(key)
+            except commands.CommandOnCooldown:
+                pass
 
 
 def setup(bot: PikalaxBOT):
