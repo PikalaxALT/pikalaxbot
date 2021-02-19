@@ -23,7 +23,7 @@ import typing
 import time
 import re
 import itertools
-from ..pokeapi import PokeapiModels
+from ..pokeapi import PokeapiModel
 from textwrap import indent
 import traceback
 import operator
@@ -214,9 +214,9 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
-            async with self.bot.pokeapi.replace_row_factory(None) as pokeapi:
+            async with self.bot.pokeapi.replace_row_factory(None):
                 start = time.perf_counter()
-                async with pokeapi.execute(query) as cur:  # type: asqlite3.Cursor
+                async with self.bot.pokeapi.execute(query) as cur:  # type: asqlite3.Cursor
                     records: list[tuple] = await cur.fetchall()
                     end = time.perf_counter()
             header = '|'.join(col[0] for col in cur.description)
@@ -262,20 +262,20 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             )
             await ctx.send(embed=embed)
 
-    async def mon_info(self, ctx: MyContext, pokemon: PokeapiModels.PokemonSpecies):
+    async def mon_info(self, ctx: MyContext, pokemon: 'PokeapiModel.classes.PokemonSpecies'):
         """Gets information about a Pokémon species"""
 
         async with ctx.typing():
-            base_stats = await self.bot.pokeapi.get_base_stats(pokemon)
-            types = await self.bot.pokeapi.get_mon_types(pokemon)
-            egg_groups = await self.bot.pokeapi.get_egg_groups(pokemon)
-            image_url = await self.bot.pokeapi.get_species_sprite_url(pokemon)
-            flavor_text = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
-            evos = await self.bot.pokeapi.get_evos(pokemon)
-            abilities = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
-            forme = await self.bot.pokeapi.get_default_forme(pokemon)
+            base_stats = self.bot.pokeapi.get_base_stats(pokemon)
+            types = self.bot.pokeapi.get_mon_types(pokemon)
+            egg_groups = self.bot.pokeapi.get_egg_groups(pokemon)
+            image_url = self.bot.pokeapi.get_species_sprite_url(pokemon)
+            flavor_text = self.bot.pokeapi.get_mon_flavor_text(pokemon)
+            evos = self.bot.pokeapi.get_evos(pokemon)
+            abilities = self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
+            forme = self.bot.pokeapi.get_default_forme(pokemon)
         embed = discord.Embed(
-            title=f'{pokemon.name} (#{pokemon.id})',
+            title=f'{pokemon} (#{pokemon.id})',
             description=flavor_text or 'No flavor text',
             colour=DEX_COLORS[pokemon.pokemon_color.id]
         ).add_field(
@@ -297,18 +297,18 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             value=f'{12.5 * pokemon.gender_rate}% Female' if pokemon.gender_rate >= 0 else 'Gender Unknown' or 'Unknown'
         ).set_thumbnail(url=image_url or discord.Embed.Empty)
         if pokemon.evolves_from_species:
-            preevo_str = f'Evolves from {pokemon.evolves_from_species.name} (#{pokemon.evolves_from_species.id})\n'
+            preevo_str = f'Evolves from {pokemon.evolves_from_species} (#{pokemon.evolves_from_species.id})\n'
         else:
             preevo_str = ''
         if evos:
-            preevo_str += 'Evolves into ' + ', '.join(f'{mon.name} (#{mon.id})' for mon in evos)
+            preevo_str += 'Evolves into ' + ', '.join(f'{mon} (#{mon.id})' for mon in evos)
         embed.add_field(
             name='Evolution',
             value=preevo_str or 'No evolutions'
         ).add_field(
             name='Abilities',
             value=', '.join(
-                f'_{ability.ability.name}_' if ability.is_hidden else ability.ability.name for ability in abilities
+                f'_{ability.ability}_' if ability.is_hidden else ability.ability.name for ability in abilities
             ) or 'Unknown'
         ).add_field(
             name='Biometrics',
@@ -317,19 +317,19 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         )
         await ctx.send(embed=embed)
 
-    async def move_info(self, ctx: MyContext, move: PokeapiModels.Move):
+    async def move_info(self, ctx: MyContext, move: 'PokeapiModel.classes.Move'):
         async with ctx.typing():
-            attrs = await self.bot.pokeapi.get_move_attrs(move)
-            flavor_text = await self.bot.pokeapi.get_move_description(move)
-            machines = await self.bot.pokeapi.get_machines_teaching_move(move)
+            attrs = self.bot.pokeapi.get_move_attrs(move)
+            flavor_text = self.bot.pokeapi.get_move_description(move)
+            machines = self.bot.pokeapi.get_machines_teaching_move(move)
         embed = discord.Embed(
-            title=f'{move.name} (#{move.id})',
+            title=f'{move} (#{move.id})',
             description=flavor_text or 'No flavor text',
             colour=TYPE_COLORS[move.type.name]
         ).add_field(
             name='Type',
-            value=f'Battle: {move.type.name}\n'
-                  f'Contest: {move.contest_type.name}'
+            value=f'Battle: {move.type}\n'
+                  f'Contest: {move.contest_type}'
         ).add_field(
             name='Stats',
             value=f'**Power:** {move.power}\n'
@@ -355,7 +355,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             machines.sort(key=operator.attrgetter('version_group.id', 'number'))
             machine_s = []
             for gen, machs in itertools.groupby(machines, operator.attrgetter('version_group.generation')): \
-                    # type: PokeapiModels.Generation, typing.Iterable[PokeapiModels.Machine]
+                    # type: PokeapiModel.classes.Generation, typing.Iterable[PokeapiModel.classes.Machine]
                 mach_s = set()
                 for mach in machs:
                     if mach.number < 100:
@@ -363,7 +363,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                     else:
                         mach_no_s = f'HM{mach.number - 100:02d}'
                     mach_s.add(mach_no_s)
-                machine_s.append(f'**{gen.name}:** {", ".join(mach_s)}')
+                machine_s.append(f'**{gen}:** {", ".join(mach_s)}')
             embed.add_field(
                 name='Machines',
                 value='\n'.join(machine_s)
@@ -375,17 +375,22 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             self,
             ctx: MyContext,
             *,
-            entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]
+            entity: typing.Union['PokeapiModel.classes.PokemonSpecies', 'PokeapiModel.classes.Move']
     ):
         """Gets information about a Pokémon species or move"""
 
-        if isinstance(entity, PokeapiModels.PokemonSpecies):
+        if isinstance(entity, PokeapiModel.classes.PokemonSpecies):
             return await self.mon_info(ctx, entity)
         else:
             return await self.move_info(ctx, entity)
 
     @commands.command(aliases=['dt'])
-    async def details(self, ctx: MyContext, *, entity: typing.Union[PokeapiModels.PokemonSpecies, PokeapiModels.Move]):
+    async def details(
+            self,
+            ctx: MyContext,
+            *,
+            entity: typing.Union['PokeapiModel.classes.PokemonSpecies', 'PokeapiModel.classes.Move']
+    ):
         """Gets information about a Pokémon species or move"""
 
         await self.mon_or_move_info(ctx, entity=entity)
@@ -405,13 +410,16 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         """Get whether the given pokemon can learn the given move"""
         if len(query) > 2:
             raise commands.BadArgument('mon, move')
-        mon = await self.bot.pokeapi.get_species_by_name(query[0])
+        mon = await PokeapiModel.classes.PokemonSpecies.get_named(
+            self.bot.pokeapi,
+            query[0]
+        )
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
-        async with self.bot.pokeapi.replace_row_factory(PokeapiModels.PokemonMove) as conn, ctx.typing():
+        async with PokeapiModel.classes.PokemonMove.replace_row_factory(self.bot.pokeapi), ctx.typing():
             movelearns = {
                 move: list(group)
-                for move, group in itertools.groupby(await conn.execute_fetchall("""
+                for move, group in itertools.groupby(await self.bot.pokeapi.execute_fetchall("""
             SELECT *
             FROM pokemon_v2_pokemonmove pv2pm
             INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
@@ -423,10 +431,10 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         if not movelearns:
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         if len(query) == 1:
-            types = await self.bot.pokeapi.get_mon_types(mon)
+            types = self.bot.pokeapi.get_mon_types(mon)
 
             class MoveLearnPageSource(menus.ListPageSource):
-                def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModels.PokemonMove]):
+                def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModel.classes.PokemonMove]):
                     embed = discord.Embed(
                         title=f'{mon}\'s learnset',
                         colour=TYPE_COLORS[types[0].name]
@@ -456,8 +464,9 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             )
             await menu.start(ctx)
         else:
-            move = await self.bot.pokeapi.get_move_by_name(query[1])
-            if move is None:
+            try:
+                move = await PokeapiModel.classes.Move.convert(ctx, query[1])
+            except commands.BadArgument:
                 return await ctx.send(f'Could not find a move named "{query[1]}"')
             flag = 'can' if move in movelearns else 'cannot'
             await ctx.send(f'{mon} **{flag}** learn {move}.')
@@ -473,7 +482,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2ps.generation_id = ?
             AND pv2psn.language_id = 9
             """, gen
-        elif move := await self.bot.pokeapi.get_model_named(PokeapiModels.Move, term):
+        elif move := await PokeapiModel.classes.Move.get_named(self.bot.pokeapi, term):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -483,7 +492,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             AND pv2pm.move_id = ?
             """, move.id
-        elif type_ := await self.bot.pokeapi.get_model_named(PokeapiModels.Type, type_pat.sub('', term)):
+        elif type_ := await PokeapiModel.classes.Type.get_named(self.bot.pokeapi, type_pat.sub('', term)):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -493,7 +502,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             AND pv2pt.type_id = ?
             """, type_.id
-        elif ability := await self.bot.pokeapi.get_model_named(PokeapiModels.Ability, term):
+        elif ability := await PokeapiModel.classes.Ability.get_named(self.bot.pokeapi, term):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -503,7 +512,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             AND pv2pa.ability_id = ?
             """, ability.id
-        elif color := await self.bot.pokeapi.get_model_named(PokeapiModels.PokemonColor, term):
+        elif color := await PokeapiModel.classes.PokemonColor.get_named(self.bot.pokeapi, term):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -511,7 +520,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2psn.language_id = 9
             AND pv2ps.pokemon_color_id = ?
             """, color.id,
-        elif egg_group := await self.bot.pokeapi.get_model_named(PokeapiModels.EggGroup, egg_group_pat.sub('', term)):
+        elif egg_group := await PokeapiModel.classes.EggGroup.get_named(self.bot.pokeapi, egg_group_pat.sub('', term)):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -636,9 +645,12 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             """.format(m['measure'], m['ineq']), float(m['amount']) * 10
         elif m := re.match(r'^(?P<direction>weak|resists)\s*(?P<type>.+)$', term, re.I):
             is_flying_press = False
-            type_ = await self.bot.pokeapi.get_model_named(PokeapiModels.Type, type_pat.sub('', m['type']))
+            type_ = await PokeapiModel.classes.Type.get_named(self.bot.pokeapi, type_pat.sub('', m['type']))
             if type_ is None:
-                move = await self.bot.pokeapi.get_model_named(PokeapiModels.Move, m['type'])  # type: PokeapiModels.Move
+                move = await PokeapiModel.classes.Move.get_named(
+                    self.bot.pokeapi,
+                    m['type']
+                )  # type: PokeapiModel.classes.Move
                 if move is None:
                     raise DexsearchParseError('No type or move named {}'.format(m['type']))
                 if move.move_damage_class.id == 1:
@@ -740,8 +752,8 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
         self.bot.log_info(statement)
         self.bot.log_info(', '.join(map(str, args)))
-        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
-            results = await conn.execute_fetchall(statement, args)
+        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)):
+            results = await self.bot.pokeapi.execute_fetchall(statement, args)
         if not results:
             await ctx.send('No results found.')
         elif len(results) > 20 and not show_all:
@@ -770,7 +782,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2m.generation_id = ?
             AND pv2mn.language_id = 9
             """, gen
-        elif type_ := await self.bot.pokeapi.get_model_named(PokeapiModels.Type, type_pat.sub('', term)):
+        elif type_ := await PokeapiModel.classes.Type.get_named(self.bot.pokeapi, type_pat.sub('', term)):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -778,7 +790,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2mn.language_id = 9
             AND pv2m.type_id = ?
             """, type_.id
-        elif mdclass := await self.bot.pokeapi.get_model_named(PokeapiModels.MoveDamageClass, term):
+        elif mdclass := await PokeapiModel.classes.MoveDamageClass.get_named(self.bot.pokeapi, term):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -786,7 +798,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2mn.language_id = 9
             AND pv2m.move_damage_class_id = ?
             """, mdclass.id
-        elif ctype := await self.bot.pokeapi.get_model_named(PokeapiModels.ContestType, term):
+        elif ctype := await PokeapiModel.classes.ContestType.get_named(self.bot.pokeapi, term):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -795,7 +807,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2m.contest_type_id = ?
             """, ctype.id
         elif (m := re.match(r'^targets\s+(?P<target>.+)$', term, re.I)) \
-                and (target := await self.bot.pokeapi.get_model_named(PokeapiModels.MoveTarget, m['target'])):
+                and (target := await PokeapiModel.classes.MoveTarget.get_named(self.bot.pokeapi, m['target'])):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -803,8 +815,8 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2mn.language_id = 9
             AND pv2m.move_target_id = ?
             """, target.id
-        elif attr := await self.bot.pokeapi.get_model_named(
-                PokeapiModels.MoveAttribute,
+        elif attr := await PokeapiModel.classes.MoveAttribute.get_named(
+                self.bot.pokeapi,
                 re.sub(r'^bypasses\s*substitute$', 'authentic', term, re.I)
         ):
             return """
@@ -856,8 +868,8 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
         self.bot.log_info(statement)
         self.bot.log_info(', '.join(map(str, args)))
-        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)) as conn:
-            results = await conn.execute_fetchall(statement, args)
+        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)):
+            results = await self.bot.pokeapi.execute_fetchall(statement, args)
         if not results:
             await ctx.send('No results found.')
         elif len(results) > 20 and not show_all:

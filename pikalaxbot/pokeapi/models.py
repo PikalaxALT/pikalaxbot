@@ -1,493 +1,370 @@
-# PikalaxBOT - A Discord bot in discord.py
-# Copyright (C) 2018-2021  PikalaxALT
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from sqlite3 import Connection, Row, Cursor
-from typing import Optional, TYPE_CHECKING
-from contextlib import contextmanager
-from re import sub
-import json
-from discord.ext import commands
+import sqlite3
+import contextlib
+import typing
+import re
+import collections
+import asyncio
+import difflib
+import aiosqlite
+import discord
+import inflect
 from ..context import MyContext
-if TYPE_CHECKING:
-    from .types import *
+from discord.ext import commands
 
 
-__all__ = (
-    'PokeApiConnection',
-    'PokeapiResource',
-    'NamedPokeapiResource',
-    'PokeapiModels',
-)
+__all__ = ('PokeapiModel',)
+
+_T = typing.TypeVar('_T')
+_R = typing.TypeVar('_R')
+
+_garbage_pat = re.compile(r'[. \t-\'"]')
+DICTIONARY = [
+    'characteristic', 'description', 'preference', 'pokeathlon', 'generation', 'experience', 'evolution', 'encounter',
+    'condition', 'attribute', 'location', 'language', 'efficacy', 'category', 'version', 'trigger', 'sprites',
+    'species', 'pokemon', 'pokedex', 'machine', 'habitat', 'contest', 'ailment', 'ability', 'target', 'region',
+    'pocket', 'number', 'nature', 'method', 'growth', 'gender', 'flavor', 'effect', 'damage', 'change', 'battle',
+    'super', 'style', 'shape', 'learn', 'index', 'group', 'fling', 'combo', 'color', 'class', 'chain', 'berry', 'type',
+    'text', 'stat', 'slot', 'rate', 'park', 'name', 'move', 'meta', 'item', 'game', 'form', 'area', 'pal', 'map',
+    'egg', 'dex'
+]
+pluralizer = inflect.engine()
+_prep_lock = asyncio.Lock()
 
 
-class PokeApiConnection(Connection):
-    _default_language = 9
+def tblname_to_classname(name: str):
+    name = name[11:]
+    for word in DICTIONARY:
+        name = name.replace(word, '_' + word.upper())
+    return name.title().replace('_', '')
 
-    @contextmanager
-    def replace_row_factory(self, factory: Optional['RowFactory']):
-        old_factory = self.row_factory
-        self.row_factory = factory
-        yield self
-        self.row_factory = old_factory
 
-    def get_model(self, model: 'ModelType', id_: Optional[int]) -> Optional['Model']:
-        if id_ is None:
-            return
-        statement = """
-        SELECT *
-        FROM pokemon_v2_{}
-        WHERE id = :id
-        """.format(model.__name__.lower())
-        with self.replace_row_factory(model) as conn:
-            cur = conn.execute(statement, {'id': id_, 'language': conn._default_language})
-            result = cur.fetchone()
+def sqlite3_type(coltype: str) -> type:
+    if coltype.startswith('varchar'):
+        return str
+    return {
+        'integer': int,
+        'real': float,
+        'text': str,
+        'bool': bool
+    }.get(coltype)
+
+
+RowFactory = typing.Callable[[sqlite3.Cursor, tuple], typing.Any]
+
+
+@contextlib.contextmanager
+def replace_row_factory(connection: sqlite3.Connection, row_factory: typing.Optional[RowFactory]):
+    old_factory: typing.Optional[RowFactory] = connection.row_factory
+    try:
+        connection.row_factory = row_factory
+        yield
+    finally:
+        connection.row_factory = old_factory
+
+
+class collection(list[_T]):
+    def get(self, **attrs) -> typing.Optional[_T]:
+        return discord.utils.get(self, **attrs)
+
+
+class relationship:
+    def __init__(self, target: str, local_col: str, foreign_col: str, attrname: str):
+        self.target = target
+        self.local_col = local_col
+        self.foreign_col = foreign_col
+        self.attrname = attrname
+
+    def __get__(self, instance: typing.Optional['PokeapiModel'], owner: typing.Optional[typing.Type['PokeapiModel']]):
+        if instance is None:
+            return self
+        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
+        conn = instance.connection
+        with replace_row_factory(conn, target_cls.from_row):
+            cursor = instance.connection.execute(
+                'select * '
+                'from "{}" '
+                'where {} = ?'.format(self.target, self.foreign_col),
+                (getattr(instance, self.local_col),)
+            )
+            result = cursor.fetchone()
+            setattr(instance, self.attrname, result)
         return result
 
 
-class PokeapiResource:
-    _namecol = None
-    _suffix = None
+class backref:
+    def __init__(self, target: str, local_col: str, foreign_col: str, attrname: str):
+        self.target = target
+        self.local_col = local_col
+        self.foreign_col = foreign_col
+        self.attrname = attrname
 
-    def __init__(self, cursor: Cursor, row: tuple):
-        self._row = Row(cursor, row)
-        self._connection: PokeApiConnection = cursor.connection
-        self.id = self._row['id']
-        self._name: Optional[str]
-        if 'name' in self._row:
-            self._name = self._row['name']
-        else:
-            self._name = None
-
-    @property
-    def name(self) -> Optional[str]:
-        return self._name
-
-    @name.setter
-    def name(self, value: Optional[str]):
-        self._name = value
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and other.id == self.id
-
-    def __hash__(self):
-        return hash((self.__class__, self.id))
-
-    def __repr__(self):
-        attrs = ', '.join(map('{0}={1!r}'.format,self._row.keys(), self._row))
-        return '<{0.__class__.__name__} {1}>'.format(self, attrs)
-
-    def get_submodel(self, model: 'ModelType', field: str) -> Optional['Model']:
-        return self._connection.get_model(model, self._row[field])
+    def __get__(self, instance: typing.Optional['PokeapiModel'], owner: typing.Optional[typing.Type['PokeapiModel']]):
+        if instance is None:
+            return self
+        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
+        conn = instance.connection
+        with replace_row_factory(conn, target_cls.from_row):
+            cursor = instance.connection.execute(
+                'select * '
+                'from "{}" '
+                'where {} = ?'.format(self.target, self.foreign_col),
+                (getattr(instance, self.local_col),)
+            )
+            result = collection(cursor.fetchall())
+            setattr(instance, self.attrname, result)
+        return result
 
 
-class NamedPokeapiResource(PokeapiResource):
-    _suffix = 'name'
-    _namecol = 'name',
+def name_for_scalar_relationship(
+        local_cls: typing.Type['PokeapiModel'],
+        dest_cls: typing.Type['PokeapiModel'],
+        local_col: str,
+        dest_col: str,
+        constraints: typing.Iterable[sqlite3.Row]
+):
+    return local_col[:-3]
 
-    def __init__(self, cursor: Cursor, row: tuple):
-        super().__init__(cursor, row)
-        self.language = self._connection.get_model(PokeapiModels.Language, self._connection._default_language)
-        clsname = self.__class__.__name__
-        idcol = sub(r'([a-z])([A-Z])', r'\1_\2', clsname).lower()
-        statement = """
-            SELECT {}
-            FROM pokemon_v2_{}{}
-            WHERE language_id = {}
-            AND {}_id = :id
-        """.format(
-            ', '.join(self._namecol),
-            clsname.lower(),
-            self._suffix,
-            self._connection._default_language,
-            idcol
-        )
-        with self._connection.replace_row_factory(None) as conn:
-            cur = conn.execute(statement, {'id': self.id})
-            row = cur.fetchone()
-        if row:
-            for name, value in zip(self._namecol, row):
-                setattr(self, name, value)
-        else:
-            for name in self._namecol:
-                setattr(self, name, None)
 
-    def __str__(self):
-        if hasattr(self, 'name'):
-            return self.name
-        return super().__repr__()
+def name_for_collection_relationship(
+        local_cls: typing.Type['PokeapiModel'],
+        dest_cls: typing.Type['PokeapiModel'],
+        local_col: str,
+        dest_col: str,
+        constraints: typing.Iterable[sqlite3.Row]
+):
+    if local_cls is dest_cls:
+        return 'evolves_into_species'
+    parts = re.findall(r'[A-Z][a-z]+', dest_cls.__name__)
+    parts[-1] = pluralizer.plural(parts[-1])
+    name = '_'.join(parts).lower()
+    ambiguities = collections.Counter(constraint[2] for constraint in constraints)
+    if ambiguities[local_cls.__tablename__] > 1:
+        name += '__' + dest_col[:-3]
+    return name
+
+
+class classproperty:
+    def __init__(self, func: typing.Callable[[type], _R]):
+        self._func = func
+
+    def __get__(self, instance: typing.Optional[_T], owner: typing.Optional[typing.Type[_T]]):
+        if owner is None:
+            owner = type(instance)
+        return self._func(owner)
+
+
+class PokeapiModel:
+    __abstract__ = True
+    __columns__: dict[str, type] = {}
+    __cache__: dict[tuple[typing.Type['PokeapiModel'], int], 'PokeapiModel'] = {}
+    __prepared__ = False
+    classes = None
 
     @classmethod
-    async def convert(cls, ctx: MyContext, argument: str) -> 'NamedPokeapiResource':
+    @contextlib.asynccontextmanager
+    async def replace_row_factory(cls, conn: typing.Union[aiosqlite.Connection, sqlite3.Connection]):
+        old_factory = conn.row_factory
+        conn.row_factory = cls.from_row
+        yield
+        conn.row_factory = old_factory
+
+    @classproperty
+    def __tablename__(cls):
+        return 'pokemon_v2_' + cls.__name__.lower()
+
+    @classmethod
+    def from_row(cls, cursor: sqlite3.Cursor, row: tuple) -> 'PokeapiModel':
+        return cls.__cache__.get((cls, row[0])) or cls(cursor, row)
+
+    def __init__(self, cursor: sqlite3.Cursor, row: tuple):
+        if self.__abstract__:
+            raise TypeError('trying to instantiate an abstract base class')
+        self.__class__.__cache__[(self.__class__, row[0])] = self
+        self.connection: sqlite3.Connection = cursor.connection
+        for (colname, *_), value in zip(cursor.description, row):
+            setattr(self, colname, value)
+        # for key, value in self.__class__.__dict__.items():
+        #     if isinstance(value, (relationship, backref)):
+        #         getattr(self, key)
+
+    def __iter__(self):
+        for column in self.__columns__:
+            yield column, getattr(self, column)
+
+    @classmethod
+    async def _prepare(cls, connection: aiosqlite.Connection):
+        classes: dict[str, typing.Type['PokeapiModel']] = {}
+        tbl_names = [x async for x, in await connection.execute(
+            "select tbl_name "
+            "from sqlite_master "
+            "where type = 'table' "
+            "and tbl_name like 'pokemon_v2_%'"
+        )]
+        with replace_row_factory(connection, None):
+            for tbl_name in tbl_names:
+                cls_name = tblname_to_classname(tbl_name)
+                colspec: dict[str, type] = {
+                    colname: sqlite3_type(coltype)
+                    async for cid, colname, coltype, notnull, dflt, pk in await connection.execute(
+                            'pragma table_info ("{}")'.format(tbl_name)
+                    )
+                }
+
+                table_cls = type(
+                    cls_name,
+                    (cls,),
+                    {
+                        '__abstract__': False,
+                        '__columns__': colspec
+                    }
+                )
+                classes[cls_name] = table_cls
+            for tbl_name in tbl_names:
+                cls_name = tblname_to_classname(tbl_name)
+                table_cls = classes[cls_name]
+                foreign_keys = await connection.execute_fetchall(
+                    'pragma foreign_key_list ("{}")'.format(tbl_name)
+                )
+                for id_, seq, dest, local_col, dest_col, on_update, on_delete, match in foreign_keys:
+                    dest_cls_name = tblname_to_classname(dest)
+                    dest_cls = classes[dest_cls_name]
+                    manytoonekey = name_for_scalar_relationship(
+                        table_cls,
+                        dest_cls,
+                        local_col,
+                        dest_col,
+                        foreign_keys
+                    )
+                    onetomanykey = name_for_collection_relationship(
+                        dest_cls,
+                        table_cls,
+                        dest_col,
+                        local_col,
+                        foreign_keys
+                    )
+
+                    setattr(table_cls, manytoonekey, relationship(dest, local_col, dest_col, manytoonekey))
+                    setattr(dest_cls, onetomanykey, backref(tbl_name, dest_col, local_col, onetomanykey))
+        cls.classes = type('Base', (object,), classes)
+
+    @classmethod
+    async def prepare(cls, connection: aiosqlite.Connection):
+        if not cls.__prepared__:
+            async with _prep_lock:
+                if not cls.__prepared__:
+                    await cls._prepare(connection)
+                    cls.__prepared__ = True
+
+        differ = difflib.SequenceMatcher(lambda s: _garbage_pat.match(s) is not None)
+
+        def fuzzy_ratio(a, b):
+            differ.set_seqs(a, b)
+            return differ.ratio()
+
+        await connection.create_function(
+            'FUZZY_RATIO',
+            2,
+            fuzzy_ratio
+        )
+
+    @classmethod
+    async def get(
+            cls: typing.Type[_T],
+            connection: aiosqlite.Connection,
+            id_: int
+    ) -> typing.Optional[_T]:
+        async with cls.replace_row_factory(connection):
+            async with connection.execute(
+                'select * '
+                'from {} '
+                'where id = ?'.format(cls.__tablename__),
+                (id_,)
+            ) as cur:
+                return await cur.fetchone()
+
+    @classmethod
+    async def get_random(
+            cls: typing.Type[_T],
+            connection: aiosqlite.Connection
+    ) -> _T:
+        async with cls.replace_row_factory(connection):
+            async with connection.execute(
+                'select * '
+                'from {} '
+                'order by random()'.format(cls.__tablename__)
+            ) as cur:
+                return await cur.fetchone()
+
+    @property
+    def qualified_name(self):
+        if self.__class__.__name__ == 'Language':
+            attrs = {'local_language_id': 9}
+            collection_name = 'language_names__language'
+        else:
+            attrs = {'language_id': 9}
+            collection_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', self.__class__.__name__).lower() + '_names'
+        names = getattr(self, collection_name)
+        return discord.utils.get(names, **attrs).name
+
+    @classmethod
+    async def get_named(
+            cls: typing.Type[_T],
+            conn: aiosqlite.Connection,
+            name: str,
+            *,
+            cutoff=0.9
+    ) -> typing.Optional[_T]:
+        name_cls = getattr(cls.classes, cls.__name__ + 'Name')
+        fk_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', cls.__name__).lower() + '_id'
+        select = 'SELECT * FROM {0} INNER JOIN {1} ON {0}.id = {1}.{2}'
+        fuzzy_clause = 'FUZZY_RATIO({1}.name, :name) > :cutoff'
+        if hasattr(cls, 'name'):
+            fuzzy_clause += ' OR FUZZY_RATIO({0}.name, :name) > :cutoff'
+        lang_attr_name = 'local_language_id' if cls.__name__ == 'Language' else 'language_id'
+        lang_clause = '{1}.{3} = 9'
+        statement = f'{select} WHERE {lang_clause} AND ({fuzzy_clause})'.format(cls.__tablename__, name_cls.__tablename__, fk_name, lang_attr_name)
+        print(statement)
+        async with cls.replace_row_factory(conn):
+            async with conn.execute(statement, dict(name=name, cutoff=cutoff)) as cur:
+                return await cur.fetchone()
+
+    @classmethod
+    async def convert(
+            cls: typing.Type[_T],
+            ctx: MyContext,
+            argument: str
+    ) -> _T:
+        conn: aiosqlite.Connection = ctx.bot.pokeapi
         try:
             argument = int(argument)
-            methd = ctx.bot.pokeapi.get_model
         except ValueError:
-            methd = ctx.bot.pokeapi.get_model_named
+            methd = cls.get_named
+        else:
+            methd = cls.get
         try:
-            obj = await methd(cls, argument)
+            obj = await methd(conn, argument)
             assert obj is not None
         except Exception as e:
             raise commands.BadArgument(f'Failed to convert value "{argument}" into {cls.__name__}') from e
         return obj
 
+    def __str__(self):
+        try:
+            return self.qualified_name
+        except AttributeError:
+            return '<{0.__class__.__name__} id={0.id}>'.format(self)
 
-class PokeapiModels:
-    class Language(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            statement = """
-            SELECT name
-            FROM pokemon_v2_languagename
-            WHERE language_id = :language
-            AND local_language_id = :default_language
-            """
-            self.iso3166: int = self._row['iso3166']
-            self.official = bool(self._row['official'])
-            self.order: int = self._row['order']
-            self.iso639: int = self._row['iso639']
-            with self._connection.replace_row_factory(None) as conn:
-                cur = conn.execute(
-                    statement,
-                    {
-                        'language': self.id,
-                        'default_language': self._connection._default_language
-                    }
-                )
-                try:
-                    self.name, = cur.fetchone()
-                except TypeError:
-                    self.name = None
+    def __repr__(self):
+        try:
+            return '<{0.__class__.__name__} id={0.id} name={0.qualified_name}>'.format(self)
+        except AttributeError:
+            return '<{0.__class__.__name__} id={0.id}>'.format(self)
 
-    class ItemFlingEffect(NamedPokeapiResource):
-        _suffix = 'effecttext'
-        _namecol = 'effect',
+    def __eq__(self, other):
+        try:
+            return self.__class__ is other.__class__ and self.id == other.id
+        except AttributeError:
+            return False
 
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-
-    class ItemPocket(NamedPokeapiResource):
-        pass
-
-    class ItemCategory(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.item_pocket = self.get_submodel(PokeapiModels.ItemPocket, 'item_pocket_id')
-
-    class Item(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.cost = self._row['cost']
-            self.fling_power = self._row['fling_power']
-            self.item_category = self.get_submodel(PokeapiModels.ItemCategory, 'item_category_id')
-            self.item_fling_effect = self.get_submodel(PokeapiModels.ItemFlingEffect, 'item_fling_effect_id')
-
-    class EvolutionChain(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.baby_trigger_item = self.get_submodel(PokeapiModels.Item, 'baby_trigger_item_id')
-
-    class Region(NamedPokeapiResource):
-        pass
-
-    class Generation(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.region = self.get_submodel(PokeapiModels.Region, 'region_id')
-
-    class PokemonColor(NamedPokeapiResource):
-        pass
-
-    class PokemonHabitat(NamedPokeapiResource):
-        pass
-
-    class PokemonShape(NamedPokeapiResource):
-        _namecol = 'name', 'awesome_name'
-
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-
-    class GrowthRate(NamedPokeapiResource):
-        _suffix = 'description'
-        _namecol = 'description',
-
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.formula = self._row['formula']
-
-    class MoveDamageClass(NamedPokeapiResource):
-        pass
-
-    class MoveEffect(NamedPokeapiResource):
-        _suffix = 'effecttext'
-        _namecol = 'effect', 'short_effect',
-
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-
-    class MoveTarget(NamedPokeapiResource):
-        pass
-
-    class Type(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
-            self.damage_class = self.move_damage_class = self.get_submodel(
-                PokeapiModels.MoveDamageClass,
-                'move_damage_class_id'
-            )
-
-    class ContestEffect(NamedPokeapiResource):
-        _suffix = 'effecttext'
-        _namecol = 'effect',
-
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.appeal = self._row['appeal']
-            self.jam = self._row['jam']
-
-    class ContestType(NamedPokeapiResource):
-        pass
-
-    class SuperContestEffect(NamedPokeapiResource):
-        _suffix = 'flavortext'
-        _namecol = 'flavor_text',
-
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.appeal = self._row['appeal']
-
-    class Move(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.power = self._row['power']
-            self.pp = self._row['pp']
-            self.accuracy = self._row['accuracy']
-            self.priority = self._row['priority']
-            self.effect_chance = self.move_effect_chance = self._row['move_effect_chance']
-            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
-            self.damage_class = self.move_damage_class = self.get_submodel(
-                PokeapiModels.MoveDamageClass,
-                'move_damage_class_id'
-            )
-            self.effect = self.move_effect = self.get_submodel(PokeapiModels.MoveEffect, 'move_effect_id')
-            self.target = self.move_target = self.get_submodel(PokeapiModels.MoveTarget, 'move_target_id')
-            self.type = self.get_submodel(PokeapiModels.Type, 'type_id')
-            self.contest_effect = self.get_submodel(PokeapiModels.ContestEffect, 'contest_effect_id')
-            self.contest_type = self.get_submodel(PokeapiModels.ContestType, 'contest_type_id')
-            self.super_contest_effect = self.get_submodel(PokeapiModels.SuperContestEffect, 'super_contest_effect_id')
-
-    class MoveAttribute(NamedPokeapiResource):
-        pass
-
-    class MoveAttributeMap(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.move = self.get_submodel(PokeapiModels.Move, 'move_id')
-            self.attribute = self.move_attribute = self.get_submodel(PokeapiModels.MoveAttribute, 'move_attribute_id')
-
-    class PokemonSpecies(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.order = self._row['order']
-            self.gender_rate = self._row['gender_rate']
-            self.capture_rate = self._row['capture_rate']
-            self.base_happiness = self._row['base_happiness']
-            self.is_baby = bool(self._row['is_baby'])
-            self.hatch_counter = self._row['hatch_counter']
-            self.has_gender_differences = bool(self._row['has_gender_differences'])
-            self.forms_switchable = bool(self._row['forms_switchable'])
-            self.evolution_chain = self.get_submodel(PokeapiModels.EvolutionChain, 'evolution_chain_id')
-            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
-            self.growth_rate = self.get_submodel(PokeapiModels.GrowthRate, 'growth_rate_id')
-            self.color = self.pokemon_color = self.get_submodel(PokeapiModels.PokemonColor, 'pokemon_color_id')
-            self.habitat = self.pokemon_habitat = self.get_submodel(PokeapiModels.PokemonHabitat, 'pokemon_habitat_id')
-            self.shape = self.pokemon_shape = self.get_submodel(PokeapiModels.PokemonShape, 'pokemon_shape_id')
-            self.is_legendary = bool(self._row['is_legendary'])
-            self.is_mythical = bool(self._row['is_mythical'])
-            self.preevo = self.evolves_from_species = self.get_submodel(
-                PokeapiModels.PokemonSpecies,
-                'evolves_from_species_id'
-            )
-
-    class EvolutionTrigger(NamedPokeapiResource):
-        pass
-
-    class Gender(PokeapiResource):
-        pass
-
-    class Location(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.region = self.get_submodel(PokeapiModels.Region, 'region_id')
-
-    class PokemonEvolution(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.min_level = self._row['min_level']
-            self.time_of_day = self._row['time_of_day']
-            self.min_happiness = self._row['min_happiness']
-            self.min_beauty = self._row['min_beauty']
-            self.min_affection = self._row['min_affection']
-            self.relative_physical_stats = self._row['relative_physical_stats']
-            self.needs_overworld_rain = bool(self._row['needs_overworld_rain'])
-            self.turn_upside_down = bool(self._row['turn_upside_down'])
-            self.evolution_trigger = self.get_submodel(PokeapiModels.EvolutionTrigger, 'evolution_trigger_id')
-            self.evolved_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'evolved_species_id')
-            self.gender = self.get_submodel(PokeapiModels.Gender, 'gender_id')
-            self.known_move = self.get_submodel(PokeapiModels.Move, 'known_move_id')
-            self.known_move_type = self.get_submodel(PokeapiModels.Type, 'known_move_type_id')
-            self.party_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'party_species_id')
-            self.party_type = self.get_submodel(PokeapiModels.Type, 'party_type_id')
-            self.trade_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'trade_species_id')
-            self.evolution_item = self.get_submodel(PokeapiModels.Item, 'evolution_item_id')
-            self.held_item = self.get_submodel(PokeapiModels.Item, 'held_item_id')
-            self.location = self.get_submodel(PokeapiModels.Location, 'location_id')
-
-    class Pokemon(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.order = self._row['order']
-            self.height = self._row['height']
-            self.weight = self._row['weight']
-            self.is_default = bool(self._row['is_default'])
-            self.species = self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')
-
-    class VersionGroup(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.order = self._row['order']
-            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
-
-    class PokemonForm(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.order = self._row['order']
-            self.form_name = self._row['form_name']
-            self.is_default = bool(self._row['is_default'])
-            self.is_battle_only = bool(self._row['is_battle_only'])
-            self.is_mega = bool(self._row['is_mega'])
-            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
-            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
-            self.form_order = self._row['form_order']
-
-    class Pokedex(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.is_main_series = bool(self._row['is_main_series'])
-            self.region = self.get_submodel(PokeapiModels.Region, 'region_id')
-
-    class Ability(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.is_main_series = bool(self._row['is_main_series'])
-            self.generation = self.get_submodel(PokeapiModels.Generation, 'generation_id')
-
-    class PokemonAbility(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.is_hidden = bool(self._row['is_hidden'])
-            self.slot = self._row['slot']
-            self.ability = self.get_submodel(PokeapiModels.Ability, 'ability_id')
-            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
-
-    class PokemonType(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.slot = self._row['slot']
-            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
-            self.type = self.get_submodel(PokeapiModels.Type, 'type_id')
-
-    class PokemonDexNumber(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.pokedex_number = self._row['pokedex_number']
-            self.pokemon = self.species = self.pokemon_species = self.get_submodel(
-                PokeapiModels.PokemonSpecies,
-                'pokemon_species_id'
-            )
-            self.pokedex = self.get_submodel(PokeapiModels.Pokedex, 'pokedex_id')
-
-    class MoveLearnMethod(NamedPokeapiResource):
-        pass
-
-    class PokemonMove(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.order = self._row['order']
-            self.level = self._row['level']
-            self.move = self.get_submodel(PokeapiModels.Move, 'move_id')
-            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
-            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
-            self.move_learn_method = self.get_submodel(PokeapiModels.MoveLearnMethod, 'move_learn_method_id')
-
-    class TypeEfficacy(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.damage_factor = self._row['damage_factor']
-            self.damage_type = self.get_submodel(PokeapiModels.Type, 'damage_type_id')
-            self.target_type = self.get_submodel(PokeapiModels.Type, 'target_type_id')
-
-    class PokemonSprites(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
-            self.sprites = json.loads(self._row['sprites'])
-
-    class Stat(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.is_battle_only = self._row['is_battle_only']
-            self.game_index = self._row['game_index']
-            self.move_damage_class = self.get_submodel(PokeapiModels.MoveDamageClass, 'move_damage_class_id')
-
-    class PokemonStat(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.base_stat = self._row['base_stat']
-            self.effort = self._row['effort']
-            self.pokemon = self.get_submodel(PokeapiModels.Pokemon, 'pokemon_id')
-            self.stat = self.get_submodel(PokeapiModels.Stat, 'stat_id')
-
-    class EggGroup(NamedPokeapiResource):
-        pass
-
-    class PokemonEggGroup(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.species = self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')
-            self.egg_group = self.get_submodel(PokeapiModels.EggGroup, 'egg_group_id')
-
-    class Version(NamedPokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
-
-    class PokemonSpeciesFlavorText(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.flavor_text = self._row['flavor_text']
-            self.language = self.get_submodel(PokeapiModels.Language, 'language_id')
-            self.pokemon_species = self.get_submodel(PokeapiModels.PokemonSpecies, 'pokemon_species_id')
-            self.version = self.get_submodel(PokeapiModels.Version, 'version_id')
-
-    class Machine(PokeapiResource):
-        def __init__(self, cursor: Cursor, row: tuple):
-            super().__init__(cursor, row)
-            self.number = self.machine_number = self._row['machine_number']
-            self.move = self.get_submodel(PokeapiModels.Move, 'move_id')
-            self.version_group = self.get_submodel(PokeapiModels.VersionGroup, 'version_group_id')
-            self.item = self.get_submodel(PokeapiModels.Item, 'item_id')
-            self.growth_rate = self.get_submodel(PokeapiModels.GrowthRate, 'growth_rate_id')
+    def __ne__(self, other):
+        return not self.__eq__(other)

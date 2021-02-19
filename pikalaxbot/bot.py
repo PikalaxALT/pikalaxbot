@@ -61,10 +61,10 @@ class PikalaxBOT(BotLogger, commands.Bot):
         # PokeAPI
         self._pokeapi: typing.Optional[PokeApi]
         if pokeapi_file:
-            self._pokeapi = PokeApi(
+            self._pokeapi = connect(
                 pokeapi_file,
-                factory=PokeApiConnection,
-                uri=True
+                uri=True,
+                check_same_thread=False  # Important for lazy-loading to work
             )
         else:
             self._pokeapi = None

@@ -21,8 +21,10 @@ import asyncstdlib.functools as afunctools
 import typing
 import asyncio
 import collections
+import aioitertools
+import json
 from . import *
-from ..pokeapi import PokeapiModels
+from ..pokeapi import PokeapiModel
 from .utils.game import Game
 if typing.TYPE_CHECKING:
     from .leaderboard import Leaderboard
@@ -44,7 +46,7 @@ class PkmnInventory(BaseTable):
     )
 
     @classmethod
-    async def give(cls, conn: AsyncConnection, person: discord.Member, item: PokeapiModels.Item, quantity: int):
+    async def give(cls, conn: AsyncConnection, person: discord.Member, item: 'PokeapiModel.classes.Item', quantity: int):
         statement = insert(cls).values(
             member=person.id,
             item_id=item.id,
@@ -57,7 +59,7 @@ class PkmnInventory(BaseTable):
         await conn.execute(upsert)
 
     @classmethod
-    async def take(cls, conn: AsyncConnection, person: discord.Member, item: PokeapiModels.Item, quantity: int):
+    async def take(cls, conn: AsyncConnection, person: discord.Member, item: 'PokeapiModel.classes.Item', quantity: int):
         statement = update(cls).where(
             cls.member == person.id,
             cls.item_id == item.id
@@ -67,7 +69,7 @@ class PkmnInventory(BaseTable):
         await conn.execute(statement)
 
     @classmethod
-    async def check(cls, conn: AsyncConnection, person: discord.Member, item: PokeapiModels.Item, quantity):
+    async def check(cls, conn: AsyncConnection, person: discord.Member, item: 'PokeapiModel.classes.Item', quantity):
         statement = select(cls.quantity).where(
             cls.member == person.id,
             cls.item_id == item.id
@@ -80,6 +82,13 @@ class PkmnInventory(BaseTable):
         statement = select([cls.item_id, cls.quantity]).where(cls.member == person.id, cls.quantity != 0)
         result = await conn.execute(statement)
         return result.all()
+
+    @classmethod
+    async def retrieve_streamed(cls, conn: AsyncConnection, person: discord.Member):
+        statement = select([cls.item_id, cls.quantity]).where(cls.member == person.id, cls.quantity != 0)
+        result = await conn.stream(statement)
+        async for item in result:
+            yield result
 
 
 def int_range(low: int, high: int):
@@ -120,7 +129,7 @@ class ShopConfirmationMenu(menus.Menu):
 
 
 class ShopInventoryPageSource(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, page: list['PokeapiModels.Item']):
+    async def format_page(self, menu: menus.MenuPages, page: list['PokeapiModel.classes.Item']):
         embed = discord.Embed(
             title='Items available for purchase',
             description=f'Use `{menu.ctx.prefix}mart buy` to make a purchase'
@@ -137,7 +146,7 @@ class ShopInventoryPageSource(menus.ListPageSource):
 
 
 class ItemBagPageSource(menus.ListPageSource):
-    async def format_page(self, menu: menus.MenuPages, page: list[tuple['PokeapiModels.Item', int]]):
+    async def format_page(self, menu: menus.MenuPages, page: list[tuple['PokeapiModel.classes.Item', int]]):
         embed = discord.Embed(
             title='Items in {0.ctx.author.display_name}\'s bag'.format(menu),
             description=f'Use `{menu.ctx.prefix}mart buy` to make a purchase'
@@ -198,7 +207,13 @@ class Shop(BaseCog):
 
     @afunctools.cached_property
     async def shop_items(self):
-        return [await self.bot.pokeapi.get_model('Item', id_) for id_ in self._shop_item_ids]
+        async with PokeapiModel.classes.Item.replace_row_factory(self.bot.pokeapi):
+            return await self.bot.pokeapi.execute_fetchall(
+                'SELECT * '
+                'FROM pokemon_v2_item '
+                'WHERE id IN ?',
+                (self._shop_item_ids,)
+            )
 
     async def init_db(self, sql):
         await PkmnInventory.create(sql)
@@ -224,7 +239,7 @@ class Shop(BaseCog):
         ctx: MyContext,
         quantity: typing.Optional[int_range(1, 999)] = 1,
         *,
-        item: PokeapiModels.Item
+        item: 'PokeapiModel.classes.Item'
     ):
         """Buy items from the shop. There is a limited selection available"""
         if item.id not in self._shop_item_ids:
@@ -240,8 +255,10 @@ class Shop(BaseCog):
         async with self.bot.sql as sql:
             balance = await Game.check_score(sql, ctx.author)
         balance = balance and balance.score or 0
+        item_path = json.loads(item.item_sprites[0].sprites)['default']
+        icon_url = self.bot.pokeapi.sprite_url(item_path)
         embed = discord.Embed().set_image(
-            url=await self.bot.pokeapi.get_item_icon_url(item)
+            url=icon_url
         ).add_field(
             name='Balance',
             value='{:,}'.format(balance)
@@ -284,7 +301,7 @@ class Shop(BaseCog):
         ctx: MyContext,
         quantity: typing.Optional[int_range(1, 999)] = 1,
         *,
-        item: PokeapiModels.Item
+        item: 'PokeapiModel.classes.Item'
     ):
         """Sell items from your inventory"""
 
@@ -326,11 +343,15 @@ class Shop(BaseCog):
         """Show your inventory"""
 
         async with self.bot.sql as sql:
-            bag_items = [
-                (await self.bot.pokeapi.get_model('Item', id_), quantity)
-                for id_, quantity in await PkmnInventory.retrieve(sql, ctx.author)
-            ]
-        page_source = ItemBagPageSource(bag_items, per_page=9)
+            bag_item_ids, bag_quantites = zip(*await PkmnInventory.retrieve(sql, ctx.author))
+        async with PokeapiModel.classes.Item.replace_row_factory(self.bot.pokeapi):
+            bag_items = await self.bot.pokeapi.execute_fetchall(
+                'SELECT * '
+                'FROM pokemon_v2_item '
+                'WHERE id IN ?',
+                (bag_item_ids,)
+            )
+        page_source = ItemBagPageSource(list(zip(bag_items, bag_quantites)), per_page=9)
         menu = menus.MenuPages(page_source, delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx, wait=True)
 
@@ -340,7 +361,7 @@ class Shop(BaseCog):
         ctx: MyContext,
         quantity: typing.Optional[int_range(1, 999)] = 1,
         *,
-        item: PokeapiModels.Item
+        item: 'PokeapiModel.classes.Item'
     ):
         """Toss items from your bag"""
 

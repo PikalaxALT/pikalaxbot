@@ -24,7 +24,7 @@ import typing
 import collections
 from .. import *
 from ...types import T
-from ...pokeapi import PokeApi
+from ...pokeapi import PokeapiModel
 
 from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select, func, delete, update
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -111,7 +111,7 @@ class GameBase:
         self._task: typing.Union[None, asyncio.Task, asyncio.Future] = None
         self.start_time = -1
         self._players: set[discord.Member] = set()
-        self._solution: typing.Optional[PokeApi.PokemonSpecies] = None
+        self._solution: typing.Optional['PokeapiModel.classes.PokemonSpecies'] = None
 
     async def __aenter__(self):
         await self._lock.acquire()
@@ -211,7 +211,7 @@ class GameBase:
         return score
 
     async def get_solution_embed(self, *, failed=False, aborted=False):
-        sprite_url = await self.bot.pokeapi.get_species_sprite_url(self._solution)
+        sprite_url = self.bot.pokeapi.get_species_sprite_url(self._solution)
         return discord.Embed(
                 title=self._solution.name,
                 colour=discord.Colour.red() if failed or aborted else discord.Colour.green()
