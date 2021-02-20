@@ -123,10 +123,9 @@ class PokeApi(aiosqlite.Connection):
             mon: 'PokeapiModel.classes.PokemonSpecies',
             move: 'PokeapiModel.classes.Type'
     ) -> float:
+        types = [await move.type]
         if move.id == 560:
-            types = [await move.type, await PokeapiModel.classes.Type.get(self, 3)]
-        else:
-            types = [await move.type]
+            types.append(await PokeapiModel.classes.Type.get(self, 3))
         return math.prod([await PokeApi.get_mon_matchup_against_type(mon, type_) for type_ in types])
 
     @staticmethod
