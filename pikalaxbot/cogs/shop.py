@@ -21,7 +21,6 @@ import asyncstdlib.functools as afunctools
 import typing
 import asyncio
 import collections
-import aioitertools
 import json
 from . import *
 from ..pokeapi import PokeapiModel
@@ -46,7 +45,13 @@ class PkmnInventory(BaseTable):
     )
 
     @classmethod
-    async def give(cls, conn: AsyncConnection, person: discord.Member, item: 'PokeapiModel.classes.Item', quantity: int):
+    async def give(
+            cls,
+            conn: AsyncConnection,
+            person: discord.Member,
+            item: 'PokeapiModel.classes.Item',
+            quantity: int
+    ):
         statement = insert(cls).values(
             member=person.id,
             item_id=item.id,
@@ -59,7 +64,13 @@ class PkmnInventory(BaseTable):
         await conn.execute(upsert)
 
     @classmethod
-    async def take(cls, conn: AsyncConnection, person: discord.Member, item: 'PokeapiModel.classes.Item', quantity: int):
+    async def take(
+            cls,
+            conn: AsyncConnection,
+            person: discord.Member,
+            item: 'PokeapiModel.classes.Item',
+            quantity: int
+    ):
         statement = update(cls).where(
             cls.member == person.id,
             cls.item_id == item.id
@@ -88,21 +99,19 @@ class PkmnInventory(BaseTable):
         statement = select([cls.item_id, cls.quantity]).where(cls.member == person.id, cls.quantity != 0)
         result = await conn.stream(statement)
         async for item in result:
-            yield result
+            yield item
 
 
 def int_range(low: int, high: int):
-    class ActualConverter(int):
-        @classmethod
-        async def convert(cls, context: MyContext, argument: str):
-            try:
-                argument = cls(argument)
-            except ValueError:
-                raise commands.BadArgument('Conversion to int failed for value "{}"'.format(argument))
-            if not high >= argument >= low:
-                raise commands.BadArgument('Integer value out of range')
-            return argument
-    return ActualConverter
+    def actual_converter(argument: str):
+        try:
+            argument = int(argument)
+        except ValueError:
+            raise commands.BadArgument('Conversion to int failed for value "{}"'.format(argument))
+        if not high >= argument >= low:
+            raise commands.BadArgument('Integer value out of range')
+        return argument
+    return actual_converter
 
 
 class ShopConfirmationMenu(menus.Menu):
