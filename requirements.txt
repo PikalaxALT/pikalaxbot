@@ -16,6 +16,6 @@ aioitertools>=0.7
 asyncstdlib>=3.9
 aiosqlite>=0.16
 #sqlalchemy>=1.4,<2.0
-git+https://github.com/sqlalchemy/sqlalchemy@rel_1_4_0b2
+git+https://github.com/sqlalchemy/sqlalchemy@rel_1_4_0b3
 inflect>=5.0.2
 humanize>=3.1.0
