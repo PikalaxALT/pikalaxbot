@@ -213,7 +213,7 @@ class Shop(BaseCog):
             'WHERE id IN ?',
             (self._shop_item_ids,)
         ) as cur:
-            return [PokeapiModel.classes.Item.from_row(cur, row) async for row in cur]
+            return [await PokeapiModel.classes.Item.from_row(row) async for row in cur]
 
     async def init_db(self, sql):
         await PkmnInventory.create(sql)
@@ -350,7 +350,7 @@ class Shop(BaseCog):
             'WHERE id IN ?',
             (bag_item_ids,)
         ) as cur:
-            bag_items = [PokeapiModel.classes.Item.from_row(cur, row) async for row in cur]
+            bag_items = [await PokeapiModel.classes.Item.from_row(row) async for row in cur]
         page_source = ItemBagPageSource(list(zip(bag_items, bag_quantites)), per_page=9)
         menu = menus.MenuPages(page_source, delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx, wait=True)

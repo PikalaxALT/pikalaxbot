@@ -357,7 +357,7 @@ class Q20QuestionParser:
                             result = testeffect < 1 and typeeffect < 0 or testeffect > 1 and typeeffect > 0
                             if testeffect == 0:
                                 flags |= 0x20000
-                            if _move.move_damage_class.name == 'status':
+                            if (await _move.move_damage_class).name == 'status':
                                 flags |= 0x40000
             elif found:
                 result = await self.bot.pokeapi.mon_has_type(solution, found)
@@ -369,7 +369,7 @@ class Q20QuestionParser:
             name, _color, confidence = await self.lookup_name(PokeapiModel.classes.PokemonColor, q)
             return name, \
                 0, \
-                _color and _color == solution.pokemon_color, \
+                _color and _color == await solution.pokemon_color, \
                 confidence / len(re.findall(r'\w+', q)) if q else 0
 
         async def evolution(q):
@@ -394,7 +394,7 @@ class Q20QuestionParser:
             elif has:
                 item = 'found'
                 message = 3
-                result = bool(solution.evolves_from_species or await self.bot.pokeapi.has_evos(solution))
+                result = bool(await solution.evolves_from_species or await self.bot.pokeapi.has_evos(solution))
             elif branch:
                 message = 5
                 result = await self.bot.pokeapi.has_branching_evos(solution)
@@ -402,7 +402,7 @@ class Q20QuestionParser:
             elif stone or trade:
                 message = 4
                 methods_ = await self.bot.pokeapi.get_mon_evolution_methods(solution)
-                result = any(meth.evolution_trigger_id == 2 + stone for meth in methods_)
+                result = discord.utils.get(methods_, evolution_trigger_id=2 + stone) is not None
                 item = 'stone' if stone else 'trade'
             return item, message, result, confidence
 
@@ -444,7 +444,7 @@ class Q20QuestionParser:
                 message = 1
                 item = dex_name
             elif generation > -1:
-                solution_gen = await self.bot.pokeapi._execute(lambda: solution.generation)
+                solution_gen = await solution.generation
                 result = solution_gen.id == generation
                 message = 0
                 item = f'Generation {generation}'
@@ -452,7 +452,7 @@ class Q20QuestionParser:
                 region_name, region, confidence = await self.lookup_name(PokeapiModel.classes.Region, q)
                 if region_name is None:
                     return None, 0, False, 0
-                solution_gen = await self.bot.pokeapi._execute(lambda: solution.generation)
+                solution_gen = await solution.generation
                 result = solution_gen.id == region.id
                 message = 0
                 item = f'{region_name} region'
@@ -536,8 +536,8 @@ class Q20QuestionParser:
                 else:
                     name, mon, confidence_f = await self.lookup_name(PokeapiModel.classes.PokemonSpecies, conglom)
                     if mon:
-                        forme = await self.bot.pokeapi.get_default_forme(mon)
-                        size_literal = forme.pokemon.height / 10
+                        forme = await self.bot.pokeapi.get_default_pokemon(mon)
+                        size_literal = forme.height / 10
                         confidence = confidence_f
             if size_literal > 0:
                 if wrong_scale_error:
@@ -614,8 +614,8 @@ class Q20QuestionParser:
                 else:
                     name, mon, confidence_f = await self.lookup_name(PokeapiModel.classes.PokemonSpecies, conglom)
                     if mon:
-                        forme = await self.bot.pokeapi.get_default_forme(mon)
-                        size_literal = forme.pokemon.weight / 10
+                        forme = await self.bot.pokeapi.get_default_pokemon(mon)
+                        size_literal = forme.weight / 10
                         confidence = confidence_f
             if size_literal > 0:
                 if wrong_scale_error:
@@ -645,7 +645,7 @@ class Q20QuestionParser:
             q = re.sub(r'\b(live|habitat|does|along|in|around)\b', '', q, flags=re.I)
             q = re.sub(r'\s+', '', q)
             name, _habitat, confidence = await self.lookup_name(PokeapiModel.classes.PokemonHabitat, q)
-            return name, 0, _habitat == solution.habitat, confidence
+            return name, 0, _habitat == await solution.habitat, confidence
 
         async def stats(q):
             stat_name = None
@@ -755,8 +755,8 @@ class Q20QuestionParser:
                 if not name:
                     return None, 0, False, 0
                 message = 1
-                shape = await self.bot.pokeapi._execute(lambda: mon.shape)
-            return name, message, shape == await self.bot.pokeapi._execute(lambda: solution.shape), confidence
+                shape = await mon.pokemon_shape
+            return name, message, shape == await solution.pokemon_shape, confidence
 
         async def egg(q):
             if not re.search(r'\b(egg|group|breeding)\b', q, re.I):
@@ -1006,7 +1006,7 @@ class Q20GameObject(GameBase):
 
     async def end(self, ctx: MyContext, failed=False, aborted=False):
         if self.running:
-            name = self._solution.name
+            name = self._solution.qualified_name
             if self._task and not self._task.done():
                 self._task.cancel()
                 self._task = None

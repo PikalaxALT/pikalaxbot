@@ -9,6 +9,7 @@ import aiosqlite
 import discord
 import inflect
 import functools
+import asyncstdlib.functools as afunctools
 from ..context import MyContext
 from discord.ext import commands
 
@@ -58,6 +59,18 @@ class collection(list[_T]):
         return discord.utils.get(self, **attrs)
 
 
+class AwaitableValue:
+    def __init__(self, value):
+        self.value = value
+
+    def __await__(self):
+        return self.value
+        yield  # pragma: no cover
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.value!r})'
+
+
 class relationship:
     def __init__(self, target: str, local_col: str, foreign_col: str, attrname: str):
         self.target = target
@@ -68,17 +81,24 @@ class relationship:
     def __get__(self, instance: typing.Optional['PokeapiModel'], owner: typing.Optional[typing.Type['PokeapiModel']]):
         if instance is None:
             return self
+        return self._get_attribute(instance)
+
+    async def _get_attribute(self, instance: 'PokeapiModel'):
         target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
         fk_id = getattr(instance, self.local_col)
         result = PokeapiModel.__cache__.get((target_cls, fk_id))
         if result is None:
-            cursor = instance.connection.execute(
-                'select * '
-                'from "{}" '
-                'where {} = ?'.format(self.target, self.foreign_col),
+            statement = 'select * ' \
+                        'from "{}" ' \
+                        'where {} = ?'.format(self.target, self.foreign_col)
+            async with PokeapiModel._connection.execute(
+                statement,
                 (fk_id,)
-            )
-            result = target_cls(cursor, cursor.fetchone())
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row is not None:
+                    result = await target_cls.from_row(row)
+        setattr(instance, self.attrname, AwaitableValue(result))
         return result
 
 
@@ -92,15 +112,19 @@ class backref:
     def __get__(self, instance: typing.Optional['PokeapiModel'], owner: typing.Optional[typing.Type['PokeapiModel']]):
         if instance is None:
             return self
+        return self._get_attribute(instance)
+
+    async def _get_attribute(self, instance: 'PokeapiModel'):
         target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
-        cursor = instance.connection.execute(
-            'select * '
-            'from "{}" '
-            'where {} = ?'.format(self.target, self.foreign_col),
+        statement = 'select * ' \
+                    'from "{}" ' \
+                    'where {} = ?'.format(self.target, self.foreign_col)
+        async with PokeapiModel._connection.execute(
+            statement,
             (getattr(instance, self.local_col),)
-        )
-        result = collection(target_cls.from_row(cursor, row) for row in cursor.fetchall())
-        setattr(instance, self.attrname, result)
+        ) as cursor:
+            result = collection([await target_cls.from_row(row) async for row in cursor if row is not None])
+        setattr(instance, self.attrname, AwaitableValue(result))
         return result
 
 
@@ -149,31 +173,28 @@ class PokeapiModel:
     __cache__: dict[tuple[typing.Type['PokeapiModel'], int], 'PokeapiModel'] = {}
     __prepared__ = False
     classes = None
+    _connection: typing.Optional[aiosqlite.Connection] = None
 
     @classproperty
     def __tablename__(cls):
         return 'pokemon_v2_' + cls.__name__.lower()
 
     @classmethod
-    def from_row(cls, cursor: sqlite3.Cursor, row: typing.Optional[tuple]) -> typing.Optional['PokeapiModel']:
-        if row is None:
-            return
-        return cls.__cache__.get((cls, row[0])) or cls(cursor, row)
+    async def from_row(cls, row: typing.Optional[tuple]) -> typing.Optional['PokeapiModel']:
+        obj = cls.__cache__.get((cls, row[0])) or cls(row)
+        try:
+            obj.qualified_name = await obj._qualified_name
+        except AttributeError:
+            pass
+        return obj
 
-    def __init__(self, cursor: sqlite3.Cursor, row: tuple):
+    def __init__(self, row: tuple):
         if self.__abstract__:
             raise TypeError('trying to instantiate an abstract base class')
         self.__class__.__cache__[(self.__class__, row[0])] = self
-        self.connection: sqlite3.Connection = cursor.connection
-        for (colname, *_), value in zip(cursor.description, row):
+        for colname, value in zip(self.__columns__, row):
             setattr(self, colname, value)
-        # for key, value in self.__class__.__dict__.items():
-        #     if isinstance(value, (relationship, backref)):
-        #         getattr(self, key)
-        try:
-            self.qualified_name
-        except AttributeError:
-            pass
+        self.qualified_name = None
 
     def __iter__(self):
         for column in self.__columns__:
@@ -203,7 +224,7 @@ class PokeapiModel:
                 {
                     '__abstract__': False,
                     '__columns__': colspec
-                }
+                } | colspec
             )
             classes[cls_name] = table_cls
         for tbl_name in tbl_names:
@@ -236,6 +257,7 @@ class PokeapiModel:
 
     @classmethod
     async def prepare(cls, connection: aiosqlite.Connection):
+        cls._connection = connection
         if not cls.__prepared__:
             async with _prep_lock:
                 if not cls.__prepared__:
@@ -245,7 +267,7 @@ class PokeapiModel:
         differ = difflib.SequenceMatcher(lambda s: _garbage_pat.match(s) is not None)
 
         def fuzzy_ratio(a, b):
-            differ.set_seqs(a, b)
+            differ.set_seqs(a.casefold(), b.casefold())
             return differ.ratio()
 
         await connection.create_function(
@@ -266,7 +288,9 @@ class PokeapiModel:
             'where id = ?'.format(cls.__tablename__),
             (id_,)
         ) as cur:
-            return cls.from_row(cur, await cur.fetchone())
+            row = await cur.fetchone()
+        if row:
+            return await cls.from_row(row)
 
     @classmethod
     async def get_random(
@@ -278,18 +302,18 @@ class PokeapiModel:
             'from {} '
             'order by random()'.format(cls.__tablename__)
         ) as cur:
-            return cls.from_row(cur, await cur.fetchone())
+            return await cls.from_row(await cur.fetchone())
 
-    @property
-    def qualified_name(self):
+    @afunctools.cached_property
+    async def _qualified_name(self):
         if self.__class__.__name__ == 'Language':
             attrs = {'local_language_id': 9}
             collection_name = 'language_names__language'
         else:
             attrs = {'language_id': 9}
             collection_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', self.__class__.__name__).lower() + '_names'
-        names = getattr(self, collection_name)
-        return discord.utils.get(names, **attrs).name
+        names = await getattr(self, collection_name)
+        return names.get(**attrs).name
 
     @classmethod
     async def get_named(
@@ -309,7 +333,9 @@ class PokeapiModel:
         lang_clause = '{1}.{3} = 9'
         statement = f'{select} WHERE {lang_clause} AND ({fuzzy_clause})'.format(cls.__tablename__, name_cls.__tablename__, fk_name, lang_attr_name)
         async with conn.execute(statement, dict(name=name, cutoff=cutoff)) as cur:
-            return cls.from_row(cur, await cur.fetchone())
+            row = await cur.fetchone()
+        if row:
+            return await cls.from_row(row)
 
     @classmethod
     async def convert(
