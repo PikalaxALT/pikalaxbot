@@ -207,13 +207,13 @@ class Shop(BaseCog):
 
     @afunctools.cached_property
     async def shop_items(self):
-        async with PokeapiModel.classes.Item.replace_row_factory(self.bot.pokeapi):
-            return await self.bot.pokeapi.execute_fetchall(
-                'SELECT * '
-                'FROM pokemon_v2_item '
-                'WHERE id IN ?',
-                (self._shop_item_ids,)
-            )
+        async with self.bot.pokeapi.execute(
+            'SELECT * '
+            'FROM pokemon_v2_item '
+            'WHERE id IN ?',
+            (self._shop_item_ids,)
+        ) as cur:
+            return [PokeapiModel.classes.Item.from_row(cur, row) async for row in cur]
 
     async def init_db(self, sql):
         await PkmnInventory.create(sql)
@@ -344,13 +344,13 @@ class Shop(BaseCog):
 
         async with self.bot.sql as sql:
             bag_item_ids, bag_quantites = zip(*await PkmnInventory.retrieve(sql, ctx.author))
-        async with PokeapiModel.classes.Item.replace_row_factory(self.bot.pokeapi):
-            bag_items = await self.bot.pokeapi.execute_fetchall(
-                'SELECT * '
-                'FROM pokemon_v2_item '
-                'WHERE id IN ?',
-                (bag_item_ids,)
-            )
+        async with self.bot.pokeapi.execute(
+            'SELECT * '
+            'FROM pokemon_v2_item '
+            'WHERE id IN ?',
+            (bag_item_ids,)
+        ) as cur:
+            bag_items = [PokeapiModel.classes.Item.from_row(cur, row) async for row in cur]
         page_source = ItemBagPageSource(list(zip(bag_items, bag_quantites)), per_page=9)
         menu = menus.MenuPages(page_source, delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx, wait=True)

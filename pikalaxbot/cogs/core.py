@@ -538,7 +538,7 @@ class Core(BaseCog):
             value='Devon Gorialis'
         ).add_field(
             name='ext.PokeAPI',
-            value='jreese (asqlite3), Naramsim (database itself)'
+            value='jreese (aiosqlite), Naramsim (database itself)'
         )
         await ctx.send(embed=embed)
 

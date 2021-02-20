@@ -8,6 +8,7 @@ import difflib
 import aiosqlite
 import discord
 import inflect
+import functools
 from ..context import MyContext
 from discord.ext import commands
 
@@ -52,16 +53,6 @@ def sqlite3_type(coltype: str) -> type:
 RowFactory = typing.Callable[[sqlite3.Cursor, tuple], typing.Any]
 
 
-@contextlib.contextmanager
-def replace_row_factory(connection: sqlite3.Connection, row_factory: typing.Optional[RowFactory]):
-    old_factory: typing.Optional[RowFactory] = connection.row_factory
-    try:
-        connection.row_factory = row_factory
-        yield
-    finally:
-        connection.row_factory = old_factory
-
-
 class collection(list[_T]):
     def get(self, **attrs) -> typing.Optional[_T]:
         return discord.utils.get(self, **attrs)
@@ -79,15 +70,13 @@ class relationship:
             return self
         target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
         conn = instance.connection
-        with replace_row_factory(conn, target_cls.from_row):
-            cursor = instance.connection.execute(
-                'select * '
-                'from "{}" '
-                'where {} = ?'.format(self.target, self.foreign_col),
-                (getattr(instance, self.local_col),)
-            )
-            result = cursor.fetchone()
-            setattr(instance, self.attrname, result)
+        cursor = instance.connection.execute(
+            'select * '
+            'from "{}" '
+            'where {} = ?'.format(self.target, self.foreign_col),
+            (getattr(instance, self.local_col),)
+        )
+        result = target_cls.from_row(cursor, cursor.fetchone())
         return result
 
 
@@ -102,16 +91,14 @@ class backref:
         if instance is None:
             return self
         target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
-        conn = instance.connection
-        with replace_row_factory(conn, target_cls.from_row):
-            cursor = instance.connection.execute(
-                'select * '
-                'from "{}" '
-                'where {} = ?'.format(self.target, self.foreign_col),
-                (getattr(instance, self.local_col),)
-            )
-            result = collection(cursor.fetchall())
-            setattr(instance, self.attrname, result)
+        cursor = instance.connection.execute(
+            'select * '
+            'from "{}" '
+            'where {} = ?'.format(self.target, self.foreign_col),
+            (getattr(instance, self.local_col),)
+        )
+        result = collection(target_cls.from_row(cursor, row) for row in cursor.fetchall())
+        setattr(instance, self.attrname, result)
         return result
 
 
@@ -153,6 +140,7 @@ class classproperty:
         return self._func(owner)
 
 
+@functools.total_ordering
 class PokeapiModel:
     __abstract__ = True
     __columns__: dict[str, type] = {}
@@ -160,20 +148,14 @@ class PokeapiModel:
     __prepared__ = False
     classes = None
 
-    @classmethod
-    @contextlib.asynccontextmanager
-    async def replace_row_factory(cls, conn: typing.Union[aiosqlite.Connection, sqlite3.Connection]):
-        old_factory = conn.row_factory
-        conn.row_factory = cls.from_row
-        yield
-        conn.row_factory = old_factory
-
     @classproperty
     def __tablename__(cls):
         return 'pokemon_v2_' + cls.__name__.lower()
 
     @classmethod
-    def from_row(cls, cursor: sqlite3.Cursor, row: tuple) -> 'PokeapiModel':
+    def from_row(cls, cursor: sqlite3.Cursor, row: typing.Optional[tuple]) -> typing.Optional['PokeapiModel']:
+        if row is None:
+            return
         return cls.__cache__.get((cls, row[0])) or cls(cursor, row)
 
     def __init__(self, cursor: sqlite3.Cursor, row: tuple):
@@ -186,6 +168,10 @@ class PokeapiModel:
         # for key, value in self.__class__.__dict__.items():
         #     if isinstance(value, (relationship, backref)):
         #         getattr(self, key)
+        try:
+            self.qualified_name
+        except AttributeError:
+            pass
 
     def __iter__(self):
         for column in self.__columns__:
@@ -200,51 +186,50 @@ class PokeapiModel:
             "where type = 'table' "
             "and tbl_name like 'pokemon_v2_%'"
         )]
-        with replace_row_factory(connection, None):
-            for tbl_name in tbl_names:
-                cls_name = tblname_to_classname(tbl_name)
-                colspec: dict[str, type] = {
-                    colname: sqlite3_type(coltype)
-                    async for cid, colname, coltype, notnull, dflt, pk in await connection.execute(
-                            'pragma table_info ("{}")'.format(tbl_name)
-                    )
+        for tbl_name in tbl_names:
+            cls_name = tblname_to_classname(tbl_name)
+            colspec: dict[str, type] = {
+                colname: sqlite3_type(coltype)
+                async for cid, colname, coltype, notnull, dflt, pk in await connection.execute(
+                        'pragma table_info ("{}")'.format(tbl_name)
+                )
+            }
+
+            table_cls = type(
+                cls_name,
+                (cls,),
+                {
+                    '__abstract__': False,
+                    '__columns__': colspec
                 }
-
-                table_cls = type(
-                    cls_name,
-                    (cls,),
-                    {
-                        '__abstract__': False,
-                        '__columns__': colspec
-                    }
+            )
+            classes[cls_name] = table_cls
+        for tbl_name in tbl_names:
+            cls_name = tblname_to_classname(tbl_name)
+            table_cls = classes[cls_name]
+            foreign_keys = await connection.execute_fetchall(
+                'pragma foreign_key_list ("{}")'.format(tbl_name)
+            )
+            for id_, seq, dest, local_col, dest_col, on_update, on_delete, match in foreign_keys:
+                dest_cls_name = tblname_to_classname(dest)
+                dest_cls = classes[dest_cls_name]
+                manytoonekey = name_for_scalar_relationship(
+                    table_cls,
+                    dest_cls,
+                    local_col,
+                    dest_col,
+                    foreign_keys
                 )
-                classes[cls_name] = table_cls
-            for tbl_name in tbl_names:
-                cls_name = tblname_to_classname(tbl_name)
-                table_cls = classes[cls_name]
-                foreign_keys = await connection.execute_fetchall(
-                    'pragma foreign_key_list ("{}")'.format(tbl_name)
+                onetomanykey = name_for_collection_relationship(
+                    dest_cls,
+                    table_cls,
+                    dest_col,
+                    local_col,
+                    foreign_keys
                 )
-                for id_, seq, dest, local_col, dest_col, on_update, on_delete, match in foreign_keys:
-                    dest_cls_name = tblname_to_classname(dest)
-                    dest_cls = classes[dest_cls_name]
-                    manytoonekey = name_for_scalar_relationship(
-                        table_cls,
-                        dest_cls,
-                        local_col,
-                        dest_col,
-                        foreign_keys
-                    )
-                    onetomanykey = name_for_collection_relationship(
-                        dest_cls,
-                        table_cls,
-                        dest_col,
-                        local_col,
-                        foreign_keys
-                    )
 
-                    setattr(table_cls, manytoonekey, relationship(dest, local_col, dest_col, manytoonekey))
-                    setattr(dest_cls, onetomanykey, backref(tbl_name, dest_col, local_col, onetomanykey))
+                setattr(table_cls, manytoonekey, relationship(dest, local_col, dest_col, manytoonekey))
+                setattr(dest_cls, onetomanykey, backref(tbl_name, dest_col, local_col, onetomanykey))
         cls.classes = type('Base', (object,), classes)
 
     @classmethod
@@ -273,27 +258,25 @@ class PokeapiModel:
             connection: aiosqlite.Connection,
             id_: int
     ) -> typing.Optional[_T]:
-        async with cls.replace_row_factory(connection):
-            async with connection.execute(
-                'select * '
-                'from {} '
-                'where id = ?'.format(cls.__tablename__),
-                (id_,)
-            ) as cur:
-                return await cur.fetchone()
+        async with connection.execute(
+            'select * '
+            'from {} '
+            'where id = ?'.format(cls.__tablename__),
+            (id_,)
+        ) as cur:
+            return cls.from_row(cur, await cur.fetchone())
 
     @classmethod
     async def get_random(
             cls: typing.Type[_T],
             connection: aiosqlite.Connection
     ) -> _T:
-        async with cls.replace_row_factory(connection):
-            async with connection.execute(
-                'select * '
-                'from {} '
-                'order by random()'.format(cls.__tablename__)
-            ) as cur:
-                return await cur.fetchone()
+        async with connection.execute(
+            'select * '
+            'from {} '
+            'order by random()'.format(cls.__tablename__)
+        ) as cur:
+            return cls.from_row(cur, await cur.fetchone())
 
     @property
     def qualified_name(self):
@@ -323,10 +306,8 @@ class PokeapiModel:
         lang_attr_name = 'local_language_id' if cls.__name__ == 'Language' else 'language_id'
         lang_clause = '{1}.{3} = 9'
         statement = f'{select} WHERE {lang_clause} AND ({fuzzy_clause})'.format(cls.__tablename__, name_cls.__tablename__, fk_name, lang_attr_name)
-        print(statement)
-        async with cls.replace_row_factory(conn):
-            async with conn.execute(statement, dict(name=name, cutoff=cutoff)) as cur:
-                return await cur.fetchone()
+        async with conn.execute(statement, dict(name=name, cutoff=cutoff)) as cur:
+            return cls.from_row(cur, await cur.fetchone())
 
     @classmethod
     async def convert(
@@ -366,5 +347,10 @@ class PokeapiModel:
         except AttributeError:
             return False
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.id < other.id
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.__class__, self.id))

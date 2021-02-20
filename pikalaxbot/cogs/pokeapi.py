@@ -18,7 +18,6 @@ import discord
 from discord.ext import commands, tasks, menus
 import asyncio
 import sqlite3
-import asqlite3
 import typing
 import time
 import re
@@ -214,11 +213,10 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         """Run arbitrary sql command"""
 
         async with ctx.typing():
-            async with self.bot.pokeapi.replace_row_factory(None):
-                start = time.perf_counter()
-                async with self.bot.pokeapi.execute(query) as cur:  # type: asqlite3.Cursor
-                    records: list[tuple] = await cur.fetchall()
-                    end = time.perf_counter()
+            start = time.perf_counter()
+            async with self.bot.pokeapi.execute(query) as cur:
+                records: list[tuple] = await cur.fetchall()
+                end = time.perf_counter()
             header = '|'.join(col[0] for col in cur.description)
             pag = commands.Paginator(max_size=2048)
             pag.add_line(header)
@@ -266,14 +264,14 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         """Gets information about a Pokémon species"""
 
         async with ctx.typing():
-            base_stats = self.bot.pokeapi.get_base_stats(pokemon)
-            types = self.bot.pokeapi.get_mon_types(pokemon)
-            egg_groups = self.bot.pokeapi.get_egg_groups(pokemon)
-            image_url = self.bot.pokeapi.get_species_sprite_url(pokemon)
-            flavor_text = self.bot.pokeapi.get_mon_flavor_text(pokemon)
-            evos = self.bot.pokeapi.get_evos(pokemon)
-            abilities = self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
-            forme = self.bot.pokeapi.get_default_forme(pokemon)
+            base_stats = await self.bot.pokeapi.get_base_stats(pokemon)
+            types = await self.bot.pokeapi.get_mon_types(pokemon)
+            egg_groups = await self.bot.pokeapi.get_egg_groups(pokemon)
+            image_url = await self.bot.pokeapi.get_species_sprite_url(pokemon)
+            flavor_text = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
+            evos = await self.bot.pokeapi.get_evos(pokemon)
+            abilities = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
+            forme = await self.bot.pokeapi.get_default_forme(pokemon)
         embed = discord.Embed(
             title=f'{pokemon} (#{pokemon.id})',
             description=flavor_text or 'No flavor text',
@@ -319,9 +317,9 @@ class PokeApiCog(BaseCog, name='PokeApi'):
 
     async def move_info(self, ctx: MyContext, move: 'PokeapiModel.classes.Move'):
         async with ctx.typing():
-            attrs = self.bot.pokeapi.get_move_attrs(move)
-            flavor_text = self.bot.pokeapi.get_move_description(move)
-            machines = self.bot.pokeapi.get_machines_teaching_move(move)
+            attrs = await self.bot.pokeapi.get_move_attrs(move)
+            flavor_text = await self.bot.pokeapi.get_move_description(move)
+            machines = await self.bot.pokeapi.get_machines_teaching_move(move)
         embed = discord.Embed(
             title=f'{move} (#{move.id})',
             description=flavor_text or 'No flavor text',
@@ -416,22 +414,17 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         )
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
-        async with PokeapiModel.classes.PokemonMove.replace_row_factory(self.bot.pokeapi), ctx.typing():
-            movelearns = {
-                move: list(group)
-                for move, group in itertools.groupby(await self.bot.pokeapi.execute_fetchall("""
-            SELECT *
-            FROM pokemon_v2_pokemonmove pv2pm
-            INNER JOIN pokemon_v2_pokemon pv2p on pv2p.id = pv2pm.pokemon_id
-            INNER JOIN pokemon_v2_versiongroup pv2v on pv2v.id = pv2pm.version_group_id
-            WHERE pokemon_species_id = :id
-            AND is_default = TRUE
-            GROUP BY pv2pm.move_id, pv2v.generation_id, pv2v.id, move_learn_method_id, pv2pm.level
-            """, {'id': mon.id}), operator.attrgetter('move'))}
-        if not movelearns:
+        all_move_learns = sorted(
+            await self.bot.pokeapi.get_mon_learnset_with_flags(mon),
+            key=lambda pm: (pm.move, pm.generation, pm.move_learn_method, pm.level)
+        )
+        if not all_move_learns:
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
+        movelearns = {
+            move: list(group)
+            for move, group in itertools.groupby(all_move_learns, operator.attrgetter('move'))}
         if len(query) == 1:
-            types = self.bot.pokeapi.get_mon_types(mon)
+            types = await self.bot.pokeapi.get_mon_types(mon)
 
             class MoveLearnPageSource(menus.ListPageSource):
                 def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModel.classes.PokemonMove]):
@@ -752,8 +745,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
         self.bot.log_info(statement)
         self.bot.log_info(', '.join(map(str, args)))
-        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)):
-            results = await self.bot.pokeapi.execute_fetchall(statement, args)
+        results = [name for name, in await self.bot.pokeapi.execute_fetchall(statement, args)]
         if not results:
             await ctx.send('No results found.')
         elif len(results) > 20 and not show_all:
@@ -868,8 +860,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
         self.bot.log_info(statement)
         self.bot.log_info(', '.join(map(str, args)))
-        async with self.bot.pokeapi.replace_row_factory(lambda c, r: str(*r)):
-            results = await self.bot.pokeapi.execute_fetchall(statement, args)
+        results = [name for name, in await self.bot.pokeapi.execute_fetchall(statement, args)]
         if not results:
             await ctx.send('No results found.')
         elif len(results) > 20 and not show_all:

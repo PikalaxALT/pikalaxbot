@@ -61,10 +61,12 @@ class PikalaxBOT(BotLogger, commands.Bot):
         # PokeAPI
         self._pokeapi: typing.Optional[PokeApi]
         if pokeapi_file:
-            self._pokeapi = connect(
-                pokeapi_file,
-                uri=True,
-                check_same_thread=False  # Important for lazy-loading to work
+            self._pokeapi = self.loop.run_until_complete(
+                connect(
+                    pokeapi_file,
+                    uri=True,
+                    check_same_thread=False  # Important for lazy-loading to work
+                )
             )
         else:
             self._pokeapi = None
@@ -126,6 +128,8 @@ class PikalaxBOT(BotLogger, commands.Bot):
                 await self._client_session.close()
             except AttributeError:
                 pass
+            if self._pokeapi:
+                await self._pokeapi.close()
 
     async def on_ready(self):
         self.log_info('Logged in as %s', self.user)
