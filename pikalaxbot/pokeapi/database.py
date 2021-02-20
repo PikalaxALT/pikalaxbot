@@ -157,7 +157,7 @@ class PokeApi(aiosqlite.Connection):
             mon: 'PokeapiModel.classes.PokemonSpecies'
     ) -> collection['PokeapiModel.classes.PokemonAbility']:
         default_mon = await PokeApi.get_default_pokemon(mon)
-        return await default_mon.pokemon_abilities
+        return await default_mon.pokemon_abilitys
 
     @staticmethod
     async def get_mon_abilities(

@@ -26,6 +26,7 @@ from ..pokeapi import PokeapiModel
 from textwrap import indent
 import traceback
 import operator
+import aioitertools
 from . import *
 from contextlib import asynccontextmanager as acm
 if typing.TYPE_CHECKING:
@@ -275,13 +276,13 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         embed = discord.Embed(
             title=f'{pokemon} (#{pokemon.id})',
             description=flavor_text or 'No flavor text',
-            colour=DEX_COLORS[pokemon.pokemon_color.id]
+            colour=DEX_COLORS[(await pokemon.pokemon_color).id]
         ).add_field(
             name='Generation',
-            value=pokemon.generation.name or 'Unknown'
+            value=(await pokemon.generation).qualified_name or 'Unknown'
         ).add_field(
             name='Types',
-            value='/'.join(type_.name for type_ in types) or 'Unknown'
+            value='/'.join(type_.qualified_name for type_ in types) or 'Unknown'
         ).add_field(
             name='Base Stats',
             value='\n'.join(
@@ -289,29 +290,34 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             ) + f'\n**Total:** {sum(base_stats.values())}' or 'Unknown'
         ).add_field(
             name='Egg Groups',
-            value='/'.join(grp.name for grp in egg_groups) or 'Unknown'
+            value='/'.join(grp.qualified_name for grp in egg_groups) or 'Unknown'
         ).add_field(
             name='Gender Ratio',
             value=f'{12.5 * pokemon.gender_rate}% Female' if pokemon.gender_rate >= 0 else 'Gender Unknown' or 'Unknown'
         ).set_thumbnail(url=image_url or discord.Embed.Empty)
-        if pokemon.evolves_from_species:
-            preevo_str = f'Evolves from {pokemon.evolves_from_species} (#{pokemon.evolves_from_species.id})\n'
+        evolves_from_species = await pokemon.evolves_from_species
+        if evolves_from_species:
+            preevo_str = f'Evolves from {evolves_from_species} (#{evolves_from_species.id})\n'
         else:
             preevo_str = ''
         if evos:
             preevo_str += 'Evolves into ' + ', '.join(f'{mon} (#{mon.id})' for mon in evos)
+        default_mon = await forme.pokemon
         embed.add_field(
             name='Evolution',
             value=preevo_str or 'No evolutions'
         ).add_field(
             name='Abilities',
-            value=', '.join(
-                f'_{ability.ability}_' if ability.is_hidden else ability.ability.name for ability in abilities
-            ) or 'Unknown'
+            value=', '.join([
+                '_{}_'.format(await ability.ability)
+                if ability.is_hidden
+                else (await ability.ability).qualified_name
+                for ability in abilities
+            ]) or 'Unknown'
         ).add_field(
             name='Biometrics',
-            value=f'Height: {forme.pokemon.height / 10:.1f}m\n'
-                  f'Weight: {forme.pokemon.weight / 10:.1f}kg'
+            value=f'Height: {default_mon.height / 10:.1f}m\n'
+                  f'Weight: {default_mon.weight / 10:.1f}kg'
         )
         await ctx.send(embed=embed)
 
@@ -320,14 +326,23 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             attrs = await self.bot.pokeapi.get_move_attrs(move)
             flavor_text = await self.bot.pokeapi.get_move_description(move)
             machines = await self.bot.pokeapi.get_machines_teaching_move(move)
+            move_effect = await move.move_effect
+            short_effect = (await move_effect.move_effect_effect_texts).get(language_id=9).short_effect
+            contest_effect = await move.contest_effect
+            contest_effect_text = (await contest_effect.contest_effect_effect_texts).get(language_id=9).effect
+            super_contest_effect = await move.super_contest_effect
+            super_contest_effect_text = (
+                await super_contest_effect.super_contest_effect_flavor_texts
+            ).get(language_id=9).flavor_text
+
         embed = discord.Embed(
             title=f'{move} (#{move.id})',
             description=flavor_text or 'No flavor text',
-            colour=TYPE_COLORS[move.type.name]
+            colour=TYPE_COLORS[(await move.type).qualified_name]
         ).add_field(
             name='Type',
-            value=f'Battle: {move.type}\n'
-                  f'Contest: {move.contest_type}'
+            value=f'Battle: {await move.type}\n'
+                  f'Contest: {await move.contest_type}'
         ).add_field(
             name='Stats',
             value=f'**Power:** {move.power}\n'
@@ -336,30 +351,35 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                   f'**Priority:** {move.priority}'
         ).add_field(
             name='Generation',
-            value=move.generation.name
+            value=(await move.generation).qualified_name
         ).add_field(
             name='Attributes',
             value=indent('\n'.join(attr.name for attr in attrs), '\N{WHITE HEAVY CHECK MARK} ') or '\N{CROSS MARK} None'
         ).add_field(
             name='Effect',
-            value=f'**Battle:** {move.effect.short_effect}\n'
-                  f'**Contest:** {move.contest_effect.effect}\n'
-                  f'**Super Contest:** {move.super_contest_effect.flavor_text}'
+            value=f'**Battle:** {short_effect}\n'
+                  f'**Contest:** {contest_effect_text}\n'
+                  f'**Super Contest:** {super_contest_effect_text}'
         ).add_field(
             name='Target',
-            value=move.target.name
+            value=(await move.move_target).qualified_name
         )
         if machines:
-            machines.sort(key=operator.attrgetter('version_group.id', 'number'))
+
+            machines.sort(key=operator.attrgetter('version_group_id', 'machine_number'))
             machine_s = []
-            for gen, machs in itertools.groupby(machines, operator.attrgetter('version_group.generation')): \
+
+            async def group_key(mach):
+                return await (await mach.version_group).generation
+
+            async for gen, machs in aioitertools.groupby(machines, group_key): \
                     # type: PokeapiModel.classes.Generation, typing.Iterable[PokeapiModel.classes.Machine]
                 mach_s = set()
                 for mach in machs:
-                    if mach.number < 100:
-                        mach_no_s = f'TM{mach.number:02d}'
+                    if mach.machine_number < 100:
+                        mach_no_s = f'TM{mach.machine_number:02d}'
                     else:
-                        mach_no_s = f'HM{mach.number - 100:02d}'
+                        mach_no_s = f'HM{mach.machine_number - 100:02d}'
                     mach_s.add(mach_no_s)
                 machine_s.append(f'**{gen}:** {", ".join(mach_s)}')
             embed.add_field(
@@ -373,7 +393,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             self,
             ctx: MyContext,
             *,
-            entity: typing.Union['PokeapiModel.classes.PokemonSpecies', 'PokeapiModel.classes.Move']
+            entity: 'typing.Union[PokeapiModel.classes.PokemonSpecies, PokeapiModel.classes.Move]'
     ):
         """Gets information about a Pokémon species or move"""
 
@@ -387,7 +407,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             self,
             ctx: MyContext,
             *,
-            entity: typing.Union['PokeapiModel.classes.PokemonSpecies', 'PokeapiModel.classes.Move']
+            entity: 'typing.Union[PokeapiModel.classes.PokemonSpecies, PokeapiModel.classes.Move]'
     ):
         """Gets information about a Pokémon species or move"""
 
@@ -430,7 +450,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                 def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModel.classes.PokemonMove]):
                     embed = discord.Embed(
                         title=f'{mon}\'s learnset',
-                        colour=TYPE_COLORS[types[0].name]
+                        colour=TYPE_COLORS[types[0].qualified_name]
                     ).set_footer(text=f'Page {menu_.current_page + 1}/{self.get_max_pages()}')
                     for move, movelearns_ in page:
                         value = '\n'.join(
@@ -743,8 +763,8 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                 statements += f'({new_statement})',
                 args += new_args
         statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
-        self.bot.log_info(statement)
-        self.bot.log_info(', '.join(map(str, args)))
+        self.bot.log_debug(statement)
+        self.bot.log_debug(', '.join(map(str, args)))
         results = [name for name, in await self.bot.pokeapi.execute_fetchall(statement, args)]
         if not results:
             await ctx.send('No results found.')
@@ -858,8 +878,8 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                 statements += f'({new_statement})',
                 args += new_args
         statement = 'SELECT DISTINCT name FROM ' + ' INTERSECT SELECT * FROM '.join(statements) + ' ORDER BY name'
-        self.bot.log_info(statement)
-        self.bot.log_info(', '.join(map(str, args)))
+        self.bot.log_debug(statement)
+        self.bot.log_debug(', '.join(map(str, args)))
         results = [name for name, in await self.bot.pokeapi.execute_fetchall(statement, args)]
         if not results:
             await ctx.send('No results found.')

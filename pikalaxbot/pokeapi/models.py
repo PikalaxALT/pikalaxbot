@@ -1,5 +1,4 @@
 import sqlite3
-import contextlib
 import typing
 import re
 import collections
@@ -59,38 +58,15 @@ class collection(list[_T]):
         return discord.utils.get(self, **attrs)
 
 
-class AwaitableValue:
-    def __init__(self, value):
-        self.value = value
-
-    def __await__(self):
-        return self.value
-        yield  # pragma: no cover
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.value!r})'
-
-
-class relationship:
-    def __init__(self, target: str, local_col: str, foreign_col: str, attrname: str):
-        self.target = target
-        self.local_col = local_col
-        self.foreign_col = foreign_col
-        self.attrname = attrname
-
-    def __get__(self, instance: typing.Optional['PokeapiModel'], owner: typing.Optional[typing.Type['PokeapiModel']]):
-        if instance is None:
-            return self
-        return self._get_attribute(instance)
-
-    async def _get_attribute(self, instance: 'PokeapiModel'):
-        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
-        fk_id = getattr(instance, self.local_col)
+def relationship(target: str, local_col: str, foreign_col: str, attrname: str):
+    async def func(instance):
+        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(target))
+        fk_id = getattr(instance, local_col)
         result = PokeapiModel.__cache__.get((target_cls, fk_id))
         if result is None:
             statement = 'select * ' \
                         'from "{}" ' \
-                        'where {} = ?'.format(self.target, self.foreign_col)
+                        'where {} = ?'.format(target, foreign_col)
             async with PokeapiModel._connection.execute(
                 statement,
                 (fk_id,)
@@ -98,34 +74,27 @@ class relationship:
                 row = await cursor.fetchone()
                 if row is not None:
                     result = await target_cls.from_row(row)
-        setattr(instance, self.attrname, AwaitableValue(result))
         return result
 
+    func.__name__ = attrname
+    return afunctools.cached_property(func)
 
-class backref:
-    def __init__(self, target: str, local_col: str, foreign_col: str, attrname: str):
-        self.target = target
-        self.local_col = local_col
-        self.foreign_col = foreign_col
-        self.attrname = attrname
 
-    def __get__(self, instance: typing.Optional['PokeapiModel'], owner: typing.Optional[typing.Type['PokeapiModel']]):
-        if instance is None:
-            return self
-        return self._get_attribute(instance)
-
-    async def _get_attribute(self, instance: 'PokeapiModel'):
-        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
+def backref(target: str, local_col: str, foreign_col: str, attrname: str):
+    async def func(instance):
+        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(target))
         statement = 'select * ' \
                     'from "{}" ' \
-                    'where {} = ?'.format(self.target, self.foreign_col)
+                    'where {} = ?'.format(target, foreign_col)
         async with PokeapiModel._connection.execute(
             statement,
-            (getattr(instance, self.local_col),)
+            (getattr(instance, local_col),)
         ) as cursor:
             result = collection([await target_cls.from_row(row) async for row in cursor if row is not None])
-        setattr(instance, self.attrname, AwaitableValue(result))
         return result
+
+    func.__name__ = attrname
+    return afunctools.cached_property(func)
 
 
 def name_for_scalar_relationship(
