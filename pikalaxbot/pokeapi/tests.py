@@ -18,29 +18,29 @@ class PokeAPITests(unittest.IsolatedAsyncioTestCase):
     async def testGetMonMatchupAgainstType(self):
         mon = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 25)
         type_ = await PokeapiModel.classes.Type.get(self.conn, 3)
-        self.assertEqual(self.conn.get_mon_matchup_against_type(mon, type_), 0.5)
+        self.assertEqual(await self.conn.get_mon_matchup_against_type(mon, type_), 0.5)
 
     async def testGetMonMatchupAgainstMove(self):
         mon = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 19)
         move = await PokeapiModel.classes.Move.get(self.conn, 560)
-        self.assertEqual(self.conn.get_mon_matchup_against_move(mon, move), 2.0)
+        self.assertEqual(await self.conn.get_mon_matchup_against_move(mon, move), 2.0)
 
     async def testGetMonMatchupAgainstMon(self):
         mon = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 260)
         mon2 = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 254)
-        maps = self.conn.get_mon_matchup_against_mon(mon, mon2)
+        maps = await self.conn.get_mon_matchup_against_mon(mon, mon2)
         self.assertEqual(len(maps), 1)
         self.assertTrue(4.0 in maps)
 
     async def testHasBranchingEvos(self):
         mon = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 25)
-        self.assertFalse(self.conn.has_branching_evos(mon))
+        self.assertFalse(await self.conn.has_branching_evos(mon))
         mon = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 133)
-        self.assertTrue(self.conn.has_branching_evos(mon))
+        self.assertTrue(await self.conn.has_branching_evos(mon))
 
     async def testGetBaseStats(self):
         mon = await PokeapiModel.classes.PokemonSpecies.get(self.conn, 25)
-        base_stats = self.conn.get_base_stats(mon)
+        base_stats = await self.conn.get_base_stats(mon)
         self.assertEqual(len(base_stats), 6)
         self.assertEqual(base_stats['HP'], 35)
         self.assertEqual(base_stats['Attack'], 55)
@@ -51,7 +51,7 @@ class PokeAPITests(unittest.IsolatedAsyncioTestCase):
 
     async def testGetVersionGroupName(self):
         grp = await PokeapiModel.classes.VersionGroup.get(self.conn, 1)
-        self.assertEqual(self.conn.get_version_group_name(grp), 'Red and Blue')
+        self.assertEqual(await self.conn.get_version_group_name(grp), 'Red and Blue')
 
     async def asyncTearDown(self) -> None:
         await self.conn.close()

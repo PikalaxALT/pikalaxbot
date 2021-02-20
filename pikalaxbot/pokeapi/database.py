@@ -1,3 +1,19 @@
+# PikalaxBOT - A Discord bot in discord.py
+# Copyright (C) 2018-2021  PikalaxALT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import aiosqlite
 import re
 import math
@@ -102,16 +118,16 @@ class PokeApi(aiosqlite.Connection):
                     start *= efficacy.damage_factor / 100.0
         return start
 
-    @staticmethod
     async def get_mon_matchup_against_move(
+            self,
             mon: 'PokeapiModel.classes.PokemonSpecies',
             move: 'PokeapiModel.classes.Type'
     ) -> float:
         if move.id == 560:
-            types = [await move.type, await PokeapiModel.classes.Type.get(3)]
+            types = [await move.type, await PokeapiModel.classes.Type.get(self, 3)]
         else:
             types = [await move.type]
-        return math.prod(await PokeApi.get_mon_matchup_against_type(mon, type_) for type_ in types)
+        return math.prod([await PokeApi.get_mon_matchup_against_type(mon, type_) for type_ in types])
 
     @staticmethod
     async def get_mon_matchup_against_mon(
