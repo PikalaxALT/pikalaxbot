@@ -64,8 +64,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
             self._pokeapi = self.loop.run_until_complete(
                 connect(
                     pokeapi_file,
-                    uri=True,
-                    check_same_thread=False  # Important for lazy-loading to work
+                    uri=True
                 )
             )
         else:

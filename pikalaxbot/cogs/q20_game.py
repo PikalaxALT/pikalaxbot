@@ -877,7 +877,7 @@ class Q20QuestionParser:
                 elif method in {size, weight} and _message == 4:
                     valid = False
                 elif method == evolution and _message == 3 and match:
-                    match_t = 'Yes, it has evolved' if solution.evolves_from_species else 'Yes, it will evolve'
+                    match_t = 'Yes, it has evolved' if await solution.evolves_from_species else 'Yes, it will evolve'
                 elif method in {move, egg} and solution.id > 807:
                     match_t = 'I have no clue'
                     defered_valid = False
