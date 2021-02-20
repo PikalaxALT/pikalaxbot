@@ -21,13 +21,13 @@ import sqlite3
 import typing
 import time
 import re
-import itertools
 from ..pokeapi import PokeapiModel
 from textwrap import indent
 import traceback
 import operator
 import aioitertools
 from . import *
+import asyncstdlib.builtins as abuiltins
 from contextlib import asynccontextmanager as acm
 if typing.TYPE_CHECKING:
     from .q20_game import Q20Game
@@ -434,36 +434,52 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         )
         if mon is None:
             return await ctx.send(f'Could not find a Pokémon named "{query[0]}"')
-        all_move_learns = sorted(
+
+        async def sort_key(pokemon_move):
+            return (
+                await pokemon_move.move,
+                await (await pokemon_move.version_group).generation,
+                await pokemon_move.move_learn_method,
+                pokemon_move.level
+            )
+
+        async def group_key(pokemon_move):
+            return await pokemon_move.move
+
+        all_move_learns = await abuiltins.sorted(
             await self.bot.pokeapi.get_mon_learnset_with_flags(mon),
-            key=lambda pm: (pm.move, pm.generation, pm.move_learn_method, pm.level)
+            key=sort_key
         )
         if not all_move_learns:
             return await ctx.send('I do not know anything about this Pokémon\'s move learns yet')
         movelearns = {
             move: list(group)
-            for move, group in itertools.groupby(all_move_learns, operator.attrgetter('move'))}
+            async for move, group in aioitertools.groupby(all_move_learns, group_key)}
         if len(query) == 1:
             types = await self.bot.pokeapi.get_mon_types(mon)
 
             class MoveLearnPageSource(menus.ListPageSource):
-                def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModel.classes.PokemonMove]):
+                async def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModel.classes.PokemonMove]):
                     embed = discord.Embed(
                         title=f'{mon}\'s learnset',
                         colour=TYPE_COLORS[types[0].qualified_name]
                     ).set_footer(text=f'Page {menu_.current_page + 1}/{self.get_max_pages()}')
+
+                    async def group_key(move_learn):
+                        return await (await move_learn.version_group).generation
+
                     for move, movelearns_ in page:
-                        value = '\n'.join(
-                            f'**{gen}:** ' + ', '.join(set(
+                        value = '\n'.join([
+                            f'**{gen}:** ' + ', '.join(set([
                                 f'Level {ml.level}'
-                                if ml.move_learn_method.id == 1
-                                else str(ml.move_learn_method)
-                                for ml in mls))
-                            for gen, mls
-                            in itertools.groupby(
+                                if (await ml.move_learn_method).id == 1
+                                else str(await ml.move_learn_method)
+                                for ml in mls]))
+                            async for gen, mls
+                            in aioitertools.groupby(
                                 movelearns_,
-                                operator.attrgetter('version_group.generation'))
-                        )
+                                group_key)
+                        ])
                         embed.add_field(
                             name=str(move),
                             value=value
