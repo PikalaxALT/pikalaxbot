@@ -516,8 +516,8 @@ class Q20QuestionParser:
                     unknown_tokens.append(word)
             if not is_this_question:
                 return None, 0, False, 0
-            solution_forme = await self.bot.pokeapi.get_default_forme(solution)
-            height = solution_forme.pokemon.height
+            solution_forme = await self.bot.pokeapi.get_default_pokemon(solution)
+            height = solution_forme.height
             if size_literal <= 0:
                 equal_message = 3
                 conglom = ' '.join(unknown_tokens)
@@ -597,8 +597,8 @@ class Q20QuestionParser:
                     unknown_tokens.append(word)
             if not is_this_question:
                 return None, 0, False, 0
-            solution_forme = await self.bot.pokeapi.get_default_forme(solution)
-            _weight = solution_forme.pokemon.weight
+            solution_forme = await self.bot.pokeapi.get_default_pokemon(solution)
+            _weight = solution_forme.weight
             if size_literal <= 0:
                 equal_message = 3
                 conglom = ' '.join(unknown_tokens)
@@ -755,8 +755,8 @@ class Q20QuestionParser:
                 if not name:
                     return None, 0, False, 0
                 message = 1
-                shape = mon.shape
-            return name, message, shape == solution.shape, confidence
+                shape = await self.bot.pokeapi._execute(lambda: mon.shape)
+            return name, message, shape == await self.bot.pokeapi._execute(lambda: solution.shape), confidence
 
         async def egg(q):
             if not re.search(r'\b(egg|group|breeding)\b', q, re.I):

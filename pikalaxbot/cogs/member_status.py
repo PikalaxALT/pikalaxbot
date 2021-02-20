@@ -44,8 +44,13 @@ class Memberstatus(BaseTable):
     @classmethod
     async def update_counters(cls, sql: AsyncConnection, bot: PikalaxBOT, now: datetime.datetime):
         to_insert = [
-            {'guild_id': guild.id, 'timestamp': now} | Counter(m.status.name for m in guild.members)
-            for guild in bot.guilds
+            {
+                'guild_id': guild.id, 'timestamp': now
+            } | {
+                status.name: 0 for status in discord.Status
+            } | Counter(
+                m.status.name for m in guild.members
+            ) for guild in bot.guilds
         ]
         statement = insert(cls).values(
             guild_id=bindparam('guild_id'),

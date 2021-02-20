@@ -193,7 +193,7 @@ class Stars(BaseCog):
         if payload.guild_id is None:
             return
         async with self.bot.sql_session as sess:
-            conf = await sess.execute(select(StarConfig).where(StarConfig.guild == payload.guild_id))
+            conf = await sess.scalar(select(StarConfig).where(StarConfig.guild == payload.guild_id))
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
                 await post.add_user(payload.user_id)
@@ -203,7 +203,7 @@ class Stars(BaseCog):
         if payload.guild_id is None:
             return
         async with self.bot.sql_session as sess:
-            conf = await sess.execute(select(StarConfig).where(StarConfig.guild == payload.guild_id))
+            conf = await sess.scalar(select(StarConfig).where(StarConfig.guild == payload.guild_id))
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
                 await post.remove_user(sess, payload.user_id)

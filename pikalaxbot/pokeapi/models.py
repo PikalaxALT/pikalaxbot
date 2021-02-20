@@ -69,14 +69,16 @@ class relationship:
         if instance is None:
             return self
         target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(self.target))
-        conn = instance.connection
-        cursor = instance.connection.execute(
-            'select * '
-            'from "{}" '
-            'where {} = ?'.format(self.target, self.foreign_col),
-            (getattr(instance, self.local_col),)
-        )
-        result = target_cls.from_row(cursor, cursor.fetchone())
+        fk_id = getattr(instance, self.local_col)
+        result = PokeapiModel.__cache__.get((target_cls, fk_id))
+        if result is None:
+            cursor = instance.connection.execute(
+                'select * '
+                'from "{}" '
+                'where {} = ?'.format(self.target, self.foreign_col),
+                (fk_id,)
+            )
+            result = target_cls(cursor, cursor.fetchone())
         return result
 
 
