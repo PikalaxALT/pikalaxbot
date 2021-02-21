@@ -558,7 +558,7 @@ class Core(BaseCog):
 
     @BaseCog.listener('on_message_delete')
     @BaseCog.listener('on_message_edit')
-    async def clear_context(self, message: discord.Message, after: typing.Optional[discord.Message] = None):
+    async def clear_context(self, message: discord.Message, after: discord.Message = None, /):
         try:
             ctx, history = self.bot._ctx_cache.pop((message.channel.id, message.id))  # type: MyContext, set[int]
         except KeyError:
