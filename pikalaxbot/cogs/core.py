@@ -542,30 +542,32 @@ class Core(BaseCog):
         )
         await ctx.send(embed=embed)
 
-    async def delete_response(self, ctx: MyContext, history: set[int]):
+    @staticmethod
+    async def delete_response(ctx: MyContext, history: set[int]):
         # Try bulk delete first
         partials: list[discord.PartialMessage] = [ctx.channel.get_partial_message(msg_id) for msg_id in history]
         try:
             await ctx.channel.delete_messages(partials)
         except discord.HTTPException:
             # Bulk delete failed for some reason, so try deleting them one by one
-            try:
-                await asyncio.gather(*[msg.delete() for msg in partials])
-            except discord.HTTPException:
-                pass
+            for msg in partials:
+                try:
+                    await msg.delete()
+                except discord.HTTPException:
+                    pass
 
     @BaseCog.listener('on_message_delete')
     @BaseCog.listener('on_message_edit')
     async def clear_context(self, message: discord.Message, after: typing.Optional[discord.Message] = None):
         try:
-            ctx, history = self.bot._ctx_cache.pop((message.channel.id, message.id))  # type: 'MyContext', set[int]
+            ctx, history = self.bot._ctx_cache.pop((message.channel.id, message.id))  # type: MyContext, set[int]
         except KeyError:
             pass
         else:
             ctx.cancel()
             if isinstance(ctx.cog, GameCogBase):
                 await ctx.cog.end_quietly(ctx, history)
-            await self.delete_response(ctx, history)
+            await Core.delete_response(ctx, history)
         if after:
             await self.bot.process_commands(after)
 
