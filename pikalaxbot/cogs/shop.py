@@ -185,6 +185,7 @@ def shared_max_concurrency(rate: int, per: commands.BucketType, *, wait=False):
 
 
 wares_concurrency = shared_max_concurrency(1, per=commands.BucketType.channel)
+buy_sell_toss_concurrency = shared_max_concurrency(1, per=commands.BucketType.user)
 
 
 class Shop(BaseCog):
@@ -197,18 +198,6 @@ class Shop(BaseCog):
         55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
         76, 77, 78, 79, 80, 81, 82, 83, 84, 85,
     )
-
-    def __init__(self, bot):
-        super().__init__(bot)
-        self._lock_bucket = collections.defaultdict(asyncio.Lock)
-
-    async def cog_before_invoke(self, ctx: MyContext):
-        await self._lock_bucket[ctx.author].acquire()
-        await super().cog_before_invoke(ctx)
-
-    async def cog_after_invoke(self, ctx: MyContext):
-        self._lock_bucket[ctx.author].release()
-        await super().cog_after_invoke(ctx)
 
     @afunctools.cached_property
     async def shop_items(self):
@@ -232,6 +221,7 @@ class Shop(BaseCog):
         menu = menus.MenuPages(page_source, delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx, wait=True)
 
+    @buy_sell_toss_concurrency
     @mart.command()
     async def buy(
         self,
@@ -294,6 +284,7 @@ class Shop(BaseCog):
             raise e.orig
         await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price:,} points.')
 
+    @buy_sell_toss_concurrency
     @mart.command()
     async def sell(
         self,
@@ -348,6 +339,7 @@ class Shop(BaseCog):
         menu = menus.MenuPages(page_source, delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx, wait=True)
 
+    @buy_sell_toss_concurrency
     @inventory.command('toss')
     async def inventory_toss(
         self,
