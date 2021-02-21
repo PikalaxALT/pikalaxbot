@@ -29,6 +29,7 @@ if typing.TYPE_CHECKING:
 from sqlalchemy import Column, BIGINT, INTEGER, UniqueConstraint, CheckConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 
 
 class PkmnInventory(BaseTable):
@@ -264,21 +265,21 @@ class Shop(BaseCog):
             return await ctx.send('Request timed out.', delete_after=10)
         if not menu._response:
             return await ctx.send('Transaction cancelled.', delete_after=10)
-        try:
-            async with self.bot.sql as sql:
+        async with self.bot.sql as sql:
+            try:
                 await Game.decrement_score(sql, ctx.author, by=price)
                 await PkmnInventory.give(sql, ctx.author, item, quantity)
-        except Exception as e:
-            if e.__class__.__name__ == 'IntegrityError' and isinstance(e.orig, asyncpg.CheckViolationError):
-                lb_cog: 'Leaderboard' = self.bot.get_cog('Leaderboard')
-                prefix, *_ = await self.bot.get_prefix(ctx.message)
-                return await ctx.reply(
-                    f'You seem to be a little short on funds. '
-                    f'You can spend up to your score on the game leaderboards. '
-                    f'Use `{prefix}{lb_cog.show.qualified_name}` to check your balance.',
-                    delete_after=10
-                )
-            raise e.orig
+            except IntegrityError as e:
+                if isinstance(e.orig, asyncpg.CheckViolationError):
+                    lb_cog: 'Leaderboard' = self.bot.get_cog('Leaderboard')
+                    prefix, *_ = await self.bot.get_prefix(ctx.message)
+                    await ctx.reply(
+                        f'You seem to be a little short on funds. '
+                        f'You can spend up to your score on the game leaderboards. '
+                        f'Use `{prefix}{lb_cog.show.qualified_name}` to check your balance.',
+                        delete_after=10
+                    )
+                raise e.orig
         await ctx.reply(f'Okay, I sold {quantity} {item}(s) to {ctx.author.display_name} for {price:,} points.')
 
     @buy_sell_toss_concurrency
@@ -311,14 +312,14 @@ class Shop(BaseCog):
             return await ctx.send('Request timed out', delete_after=10)
         elif not menu._response:
             return await ctx.send('Transaction cancelled', delete_after=10)
-        try:
-            async with self.bot.sql as sql:
+        async with self.bot.sql as sql:
+            try:
                 await PkmnInventory.take(sql, ctx.author, item, quantity)
                 await Game.increment_score(sql, ctx.author, by=price)
-        except Exception as e:
-            if e.__class__.__name__ == 'IntegrityError' and isinstance(e.orig, asyncpg.CheckViolationError):
-                return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
-            raise e.orig from None
+            except IntegrityError as e:
+                if isinstance(e.orig, asyncpg.CheckViolationError):
+                    await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
+                raise e.orig from None
         await ctx.reply(f'Great! Thanks for the {item}(s)!')
 
     @commands.group(invoke_without_command=True)
@@ -362,13 +363,13 @@ class Shop(BaseCog):
             return await ctx.send('Request timed out', delete_after=10)
         elif not menu._response:
             return await ctx.send('Declined to toss', delete_after=10)
-        try:
-            async with self.bot.sql as sql:
+        async with self.bot.sql as sql:
+            try:
                 await PkmnInventory.take(sql, ctx.author, item, quantity)
-        except Exception as e:
-            if e.__class__.__name__ == 'IntegrityError' and isinstance(e.orig, asyncpg.CheckViolationError):
-                return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
-            raise e.orig from None
+            except IntegrityError as e:
+                if isinstance(e.orig, asyncpg.CheckViolationError):
+                    await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
+                raise e.orig from None
         await ctx.reply(f'Threw away {quantity} {item}(s).')
 
 
