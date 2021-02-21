@@ -100,18 +100,6 @@ class PkmnInventory(BaseTable):
             yield item
 
 
-def int_range(low: int, high: int):
-    def actual_converter(argument: str):
-        try:
-            argument = int(argument)
-        except ValueError:
-            raise commands.BadArgument('Conversion to int failed for value "{}"'.format(argument))
-        if not high >= argument >= low:
-            raise commands.BadArgument('Integer value out of range')
-        return argument
-    return actual_converter
-
-
 class ShopConfirmationMenu(menus.Menu):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -224,11 +212,14 @@ class Shop(BaseCog):
     async def buy(
         self,
         ctx: MyContext,
-        quantity: typing.Optional[int_range(1, 999)] = 1,
+        quantity: typing.Optional[int] = 1,
         *,
         item: 'PokeapiModel.classes.Item'
     ):
         """Buy items from the shop. There is a limited selection available"""
+
+        if not 999 >= quantity >= 1:
+            return await ctx.send('Quantity must be between 1 and 999 inclusive')
         if item.id not in self._shop_item_ids:
             prefix, *_ = await self.bot.get_prefix(ctx.message)
             return await ctx.reply(
@@ -282,19 +273,27 @@ class Shop(BaseCog):
                 delete_after=10
             )
         else:
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc)
+            eh_cog = self.bot.get_cog('ErrorHandling')
+            if isinstance(exc, eh_cog.filter_excs):
+                return
+            if isinstance(exc, eh_cog.handle_excs):
+                return await eh_cog.handle_command_error(ctx, exc)
+            embed = ctx.prepare_command_error_embed()
+            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
 
     @buy_sell_toss_concurrency
     @mart.command()
     async def sell(
         self,
         ctx: MyContext,
-        quantity: typing.Optional[int_range(1, 999)] = 1,
+        quantity: typing.Optional[int] = 1,
         *,
         item: 'PokeapiModel.classes.Item'
     ):
         """Sell items from your inventory"""
 
+        if not 999 >= quantity >= 1:
+            return await ctx.send('Quantity must be between 1 and 999 inclusive')
         if item.cost == 0:
             return await ctx.reply(f'{item}? Oh no, I can\'t buy that.', delete_after=10)
         async with self.bot.sql as sql:
@@ -339,12 +338,14 @@ class Shop(BaseCog):
     async def inventory_toss(
         self,
         ctx: MyContext,
-        quantity: typing.Optional[int_range(1, 999)] = 1,
+        quantity: typing.Optional[int] = 1,
         *,
         item: 'PokeapiModel.classes.Item'
     ):
         """Toss items from your bag"""
 
+        if not 999 >= quantity >= 1:
+            return await ctx.send('Quantity must be between 1 and 999 inclusive')
         async with self.bot.sql as sql:
             if not await PkmnInventory.check(sql, ctx.author, item, quantity):
                 return await ctx.reply('You don\'t have nearly that many of these to toss.', delete_after=10)
@@ -375,7 +376,13 @@ class Shop(BaseCog):
         if isinstance(exc, commands.CommandInvokeError) and isinstance(exc.original, IntegrityError):
             await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
         else:
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc)
+            eh_cog = self.bot.get_cog('ErrorHandling')
+            if isinstance(exc, eh_cog.filter_excs):
+                return
+            if isinstance(exc, eh_cog.handle_excs):
+                return await eh_cog.handle_command_error(ctx, exc)
+            embed = ctx.prepare_command_error_embed()
+            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
 
 
 def setup(bot: PikalaxBOT):
