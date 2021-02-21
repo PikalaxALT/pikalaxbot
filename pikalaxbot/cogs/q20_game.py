@@ -10,8 +10,8 @@ import random
 import nltk
 import asyncio
 from contextlib import asynccontextmanager as acm
-from typing import Optional, Callable, Coroutine, Any
-from ..pokeapi import PokeapiModel, Model, ModelType
+from typing import Optional, Callable, Coroutine, Any, Type
+from ..pokeapi import PokeapiModel
 
 
 ParseMethod = Callable[[str], Coroutine[None, None, tuple[Optional[str], int, bool, float]]]
@@ -158,7 +158,7 @@ class Q20QuestionParser:
         self.differ = difflib.SequenceMatcher()
         self.tokenizer = nltk.WordPunctTokenizer()
 
-    async def lookup_name(self, table: ModelType, q: str) -> tuple[Optional[str], Optional[Model], float]:
+    async def lookup_name(self, table: Type[PokeapiModel], q: str) -> tuple[Optional[str], Optional[PokeapiModel], float]:
         def iter_matches(callable_: Callable[[str], R]) -> R:
             yield callable_(q)
             for bigram in re.findall(r'(?=(\S+\s+\S))', q):
@@ -173,7 +173,7 @@ class Q20QuestionParser:
             ) or (None, None)
 
         id_: Optional[int]
-        r: Optional[Model]
+        r: Optional[PokeapiModel]
         name: Optional[str]
         orig: Optional[str]
 
@@ -194,7 +194,7 @@ class Q20QuestionParser:
             name = None
             for coro, orig in iter_matches(
                 lambda s: (table.get_named(self.bot.pokeapi, s), s)
-            ):  # type: Coroutine[Any, Any, Optional[Model]], str
+            ):  # type: Coroutine[Any, Any, Optional[PokeapiModel]], str
                 r = await coro
                 if r:
                     break

@@ -22,15 +22,11 @@ import sqlite3
 import pathlib
 import random
 import json
-import contextlib
 
 from .models import PokeapiModel, collection
 
 
 __all__ = ('PokeApi', 'connect')
-
-
-RowFactory = typing.Callable[[sqlite3.Cursor, tuple], typing.Any]
 
 
 class PokeApi(aiosqlite.Connection):

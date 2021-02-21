@@ -66,9 +66,6 @@ def sqlite3_type(coltype: str) -> type:
     }.get(coltype)
 
 
-RowFactory = typing.Callable[[sqlite3.Cursor, tuple], typing.Any]
-
-
 class collection(list[_T]):
     def get(self, **attrs) -> typing.Optional[_T]:
         return discord.utils.get(self, **attrs)
