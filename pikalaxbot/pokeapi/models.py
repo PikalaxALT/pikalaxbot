@@ -267,6 +267,8 @@ class PokeapiModel:
             connection: aiosqlite.Connection,
             id_: int
     ) -> typing.Optional[_T]:
+        if (cls, id_) in cls.__cache__:
+            return cls.__cache__.get((cls, id_))
         async with connection.execute(
             'select * '
             'from {} '

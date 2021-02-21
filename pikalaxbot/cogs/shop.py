@@ -216,13 +216,7 @@ class Shop(BaseCog):
 
     @afunctools.cached_property
     async def shop_items(self):
-        async with self.bot.pokeapi.execute(
-            'SELECT * '
-            'FROM pokemon_v2_item '
-            'WHERE id IN ?',
-            (self._shop_item_ids,)
-        ) as cur:
-            return [await PokeapiModel.classes.Item.from_row(row) async for row in cur]
+        return [await PokeapiModel.classes.Item.get(self.bot.pokeapi, id_) for id_ in self._shop_item_ids]
 
     async def init_db(self, sql):
         await PkmnInventory.create(sql)
@@ -353,13 +347,7 @@ class Shop(BaseCog):
 
         async with self.bot.sql as sql:
             bag_item_ids, bag_quantites = zip(*await PkmnInventory.retrieve(sql, ctx.author))
-        async with self.bot.pokeapi.execute(
-            'SELECT * '
-            'FROM pokemon_v2_item '
-            'WHERE id IN ?',
-            (bag_item_ids,)
-        ) as cur:
-            bag_items = [await PokeapiModel.classes.Item.from_row(row) async for row in cur]
+        bag_items = [await PokeapiModel.classes.Item.get(self.bot.pokeapi, id_) for id_ in bag_item_ids]
         page_source = ItemBagPageSource(list(zip(bag_items, bag_quantites)), per_page=9)
         menu = menus.MenuPages(page_source, delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx, wait=True)
