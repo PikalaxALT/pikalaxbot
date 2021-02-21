@@ -210,10 +210,6 @@ class Shop(BaseCog):
         self._lock_bucket[ctx.author].release()
         await super().cog_after_invoke(ctx)
 
-    # Temporary dev lock
-    def cog_check(self, ctx: MyContext):
-        return commands.is_owner().predicate(ctx)
-
     @afunctools.cached_property
     async def shop_items(self):
         return [await PokeapiModel.classes.Item.get(self.bot.pokeapi, id_) for id_ in self._shop_item_ids]
