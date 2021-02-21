@@ -145,7 +145,7 @@ class ShopInventoryPageSource(menus.ListPageSource):
         )
         for item in page:
             embed.add_field(
-                name=item.name,
+                name=item,
                 value=f'Cost: {item.cost}'
             )
         embed.set_footer(
@@ -162,7 +162,7 @@ class ItemBagPageSource(menus.ListPageSource):
         )
         for item, quantity in page:
             embed.add_field(
-                name=item.name,
+                name=item,
                 value=f'Quantity: x{quantity}'
             )
         embed.set_footer(
@@ -264,7 +264,7 @@ class Shop(BaseCog):
         async with self.bot.sql as sql:
             balance = await Game.check_score(sql, ctx.author)
         balance = balance and balance.score or 0
-        item_path = json.loads(item.item_sprites[0].sprites)['default']
+        item_path = json.loads((await item.item_spriteses)[0].sprites)['default']
         icon_url = self.bot.pokeapi.sprite_url(item_path)
         embed = discord.Embed().set_image(
             url=icon_url
@@ -315,13 +315,13 @@ class Shop(BaseCog):
         """Sell items from your inventory"""
 
         if item.cost == 0:
-            return await ctx.reply(f'{item.name}? Oh no, I can\'t buy that.', delete_after=10)
+            return await ctx.reply(f'{item}? Oh no, I can\'t buy that.', delete_after=10)
         async with self.bot.sql as sql:
             if not await PkmnInventory.check(sql, ctx.author, item, quantity):
                 return await ctx.reply('You don\'t have nearly that many of these to sell.', delete_after=10)
         price = item.cost * quantity // 2
         msg = await ctx.reply(
-            f'Okay, {item.name}, and you want to sell {quantity}? '
+            f'Okay, {item}, and you want to sell {quantity}? '
             f'I can give you {price:,} for those. Okay?'
         )
         menu = ShopConfirmationMenu(
@@ -341,7 +341,7 @@ class Shop(BaseCog):
             if isinstance(e.orig, asyncpg.CheckViolationError):
                 return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
             raise e.orig from None
-        await ctx.reply(f'Great! Thanks for the {item.name}(s)!')
+        await ctx.reply(f'Great! Thanks for the {item}(s)!')
 
     @commands.group(invoke_without_command=True)
     async def inventory(self, ctx: MyContext):
@@ -378,7 +378,7 @@ class Shop(BaseCog):
             if not await PkmnInventory.check(sql, ctx.author, item, quantity):
                 return await ctx.reply('You don\'t have nearly that many of these to toss.', delete_after=10)
         msg = await ctx.reply(
-            f'Okay to toss {quantity} {item.name}(s)?'
+            f'Okay to toss {quantity} {item}(s)?'
         )
         menu = ShopConfirmationMenu(
             message=msg,
@@ -396,7 +396,7 @@ class Shop(BaseCog):
             if isinstance(e.orig, asyncpg.CheckViolationError):
                 return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
             raise e.orig from None
-        await ctx.reply(f'Threw away {quantity} {item.name}(s).')
+        await ctx.reply(f'Threw away {quantity} {item}(s).')
 
 
 def setup(bot: PikalaxBOT):
