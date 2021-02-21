@@ -184,7 +184,7 @@ def shared_max_concurrency(rate: int, per: commands.BucketType, *, wait=False):
     return decorator
 
 
-wares_concurrency = shared_max_concurrency(1, per=commands.BucketType.channel, wait=False)
+wares_concurrency = shared_max_concurrency(1, per=commands.BucketType.channel)
 
 
 class Shop(BaseCog):
