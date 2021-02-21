@@ -19,8 +19,6 @@ from discord.ext import commands, menus
 import asyncpg
 import asyncstdlib.functools as afunctools
 import typing
-import asyncio
-import collections
 import json
 from . import *
 from ..pokeapi import PokeapiModel
@@ -31,7 +29,7 @@ if typing.TYPE_CHECKING:
 from sqlalchemy import Column, BIGINT, INTEGER, UniqueConstraint, CheckConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import StatementError
+from sqlalchemy.exc import IntegrityError
 
 
 class PkmnInventory(BaseTable):
@@ -271,7 +269,7 @@ class Shop(BaseCog):
             async with self.bot.sql as sql:
                 await Game.decrement_score(sql, ctx.author, by=price)
                 await PkmnInventory.give(sql, ctx.author, item, quantity)
-        except StatementError as e:
+        except IntegrityError as e:
             if isinstance(e.orig, asyncpg.CheckViolationError):
                 lb_cog: 'Leaderboard' = self.bot.get_cog('Leaderboard')
                 prefix, *_ = await self.bot.get_prefix(ctx.message)
@@ -318,7 +316,7 @@ class Shop(BaseCog):
             async with self.bot.sql as sql:
                 await PkmnInventory.take(sql, ctx.author, item, quantity)
                 await Game.increment_score(sql, ctx.author, by=price)
-        except StatementError as e:
+        except IntegrityError as e:
             if isinstance(e.orig, asyncpg.CheckViolationError):
                 return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
             raise e.orig from None
@@ -368,7 +366,7 @@ class Shop(BaseCog):
         try:
             async with self.bot.sql as sql:
                 await PkmnInventory.take(sql, ctx.author, item, quantity)
-        except StatementError as e:
+        except IntegrityError as e:
             if isinstance(e.orig, asyncpg.CheckViolationError):
                 return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
             raise e.orig from None
