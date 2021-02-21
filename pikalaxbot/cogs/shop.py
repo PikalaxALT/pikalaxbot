@@ -29,7 +29,6 @@ if typing.TYPE_CHECKING:
 from sqlalchemy import Column, BIGINT, INTEGER, UniqueConstraint, CheckConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
 
 
 class PkmnInventory(BaseTable):
@@ -269,8 +268,8 @@ class Shop(BaseCog):
             async with self.bot.sql as sql:
                 await Game.decrement_score(sql, ctx.author, by=price)
                 await PkmnInventory.give(sql, ctx.author, item, quantity)
-        except IntegrityError as e:
-            if isinstance(e.orig, asyncpg.CheckViolationError):
+        except Exception as e:
+            if e.__class__.__name__ == 'IntegrityError' and isinstance(e.orig, asyncpg.CheckViolationError):
                 lb_cog: 'Leaderboard' = self.bot.get_cog('Leaderboard')
                 prefix, *_ = await self.bot.get_prefix(ctx.message)
                 return await ctx.reply(
@@ -316,8 +315,8 @@ class Shop(BaseCog):
             async with self.bot.sql as sql:
                 await PkmnInventory.take(sql, ctx.author, item, quantity)
                 await Game.increment_score(sql, ctx.author, by=price)
-        except IntegrityError as e:
-            if isinstance(e.orig, asyncpg.CheckViolationError):
+        except Exception as e:
+            if e.__class__.__name__ == 'IntegrityError' and isinstance(e.orig, asyncpg.CheckViolationError):
                 return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
             raise e.orig from None
         await ctx.reply(f'Great! Thanks for the {item}(s)!')
@@ -366,8 +365,8 @@ class Shop(BaseCog):
         try:
             async with self.bot.sql as sql:
                 await PkmnInventory.take(sql, ctx.author, item, quantity)
-        except IntegrityError as e:
-            if isinstance(e.orig, asyncpg.CheckViolationError):
+        except Exception as e:
+            if e.__class__.__name__ == 'IntegrityError' and isinstance(e.orig, asyncpg.CheckViolationError):
                 return await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
             raise e.orig from None
         await ctx.reply(f'Threw away {quantity} {item}(s).')
