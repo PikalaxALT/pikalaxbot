@@ -206,8 +206,15 @@ class Modtools(BaseCog):
         else:
             msg = 'An unexpected error has occurred, my husbando is on the case'
         await ctx.message.add_reaction('\N{CROSS MARK}')
-        await ctx.send(msg, embed=embed)
-        self.log_tb(ctx, exc)
+        try:
+            await ctx.send(msg, embed=embed)
+        except discord.HTTPException:
+            await ctx.send(
+                'An unexpected error has occurred, my husbando is on the case\n\n'
+                'Unfortunately the error is too large to print here :('
+            )
+        finally:
+            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc)
 
     @admin.command(name='oauth')
     async def send_oauth(self, ctx: MyContext):
