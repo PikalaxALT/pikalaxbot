@@ -27,14 +27,14 @@ from .utils.converters import PastTime
 from .utils.mpl_time_axis import *
 from jishaku.functools import executor_function
 
-from sqlalchemy import Column, TIMESTAMP, REAL, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import Column, TIMESTAMP, select
+from sqlalchemy.dialects.postgresql import insert, DOUBLE_PRECISION
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 class PingHistory(BaseTable):
     timestamp = Column(TIMESTAMP, primary_key=True)
-    latency = Column(REAL)
+    latency = Column(DOUBLE_PRECISION)
 
     @classmethod
     async def insert(cls, conn: AsyncConnection, now: datetime.datetime, latency: float):
@@ -61,7 +61,10 @@ class Ping(BaseCog):
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
         now = self.build_ping_history._last_iteration.replace(tzinfo=None)
-        ping = self.bot.latency * 1000
+        if np.isinf(self.bot.latency):
+            ping = None
+        else:
+            ping = self.bot.latency * 1000
         async with self.bot.sql as sql:
             await PingHistory.insert(sql, now, ping)
 
@@ -103,7 +106,7 @@ class Ping(BaseCog):
         ax: plt.Axes = plt.gca()
         idxs = thin_points(len(times), 1000)
         times = np.array(times)[idxs]
-        values = np.array(values)[idxs]
+        values = np.array(values, dtype=float)[idxs]  # coerce None to nan
         ax.plot(times, values)
         ax.fill_between(times, [0 for _ in values], values)
         set_time_xlabs(ax, times)
@@ -146,3 +149,7 @@ class Ping(BaseCog):
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Ping(bot))
+
+
+def teardown(bot: PikalaxBOT):
+    PingHistory.unlink()
