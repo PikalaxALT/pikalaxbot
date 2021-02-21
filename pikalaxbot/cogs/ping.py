@@ -62,7 +62,7 @@ class Ping(BaseCog):
     async def build_ping_history(self):
         now = self.build_ping_history._last_iteration.replace(tzinfo=None)
         if np.isinf(self.bot.latency):
-            ping = None
+            ping = 'Infinity'
         else:
             ping = self.bot.latency * 1000
         async with self.bot.sql as sql:
