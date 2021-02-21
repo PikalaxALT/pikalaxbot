@@ -61,3 +61,10 @@ class MyContext(commands.Context):
         embed.add_field(name='Invoked with', value='`' + self.message.content + '`', inline=False)
         embed.add_field(name='Invoking message', value=self.message.jump_url if self.guild else "is a dm", inline=False)
         return embed
+
+    def has_local_error_handler(self):
+        if discord.version_info >= (1, 7):
+            return self.cog and self.cog.has_error_handler() \
+                   or self.command and self.command.has_error_handler()
+        return self.cog and hasattr(self.cog.cog_command_error.__func__, '__cog_special_method__') \
+            or self.command and hasattr(self.command, 'on_error')

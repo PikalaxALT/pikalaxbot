@@ -25,6 +25,7 @@ from ..pokeapi import PokeapiModel
 from .utils.game import Game
 if typing.TYPE_CHECKING:
     from .leaderboard import Leaderboard
+    from .error_handling import ErrorHandling
 
 from sqlalchemy import Column, BIGINT, INTEGER, UniqueConstraint, CheckConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -192,6 +193,10 @@ class Shop(BaseCog):
     async def init_db(self, sql):
         await PkmnInventory.create(sql)
 
+    async def _spoof_default_error_handler(self, ctx: MyContext, exc: commands.CommandError):
+        eh_cog: 'ErrorHandling' = self.bot.get_cog('ErrorHandling')
+        await eh_cog.on_command_error(ctx, exc, suppress_on_local=False)
+
     @wares_concurrency
     @commands.group(invoke_without_command=True)
     async def mart(self, ctx: MyContext):
@@ -273,13 +278,7 @@ class Shop(BaseCog):
                 delete_after=10
             )
         else:
-            eh_cog = self.bot.get_cog('ErrorHandling')
-            if isinstance(exc, eh_cog.filter_excs):
-                return
-            if isinstance(exc, eh_cog.handle_excs):
-                return await eh_cog.handle_command_error(ctx, exc)
-            embed = ctx.prepare_command_error_embed()
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
+            await self._spoof_default_error_handler(ctx, exc)
 
     @buy_sell_toss_concurrency
     @mart.command()
@@ -372,17 +371,11 @@ class Shop(BaseCog):
 
     @sell.error
     @inventory_toss.error
-    async def toss_error(self, ctx: MyContext, exc: Exception):
+    async def toss_error(self, ctx: MyContext, exc: commands.CommandError):
         if isinstance(exc, commands.CommandInvokeError) and isinstance(exc.original, IntegrityError):
             await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
         else:
-            eh_cog = self.bot.get_cog('ErrorHandling')
-            if isinstance(exc, eh_cog.filter_excs):
-                return
-            if isinstance(exc, eh_cog.handle_excs):
-                return await eh_cog.handle_command_error(ctx, exc)
-            embed = ctx.prepare_command_error_embed()
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, exc, origin=f'command {ctx.command}', embed=embed)
+            await self._spoof_default_error_handler(ctx, exc)
 
 
 def setup(bot: PikalaxBOT):

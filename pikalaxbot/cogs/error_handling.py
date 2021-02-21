@@ -122,17 +122,14 @@ class ErrorHandling(BaseCog):
         await ctx.reply(f'{msg} {self.bot.command_error_emoji}', delete_after=10, mention_author=False)
 
     @BaseCog.listener()
-    async def on_command_error(self, ctx: MyContext, exc: commands.CommandError):
+    async def on_command_error(self, ctx: MyContext, exc: commands.CommandError, *, suppress_on_local=True):
         if isinstance(exc, commands.CommandInvokeError):
             exc = exc.original
 
         if isinstance(exc, self.filter_excs):
             return
 
-        if ctx.cog and BaseCog._get_overridden_method(ctx.cog.cog_command_error) is not None:
-            return
-
-        if hasattr(ctx.command, 'on_error'):
+        if suppress_on_local and ctx.has_local_error_handler():
             return
 
         if isinstance(exc, self.handle_excs):
