@@ -103,7 +103,7 @@ async def get_default_pokemon(mon: 'PokeapiModel.classes.PokemonSpecies'):
     return (await mon.pokemons).get(is_default=True)
 
 
-async def get_mon_types( mon: 'PokeapiModel.classes.PokemonSpecies') -> list['PokeapiModel.classes.Type']:
+async def get_mon_types(mon: 'PokeapiModel.classes.PokemonSpecies') -> list['PokeapiModel.classes.Type']:
     default_mon = await get_default_pokemon(mon)
     return [await ptype.type for ptype in await default_mon.pokemon_types]
 
