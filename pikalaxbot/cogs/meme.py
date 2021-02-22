@@ -31,6 +31,7 @@ from . import *
 from .utils.menus import NavMenuPages
 from ..types import *
 from ..constants import *
+from ..pokeapi import methods
 
 
 class Meme(BaseCog):
@@ -97,7 +98,7 @@ class Meme(BaseCog):
     async def yolonome(self, ctx: MyContext):
         """Happy birthday, Waggle!"""
 
-        move_name = await self.bot.pokeapi.random_move_name()
+        move_name = await methods.random_move_name()
         await ctx.send(f'{ctx.author.mention} used Metronome!\n'
                        f'Waggling a finger allowed it to use {move_name}!')
 

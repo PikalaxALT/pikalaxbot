@@ -20,6 +20,7 @@ from discord.ext import commands
 
 from . import *
 from .utils.game import GameBase, GameCogBase, GameStartCommand
+from ..pokeapi import methods
 
 
 class AnagramGame(GameBase):
@@ -53,8 +54,8 @@ class AnagramGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Anagram is already running here.',
                            delete_after=10)
         else:
-            self._solution = await self.bot.pokeapi.random_pokemon()
-            self._solution_name = self.bot.pokeapi.get_name(self._solution, clean=True).upper()
+            self._solution = await methods.random_pokemon()
+            self._solution_name = methods.get_name(self._solution, clean=True).upper()
             _state = list(self._solution_name)
             while ''.join(_state) == self._solution_name:
                 random.shuffle(_state)

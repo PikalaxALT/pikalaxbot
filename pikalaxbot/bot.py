@@ -25,7 +25,8 @@ from .utils.logging_mixin import BotLogger
 from .context import MyContext
 from .utils.config_io import Settings
 import asyncstdlib.functools as afunctools
-from .pokeapi import *
+from .pokeapi import methods, PokeapiModel
+import aiosqlite
 from .utils.pg_orm import *
 from contextlib import asynccontextmanager as acm
 
@@ -59,16 +60,8 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self._alive_since: typing.Optional[datetime.datetime] = None
 
         # PokeAPI
-        self._pokeapi: typing.Optional[PokeApi]
-        if pokeapi_file:
-            self._pokeapi = self.loop.run_until_complete(
-                connect(
-                    pokeapi_file,
-                    uri=True
-                )
-            )
-        else:
-            self._pokeapi = None
+        self._pokeapi_file = pokeapi_file
+        self._pokeapi: typing.Optional[aiosqlite.Connection] = self.loop.run_until_complete(methods.make_pokeapi(self))
 
     @property
     def command_error_emoji(self) -> discord.Emoji:
@@ -90,8 +83,13 @@ class PikalaxBOT(BotLogger, commands.Bot):
         return begin()
 
     @property
-    def pokeapi(self) -> PokeApi:
+    def pokeapi(self) -> typing.Optional[aiosqlite.Connection]:
         return self._pokeapi
+
+    @pokeapi.setter
+    def pokeapi(self, value: typing.Optional[aiosqlite.Connection]):
+        self._pokeapi = value
+        PokeapiModel.__prepared__ = False
 
     @discord.utils.cached_slot_property('_client_session')
     def client_session(self):

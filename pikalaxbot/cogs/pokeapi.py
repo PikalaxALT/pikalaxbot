@@ -18,10 +18,8 @@ import discord
 from discord.ext import commands, tasks, menus
 import asyncio
 import sqlite3
-import typing
 import time
-import re
-from ..pokeapi import PokeapiModel
+from ..pokeapi import *
 from textwrap import indent
 import traceback
 import operator
@@ -143,6 +141,19 @@ class SqlResponseEmbed(menus.ListPageSource):
         )
 
 
+class DisablePokeapi:
+    def __init__(self, bot: PikalaxBOT):
+        self.bot = bot
+
+    async def __aenter__(self):
+        self.bot.pokeapi = None
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if exc_val is None:
+            self.bot.pokeapi = await make_pokeapi(self.bot)
+
+
 class PokeApiCog(BaseCog, name='PokeApi'):
     """Commands relating to the bot's local clone of the PokeAPI database."""
 
@@ -155,15 +166,12 @@ class PokeApiCog(BaseCog, name='PokeApi'):
 
     @acm
     async def disable_pokeapi(self):
-        self.bot.pokeapi._enabled = False
+        await self.bot.pokeapi.close()
+        self.bot.pokeapi = None
         yield
-        self.bot.pokeapi._enabled = True
+        self.bot.pokeapi = await self.bot.make_pokeapi()
 
     async def do_rebuild_pokeapi(self, ctx: MyContext):
-        shell = await asyncio.create_subprocess_shell('../../../setup_pokeapi.sh')
-        embed = discord.Embed(title='Updating PokeAPI', description='Started', colour=0xf47fff)
-        msg = await ctx.send(embed=embed)
-
         @tasks.loop(seconds=10)
         async def update_msg():
             elapsed = (update_msg._next_iteration - msg.created_at).total_seconds()
@@ -174,24 +182,26 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         async def update_before():
             await asyncio.sleep(10)
 
-        done, pending = await asyncio.wait(
-            {update_msg.start(), asyncio.create_task(shell.wait)},
-            return_when=asyncio.FIRST_COMPLETED
-        )
-        [task.cancel() for task in pending]
-        try:
-            done.pop().result()
-        except Exception as e:
-            embed.colour = discord.Colour.red()
-            tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
-            if len(tb) > 2040:
-                tb = '...\n' + tb[-2036:]
-            embed.title = 'Update failed'
-            embed.description = f'```\n{tb}\n```'
-        else:
-            embed.colour = discord.Colour.green()
-            embed.title = 'Update succeeded!'
-            embed.description = 'You can now use pokeapi again'
+        embed = discord.Embed(title='Updating PokeAPI', description='Started', colour=0xf47fff)
+        msg = await ctx.send(embed=embed)
+        async with self.disable_pokeapi():
+            shell = await asyncio.create_subprocess_shell('../../../setup_pokeapi.sh')
+            update_msg.start()
+            try:
+                await shell.wait()
+            except Exception as e:
+                embed.colour = discord.Colour.red()
+                tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
+                if len(tb) > 2040:
+                    tb = '...\n' + tb[-2036:]
+                embed.title = 'Update failed, pokeapi remains offline'
+                embed.description = f'```\n{tb}\n```'
+            else:
+                embed.colour = discord.Colour.green()
+                embed.title = 'Update succeeded!'
+                embed.description = 'You can now use pokeapi again'
+            finally:
+                update_msg.cancel()
         await msg.edit(embed=embed)
 
     @commands.group()
@@ -204,7 +214,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
     async def rebuild_pokeapi(self, ctx: MyContext):
         """Rebuild the pokeapi database"""
 
-        async with self._lock, self.disable_pokeapi():
+        async with self._lock:
             menu = ConfirmationMenu(timeout=60.0, clear_reactions_after=True)
             await menu.start(ctx, wait=True)
 
@@ -265,14 +275,14 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         """Gets information about a Pokémon species"""
 
         async with ctx.typing():
-            base_stats = await self.bot.pokeapi.get_base_stats(pokemon)
-            types = await self.bot.pokeapi.get_mon_types(pokemon)
-            egg_groups = await self.bot.pokeapi.get_egg_groups(pokemon)
-            image_url = await self.bot.pokeapi.get_species_sprite_url(pokemon)
-            flavor_text = await self.bot.pokeapi.get_mon_flavor_text(pokemon)
-            evos = await self.bot.pokeapi.get_evos(pokemon)
-            abilities = await self.bot.pokeapi.get_mon_abilities_with_flags(pokemon)
-            forme = await self.bot.pokeapi.get_default_forme(pokemon)
+            base_stats = await get_base_stats(pokemon)
+            types = await get_mon_types(pokemon)
+            egg_groups = await get_egg_groups(pokemon)
+            image_url = await get_species_sprite_url(pokemon)
+            flavor_text = await get_mon_flavor_text(pokemon)
+            evos = await get_evos(pokemon)
+            abilities = await get_mon_abilities_with_flags(pokemon)
+            forme = await get_default_forme(pokemon)
         embed = discord.Embed(
             title=f'{pokemon} (#{pokemon.id})',
             description=flavor_text or 'No flavor text',
@@ -323,9 +333,9 @@ class PokeApiCog(BaseCog, name='PokeApi'):
 
     async def move_info(self, ctx: MyContext, move: 'PokeapiModel.classes.Move'):
         async with ctx.typing():
-            attrs = await self.bot.pokeapi.get_move_attrs(move)
-            flavor_text = await self.bot.pokeapi.get_move_description(move)
-            machines = await self.bot.pokeapi.get_machines_teaching_move(move)
+            attrs = await get_move_attrs(move)
+            flavor_text = await get_move_description(move)
+            machines = await get_machines_teaching_move(move)
             move_effect = await move.move_effect
             short_effect = (await move_effect.move_effect_effect_texts).get(language_id=9).short_effect
             contest_effect = await move.contest_effect
@@ -446,7 +456,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             return await pokemon_move.move
 
         all_move_learns = await abuiltins.sorted(
-            await self.bot.pokeapi.get_mon_learnset_with_flags(mon),
+            await get_mon_learnset_with_flags(mon),
             key=sort_key
         )
         if not all_move_learns:
@@ -455,7 +465,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             move: list(group)
             async for move, group in aioitertools.groupby(all_move_learns, group_key)}
         if len(query) == 1:
-            types = await self.bot.pokeapi.get_mon_types(mon)
+            types = await get_mon_types(mon)
 
             class MoveLearnPageSource(menus.ListPageSource):
                 async def format_page(self, menu_: menus.MenuPages, page: list[PokeapiModel.classes.PokemonMove]):

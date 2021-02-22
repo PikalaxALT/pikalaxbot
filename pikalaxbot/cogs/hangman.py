@@ -20,6 +20,7 @@ from discord.ext import commands
 
 from .utils.game import GameBase, GameCogBase, Game, GameStartCommand
 from . import *
+from ..pokeapi import methods
 
 
 class HangmanGame(GameBase):
@@ -57,8 +58,8 @@ class HangmanGame(GameBase):
             await ctx.send(f'{ctx.author.mention}: Hangman is already running here.',
                            delete_after=10)
         else:
-            self._solution = await self.bot.pokeapi.random_pokemon()
-            self._solution_name = self.bot.pokeapi.get_name(self._solution, clean=True).upper()
+            self._solution = await methods.random_pokemon()
+            self._solution_name = methods.get_name(self._solution, clean=True).upper()
             self._state = ['_' if c.isalnum() else c for c in self._solution_name]
             self.attempts = self._attempts
             self._incorrect.clear()

@@ -24,6 +24,7 @@ from .utils.converters import dice_roll
 import typing
 import collections
 from jishaku.functools import executor_function
+from ..pokeapi import methods
 
 
 class Rng(BaseCog):
@@ -60,7 +61,7 @@ class Rng(BaseCog):
     async def random_pokemon(self, ctx: MyContext):
         """Get a random Pokemon name"""
 
-        mon = await self.bot.pokeapi.random_pokemon_name()
+        mon = await methods.random_pokemon_name()
         await ctx.send(mon)
     
     @random.command(name='quilava')

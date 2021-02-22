@@ -24,7 +24,7 @@ import typing
 import collections
 from .. import *
 from ...types import T
-from ...pokeapi import PokeapiModel
+from ...pokeapi import PokeapiModel, methods
 
 from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select, func, delete, update
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -211,7 +211,7 @@ class GameBase:
         return score
 
     async def get_solution_embed(self, *, failed=False, aborted=False):
-        sprite_url = await self.bot.pokeapi.get_species_sprite_url(self._solution)
+        sprite_url = await methods.get_species_sprite_url(self._solution)
         return discord.Embed(
                 title=self._solution.qualified_name,
                 colour=discord.Colour.red() if failed or aborted else discord.Colour.green()
