@@ -48,22 +48,27 @@ class PokeApi(aiosqlite.Connection):
             name = PokeApi._clean_name(name)
         return name
 
-    async def get_species(self, id_: int) -> 'PokeapiModel.classes.PokemonSpecies':
-        return await PokeapiModel.classes.PokemonSpecies.get(self, id_)
+    @staticmethod
+    async def get_species(id_: int) -> 'PokeapiModel.classes.PokemonSpecies':
+        return await PokeapiModel.classes.PokemonSpecies.get(id_)
 
-    async def random_species(self) -> 'PokeapiModel.classes.PokemonSpecies':
-        return await PokeapiModel.classes.PokemonSpecies.get_random(self)
+    @staticmethod
+    async def random_species() -> 'PokeapiModel.classes.PokemonSpecies':
+        return await PokeapiModel.classes.PokemonSpecies.get_random()
 
     random_pokemon = random_species
 
-    async def random_pokemon_name(self, *, clean=False):
-        return PokeApi.get_name(await self.random_species(), clean=clean)
+    @staticmethod
+    async def random_pokemon_name(*, clean=False):
+        return PokeApi.get_name(await PokeApi.random_species(), clean=clean)
 
-    async def random_move(self) -> 'PokeapiModel.classes.Move':
-        return await PokeapiModel.classes.Move.get_random(self)
+    @staticmethod
+    async def random_move() -> 'PokeapiModel.classes.Move':
+        return await PokeapiModel.classes.Move.get_random()
 
-    async def random_move_name(self, *, clean=False):
-        return PokeApi.get_name(await self.random_move(), clean=clean)
+    @staticmethod
+    async def random_move_name(*, clean=False):
+        return PokeApi.get_name(await PokeApi.random_move(), clean=clean)
 
     @staticmethod
     def sprite_url(dbpath: str):
@@ -114,14 +119,14 @@ class PokeApi(aiosqlite.Connection):
                     start *= efficacy.damage_factor / 100.0
         return start
 
+    @staticmethod
     async def get_mon_matchup_against_move(
-            self,
             mon: 'PokeapiModel.classes.PokemonSpecies',
             move: 'PokeapiModel.classes.Type'
     ) -> float:
         types = [await move.type]
         if move.id == 560:
-            types.append(await PokeapiModel.classes.Type.get(self, 3))
+            types.append(await PokeapiModel.classes.Type.get(3))
         return math.prod([await PokeApi.get_mon_matchup_against_type(mon, type_) for type_ in types])
 
     @staticmethod

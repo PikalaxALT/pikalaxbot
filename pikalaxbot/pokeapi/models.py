@@ -261,12 +261,11 @@ class PokeapiModel:
     @classmethod
     async def get(
             cls: typing.Type[_T],
-            connection: aiosqlite.Connection,
             id_: int
     ) -> typing.Optional[_T]:
         if (cls, id_) in cls.__cache__:
             return cls.__cache__.get((cls, id_))
-        async with connection.execute(
+        async with cls._connection.execute(
             'select * '
             'from {} '
             'where id = ?'.format(cls.__tablename__),
@@ -278,10 +277,9 @@ class PokeapiModel:
 
     @classmethod
     async def get_random(
-            cls: typing.Type[_T],
-            connection: aiosqlite.Connection
+            cls: typing.Type[_T]
     ) -> _T:
-        async with connection.execute(
+        async with cls._connection.execute(
             'select * '
             'from {} '
             'order by random()'.format(cls.__tablename__)
@@ -302,7 +300,6 @@ class PokeapiModel:
     @classmethod
     async def get_named(
             cls: typing.Type[_T],
-            conn: aiosqlite.Connection,
             name: str,
             *,
             cutoff=0.9
@@ -316,7 +313,7 @@ class PokeapiModel:
         lang_attr_name = 'local_language_id' if cls.__name__ == 'Language' else 'language_id'
         lang_clause = '{1}.{3} = 9'
         statement = f'{select} WHERE {lang_clause} AND ({fuzzy_clause})'.format(cls.__tablename__, name_cls.__tablename__, fk_name, lang_attr_name)
-        async with conn.execute(statement, dict(name=name, cutoff=cutoff)) as cur:
+        async with cls._connection.execute(statement, dict(name=name, cutoff=cutoff)) as cur:
             row = await cur.fetchone()
         if row:
             return await cls.from_row(row)

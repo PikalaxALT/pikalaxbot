@@ -429,7 +429,6 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         if len(query) > 2:
             raise commands.BadArgument('mon, move')
         mon = await PokeapiModel.classes.PokemonSpecies.get_named(
-            self.bot.pokeapi,
             query[0]
         )
         if mon is None:
@@ -511,7 +510,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2ps.generation_id = ?
             AND pv2psn.language_id = 9
             """, gen
-        elif move := await PokeapiModel.classes.Move.get_named(self.bot.pokeapi, term):
+        elif move := await PokeapiModel.classes.Move.get_named(term):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -521,7 +520,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             AND pv2pm.move_id = ?
             """, move.id
-        elif type_ := await PokeapiModel.classes.Type.get_named(self.bot.pokeapi, type_pat.sub('', term)):
+        elif type_ := await PokeapiModel.classes.Type.get_named(type_pat.sub('', term)):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -531,7 +530,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             AND pv2pt.type_id = ?
             """, type_.id
-        elif ability := await PokeapiModel.classes.Ability.get_named(self.bot.pokeapi, term):
+        elif ability := await PokeapiModel.classes.Ability.get_named(term):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -541,7 +540,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2p.is_default = TRUE
             AND pv2pa.ability_id = ?
             """, ability.id
-        elif color := await PokeapiModel.classes.PokemonColor.get_named(self.bot.pokeapi, term):
+        elif color := await PokeapiModel.classes.PokemonColor.get_named(term):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -549,7 +548,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2psn.language_id = 9
             AND pv2ps.pokemon_color_id = ?
             """, color.id,
-        elif egg_group := await PokeapiModel.classes.EggGroup.get_named(self.bot.pokeapi, egg_group_pat.sub('', term)):
+        elif egg_group := await PokeapiModel.classes.EggGroup.get_named(egg_group_pat.sub('', term)):
             return """
             SELECT pv2psn.name
             FROM pokemon_v2_pokemonspeciesname pv2psn
@@ -674,10 +673,9 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             """.format(m['measure'], m['ineq']), float(m['amount']) * 10
         elif m := re.match(r'^(?P<direction>weak|resists)\s*(?P<type>.+)$', term, re.I):
             is_flying_press = False
-            type_ = await PokeapiModel.classes.Type.get_named(self.bot.pokeapi, type_pat.sub('', m['type']))
+            type_ = await PokeapiModel.classes.Type.get_named(type_pat.sub('', m['type']))
             if type_ is None:
                 move = await PokeapiModel.classes.Move.get_named(
-                    self.bot.pokeapi,
                     m['type']
                 )  # type: PokeapiModel.classes.Move
                 if move is None:
@@ -810,7 +808,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2m.generation_id = ?
             AND pv2mn.language_id = 9
             """, gen
-        elif type_ := await PokeapiModel.classes.Type.get_named(self.bot.pokeapi, type_pat.sub('', term)):
+        elif type_ := await PokeapiModel.classes.Type.get_named(type_pat.sub('', term)):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -818,7 +816,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2mn.language_id = 9
             AND pv2m.type_id = ?
             """, type_.id
-        elif mdclass := await PokeapiModel.classes.MoveDamageClass.get_named(self.bot.pokeapi, term):
+        elif mdclass := await PokeapiModel.classes.MoveDamageClass.get_named(term):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -826,7 +824,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             WHERE pv2mn.language_id = 9
             AND pv2m.move_damage_class_id = ?
             """, mdclass.id
-        elif ctype := await PokeapiModel.classes.ContestType.get_named(self.bot.pokeapi, term):
+        elif ctype := await PokeapiModel.classes.ContestType.get_named(term):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -835,7 +833,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2m.contest_type_id = ?
             """, ctype.id
         elif (m := re.match(r'^targets\s+(?P<target>.+)$', term, re.I)) \
-                and (target := await PokeapiModel.classes.MoveTarget.get_named(self.bot.pokeapi, m['target'])):
+                and (target := await PokeapiModel.classes.MoveTarget.get_named(m['target'])):
             return """
             SELECT pv2mn.name
             FROM pokemon_v2_movename pv2mn
@@ -844,7 +842,6 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             AND pv2m.move_target_id = ?
             """, target.id
         elif attr := await PokeapiModel.classes.MoveAttribute.get_named(
-                self.bot.pokeapi,
                 re.sub(r'^bypasses\s*substitute$', 'authentic', term, re.I)
         ):
             return """
