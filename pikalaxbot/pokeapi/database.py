@@ -39,6 +39,8 @@ class PokeApi(aiosqlite.Connection):
     async def _connect(self) -> "PokeApi":
         await super()._connect()
         await PokeapiModel.prepare(self)
+        # for jishaku
+        self.__dict__ |= {key: value for key, value in PokeapiModel.classes.__dict__.items() if not key.startswith('__')}
         return self
 
     @staticmethod
