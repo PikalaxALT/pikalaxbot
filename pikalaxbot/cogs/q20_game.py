@@ -24,8 +24,10 @@ async def thinking(ctx):
         await ctx.message.add_reaction('🤔')
 
     task = asyncio.create_task(inner())
-    yield
-    task.cancel()
+    try:
+        yield
+    finally:
+        task.cancel()
 
 
 class Q20QuestionParser:

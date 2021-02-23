@@ -20,6 +20,7 @@ import asyncio
 import sqlite3
 import time
 from ..pokeapi import *
+from ..paths import __dirname__
 from textwrap import indent
 import traceback
 import operator
@@ -141,19 +142,6 @@ class SqlResponseEmbed(menus.ListPageSource):
         )
 
 
-class DisablePokeapi:
-    def __init__(self, bot: PikalaxBOT):
-        self.bot = bot
-
-    async def __aenter__(self):
-        self.bot.pokeapi = None
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if exc_val is None:
-            self.bot.pokeapi = await make_pokeapi(self.bot)
-
-
 class PokeApiCog(BaseCog, name='PokeApi'):
     """Commands relating to the bot's local clone of the PokeAPI database."""
 
@@ -164,31 +152,33 @@ class PokeApiCog(BaseCog, name='PokeApi'):
     def cog_unload(self):
         assert not self._lock.locked(), 'PokeApi is locked'
 
-    @acm
-    async def disable_pokeapi(self):
-        await self.bot.pokeapi.close()
-        self.bot.pokeapi = None
-        yield
-        self.bot.pokeapi = await make_pokeapi(self.bot)
-
     async def do_rebuild_pokeapi(self, ctx: MyContext):
-        @tasks.loop(seconds=10)
-        async def update_msg():
-            elapsed = (update_msg._next_iteration - msg.created_at).total_seconds()
-            embed.description = f'Still running... ({elapsed:.0f}s)'
-            await msg.edit(embed=embed)
+        @acm
+        async def do_typing(message: discord.Message):
+            @tasks.loop(seconds=10)
+            async def update_msg(message_: discord.Message):
+                elapsed = (update_msg._next_iteration - message_.created_at).total_seconds()
+                embed.description = f'Still running... ({elapsed:.0f}s)'
+                await message_.edit(embed=embed)
 
-        @update_msg.before_loop
-        async def update_before():
-            await asyncio.sleep(10)
+            @update_msg.before_loop
+            async def update_before():
+                await asyncio.sleep(10)
+
+            try:
+                yield update_msg.start(message)
+            finally:
+                update_msg.cancel()
 
         embed = discord.Embed(title='Updating PokeAPI', description='Started', colour=0xf47fff)
         msg = await ctx.send(embed=embed)
-        async with self.disable_pokeapi():
-            shell = await asyncio.create_subprocess_shell('../../../setup_pokeapi.sh')
-            update_msg.start()
+        await self.bot.pokeapi.close()
+        self.bot.pokeapi = None
+        async with do_typing(msg):
             try:
+                shell = await asyncio.create_subprocess_shell(f'{__dirname__}/../setup_pokeapi.sh')
                 await shell.wait()
+                self.bot.pokeapi = await make_pokeapi(self.bot)
             except Exception as e:
                 embed.colour = discord.Colour.red()
                 tb = ''.join(traceback.format_exception(e.__class__, e, e.__traceback__))
@@ -200,8 +190,6 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                 embed.colour = discord.Colour.green()
                 embed.title = 'Update succeeded!'
                 embed.description = 'You can now use pokeapi again'
-            finally:
-                update_msg.cancel()
         await msg.edit(embed=embed)
 
     @commands.group()
