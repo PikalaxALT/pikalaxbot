@@ -28,24 +28,13 @@ from .utils.mpl_time_axis import *
 from jishaku.functools import executor_function
 
 from sqlalchemy import Column, TIMESTAMP, select
-from sqlalchemy.dialects.postgresql import insert, DOUBLE_PRECISION
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class PingHistory(BaseTable):
     timestamp = Column(TIMESTAMP, primary_key=True)
     latency = Column(DOUBLE_PRECISION)
-
-    @classmethod
-    async def insert(cls, conn: AsyncConnection, now: datetime.datetime, latency: float):
-        statement = insert(cls).values(timestamp=now, latency=latency)
-        await conn.execute(statement)
-
-    @classmethod
-    async def fetch(cls, conn: AsyncConnection, start: datetime.datetime, end: datetime.datetime):
-        statement = select(cls).where(cls.timestamp.between(start, end)).order_by(cls.timestamp)
-        result = await conn.execute(statement)
-        return result.all()
 
 
 class Ping(BaseCog):
@@ -65,8 +54,8 @@ class Ping(BaseCog):
             ping = None
         else:
             ping = self.bot.latency * 1000
-        async with self.bot.sql as sql:
-            await PingHistory.insert(sql, now, ping)
+        async with self.bot.sql_session as session:  # type: AsyncSession
+            session.add(PingHistory(now, ping))
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
@@ -128,8 +117,18 @@ class Ping(BaseCog):
         hend = hend.dt if hend else ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql as sql:
-                ping_history: dict[datetime.datetime, float] = dict(await PingHistory.fetch(sql, hstart, hend))
+            async with self.bot.sql_session as sess:  # type: AsyncSession
+                ping_history = {
+                    ph.timestamp: ph.latency async for ph in await sess.stream(
+                        select(
+                            PingHistory
+                        ).where(
+                            PingHistory.timestamp.between(hstart, hend)
+                        ).order_by(
+                            PingHistory.timestamp
+                        )
+                    )
+                }
             fetch_end = time.perf_counter()
             if len(ping_history) > 1:
                 buffer = io.BytesIO()
