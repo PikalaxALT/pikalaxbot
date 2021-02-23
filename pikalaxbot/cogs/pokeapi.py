@@ -280,7 +280,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
             egg_groups = await get_egg_groups(pokemon)
             image_url = await get_species_sprite_url(pokemon)
             flavor_text = await get_mon_flavor_text(pokemon)
-            evos = await get_evos(pokemon)
+            evos = await pokemon.evolves_into_species
             abilities = await get_mon_abilities_with_flags(pokemon)
             forme = await get_default_forme(pokemon)
         embed = discord.Embed(
@@ -335,15 +335,15 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         async with ctx.typing():
             attrs = await get_move_attrs(move)
             flavor_text = await get_move_description(move)
-            machines = await get_machines_teaching_move(move)
+            machines = await move.machines
             move_effect = await move.move_effect
-            short_effect = (await move_effect.move_effect_effect_texts).get(language_id=9).short_effect
+            short_effect = (await (await move_effect.move_effect_effect_texts).get(language_id=9)).short_effect
             contest_effect = await move.contest_effect
-            contest_effect_text = (await contest_effect.contest_effect_effect_texts).get(language_id=9).effect
+            contest_effect_text = (await (await contest_effect.contest_effect_effect_texts).get(language_id=9)).effect
             super_contest_effect = await move.super_contest_effect
             super_contest_effect_text = (
-                await super_contest_effect.super_contest_effect_flavor_texts
-            ).get(language_id=9).flavor_text
+                await (await super_contest_effect.super_contest_effect_flavor_texts
+            ).get(language_id=9)).flavor_text
 
         embed = discord.Embed(
             title=f'{move} (#{move.id})',

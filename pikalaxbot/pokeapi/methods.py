@@ -55,14 +55,16 @@ async def get_species(id_: int) -> 'PokeapiModel.classes.PokemonSpecies':
     return await PokeapiModel.classes.PokemonSpecies.get(id_)
 
 
-async def random_species() -> 'PokeapiModel.classes.PokemonSpecies':
+async def random_pokemon() -> 'PokeapiModel.classes.PokemonSpecies':
     return await PokeapiModel.classes.PokemonSpecies.get_random()
 
-random_pokemon = random_species
+
+async def get_default_pokemon(mon: 'PokeapiModel.classes.PokemonSpecies'):
+    return await (await mon.pokemons).get(is_default=True)
 
 
 async def random_pokemon_name(*, clean=False):
-    return get_name(await random_species(), clean=clean)
+    return get_name(await random_pokemon(), clean=clean)
 
 
 async def random_move() -> 'PokeapiModel.classes.Move':
@@ -97,10 +99,6 @@ async def get_species_sprite_url(mon: 'PokeapiModel.classes.PokeomnSpecies'):
     for option in options:
         if path := get_sprite_path(sprites, *option):
             return sprite_url(path)
-
-
-async def get_default_pokemon(mon: 'PokeapiModel.classes.PokemonSpecies'):
-    return (await mon.pokemons).get(is_default=True)
 
 
 async def get_mon_types(mon: 'PokeapiModel.classes.PokemonSpecies') -> list['PokeapiModel.classes.Type']:
@@ -139,18 +137,6 @@ async def get_mon_matchup_against_mon(
     return [await get_mon_matchup_against_type(mon, type_) for type_ in await get_mon_types(mon2)]
 
 
-async def get_preevo(
-        mon: 'PokeapiModel.classes.PokemonSpecies'
-) -> typing.Optional['PokeapiModel.classes.PokemonSpecies']:
-    return await mon.evolves_from_species
-
-
-async def get_evos(
-        mon: 'PokeapiModel.classes.PokemonSpecies'
-) -> collection['PokeapiModel.classes.PokemonSpecies']:
-    return await mon.evolves_into_species
-
-
 async def get_mon_learnset(mon: 'PokeapiModel.classes.PokemonSpecies') -> set['PokeapiModel.classes.Move']:
     default_pokemon = await get_default_pokemon(mon)
     return set(await pm.move for pm in await default_pokemon.pokemon_moves)
@@ -165,10 +151,7 @@ async def get_mon_learnset_with_flags(
 
 async def mon_can_learn_move(mon: 'PokeapiModel.classes.PokemonSpecies', move: 'PokeapiModel.classes.Move'):
     default_mon = await get_default_pokemon(mon)
-    for pm in await default_mon.pokemon_moves:
-        if await pm.move == move:
-            return True
-    return False
+    return await (await default_mon.pokemon_moves).get(move=move) is not None
 
 
 async def get_mon_abilities_with_flags(
@@ -189,10 +172,7 @@ async def mon_has_ability(
         mon: 'PokeapiModel.classes.PokemonSpecies',
         ability: 'PokeapiModel.classes.Ability'
 ) -> bool:
-    for pab in await get_mon_abilities_with_flags(mon):
-        if await pab.ability == ability:
-            return True
-    return False
+    return await (await get_mon_abilities_with_flags(mon)).get(ability=ability) is not None
 
 
 async def mon_has_type(
@@ -200,17 +180,13 @@ async def mon_has_type(
         type_: 'PokeapiModel.classes.Type'
 ) -> bool:
     default_mon = await get_default_pokemon(mon)
-    for pty in await default_mon.pokemon_types:
-        if await pty.type == type_:
-            return True
-    return False
+    return await (await default_mon.pokemon_types).get(type=type_) is not None
 
 
 async def has_mega_evolution(mon: 'PokeapiModel.classes.PokemonSpecies') -> bool:
     for poke in await mon.pokemons:
-        for forme in await poke.pokemon_forms:
-            if forme.is_mega:
-                return True
+        if await (await poke.pokemon_forms).get(is_mega=True) is not None:
+            return True
     return False
 
 
@@ -239,10 +215,7 @@ async def mon_is_in_dex(
         mon: 'PokeapiModel.classes.PokemonSpecies',
         dex: 'PokeapiModel.classes.Pokedex'
 ) -> bool:
-    for dnum in await mon.pokemon_dex_numbers:
-        if await dnum.pokedex == dex:
-            return True
-    return False
+    return await (await mon.pokemon_dex_numbers.get(pokedex=dex)) is not None
 
 
 async def get_formes(mon: 'PokeapiModel.classes.PokemonSpecies') -> list['PokeapiModel.classes.PokemonForm']:
@@ -251,9 +224,8 @@ async def get_formes(mon: 'PokeapiModel.classes.PokemonSpecies') -> list['Pokeap
 
 async def get_default_forme(mon: 'PokeapiModel.classes.PokemonSpecies') -> 'PokeapiModel.classes.PokemonForm':
     for poke in await mon.pokemons:
-        for form in await poke.pokemon_forms:
-            if form.is_default:
-                return form
+        if form := await (await poke.pokemon_forms).get(is_default=True):
+            return form
 
 
 async def get_base_stats(mon: 'PokeapiModel.classes.PokemonSpecies') -> dict[str, int]:
@@ -312,9 +284,7 @@ async def get_mon_flavor_text(
 ) -> str:
     flavor_texts = await mon.pokemon_species_flavor_texts
     if version:
-        for txt in flavor_texts:
-            if await txt.version == version and txt.language_id == 9:
-                return txt.flavor_text
+        return (await flavor_texts.get(language_id=9, version=version)).flavor_text
     return random.choice([
         txt.flavor_text
         for txt in flavor_texts
@@ -329,13 +299,7 @@ async def get_mon_evolution_methods(
 
 
 async def mon_is_in_undiscovered_egg_group(mon: 'PokeapiModel.classes.PokemonSpecies') -> bool:
-    return (await mon.pokemon_egg_groups).get(egg_group_id=15) is not None
-
-
-async def get_versions_in_group(
-        grp: 'PokeapiModel.classes.VersionGroup'
-) -> collection['PokeapiModel.classes.Version']:
-    return await grp.versions
+    return await (await mon.pokemon_egg_groups).get(egg_group_id=15) is not None
 
 
 async def get_move_attrs(move: 'PokeapiModel.classes.Move') -> list['PokeapiModel.classes.MoveAttribute']:
@@ -348,26 +312,9 @@ async def get_move_description(
 ) -> str:
     flavor_texts = await move.move_flavor_texts
     if version:
-        for txt in flavor_texts:
-            if await txt.version == version and txt.language_id == 9:
-                return txt.flavor_text
+        return (await flavor_texts.get(language_id=9, version=version)).flavor_text
     return random.choice([
         txt.flavor_text
         for txt in flavor_texts
         if txt.language_id == 9
     ])
-
-
-async def get_machines_teaching_move(
-        move: 'PokeapiModel.classes.Move'
-) -> collection['PokeapiModel.classes.Machine']:
-    return await move.machines
-
-
-async def get_version_group_name(version_group: 'PokeapiModel.classes.VersionGroup') -> str:
-    *versions, last = await version_group.versions
-    if versions:
-        if len(versions) == 1:
-            return f'{versions[0].qualified_name} and {last.qualified_name}'
-        return ', '.join(v.qualified_name for v in versions) + ', and ' + last.qualified_name
-    return last.qualified_name

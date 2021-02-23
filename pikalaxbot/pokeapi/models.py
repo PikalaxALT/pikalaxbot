@@ -21,10 +21,12 @@ import collections
 import asyncio
 import difflib
 import aiosqlite
-import discord
+import operator
+import inspect
 import inflect
 import functools
 import asyncstdlib.functools as afunctools
+import asyncstdlib.builtins as abuiltins
 from ..context import MyContext
 from discord.ext import commands
 
@@ -67,8 +69,39 @@ def sqlite3_type(coltype: str) -> type:
 
 
 class collection(list[_T]):
-    def get(self, **attrs) -> typing.Optional[_T]:
-        return discord.utils.get(self, **attrs)
+    async def get(self, **attrs) -> typing.Optional[_T]:
+        iscoro = inspect.isawaitable
+        _all = abuiltins.all
+
+        def attrget(key):
+            attrget_sync = operator.attrgetter(key.replace('__', '.'))
+
+            async def inner(item):
+                obj = attrget_sync(item)
+                if iscoro(obj):
+                    obj = await obj
+                return obj
+
+            return inner
+
+        if len(attrs) == 1:
+            k, v = attrs.popitem()
+            pred = attrget(k.replace('__', '.'))
+
+            for elem in self:
+                if await pred(elem) == v:
+                    return elem
+            return None
+
+        converted = [
+            (attrget(attr.replace('__', '.')), value)
+            for attr, value in attrs.items()
+        ]
+
+        for elem in self:
+            if await _all(await pred(elem) == value for pred, value in converted):
+                return elem
+        return None
 
 
 def relationship(target: str, local_col: str, foreign_col: str, attrname: str):
