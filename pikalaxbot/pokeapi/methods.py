@@ -218,10 +218,6 @@ async def mon_is_in_dex(
     return await (await mon.pokemon_dex_numbers.get(pokedex=dex)) is not None
 
 
-async def get_formes(mon: 'PokeapiModel.classes.PokemonSpecies') -> list['PokeapiModel.classes.PokemonForm']:
-    return [form for poke in await mon.pokemons for form in await poke.pokemon_forms]
-
-
 async def get_default_forme(mon: 'PokeapiModel.classes.PokemonSpecies') -> 'PokeapiModel.classes.PokemonForm':
     for poke in await mon.pokemons:
         if form := await (await poke.pokemon_forms).get(is_default=True):
