@@ -28,9 +28,8 @@ from .utils.mpl_time_axis import *
 import numpy as np
 from jishaku.functools import executor_function
 
-from sqlalchemy import Column, BIGINT, INTEGER, TIMESTAMP, select, bindparam
+from sqlalchemy import Column, BIGINT, INTEGER, TIMESTAMP, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert
 
 
 class Memberstatus(BaseTable):

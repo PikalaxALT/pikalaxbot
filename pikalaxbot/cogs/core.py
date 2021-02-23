@@ -38,9 +38,8 @@ from .utils.converters import CommandConverter
 from .utils.game import GameCogBase
 from ..types import *
 
-from sqlalchemy import Column, TEXT, BIGINT, INTEGER, UniqueConstraint, select, delete, bindparam
-from sqlalchemy.ext.asyncio import AsyncConnection
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import Column, TEXT, BIGINT, INTEGER, UniqueConstraint, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class Commandstats(BaseTable):
@@ -49,26 +48,6 @@ class Commandstats(BaseTable):
     uses = Column(INTEGER, default=0)
 
     __table_args__ = (UniqueConstraint(command, guild),)
-
-    @classmethod
-    async def count_command(cls, conn: AsyncConnection, ctx: MyContext):
-        statement = insert(cls).values(command=ctx.command.qualified_name, guild=ctx.guild.id, uses=1)
-        upsert = statement.on_conflict_do_update(
-            index_elements=['command', 'guild'],
-            set_={'uses': cls.uses + statement.excluded.uses}
-        )
-        await conn.execute(upsert)
-
-    @classmethod
-    async def get_guild_uses(cls, conn: AsyncConnection, ctx: MyContext):
-        statement = select([cls.command, cls.uses]).where(cls.guild == ctx.guild.id).order_by(cls.uses.desc())
-        result = await conn.execute(statement)
-        return result.all()
-
-    @classmethod
-    async def delete_lost(cls, conn: AsyncConnection, lost_cmds: list[str]):
-        statement = delete(cls).where(cls.command == bindparam('cmd'))
-        await conn.execute(statement, [{'cmd': cmd} for cmd in lost_cmds])
 
 
 class ConfirmationMenu(menus.Menu):
@@ -117,26 +96,35 @@ class Core(BaseCog):
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
-        async with self.bot.sql as sql:
-            await Commandstats.count_command(sql, ctx)
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            obj = await sess.scalar(select(Commandstats).where(Commandstats.command == str(ctx.command), Commandstats.guild == ctx.guild.id))
+            if obj is None:
+                obj = Commandstats(
+                    command=str(ctx.command),
+                    guild=ctx.guild.id,
+                    uses=1
+                )
+                sess.add(obj)
+            else:
+                obj.uses += 1
 
     async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
         lost_cmds: list[str] = []
-        async with self.bot.sql as sql:
-            for name, uses in await Commandstats.get_guild_uses(sql, ctx):
-                cmd: commands.Command = self.bot.get_command(name)
+        async with self.bot.sql_session as sess:
+            async for obj in await sess.stream(
+                select(Commandstats).where(Commandstats.guild == ctx.guild.id)
+            ):
+                cmd: commands.Command = self.bot.get_command(obj.command)
                 if cmd is None:
-                    lost_cmds.append(name)
+                    sess.delete(obj)
                     continue
                 try:
                     valid = await cmd.can_run(ctx)
                     if valid:
-                        cmds.append(f'{name} ({uses} uses)')
+                        cmds.append(f'{obj.command} ({obj.uses} uses)')
                 except commands.CommandError:
                     continue
-            if lost_cmds:
-                await Commandstats.delete_lost(sql, lost_cmds)
         return cmds
 
     @commands.command()
