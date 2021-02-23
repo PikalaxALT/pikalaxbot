@@ -169,7 +169,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
         await self.bot.pokeapi.close()
         self.bot.pokeapi = None
         yield
-        self.bot.pokeapi = await self.bot.make_pokeapi()
+        self.bot.pokeapi = await make_pokeapi(self.bot)
 
     async def do_rebuild_pokeapi(self, ctx: MyContext):
         @tasks.loop(seconds=10)
