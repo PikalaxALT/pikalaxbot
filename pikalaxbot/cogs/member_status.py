@@ -29,49 +29,17 @@ import numpy as np
 from jishaku.functools import executor_function
 
 from sqlalchemy import Column, BIGINT, INTEGER, TIMESTAMP, select, bindparam
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
 
 
 class Memberstatus(BaseTable):
     guild_id = Column(BIGINT, primary_key=True)
     timestamp = Column(TIMESTAMP, primary_key=True)
-    online = Column(INTEGER)
-    offline = Column(INTEGER)
-    dnd = Column(INTEGER)
-    idle = Column(INTEGER)
-
-    @classmethod
-    async def update_counters(cls, sql: AsyncConnection, bot: PikalaxBOT, now: datetime.datetime):
-        to_insert = [
-            {
-                'guild_id': guild.id, 'timestamp': now
-            } | {
-                status.name: 0 for status in discord.Status
-            } | Counter(
-                m.status.name for m in guild.members
-            ) for guild in bot.guilds
-        ]
-        statement = insert(cls).values(
-            guild_id=bindparam('guild_id'),
-            timestamp=bindparam('timestamp'),
-            online=bindparam('online'),
-            offline=bindparam('offline'),
-            dnd=bindparam('dnd'),
-            idle=bindparam('idle')
-        )
-        await sql.execute(statement, to_insert)
-
-    @classmethod
-    async def retrieve_counters(cls, sql: AsyncConnection, guild: discord.Guild, start: datetime.datetime, end: datetime.datetime):
-        statement = select(
-            [cls.timestamp, cls.online, cls.offline, cls.dnd, cls.idle]
-        ).where(
-            cls.guild_id == guild.id,
-            cls.timestamp.between(start, end)
-        ).order_by(cls.timestamp)
-        result = await sql.execute(statement)
-        return result.all()
+    online = Column(INTEGER, default=0)
+    offline = Column(INTEGER, default=0)
+    dnd = Column(INTEGER, default=0)
+    idle = Column(INTEGER, default=0)
 
 
 class MemberStatus(BaseCog):
@@ -95,8 +63,15 @@ class MemberStatus(BaseCog):
     @tasks.loop(seconds=30)
     async def update_counters(self):
         now = self.update_counters._last_iteration.replace(tzinfo=None)
-        async with self.bot.sql as sql:
-            await Memberstatus.update_counters(sql, self.bot, now)
+        async with self.bot.sql_session as sess:  # type: AsyncSession
+            for guild in self.bot.guilds:  # type: discord.Guild
+                counter = Counter(member.status.name for member in guild.members)
+                obj = Memberstatus(
+                    guild_id=guild.id,
+                    timestamp=now,
+                    **counter
+                )
+                sess.add(obj)
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
@@ -108,7 +83,7 @@ class MemberStatus(BaseCog):
 
     @staticmethod
     @executor_function
-    def do_plot_status_history(buffer: typing.BinaryIO, history: dict[datetime.datetime, Counter[discord.Status]]):
+    def do_plot_status_history(buffer: typing.BinaryIO, history: dict[datetime.datetime, dict[discord.Status, int]]):
         times, values = zip(*history.items())
         plt.figure()
         counts: dict[discord.Status, list[int]] = {key: [v[key] for v in values] for key in MemberStatus.colormap}
@@ -139,12 +114,22 @@ class MemberStatus(BaseCog):
         hend = hend.dt if hend else ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql as sql:
-                counts: dict[datetime.datetime, Counter[discord.Status]] = {
-                    row[0]: {
-                        name: count
-                        for name, count in zip(discord.Status, row[1:])
-                    } for row in await Memberstatus.retrieve_counters(sql, ctx.guild, hstart, hend)
+            async with self.bot.sql_session as sess:  # type: AsyncSession
+                counts: dict[datetime.datetime, dict[discord.Status, int]] = {
+                    row.timestamp: {
+                        status: getattr(row, status.name)
+                        for status in discord.Status
+                        if status is not discord.Status.invisible
+                    } async for row in await sess.stream(
+                        select(
+                            Memberstatus
+                        ).where(
+                            Memberstatus.guild_id == ctx.guild.id,
+                            Memberstatus.timestamp.between(hstart, hend)
+                        ).order_by(
+                            Memberstatus.timestamp
+                        )
+                    )
                 }
             fetch_end = time.perf_counter()
             if len(counts) > 1:
