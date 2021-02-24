@@ -371,6 +371,11 @@ class Core(BaseCog):
             embed.set_footer(text='This command was used in a DM.')
         else:
             embed.set_footer(text='This member is not in this server.')
+        embed.add_field(
+            name='Support server',
+            value='[Click](https://discord.gg/yTtrpuXm)',
+            inline=False
+        )
         await ctx.send(embed=embed)
 
     @BaseCog.listener()
