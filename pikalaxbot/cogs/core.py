@@ -256,7 +256,7 @@ class Core(BaseCog):
             )
         e.add_field(
             name='Source',
-            value='https://github.com/PikalaxALT/pikalaxbot'
+            value='[Click](https://github.com/PikalaxALT/pikalaxbot)'
         ).add_field(
             name='Uptime',
             value=f'{datetime.datetime.utcnow() - self.bot._alive_since}'
