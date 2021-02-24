@@ -263,8 +263,7 @@ class Core(BaseCog):
         )
         e.add_field(
             name='Support server',
-            value='[Click](https://discord.gg/yTtrpuXm)',
-            inline=False
+            value='[Click](https://discord.gg/yTtrpuXm)'
         )
         if ctx.guild and ctx.me.colour.value:
             e.colour = ctx.me.colour
