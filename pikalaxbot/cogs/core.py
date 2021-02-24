@@ -261,6 +261,11 @@ class Core(BaseCog):
             name='Uptime',
             value=f'{datetime.datetime.utcnow() - self.bot._alive_since}'
         )
+        e.add_field(
+            name='Support server',
+            value='[Click](https://discord.gg/yTtrpuXm)',
+            inline=False
+        )
         if ctx.guild and ctx.me.colour.value:
             e.colour = ctx.me.colour
         if ctx.me.avatar:
@@ -371,11 +376,6 @@ class Core(BaseCog):
             embed.set_footer(text='This command was used in a DM.')
         else:
             embed.set_footer(text='This member is not in this server.')
-        embed.add_field(
-            name='Support server',
-            value='[Click](https://discord.gg/yTtrpuXm)',
-            inline=False
-        )
         await ctx.send(embed=embed)
 
     @BaseCog.listener()
