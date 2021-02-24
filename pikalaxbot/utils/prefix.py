@@ -22,9 +22,8 @@ import asyncstdlib.functools as afunctools
 from ..constants import DPY_GUILD_ID
 from .pg_orm import *
 
-from sqlalchemy.ext.asyncio import AsyncConnection
-from sqlalchemy import Column, BIGINT, TEXT, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import Column, BIGINT, TEXT
 
 
 __all__ = ('command_prefix', 'set_guild_prefix', 'Prefixes')
@@ -34,40 +33,19 @@ class Prefixes(BaseTable):
     guild = Column(BIGINT, nullable=False, primary_key=True)
     prefix = Column(TEXT, nullable=False)
 
-    @classmethod
-    async def guild_prefix(cls, sql: AsyncConnection, guild: discord.Guild):
-        statement = select(cls.prefix).where(cls.guild == guild.id)
-        return await sql.scalar(statement)
-
-    @classmethod
-    async def update_prefix(cls, sql: AsyncConnection, guild: discord.Guild, prefix: str):
-        statement = insert(cls).values(guild=guild.id, prefix=prefix)
-        upsert = statement.on_conflict_do_update(
-            index_elements=['guild'],
-            set_={'prefix': statement.excluded.prefix}
-        )
-        await sql.execute(upsert)
-
 
 @afunctools.cache
 async def _guild_prefix(bot: PikalaxBOT, guild: typing.Optional[discord.Guild]) -> str:
     if guild is None:
-        prefix = ''
-    else:
-        async with bot.sql as sql:
-            prefix = await Prefixes.guild_prefix(sql, guild)
-        if prefix is None:
-            prefix = bot.settings.prefix
-    return prefix
+        return ''
+    async with bot.sql_session as sess:  # type: AsyncSession
+        pre = await sess.get(Prefixes, guild.id)
+    return pre and pre.prefix or bot.settings.prefix
 
 
 @afunctools.cache
 async def is_owner_in_dpy_guild(bot: PikalaxBOT, guild: typing.Optional[discord.Guild], author: discord.abc.User):
-    if guild is None:
-        return False
-    if guild.id != DPY_GUILD_ID:
-        return False
-    return await bot.is_owner(author)
+    return guild and guild.id == DPY_GUILD_ID and await bot.is_owner(author)
 
 
 async def command_prefix(bot: PikalaxBOT, message: discord.Message) -> tuple[str]:
@@ -77,6 +55,7 @@ async def command_prefix(bot: PikalaxBOT, message: discord.Message) -> tuple[str
 
 
 async def set_guild_prefix(ctx: MyContext, prefix: str):
-    async with ctx.bot.sql as sql:
-        await Prefixes.update_prefix(sql, ctx.guild, prefix)
+    async with ctx.bot.sql_session as sess:  # type: AsyncSession
+        pre = await sess.get(Prefixes, ctx.guild.id)
+        pre.prefix = prefix
     _guild_prefix.cache_clear()
