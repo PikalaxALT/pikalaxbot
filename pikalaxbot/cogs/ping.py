@@ -55,7 +55,7 @@ class Ping(BaseCog):
         else:
             ping = self.bot.latency * 1000
         async with self.bot.sql_session as session:  # type: AsyncSession
-            session.add(PingHistory(now, ping))
+            session.add(PingHistory(timestamp=now, latency=ping))
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
