@@ -40,7 +40,7 @@ class cleaner_content(commands.clean_content):
 
 def voice_client_not_playing(ctx: MyContext):
     # Change: Don't care anymore if the voice client exists or is playing.
-    vc = ctx.voice_client
+    vc: typing.Optional[discord.VoiceClient] = ctx.voice_client
     return vc is None or not vc.is_playing()
 
 
@@ -51,7 +51,7 @@ async def voice_cmd_ensure_connected(ctx: MyContext):
     if vc is None or not vc.is_connected():
         if ctx.author.voice is None:
             raise VoiceCommandError('Invoker is not connected to voice')
-        vchan = ctx.author.voice.channel
+        vchan: discord.VoiceChannel = ctx.author.voice.channel
         if not vchan.permissions_for(ctx.me).connect:
             raise VoiceCommandError('I do not have permission to connect to your voice channel')
         await vchan.connect()
@@ -108,8 +108,8 @@ class Voice(BaseCog):
     def __init__(self, bot):
         super().__init__(bot)
         self.load_opus()
-        self.timeout_tasks = {}
-        self.ffmpeg = None
+        self.timeout_tasks: dict[discord.Guild, asyncio.Task] = {}
+        self.ffmpeg: typing.Optional[str] = None
 
     def cog_unload(self):
         [task.cancel() for task in self.timeout_tasks.values()]
@@ -118,7 +118,8 @@ class Voice(BaseCog):
         with open(os.devnull, 'w') as DEVNULL:
             for executable in ('ffmpeg', 'avconv'):
                 try:
-                    await asyncio.create_subprocess_exec(executable, '-h', stdout=DEVNULL, stderr=DEVNULL)
+                    shell = await asyncio.create_subprocess_exec(executable, '-h', stdout=DEVNULL, stderr=DEVNULL)
+                    await shell.wait()
                 except FileNotFoundError:
                     continue
                 self.ffmpeg = executable
@@ -133,12 +134,12 @@ class Voice(BaseCog):
         await ctx.voice_client.disconnect()
 
     def start_timeout(self, ctx: MyContext):
-        def done(unused):
-            self.timeout_tasks.pop(ctx.guild.id, None)
+        def done(unused: asyncio.Task):
+            self.timeout_tasks.pop(ctx.guild, None)
 
         task = asyncio.create_task(Voice.idle_timeout(ctx))
         task.add_done_callback(done)
-        self.timeout_tasks[ctx.guild.id] = task
+        self.timeout_tasks[ctx.guild] = task
 
     def player_after(self, ctx: MyContext, exc: typing.Optional[BaseException]):
         if exc:
@@ -247,7 +248,7 @@ class Voice(BaseCog):
     @say.before_invoke
     @pikasay.before_invoke
     async def voice_cmd_cancel_timeout(self, ctx: MyContext):
-        task = self.timeout_tasks.get(ctx.guild.id)
+        task = self.timeout_tasks.get(ctx.guild)
         if task is not None:
             task.cancel()
 

@@ -78,7 +78,7 @@ def board_coords(minx=1, maxx=5, miny=1, maxy=5):
 
 
 def espeak_params(**valid_keys):
-    def real_converter(argument: str):
+    def real_converter(argument: str) -> tuple[str, typing.Union[int, str]]:
         if isinstance(argument, str):
             # Convert from a string
             key, value = argument.split('=')
