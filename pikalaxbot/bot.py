@@ -26,7 +26,7 @@ from .context import MyContext
 from .utils.config_io import Settings
 import asyncstdlib.functools as afunctools
 from .pokeapi import methods, PokeapiModel
-import aiosqlite
+import asqlite3
 from .utils.pg_orm import *
 from contextlib import asynccontextmanager as acm
 
@@ -61,7 +61,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
 
         # PokeAPI
         self._pokeapi_file = pokeapi_file
-        self._pokeapi: typing.Optional[aiosqlite.Connection] = self.loop.run_until_complete(methods.make_pokeapi(self))
+        self._pokeapi: typing.Optional[asqlite3.Connection] = self.loop.run_until_complete(methods.make_pokeapi(self))
 
     @property
     def command_error_emoji(self) -> discord.Emoji:
@@ -83,11 +83,11 @@ class PikalaxBOT(BotLogger, commands.Bot):
         return begin()
 
     @property
-    def pokeapi(self) -> typing.Optional[aiosqlite.Connection]:
+    def pokeapi(self) -> typing.Optional[asqlite3.Connection]:
         return self._pokeapi
 
     @pokeapi.setter
-    def pokeapi(self, value: typing.Optional[aiosqlite.Connection]):
+    def pokeapi(self, value: typing.Optional[asqlite3.Connection]):
         self._pokeapi = value
         PokeapiModel.__prepared__ = False
 

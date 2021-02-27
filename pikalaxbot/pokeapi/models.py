@@ -20,7 +20,7 @@ import re
 import collections
 import asyncio
 import difflib
-import aiosqlite
+import asqlite3
 import operator
 import inspect
 import inflect
@@ -188,7 +188,7 @@ class PokeapiModel:
     __cache__: dict[tuple[typing.Type['PokeapiModel'], int], 'PokeapiModel'] = {}
     __prepared__ = False
     classes = None
-    _connection: typing.Optional[aiosqlite.Connection] = None
+    _connection: typing.Optional[asqlite3.Connection] = None
 
     @classproperty
     def __tablename__(cls):
@@ -216,7 +216,7 @@ class PokeapiModel:
             yield column, getattr(self, column)
 
     @classmethod
-    async def _prepare(cls, connection: aiosqlite.Connection):
+    async def _prepare(cls, connection: asqlite3.Connection):
         classes: dict[str, typing.Type['PokeapiModel']] = {}
         tbl_names = [x async for x, in await connection.execute(
             "select tbl_name "
@@ -271,7 +271,7 @@ class PokeapiModel:
         cls.classes = type('Base', (object,), classes)
 
     @classmethod
-    async def prepare(cls, connection: aiosqlite.Connection):
+    async def prepare(cls, connection: asqlite3.Connection):
         cls._connection = connection
         if not cls.__prepared__:
             async with _prep_lock:
@@ -357,7 +357,7 @@ class PokeapiModel:
             ctx: MyContext,
             argument: str
     ) -> _T:
-        conn: aiosqlite.Connection = ctx.bot.pokeapi
+        conn: asqlite3.Connection = ctx.bot.pokeapi
         try:
             argument = int(argument)
         except ValueError:

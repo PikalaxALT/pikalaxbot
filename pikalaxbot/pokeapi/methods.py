@@ -19,7 +19,7 @@ import math
 import typing
 import random
 import json
-import aiosqlite
+import asqlite3
 if typing.TYPE_CHECKING:
     from ..bot import PikalaxBOT
 
@@ -28,7 +28,7 @@ from .models import PokeapiModel, collection
 
 async def make_pokeapi(bot: 'PikalaxBOT'):
     if bot._pokeapi_file:
-        db = await aiosqlite.connect(bot._pokeapi_file, uri=True)
+        db = await asqlite3.connect(bot._pokeapi_file, uri=True)
         await PokeapiModel.prepare(db)
         db.__dict__.update({
             key: value
