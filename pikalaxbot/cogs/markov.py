@@ -81,7 +81,7 @@ class MarkovManager:
         async with bot.sql_session as sess:  # type: AsyncSession
             self._config = MarkovConfig(guild_id=guild.id, on_mention=on_mention, maxlen=maxlen)
             sess.add(self._config)
-            await sess.flush(self._config)
+            await sess.flush([self._config])
             await sess.refresh(self._config)
         return self
 
@@ -322,10 +322,9 @@ class Markov(BaseCog):
     @markov.command('purge')
     async def markov_deinit(self, ctx: MyContext):
         """Delete an existing Markov config"""
-        mgr = self.markovs[ctx.guild]
         async with self.bot.sql_session as sess:
+            mgr = self.markovs.pop(ctx.guild)
             sess.delete(mgr._config)
-            del self.markovs[ctx.guild]
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.check_any(commands.is_owner(), commands.has_permissions(manage_guild=True))
