@@ -143,7 +143,7 @@ class MarkovManager:
     @property
     def triggers(self) -> set[str]:
         me = self.guild.me
-        return set(t.trigger.lower() for t in self._config.triggers + [me.name, me.display_name])
+        return set(t.trigger.lower() for t in self._config.triggers) | {me.name.lower(), me.display_name.lower()}
 
     @property
     def maxlen(self):
