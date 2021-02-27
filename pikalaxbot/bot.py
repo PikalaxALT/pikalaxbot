@@ -51,7 +51,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
 
         self.log_info('Connecting database')
         self.engine = async_engine_parameterized(**self.settings.database)
-        self._sql_session = AsyncSession(self.engine)
+        self._sql_session = AsyncSession(self.engine, expire_on_commit=False)
 
         # Reboot handler
         self.reboot_after = True
