@@ -265,6 +265,8 @@ class Markov(BaseCog):
         for guild in self.bot.guilds:
             try:
                 self.markovs[guild] = await MarkovManager(self.bot, guild)
+            except MarkovNoConfig:
+                pass
             except Exception as e:
                 if not isinstance(e, commands.CommandError):
                     e = commands.CommandInvokeError(e)
