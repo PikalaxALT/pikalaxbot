@@ -81,6 +81,8 @@ class MarkovManager:
         async with bot.sql_session as sess:  # type: AsyncSession
             self._config = MarkovConfig(guild_id=guild.id, on_mention=on_mention, maxlen=maxlen)
             sess.add(self._config)
+            await sess.flush(self._config)
+            await sess.refresh(self._config)
         return self
 
     async def learn_channel(self, channel: discord.TextChannel):
@@ -312,7 +314,7 @@ class Markov(BaseCog):
                 mgr.on_mention = on_mention
                 mgr.maxlen = maxlen
         except KeyError:
-            mgr = self.markovs[ctx.guild] = await MarkovManager.new(self.bot, ctx.guild, on_mention, maxlen)
+            self.markovs[ctx.guild] = await MarkovManager.new(self.bot, ctx.guild, on_mention, maxlen)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.check_any(commands.is_owner(), commands.has_permissions(manage_guild=True))
