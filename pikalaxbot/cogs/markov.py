@@ -139,8 +139,9 @@ class MarkovManager:
         return [self.guild.get_channel(c.channel_id) for c in self._config.channels]
 
     @property
-    def triggers(self) -> list[str]:
-        return [t.trigger for t in self._config.triggers] + [self.guild.me.name, self.guild.me.display_name]
+    def triggers(self) -> set[str]:
+        me = self.guild.me
+        return set(t.trigger.lower() for t in self._config.triggers + [me.name, me.display_name])
 
     @property
     def maxlen(self):
@@ -208,7 +209,7 @@ class MarkovManager:
         if channel in self.channels:
             async with self.bot.sql_session:
                 self._config.channels.pop(self.channels.index(channel))
-            self._learned.pop(channel, None)
+                self._learned.pop(channel, None)
             return True
         return False
 
@@ -220,9 +221,10 @@ class MarkovManager:
         return False
 
     async def del_trigger(self, trigger: str):
-        if trigger in self.triggers:
+        tr = discord.utils.get(self._config.triggers, trigger=trigger)
+        if tr is not None:
             async with self.bot.sql_session:
-                self._config.triggers.pop(self.triggers.index(trigger))
+                self._config.triggers.remove(tr)
             return True
         return False
 
