@@ -76,8 +76,9 @@ class Polls(BaseTable):
         '\N{KEYCAP TEN}',
     ]
 
-    def start(self, bot: PikalaxBOT):
+    def start(self, bot: PikalaxBOT, cog: 'Poll'):
         self._bot = bot
+        self._cog = cog
         task = asyncio.create_task(discord.utils.sleep_until(self.closes))
 
         def raw_reaction_check(payload: discord.RawReactionActionEvent):
@@ -91,7 +92,7 @@ class Polls(BaseTable):
 
         @bot.listen()
         async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-            async with bot.sql_session as sess:
+            async with cog.sql_session as sess:
                 await sess.refresh(self)
                 if not raw_reaction_check(payload):
                     return
@@ -102,7 +103,7 @@ class Polls(BaseTable):
 
         @bot.listen()
         async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
-            async with bot.sql_session as sess:
+            async with cog.sql_session as sess:
                 await sess.refresh(self)
                 if not raw_reaction_check(payload):
                     return
@@ -200,10 +201,10 @@ class Polls(BaseTable):
                 ) for i, option in enumerate(options, 1)
             ]
         )
-        async with ctx.bot.sql_session as sess:  # type: AsyncSession
+        async with ctx.cog.sql_session as sess:  # type: AsyncSession
             sess.add(self)
             await sess.flush()
-            self.start(ctx.bot)
+            self.start(ctx.bot, ctx.cog)
         return self
 
     @classmethod
@@ -282,10 +283,10 @@ class Poll(BaseCog):
     async def cache_polls(self):
         await self.bot.wait_until_ready()
         try:
-            async with self.bot.sql_session as sess:
+            async with self.sql_session as sess:
                 result = await sess.stream(select(Polls))
                 async for poll in result.scalars():
-                    poll.start(self.bot)
+                    poll.start(self.bot, self)
                     self.polls.append(poll)
         except Exception as e:
             await self.bot.get_cog('ErrorHandling').send_tb(None, e, origin='Poll.cache_polls')
@@ -417,7 +418,7 @@ duration, prompt, and options."""
     async def list(self, ctx: MyContext):
         """Lists all polls"""
 
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             [await sess.refresh(poll) for poll in self.polls]
             s = textwrap.indent('\n'.join(str(poll) for poll in self.polls if hasattr(poll, '_task') and not poll._task.done()), '  ')
         if s:
@@ -427,7 +428,7 @@ duration, prompt, and options."""
 
     @BaseCog.listener()
     async def on_poll_end(self, poll: Polls):
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             await sess.refresh(poll)
             now = datetime.datetime.utcnow()
             if poll in self.polls:

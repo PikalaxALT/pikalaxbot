@@ -64,8 +64,8 @@ class MarkovNoConfig(commands.CommandError):
 
 
 class MarkovManager:
-    def __init__(self, bot: PikalaxBOT, guild: discord.Guild):
-        self.bot = bot
+    def __init__(self, cog: 'Markov', guild: discord.Guild):
+        self.cog = cog
         self.guild = guild
         if guild is None:
             raise MarkovNoConfig
@@ -93,22 +93,22 @@ class MarkovManager:
             if ch.permissions_for(self.guild.me).read_message_history:
                 asyncio.create_task(self.learn_channel(ch))
             else:
-                self.bot.log_warning('Markov: Removing channel %s (%d) due to missing permissions', ch, ch.id)
+                self.cog.log_warning('Markov: Removing channel %s (%d) due to missing permissions', ch, ch.id)
                 self._config.channels.remove(confch)
         self._initialized = True
 
     @classmethod
-    def from_session(cls, bot: PikalaxBOT, conf: MarkovConfig):
-        guild = bot.get_guild(conf.guild_id)
-        self = cls(bot, guild)
+    def from_session(cls, cog: 'Markov', conf: MarkovConfig):
+        guild = cog.bot.get_guild(conf.guild_id)
+        self = cls(cog, guild)
         self._config = conf
         self.prepare()
         return self
 
     @classmethod
-    async def new(cls, bot: PikalaxBOT, guild: discord.Guild, on_mention=True, maxlen=256):
-        self = cls(bot, guild)
-        async with bot.sql_session as sess:  # type: AsyncSession
+    async def new(cls, cog: 'Markov', guild: discord.Guild, on_mention=True, maxlen=256):
+        self = cls(cog, guild)
+        async with cog.sql_session as sess:  # type: AsyncSession
             self._config = MarkovConfig(guild_id=guild.id, on_mention=on_mention, maxlen=maxlen)
             sess.add(self._config)
         # Commit or rollback/raise happens here
@@ -142,7 +142,7 @@ class MarkovManager:
         return self.__ainit__().__await__()
 
     async def __aenter__(self):
-        self._txn_mgr = self.bot.sql_session
+        self._txn_mgr = self.cog.sql_session
         self._session = await self._txn_mgr.__aenter__()
         return await self
 
@@ -220,7 +220,7 @@ class MarkovManager:
             if self.triggers:
                 yield r'\b({})\b'.format('|'.join(self.triggers))
             if self.on_mention:
-                yield '<@!{}>'.format(self.bot.user.id)
+                yield '<@!{}>'.format(self.cog.bot.user.id)
 
         return '|'.join(iter_trigger_patterns())
 
@@ -287,11 +287,11 @@ class Markov(BaseCog):
     async def prepare_once(self):
         await super().prepare_once()
         await self.bot.wait_until_ready()
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             result = await sess.execute(select(MarkovConfig))
             for conf in result.scalars().all():
                 try:
-                    mgr = MarkovManager.from_session(self.bot, conf)
+                    mgr = MarkovManager.from_session(self, conf)
                 except MarkovNoConfig:
                     sess.delete(conf)
                     self.log_warning('Markov init: Removing guild %d because I cannot see it', conf.guild_id)
@@ -335,7 +335,7 @@ class Markov(BaseCog):
                 mgr.on_mention = on_mention
                 mgr.maxlen = maxlen
         except KeyError:
-            self.markovs[ctx.guild] = await MarkovManager.new(self.bot, ctx.guild, on_mention, maxlen)
+            self.markovs[ctx.guild] = await MarkovManager.new(self, ctx.guild, on_mention, maxlen)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.check_any(commands.is_owner(), commands.has_permissions(manage_guild=True))

@@ -16,13 +16,15 @@
 
 import typing
 import collections
+import asyncio
+from contextlib import asynccontextmanager as acm
 
 from discord.ext import commands
 from ..utils.logging_mixin import LoggingMixin
 from .. import *
 from ..utils.pg_orm import BaseTable
 
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
 __all__ = ('BaseCog', 'PikalaxBOT', 'MyContext', 'BaseTable')
@@ -49,10 +51,22 @@ class BaseCog(LoggingMixin, commands.Cog):
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
         self.bot = bot
+        self._sql_session = AsyncSession(self.bot.engine, expire_on_commit=False)
         self._dirty = False
+        self._txn_lock = asyncio.Lock()
         # Use bot.loop explicitly because it might not be running yet
         # such as when the bot is first started. Avoids RuntimeError.
         bot.loop.create_task(self.prepare())
+
+    @property
+    def sql_session(self):
+        @acm
+        async def begin():
+            async with self._txn_lock:
+                async with self._sql_session.begin():
+                    yield self._sql_session
+
+        return begin()
 
     @_cog_special_method
     async def init_db(self, sql: AsyncConnection):

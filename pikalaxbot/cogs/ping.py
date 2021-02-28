@@ -54,7 +54,7 @@ class Ping(BaseCog):
             ping = None
         else:
             ping = self.bot.latency * 1000
-        async with self.bot.sql_session as session:  # type: AsyncSession
+        async with self.sql_session as session:  # type: AsyncSession
             session.add(PingHistory(timestamp=now, latency=ping))
 
     @build_ping_history.before_loop
@@ -117,7 +117,7 @@ class Ping(BaseCog):
         hend = hend.dt if hend else ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql_session as sess:  # type: AsyncSession
+            async with self.sql_session as sess:  # type: AsyncSession
                 ping_history = {
                     ph.timestamp: ph.latency async for ph in await sess.stream(
                         select(

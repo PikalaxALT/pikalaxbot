@@ -192,7 +192,7 @@ class Stars(BaseCog):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.guild_id is None:
             return
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             conf = await sess.scalar(select(StarConfig).where(StarConfig.guild == payload.guild_id))
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
@@ -202,7 +202,7 @@ class Stars(BaseCog):
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if payload.guild_id is None:
             return
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             conf = await sess.scalar(select(StarConfig).where(StarConfig.guild == payload.guild_id))
             if conf is not None and str(payload.emoji) == conf.emoji:
                 post = await self.get_or_create_post(conf, payload.channel_id, payload.message_id)
@@ -214,7 +214,7 @@ class Stars(BaseCog):
 
         if ctx.guild != message.guild:
             return await ctx.send('Attempting to star a message not in this server')
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is not None:
                 post = await self.get_or_create_post(cfg, message.channel.id, message.id)
@@ -240,7 +240,7 @@ class Stars(BaseCog):
             perms = channel.permissions_for(ctx.guild.me)
             if not perms.send_messages:
                 return await ctx.send('I cannot send messages in that channel!')
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             if emoji:
                 try:
                     await ctx.message.add_reaction(emoji)
@@ -276,7 +276,7 @@ class Stars(BaseCog):
     async def star_random(self, ctx: MyContext):
         """Show a random starred post on this server."""
 
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
@@ -290,7 +290,7 @@ class Stars(BaseCog):
     async def star_show(self, ctx: MyContext, message_id: int):
         """Show a starred post by message ID."""
 
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
@@ -378,7 +378,7 @@ class Stars(BaseCog):
     @star_grp.command('stats')
     async def star_stats(self, ctx: MyContext, member: discord.Member = None):
         """Show starboard stats for this server or for a specific member."""
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')
@@ -391,7 +391,7 @@ class Stars(BaseCog):
     async def star_who(self, ctx: MyContext, message_id: int):
         """Show who starred a specific post."""
 
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             cfg = await sess.get(StarConfig, ctx.guild.id)
             if cfg is None:
                 return await ctx.send('This server is not configured for starboard')

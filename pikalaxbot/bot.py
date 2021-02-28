@@ -28,10 +28,6 @@ import asyncstdlib.functools as afunctools
 from .pokeapi import methods, PokeapiModel
 import asqlite3
 from .utils.pg_orm import *
-from contextlib import asynccontextmanager as acm
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import event
 
 
 __all__ = ('PikalaxBOT',)
@@ -52,8 +48,6 @@ class PikalaxBOT(BotLogger, commands.Bot):
 
         self.log_info('Connecting database')
         self.engine = async_engine_parameterized(**self.settings.database)
-        self._sql_session = AsyncSession(self.engine, expire_on_commit=False)
-        self._txn_lock = asyncio.Lock()
 
         # Reboot handler
         self.reboot_after = True
@@ -72,16 +66,6 @@ class PikalaxBOT(BotLogger, commands.Bot):
     @property
     def sql(self):
         return self.engine.begin()
-
-    @property
-    def sql_session(self):
-        @acm
-        async def begin():
-            async with self._txn_lock:
-                async with self._sql_session.begin():
-                    yield self._sql_session
-
-        return begin()
 
     @property
     def pokeapi(self) -> typing.Optional[asqlite3.Connection]:

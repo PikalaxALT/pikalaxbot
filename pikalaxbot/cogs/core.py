@@ -96,7 +96,7 @@ class Core(BaseCog):
 
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             obj = await sess.scalar(select(Commandstats).where(Commandstats.command == str(ctx.command), Commandstats.guild == ctx.guild.id))
             if obj is None:
                 obj = Commandstats(
@@ -111,7 +111,7 @@ class Core(BaseCog):
     async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
         lost_cmds: list[str] = []
-        async with self.bot.sql_session as sess:
+        async with self.sql_session as sess:
             async for obj in await sess.stream(
                 select(Commandstats).where(Commandstats.guild == ctx.guild.id)
             ):

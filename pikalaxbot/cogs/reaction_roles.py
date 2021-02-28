@@ -44,7 +44,7 @@ class ReactionRoles(BaseTable):
 
 def reaction_roles_initialized():
     async def predicate(ctx: MyContext):
-        async with ctx.bot.sql_session as sess:  # type: AsyncSession
+        async with ctx.cog.sql_session as sess:  # type: AsyncSession
             ctx.rroles_cfg = await sess.get(ReactionSchema, ctx.guild.id)
             if ctx.rroles_cfg is None:
                 raise NotInitialized(
@@ -58,7 +58,7 @@ def reaction_roles_initialized():
 
 def reaction_roles_not_initialized():
     async def predicate(ctx: MyContext):
-        async with ctx.bot.sql_session as sess:  # type: AsyncSession
+        async with ctx.cog.sql_session as sess:  # type: AsyncSession
             cfg = await sess.get(ReactionSchema, ctx.guild.id)
             if cfg is not None:
                 raise AlreadyInitialized(
@@ -86,7 +86,7 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def resolve_payload(self, payload: discord.RawReactionActionEvent):
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
         member: typing.Optional[discord.Member] = guild.get_member(payload.user_id)
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             cfg = await sess.get(ReactionSchema, payload.guild_id)
             if cfg is None:
                 role = None
@@ -129,7 +129,7 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
 
         channel = channel or ctx.channel
         if channel.permissions_for(ctx.me).send_messages:
-            async with self.bot.sql_session as sess:  # type: AsyncSession
+            async with self.sql_session as sess:  # type: AsyncSession
                 embed = await self.make_embed(ctx)
                 message = await channel.send(embed=embed)
                 cfg = ReactionSchema(
@@ -146,7 +146,7 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def unregister_role_bot(self, ctx: MyContext):
         """Drops the role reaction registration in this guild"""
 
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             await sess.refresh(ctx.rroles_cfg)
             channel: discord.TextChannel = ctx.guild.get_channel(ctx.rroles_cfg.channel)
             if channel is None:
@@ -161,7 +161,7 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def add_role(self, ctx: MyContext, emoji: typing.Union[discord.Emoji, str], *, role: discord.Role):
         """Register a role to an emoji in the current guild"""
 
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             channel: discord.TextChannel = ctx.guild.get_channel(ctx.rroles_cfg.channel)
             if channel is None:
                 raise InitializationInvalid('Reaction roles channel not found')
@@ -192,7 +192,7 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
     async def drop_role(self, ctx: MyContext, *, emoji_or_role: typing.Union[discord.Emoji, discord.Role, str]):
         """Unregister a role or emoji from the current guild"""
 
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             await sess.refresh(ctx.rroles_cfg)
             channel: discord.TextChannel = ctx.guild.get_channel(ctx.rroles_cfg.channel)
             if channel is None:

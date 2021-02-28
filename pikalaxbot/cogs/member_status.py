@@ -62,7 +62,7 @@ class MemberStatus(BaseCog):
     @tasks.loop(seconds=30)
     async def update_counters(self):
         now = self.update_counters._last_iteration.replace(tzinfo=None)
-        async with self.bot.sql_session as sess:  # type: AsyncSession
+        async with self.sql_session as sess:  # type: AsyncSession
             for guild in self.bot.guilds:  # type: discord.Guild
                 counter = Counter(member.status.name for member in guild.members)
                 obj = Memberstatus(
@@ -113,7 +113,7 @@ class MemberStatus(BaseCog):
         hend = hend.dt if hend else ctx.message.created_at
         async with ctx.typing():
             fetch_start = time.perf_counter()
-            async with self.bot.sql_session as sess:  # type: AsyncSession
+            async with self.sql_session as sess:  # type: AsyncSession
                 counts: dict[datetime.datetime, dict[discord.Status, int]] = {
                     row.timestamp: {
                         status: getattr(row, status.name)
