@@ -31,6 +31,7 @@ from .utils.pg_orm import *
 from contextlib import asynccontextmanager as acm
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import event
 
 
 __all__ = ('PikalaxBOT',)
@@ -52,6 +53,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self.log_info('Connecting database')
         self.engine = async_engine_parameterized(**self.settings.database)
         self._sql_session = AsyncSession(self.engine, expire_on_commit=False)
+        self._txn_lock = asyncio.Lock()
 
         # Reboot handler
         self.reboot_after = True
@@ -75,9 +77,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
     def sql_session(self):
         @acm
         async def begin():
-            while self._sql_session.in_transaction():
-                await asyncio.sleep(0)
-            async with self._sql_session.begin():
+            async with self._txn_lock, self._sql_session.begin():
                 yield self._sql_session
 
         return begin()
