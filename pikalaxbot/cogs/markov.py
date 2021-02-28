@@ -17,6 +17,7 @@
 import re
 import typing
 import asyncio
+import operator
 
 import discord
 from discord.ext import commands
@@ -89,7 +90,7 @@ class MarkovManager:
         if channel in self._learned and self._learned[channel] is not None:
             return
         self._learned[channel] = False
-        await channel.history(limit=1000).map(self.learn).flatten()
+        await channel.history(limit=5000).map(self.learn).flatten()
         self._learned[channel] = True
 
     async def __ainit_internal(self):
@@ -241,7 +242,7 @@ class MarkovManager:
         if not MarkovManager.exists(ctx):
             return False
         mgr: MarkovManager = await ctx.cog.markovs[ctx.guild]
-        if not ctx.valid and not re.search(mgr.trigger_pattern, ctx.message.content, re.I):
+        if not ctx.prefix and not re.search(mgr.trigger_pattern, ctx.message.content, re.I):
             return False
         if not mgr.initialized:
             raise MarkovNoInit
@@ -376,6 +377,22 @@ class Markov(BaseCog):
             await ctx.reply('Removed that trigger phrase')
         else:
             await ctx.reply('Trigger phrase does not exist')
+
+    @commands.check(MarkovManager.exists)
+    @markov.command('triggers')
+    async def trigger_list(self, ctx: MyContext):
+        """List triggers for the current guild"""
+        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
+            triggers = mgr.triggers
+        await ctx.reply(', '.join(map(repr, triggers)))
+
+    @commands.check(MarkovManager.exists)
+    @markov.command('channels')
+    async def channel_list(self, ctx: MyContext):
+        """List triggers for the current guild"""
+        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
+            channels = mgr.channels
+        await ctx.reply(', '.join(map(operator.attrgetter('mention'), channels)))
 
     @BaseCog.listener()
     async def on_message(self, msg: discord.Message):
