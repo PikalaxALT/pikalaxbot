@@ -77,8 +77,9 @@ class PikalaxBOT(BotLogger, commands.Bot):
     def sql_session(self):
         @acm
         async def begin():
-            async with self._txn_lock, self._sql_session.begin():
-                yield self._sql_session
+            async with self._txn_lock:
+                async with self._sql_session.begin():
+                    yield self._sql_session
 
         return begin()
 
