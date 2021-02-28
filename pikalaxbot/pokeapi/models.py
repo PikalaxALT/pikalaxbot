@@ -328,7 +328,7 @@ class PokeapiModel:
             attrs = {'language_id': 9}
             collection_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', self.__class__.__name__).lower() + '_names'
         names = await getattr(self, collection_name)
-        return names.get(**attrs).name
+        return (await names.get(**attrs)).name
 
     @classmethod
     async def get_named(
