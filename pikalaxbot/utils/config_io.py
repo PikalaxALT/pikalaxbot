@@ -27,7 +27,6 @@ __all__ = ('Settings',)
 class Settings:
     token: str = None
     prefix = 'p!'
-    markov_channels: list[int] = []
     debug = False
     disabled_commands: list[str] = []
     disabled_cogs: list[str] = []
@@ -55,7 +54,7 @@ class Settings:
         'login': '',
         'api_key': ''
     }
-    json_keys = 'token', 'prefix', 'markov_channels', 'debug', 'disabled_commands', 'disabled_cogs', 'help_name', \
+    json_keys = 'token', 'prefix', 'debug', 'disabled_commands', 'disabled_cogs', 'help_name', \
                 'game', 'espeak_kw', 'banlist', 'error_emoji', 'exc_channel', 'banned_guilds', 'database', 'e6_api_auth'
 
     def __init__(self, fname='settings.json'):
