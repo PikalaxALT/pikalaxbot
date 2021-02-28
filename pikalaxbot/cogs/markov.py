@@ -35,8 +35,8 @@ class MarkovConfig(BaseTable):
     maxlen = Column(INTEGER, default=256)
     on_mention = Column(BOOLEAN, default=True)
 
-    channels = relationship('MarkovChannels', backref='config', cascade='all, delete-orphan', lazy='immediate')
-    triggers = relationship('MarkovTriggers', backref='config', cascade='all, delete-orphan', lazy='immediate')
+    channels = relationship('MarkovChannels', backref='config', cascade='all, delete-orphan', lazy='selectin')
+    triggers = relationship('MarkovTriggers', backref='config', cascade='all, delete-orphan', lazy='selectin')
 
 
 class MarkovChannels(BaseTable):
@@ -118,6 +118,9 @@ class MarkovManager:
                     raise MarkovNoConfig
         elif self._init_fail:
             raise MarkovNoConfig
+        else:
+            async with self.bot.sql_session as sess:
+                await sess.refresh(self._config)
         return self
 
     def __bool__(self):

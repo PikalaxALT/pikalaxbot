@@ -54,13 +54,13 @@ class Polls(BaseTable):
         order_by='PollOptions.index',
         cascade='all, delete-orphan',
         backref='poll',
-        lazy='immediate'
+        lazy='selectin'
     )
     votes = relationship(
         'PollVotes',
         cascade='all, delete-orphan',
         backref='poll',
-        lazy='immediate'
+        lazy='selectin'
     )
 
     EMOJIS = [
@@ -220,7 +220,7 @@ class PollOptions(BaseTable):
     index = Column(INTEGER, nullable=False)
     txt = Column(TEXT, nullable=False)
 
-    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='option', lazy='immediate')
+    votes = relationship('PollVotes', cascade='all, delete-orphan', backref='option', lazy='selectin')
 
 
 class PollVotes(BaseTable):

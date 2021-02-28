@@ -44,7 +44,7 @@ class StarConfig(BaseTable):
         lambda: StarPosts,
         cascade='all, delete-orphan',
         backref='config',
-        lazy='immediate',
+        lazy='selectin',
         innerjoin=True
     )
 
@@ -65,7 +65,7 @@ class StarPosts(BaseTable):
         lambda: StarUsers,
         cascade='all, delete-orphan',
         backref='post',
-        lazy='immediate',
+        lazy='selectin',
         innerjoin=True
     )
     __table_args__ = (
