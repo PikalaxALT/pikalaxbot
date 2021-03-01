@@ -26,6 +26,8 @@ import traceback
 import operator
 import aioitertools
 from . import *
+import typing
+from collections.abc import Iterable
 import asyncstdlib.builtins as abuiltins
 from contextlib import asynccontextmanager as acm
 if typing.TYPE_CHECKING:
@@ -371,7 +373,7 @@ class PokeApiCog(BaseCog, name='PokeApi'):
                 return await (await mach.version_group).generation
 
             async for gen, machs in aioitertools.groupby(machines, group_key): \
-                    # type: PokeapiModel.classes.Generation, typing.Iterable[PokeapiModel.classes.Machine]
+                    # type: PokeapiModel.classes.Generation, Iterable[PokeapiModel.classes.Machine]
                 mach_s = set()
                 for mach in machs:
                     if mach.machine_number < 100:

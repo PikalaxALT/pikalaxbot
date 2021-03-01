@@ -26,6 +26,7 @@ import argparse
 import sys
 import os
 import glob
+from collections.abc import Generator
 import typing
 import logging
 from .utils.prefix import *
@@ -34,7 +35,7 @@ from . import __dirname__, __version__
 from .bot import PikalaxBOT
 
 
-def filter_extensions(bot: PikalaxBOT) -> typing.Generator[tuple[str, str], typing.Any, None]:
+def filter_extensions(bot: PikalaxBOT) -> Generator[tuple[str, str], typing.Any, None]:
     disabled_cogs = bot.settings.disabled_cogs
     if 'jishaku' not in disabled_cogs:
         yield 'jishaku', 'Jishaku'

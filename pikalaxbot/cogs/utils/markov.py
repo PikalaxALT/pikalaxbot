@@ -17,6 +17,7 @@
 # Unapologetically aped from https://github.com/TwitchPlaysPokemon/tpp/utils/markov.py
 
 from collections import defaultdict, Counter
+from collections.abc import Iterable
 from random import choices
 import typing
 import nltk
@@ -45,7 +46,7 @@ class Chain:
     def learn(self, state: tuple[term], obj: term):
         self.tbl[state][obj] += 1
 
-    def learn_list(self, objs: typing.Iterable[str]):
+    def learn_list(self, objs: Iterable[str]):
         for *state, word in nltk.ngrams(objs, self.state_size + 1, pad_left=True, pad_right=True):
             self.learn(tuple(state), word)
 
@@ -60,7 +61,7 @@ class Chain:
                 if len(self.tbl[state]) == 0:
                     self.tbl.pop(state)
 
-    def unlearn_list(self, objs: typing.Iterable[str]):
+    def unlearn_list(self, objs: Iterable[str]):
         for *state, word in nltk.ngrams(objs, self.state_size + 1, pad_left=True, pad_right=True):
             self.unlearn(tuple(state), word)
 

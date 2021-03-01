@@ -14,7 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import *
+from typing import TypeVar, Any
+from collections.abc import Callable, Generator, Coroutine
 from typing_extensions import AsyncContextManager
 from functools import wraps
 from .cursor import Cursor

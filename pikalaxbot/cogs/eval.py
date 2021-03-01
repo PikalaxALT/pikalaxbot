@@ -28,6 +28,7 @@ from import_expression import exec
 import asyncio
 import discord
 import typing
+from collections.abc import Callable, Coroutine
 
 from . import *
 from ..types import *
@@ -130,7 +131,7 @@ class Eval(BaseCog):
         except Exception as e:
             return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
 
-        func: typing.Callable[..., typing.Coroutine] = env['func']
+        func: Callable[..., Coroutine] = env['func']
         exc: typing.Optional[BaseException] = None
         ret: typing.Any = None
         async with ctx.typing():

@@ -15,7 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sqlite3
-from typing import *
+from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Callable, AsyncIterator, Iterable
 
 from .types import *
 from types import TracebackType
@@ -88,5 +89,5 @@ class Cursor:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
+    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         await self.close()

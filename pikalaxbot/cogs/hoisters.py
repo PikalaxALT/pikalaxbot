@@ -16,7 +16,6 @@
 
 import discord
 from discord.ext import commands, menus
-import typing
 from . import *
 from .utils.menus import NavMenuPages
 from ..constants import *
@@ -33,7 +32,7 @@ class HoisterPageSource(menus.ListPageSource):
     def num_entries(self):
         return len(self.entries)
 
-    def format_page(self, menu: HoistersMenu, entry: typing.List[discord.Member]):
+    def format_page(self, menu: HoistersMenu, entry: list[discord.Member]):
         try:
             mbd = discord.Embed(title='Accused of hoisting', colour=discord.Colour.dark_red())
             first_idx = menu.current_page * self.per_page + 1

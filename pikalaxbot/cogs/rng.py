@@ -23,6 +23,7 @@ from . import *
 from .utils.converters import dice_roll
 import typing
 import collections
+from collections.abc import Sequence
 from jishaku.functools import executor_function
 from ..pokeapi import methods
 
@@ -107,7 +108,7 @@ class Rng(BaseCog):
 
     @staticmethod
     @executor_function
-    def sample_random(k: int, choices: typing.Sequence[str]):
+    def sample_random(k: int, choices: Sequence[str]):
         return collections.Counter(random.choices(choices, k=k))
 
     @staticmethod

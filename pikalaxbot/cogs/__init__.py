@@ -14,10 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import typing
 import collections
 import asyncio
-from contextlib import asynccontextmanager as acm
+from contextlib import asynccontextmanager as acm, AbstractAsyncContextManager as Aacm
 
 from discord.ext import commands
 from ..utils.logging_mixin import LoggingMixin
@@ -46,7 +45,7 @@ class BaseCog(LoggingMixin, commands.Cog):
         config_attrs: tuple - Names of attributes to fetch from the bot's
         settings.  When subclassing BaseCog, define this at the class level.
     """
-    config_attrs: typing.Tuple[str] = tuple()
+    config_attrs: tuple[str] = tuple()
 
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
@@ -59,7 +58,11 @@ class BaseCog(LoggingMixin, commands.Cog):
         bot.loop.create_task(self.prepare())
 
     @property
-    def sql_session(self):
+    def sql(self):
+        return self.bot.sql
+
+    @property
+    def sql_session(self) -> Aacm[AsyncSession]:
         @acm
         async def begin():
             async with self._txn_lock:
@@ -98,7 +101,7 @@ class BaseCog(LoggingMixin, commands.Cog):
         if BaseCog._get_overridden_method(self.init_db) is not None:
             self.bot.dispatch('cog_db_init', self)
             try:
-                async with self.bot.sql as sql:  # type: AsyncConnection
+                async with self.sql as sql:  # type: AsyncConnection
                     await self.init_db(sql)
             except Exception as e:
                 e.__suppress_context__ = True

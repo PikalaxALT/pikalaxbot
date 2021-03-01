@@ -18,23 +18,16 @@ import typing
 
 import discord
 from discord.ext import commands
-import operator
-import functools
 import numpy as np
 
 from . import *
 from .utils.game import GameBase, GameCogBase, GameStartCommand
 from .utils.converters import board_coords
-from ..types import T
 from jishaku.functools import executor_function
 
 from sqlalchemy import Column, BIGINT, INTEGER, CheckConstraint, select
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
-
-
-def prod(it: typing.Iterable[T]) -> T:
-    return functools.reduce(operator.mul, it, 1)
 
 
 class Voltorb(BaseTable):

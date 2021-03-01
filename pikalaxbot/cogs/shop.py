@@ -19,6 +19,7 @@ from discord.ext import commands, menus
 import asyncpg
 import asyncstdlib.functools as afunctools
 import typing
+from collections.abc import Callable, Coroutine
 import json
 from . import *
 from ..pokeapi import PokeapiModel
@@ -161,7 +162,7 @@ class ItemBagPageSource(menus.ListPageSource):
 def shared_max_concurrency(rate: int, per: commands.BucketType, *, wait=False):
     value = commands.MaxConcurrency(rate, per=per, wait=wait)
 
-    def decorator(func: typing.Union[commands.Command, typing.Callable[..., typing.Coroutine]]):
+    def decorator(func: typing.Union[commands.Command, Callable[..., Coroutine]]):
         if isinstance(func, commands.Command):
             func._max_concurrency = value
         else:

@@ -17,6 +17,7 @@
 import discord
 from discord.ext import commands
 import typing
+from contextlib import AbstractAsyncContextManager
 import os
 import aiohttp
 import asyncio
@@ -28,6 +29,7 @@ import asyncstdlib.functools as afunctools
 from .pokeapi import methods, PokeapiModel
 import asqlite3
 from .utils.pg_orm import *
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 __all__ = ('PikalaxBOT',)
@@ -64,7 +66,7 @@ class PikalaxBOT(BotLogger, commands.Bot):
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
 
     @property
-    def sql(self):
+    def sql(self) -> AbstractAsyncContextManager[AsyncConnection]:
         return self.engine.begin()
 
     @property

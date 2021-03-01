@@ -21,7 +21,6 @@ import discord
 from discord.ext import commands, menus
 import asyncio
 
-import typing
 import collections
 import difflib
 import textwrap
@@ -129,7 +128,7 @@ class CogHelpPageSource(GroupOrCogHelpPageSource):
         super().__init__(entries, per_page=per_page)
         self._cog = cog
 
-    def format_page(self, menu: menus.MenuPages, entry: typing.List[commands.Command]):
+    def format_page(self, menu: menus.MenuPages, entry: list[commands.Command]):
         cog = self._cog
         return self.format_embed(
             menu,

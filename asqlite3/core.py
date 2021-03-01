@@ -18,7 +18,8 @@ import sqlite3
 import asyncio
 import concurrent.futures as cf
 from .cursor import Cursor
-from typing import *
+from typing import Any, Union, Optional
+from collections.abc import Callable, Iterable, Generator, AsyncIterator
 import functools
 import logging
 from os import PathLike
@@ -79,7 +80,7 @@ class Connection:
     async def __aenter__(self) -> 'Connection':
         return await self
 
-    async def __aexit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
+    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         await self.close()
 
     @contextmanager
@@ -151,19 +152,19 @@ class Connection:
         self._conn.isolation_level = value
 
     @property
-    def row_factory(self) -> "Optional[Type]":  # py3.5.2 compat (#24)
+    def row_factory(self) -> "Optional[type]":  # py3.5.2 compat (#24)
         return self._conn.row_factory
 
     @row_factory.setter
-    def row_factory(self, factory: "Optional[Type]"):  # py3.5.2 compat (#24)
+    def row_factory(self, factory: "Optional[type]"):  # py3.5.2 compat (#24)
         self._conn.row_factory = factory
 
     @property
-    def text_factory(self) -> Type:
+    def text_factory(self) -> type:
         return self._conn.text_factory
 
     @text_factory.setter
-    def text_factory(self, factory: Type):
+    def text_factory(self, factory: type):
         self._conn.text_factory = factory
 
     @property

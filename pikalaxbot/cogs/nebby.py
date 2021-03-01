@@ -18,6 +18,7 @@ from discord.ext import commands
 from . import *
 from .utils.game import find_emoji
 import typing
+from collections.abc import Sequence, Generator
 from ..types import *
 import random
 
@@ -70,7 +71,7 @@ class Meme(BaseTable):
 
 
 class HMM(typing.Generic[T]):
-    def __init__(self, transition: typing.Sequence[typing.Sequence[float]], emission: typing.Sequence[T]):
+    def __init__(self, transition: Sequence[Sequence[float]], emission: Sequence[T]):
         if len(emission) != len(transition):
             raise ValueError('Different number of transition and emission states')
         if any(len(x) != len(emission) for x in transition):
@@ -88,7 +89,7 @@ class HMM(typing.Generic[T]):
         self.state, = random.choices(range(self.n_states), weights=self.transition[self.state])
         return res
 
-    def get_chain(self, length: int, start=0) -> typing.Generator[T, typing.Any, None]:
+    def get_chain(self, length: int, start=0) -> Generator[T, typing.Any, None]:
         self.state = start
         for i in range(length):
             yield self.emit()

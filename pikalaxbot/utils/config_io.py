@@ -17,7 +17,6 @@
 import asyncio
 import json
 import os
-import typing
 from ..constants import *
 from types import TracebackType
 
@@ -88,7 +87,7 @@ class Settings:
         await self._lock.acquire()
         return await asyncio.to_thread(self.__enter__)
 
-    def __exit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
+    def __exit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         if self._changed:
             data = {key: getattr(self, key) for key in self.json_keys}
             with open(self._fname, 'w') as fp:
@@ -96,7 +95,7 @@ class Settings:
             self._changed = False
             self._mtime = os.path.getmtime(self._fname)
 
-    async def __aexit__(self, exc_type: typing.Type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
+    async def __aexit__(self, exc_type: type[BaseException], exc_val: BaseException, exc_tb: TracebackType):
         try:
             await asyncio.to_thread(self.__exit__, exc_type, exc_val, exc_tb)
         finally:

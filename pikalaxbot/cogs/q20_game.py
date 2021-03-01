@@ -10,7 +10,8 @@ import random
 import nltk
 import asyncio
 from contextlib import asynccontextmanager as acm
-from typing import Optional, Callable, Coroutine, Any, Type
+from typing import Optional, Any
+from collections.abc import Callable, Coroutine
 from ..pokeapi import PokeapiModel, methods as pokeapi
 
 
@@ -160,7 +161,7 @@ class Q20QuestionParser:
         self.differ = difflib.SequenceMatcher()
         self.tokenizer = nltk.WordPunctTokenizer()
 
-    async def lookup_name(self, table: Type[PokeapiModel], q: str) -> tuple[Optional[str], Optional[PokeapiModel], float]:
+    async def lookup_name(self, table: type[PokeapiModel], q: str) -> tuple[Optional[str], Optional[PokeapiModel], float]:
         def iter_matches(callable_: Callable[[str], R]) -> R:
             yield callable_(q)
             for bigram in re.findall(r'(?=(\S+\s+\S))', q):

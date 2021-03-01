@@ -23,6 +23,7 @@ import aioitertools
 import sys
 import time
 import operator
+from collections.abc import Coroutine
 from discord.ext import commands, menus
 from . import *
 from .utils.converters import CommandConverter
@@ -62,7 +63,7 @@ class clean_lower(str):
         return arg.lower()
 
 
-def filter_history(channel: discord.TextChannel, **kwargs) -> typing.Coroutine[typing.Any, None, list[discord.Message]]:
+def filter_history(channel: discord.TextChannel, **kwargs) -> Coroutine[typing.Any, None, list[discord.Message]]:
     check = kwargs.pop('check', lambda m: True)
     limit = kwargs.pop('limit', sys.maxsize)
     return aioitertools.list(aioitertools.map(

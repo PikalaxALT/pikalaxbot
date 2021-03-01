@@ -22,6 +22,7 @@ from discord.ext import commands
 from .errors import BadGameArgument
 import typing
 import collections
+from collections.abc import Callable, Coroutine, Mapping
 from .. import *
 from ...types import T
 from ...pokeapi import PokeapiModel, methods
@@ -246,7 +247,7 @@ class GameCogBase(BaseCog, typing.Generic[T]):
 
     def __init__(self, bot):
         super().__init__(bot)
-        self.channels: typing.Mapping[int, T] = collections.defaultdict(lambda: self._gamecls(self.bot))
+        self.channels: Mapping[int, T] = collections.defaultdict(lambda: self._gamecls(self.bot))
         self._max_concurrency = commands.MaxConcurrency(1, per=commands.BucketType.channel, wait=False)
 
     def __getitem__(self, channel: int):
@@ -254,7 +255,7 @@ class GameCogBase(BaseCog, typing.Generic[T]):
 
     async def game_cmd(self, cmd: str, ctx: MyContext, *args, **kwargs):
         async with self[ctx.channel.id] as game:
-            cb: typing.Callable[[MyContext, ...], typing.Coroutine] = getattr(game, cmd)
+            cb: Callable[[MyContext, ...], Coroutine] = getattr(game, cmd)
             if cb is None:
                 await ctx.send(f'{ctx.author.mention}: Invalid command: '
                                f'{ctx.prefix}{self._gamecls.__name__.lower()} {cmd}',

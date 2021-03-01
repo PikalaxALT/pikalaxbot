@@ -18,6 +18,7 @@ import sqlite3
 import typing
 import re
 import collections
+from collections.abc import Iterable, Callable
 import asyncio
 import difflib
 import asqlite3
@@ -106,7 +107,7 @@ class collection(list[_T]):
 
 def relationship(target: str, local_col: str, foreign_col: str, attrname: str):
     async def func(instance):
-        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(target))
+        target_cls: type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(target))
         fk_id = getattr(instance, local_col)
         result = PokeapiModel.__cache__.get((target_cls, fk_id))
         if result is None:
@@ -128,7 +129,7 @@ def relationship(target: str, local_col: str, foreign_col: str, attrname: str):
 
 def backref(target: str, local_col: str, foreign_col: str, attrname: str):
     async def func(instance):
-        target_cls: typing.Type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(target))
+        target_cls: type['PokeapiModel'] = getattr(instance.classes, tblname_to_classname(target))
         statement = 'select * ' \
                     'from "{}" ' \
                     'where {} = ?'.format(target, foreign_col)
@@ -144,21 +145,21 @@ def backref(target: str, local_col: str, foreign_col: str, attrname: str):
 
 
 def name_for_scalar_relationship(
-        local_cls: typing.Type['PokeapiModel'],
-        dest_cls: typing.Type['PokeapiModel'],
+        local_cls: type['PokeapiModel'],
+        dest_cls: type['PokeapiModel'],
         local_col: str,
         dest_col: str,
-        constraints: typing.Iterable[sqlite3.Row]
+        constraints: Iterable[sqlite3.Row]
 ):
     return local_col[:-3]
 
 
 def name_for_collection_relationship(
-        local_cls: typing.Type['PokeapiModel'],
-        dest_cls: typing.Type['PokeapiModel'],
+        local_cls: type['PokeapiModel'],
+        dest_cls: type['PokeapiModel'],
         local_col: str,
         dest_col: str,
-        constraints: typing.Iterable[sqlite3.Row]
+        constraints: Iterable[sqlite3.Row]
 ):
     if local_cls is dest_cls:
         return 'evolves_into_species'
@@ -172,10 +173,10 @@ def name_for_collection_relationship(
 
 
 class classproperty:
-    def __init__(self, func: typing.Callable[[type], _R]):
+    def __init__(self, func: Callable[[type], _R]):
         self._func = func
 
-    def __get__(self, instance: typing.Optional[_T], owner: typing.Optional[typing.Type[_T]]):
+    def __get__(self, instance: typing.Optional[_T], owner: typing.Optional[type[_T]]):
         if owner is None:
             owner = type(instance)
         return self._func(owner)
@@ -185,7 +186,7 @@ class classproperty:
 class PokeapiModel:
     __abstract__ = True
     __columns__: dict[str, type] = {}
-    __cache__: dict[tuple[typing.Type['PokeapiModel'], int], 'PokeapiModel'] = {}
+    __cache__: dict[tuple[type['PokeapiModel'], int], 'PokeapiModel'] = {}
     __prepared__ = False
     classes = None
     _connection: typing.Optional[asqlite3.Connection] = None
@@ -217,7 +218,7 @@ class PokeapiModel:
 
     @classmethod
     async def _prepare(cls, connection: asqlite3.Connection):
-        classes: dict[str, typing.Type['PokeapiModel']] = {}
+        classes: dict[str, type['PokeapiModel']] = {}
         tbl_names = [x async for x, in await connection.execute(
             "select tbl_name "
             "from sqlite_master "
@@ -293,7 +294,7 @@ class PokeapiModel:
 
     @classmethod
     async def get(
-            cls: typing.Type[_T],
+            cls: type[_T],
             id_: int
     ) -> typing.Optional[_T]:
         if (cls, id_) in cls.__cache__:
@@ -310,7 +311,7 @@ class PokeapiModel:
 
     @classmethod
     async def get_random(
-            cls: typing.Type[_T]
+            cls: type[_T]
     ) -> _T:
         async with cls._connection.execute(
             'select * '
@@ -332,7 +333,7 @@ class PokeapiModel:
 
     @classmethod
     async def get_named(
-            cls: typing.Type[_T],
+            cls: type[_T],
             name: str,
             *,
             cutoff=0.9
@@ -353,7 +354,7 @@ class PokeapiModel:
 
     @classmethod
     async def convert(
-            cls: typing.Type[_T],
+            cls: type[_T],
             ctx: MyContext,
             argument: str
     ) -> _T:
