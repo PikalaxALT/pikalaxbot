@@ -118,9 +118,9 @@ class Core(BaseCog):
     async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
         async with self.sql_session as sess:
-            async for obj in await sess.stream(
+            for obj in (await sess.execute(
                 select(Commandstats).where(Commandstats.guild == ctx.guild.id)
-            ):
+            )).scalars():
                 cmd: commands.Command = self.bot.get_command(obj.command)
                 if cmd is None:
                     sess.delete(obj)

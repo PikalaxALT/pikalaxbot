@@ -119,7 +119,7 @@ class MemberStatus(BaseCog):
                         status: getattr(row, status.name)
                         for status in discord.Status
                         if status is not discord.Status.invisible
-                    } async for row in await sess.stream(
+                    } for row in (await sess.execute(
                         select(
                             Memberstatus
                         ).where(
@@ -128,7 +128,7 @@ class MemberStatus(BaseCog):
                         ).order_by(
                             Memberstatus.timestamp
                         )
-                    )
+                    )).scalars()
                 }
             fetch_end = time.perf_counter()
             if len(counts) > 1:
