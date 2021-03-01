@@ -142,16 +142,18 @@ class MarkovManager:
         return self.__ainit__().__await__()
 
     async def __aenter__(self):
-        self._txn_mgr = self.cog.sql_session
-        self._session = await self._txn_mgr.__aenter__()
+        if self._txn_mgr is None:
+            self._txn_mgr = self.cog.sql_session
+            self._session = await self._txn_mgr.__aenter__()
         return await self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        try:
-            await self._txn_mgr.__aexit__(exc_type, exc_val, exc_tb)
-        finally:
-            self._session = None
-            self._txn_mgr = None
+        if self._txn_mgr is not None:
+            try:
+                await self._txn_mgr.__aexit__(exc_type, exc_val, exc_tb)
+            finally:
+                self._session = None
+                self._txn_mgr = None
 
     def __bool__(self):
         return self._config is not None
