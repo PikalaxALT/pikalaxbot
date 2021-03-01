@@ -25,8 +25,8 @@ from discord.ext import commands
 from . import *
 from .utils.markov import Chain
 
-from sqlalchemy import Column, ForeignKey, UniqueConstraint, TEXT, BIGINT, INTEGER, BOOLEAN, select
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, TEXT, BIGINT, INTEGER, BOOLEAN, select, inspect
+from sqlalchemy.orm import relationship, InstanceState
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
@@ -74,8 +74,6 @@ class MarkovManager:
         self._config: typing.Optional[MarkovConfig] = None
         self._chain: typing.Optional[Chain] = None
         self._stored_msgs: set[str] = set()
-        self._session: typing.Optional[AsyncSession] = None
-        self._txn_mgr = None
         self._init_lock = asyncio.Lock()
         self._learned: dict[discord.TextChannel, typing.Optional[bool]] = {}
 
@@ -116,44 +114,19 @@ class MarkovManager:
             pass
         return self
 
-    async def __ainit_internal(self):
-        if self._config is None:
-            self._config = await self._session.get(MarkovConfig, self.guild.id)
-        if self._config is not None:
-            self.prepare()
-        else:
-            self._init_fail = True
-            raise MarkovNoConfig
-
-    async def __ainit__(self):
-        if not self._initialized:
-            async with self._init_lock:
-                if not self._initialized:
-                    await self.__ainit_internal()
-                elif self._init_fail:
-                    raise MarkovNoConfig
-        elif self._init_fail:
-            raise MarkovNoConfig
-        else:
-            await self._session.refresh(self._config)
+    async def __aenter__(self):
+        state: InstanceState = inspect(self._config)
+        if state.expired_attributes:
+            async with self.cog.sql_session as sess:
+                await sess.refresh(self)
         return self
 
-    def __await__(self):
-        return self.__ainit__().__await__()
-
-    async def __aenter__(self):
-        if self._txn_mgr is None:
-            self._txn_mgr = self.cog.sql_session
-            self._session = await self._txn_mgr.__aenter__()
-        return await self
-
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._txn_mgr is not None:
-            try:
-                await self._txn_mgr.__aexit__(exc_type, exc_val, exc_tb)
-            finally:
-                self._session = None
-                self._txn_mgr = None
+        if exc_val is None:
+            state: InstanceState = inspect(self._config)
+            if state.modified:
+                async with self.cog.sql_session as sess:
+                    await sess.flush([self._config])
 
     def __bool__(self):
         return self._config is not None
@@ -216,7 +189,7 @@ class MarkovManager:
                             break
         return longest
 
-    @discord.utils.cached_property
+    @property
     def trigger_pattern(self):
         def iter_trigger_patterns():
             if self.triggers:
@@ -226,33 +199,34 @@ class MarkovManager:
 
         return '|'.join(iter_trigger_patterns())
 
-    async def add_channel(self, channel: discord.TextChannel):
+    def add_channel(self, channel: discord.TextChannel):
         if channel not in self.channels:
             self._config.channels.append(MarkovChannels(channel_id=channel.id))
             return asyncio.create_task(self.learn_channel(channel))
 
-    async def del_channel(self, channel: discord.TextChannel):
+    def del_channel(self, channel: discord.TextChannel):
         if channel in self.channels:
             self._config.channels.pop(self.channels.index(channel))
             self._learned.pop(channel, None)
             return True
         return False
 
-    async def add_trigger(self, trigger: str):
+    def add_trigger(self, trigger: str):
         if trigger not in self.triggers:
             self._config.triggers.append(MarkovTriggers(trigger=trigger))
             return True
         return False
 
-    async def del_trigger(self, trigger: str):
+    def del_trigger(self, trigger: str):
         tr = discord.utils.get(self._config.triggers, trigger=trigger)
         if tr is not None:
             self._config.triggers.remove(tr)
             return True
         return False
 
-    def purge(self):
-        self._session.delete(self._config)
+    async def purge(self):
+        async with self.cog.sql_session as sess:
+            sess.delete(self._config)
 
     @staticmethod
     def exists(ctx: MyContext):
@@ -333,7 +307,7 @@ class Markov(BaseCog):
     async def markov_init(self, ctx: MyContext, on_mention=True, maxlen=256):
         """Create or update guild Markov config"""
         try:
-            async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
+            async with self.markovs[ctx.guild] as mgr:
                 mgr.on_mention = on_mention
                 mgr.maxlen = maxlen
         except KeyError:
@@ -345,8 +319,7 @@ class Markov(BaseCog):
     @markov.command('purge')
     async def markov_deinit(self, ctx: MyContext):
         """Delete an existing Markov config"""
-        async with self.markovs.pop(ctx.guild) as mgr:  # type: MarkovManager
-            mgr.purge()
+        await self.markovs.pop(ctx.guild).purge()
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @commands.check_any(commands.is_owner(), commands.has_permissions(manage_guild=True))
@@ -356,8 +329,8 @@ class Markov(BaseCog):
         """Add a Markov channel by ID or mention"""
         if not ch.permissions_for(ctx.me).read_message_history:
             return await ctx.reply(f'Missing permissions to load {ch}')
-        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
-            result = await mgr.add_channel(ch)
+        async with self.markovs[ctx.guild] as mgr:
+            result = mgr.add_channel(ch)
         if result:
             await ctx.reply(f'Added configuration for {ch}')
         else:
@@ -368,8 +341,8 @@ class Markov(BaseCog):
     @add_markov.command('trigger')
     async def add_trigger(self, ctx: MyContext, *, trigger):
         """Add a trigger phrase"""
-        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
-            result = await mgr.add_trigger(trigger)
+        async with self.markovs[ctx.guild] as mgr:
+            result = mgr.add_trigger(trigger)
         if result:
             await ctx.reply('Added that trigger phrase')
         else:
@@ -380,8 +353,8 @@ class Markov(BaseCog):
     @markov.group('del', invoke_without_command=True)
     async def del_markov(self, ctx: MyContext, ch: discord.TextChannel):
         """Remove a Markov channel by ID or mention"""
-        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
-            result = await mgr.del_channel(ch)
+        async with self.markovs[ctx.guild] as mgr:
+            result = mgr.del_channel(ch)
         if result:
             await ctx.reply(f'Channel {ch} will no longer be learned')
         else:
@@ -392,8 +365,8 @@ class Markov(BaseCog):
     @del_markov.command('trigger')
     async def del_trigger(self, ctx: MyContext, *, trigger):
         """Add a trigger phrase"""
-        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
-            result = await mgr.del_trigger(trigger)
+        async with self.markovs[ctx.guild] as mgr:
+            result = mgr.del_trigger(trigger)
         if result:
             await ctx.reply('Removed that trigger phrase')
         else:
@@ -403,7 +376,7 @@ class Markov(BaseCog):
     @markov.command('triggers')
     async def trigger_list(self, ctx: MyContext):
         """List triggers for the current guild"""
-        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
+        async with self.markovs[ctx.guild] as mgr:
             triggers = mgr.triggers
         await ctx.reply(', '.join(map(repr, triggers)))
 
@@ -411,7 +384,7 @@ class Markov(BaseCog):
     @markov.command('channels')
     async def channel_list(self, ctx: MyContext):
         """List triggers for the current guild"""
-        async with self.markovs[ctx.guild] as mgr:  # type: MarkovManager
+        async with self.markovs[ctx.guild] as mgr:
             channels = mgr.channels
         await ctx.reply(', '.join(map(operator.attrgetter('mention'), channels)))
 
@@ -456,8 +429,7 @@ class Markov(BaseCog):
     @BaseCog.listener()
     async def on_guild_remove(self, guild: discord.Guild):
         if guild in self.markovs:
-            async with self.markovs.pop(guild) as mgr:  # type: MarkovManager
-                mgr.purge()
+            await self.markovs.pop(guild).purge()
 
 
 def setup(bot: PikalaxBOT):
