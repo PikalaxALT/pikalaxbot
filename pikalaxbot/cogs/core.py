@@ -160,8 +160,7 @@ class Core(BaseCog):
                     ctr['comment'] += '#' in line
         n_total_cmds = len(self.bot.commands)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
-        prefix: str
-        prefix, *_ = await self.bot.get_prefix(ctx.message)
+        prefix, *_ = await self.bot.get_prefix(ctx.message)  # type: str
         embed = discord.Embed(
             title=f'{self.bot.user.name} Stats',
             description=f'My prefix for this server is `{prefix}`',
