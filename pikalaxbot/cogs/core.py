@@ -119,7 +119,13 @@ class Core(BaseCog):
         cmds = []
         async with self.sql_session as sess:
             for obj in (await sess.execute(
-                select(Commandstats).where(Commandstats.guild == ctx.guild.id)
+                select(
+                    Commandstats
+                ).where(
+                    Commandstats.guild == ctx.guild.id
+                ).order_by(
+                    Commandstats.uses.desc()
+                )
             )).scalars():
                 cmd: commands.Command = self.bot.get_command(obj.command)
                 if cmd is None:
