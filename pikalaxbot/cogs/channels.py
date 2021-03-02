@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import typing
+import operator
 from . import *
 
 
@@ -40,10 +41,16 @@ class Channels(BaseCog):
             title=f'Channels I can read in {ctx.guild}',
             colour=0xF47FFF
         )
+
+        perms = operator.attrgetter('read_messages', 'read_message_history')
+
+        def predicate(chan: discord.abc.GuildChannel):
+            return any(perms(chan.permissions_for(ctx.guild.me)))
+
         for category, channels in ctx.guild.by_category():  \
                 # type: typing.Optional[discord.CategoryChannel], list[discord.TextChannel]
-            channels = [channel for channel in channels if channel.permissions_for(ctx.guild.me).read_messages]
-            if not channels or not category.permissions_for(ctx.guild.me).read_messages:
+            channels = [channel for channel in channels if predicate(channel)]
+            if not channels:
                 continue
             embed.add_field(
                 name=str(category or '\u200b'),
