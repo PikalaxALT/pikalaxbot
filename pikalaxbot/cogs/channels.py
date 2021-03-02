@@ -16,13 +16,17 @@ class Channels(BaseCog):
 
     EMOJIS = {
         discord.ChannelType.text: '#️⃣',
-        discord.ChannelType.voice: '🔈',
-        discord.ChannelType.news: '�',
+        discord.ChannelType.voice: '🔊',
+        discord.ChannelType.news: '📢',
         discord.ChannelType.store: '🏪',
     }
 
     def get_channel_repr(self, channel: GuildChannel):
-        return '{} {.name}'.format(self.EMOJIS[channel.type], channel)
+        if channel.type is discord.ChannelType.text and channel == channel.guild.rules_channel:
+            emoji = '🗒️'
+        else:
+            emoji = self.EMOJIS[channel.type]
+        return '{} {.name}'.format(emoji, channel)
 
     @commands.group(invoke_without_command=True)
     async def channels(self, ctx: MyContext):
