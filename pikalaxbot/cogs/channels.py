@@ -22,8 +22,13 @@ class Channels(BaseCog):
     }
 
     def get_channel_repr(self, channel: GuildChannel):
-        if channel.type is discord.ChannelType.text and channel == channel.guild.rules_channel:
-            emoji = '🗒️'
+        if channel.type is discord.ChannelType.text:
+            if channel == channel.guild.rules_channel:
+                emoji = '🗒️'
+            elif channel.is_nsfw():
+                emoji = '🔞'
+            else:
+                emoji = '#️⃣'
         else:
             emoji = self.EMOJIS[channel.type]
         return '{} {.name}'.format(emoji, channel)
