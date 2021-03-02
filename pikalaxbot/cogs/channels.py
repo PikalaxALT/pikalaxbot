@@ -36,7 +36,10 @@ class Channels(BaseCog):
     @commands.group(invoke_without_command=True)
     async def channels(self, ctx: MyContext):
         """Shows the channel list"""
-        embed = discord.Embed()
+        embed = discord.Embed(
+            title=f'Channels I can read in {ctx.guild}',
+            colour=0xF47FFF
+        )
         for category, channels in ctx.guild.by_category():  \
                 # type: typing.Optional[discord.CategoryChannel], list[discord.TextChannel]
             channels = [channel for channel in channels if channel.permissions_for(ctx.guild.me).read_messages]
