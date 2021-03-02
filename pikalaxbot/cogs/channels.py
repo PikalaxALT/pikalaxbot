@@ -39,6 +39,9 @@ class Channels(BaseCog):
         embed = discord.Embed()
         for category, channels in ctx.guild.by_category():  \
                 # type: typing.Optional[discord.CategoryChannel], list[discord.TextChannel]
+            channels = [channel for channel in channels if channel.permissions_for(ctx.guild.me).read_messages]
+            if not channels or not category.permissions_for(ctx.guild.me).read_messages:
+                continue
             embed.add_field(
                 name=str(category or '\u200b'),
                 value='\n'.join(map(self.get_channel_repr, channels)),
