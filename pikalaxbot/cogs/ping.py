@@ -119,7 +119,7 @@ class Ping(BaseCog):
             fetch_start = time.perf_counter()
             async with self.sql_session as sess:  # type: AsyncSession
                 ping_history = {
-                    ph.timestamp: ph.latency async for ph in await sess.stream(
+                    ph.timestamp: ph.latency for ph in (await sess.execute(
                         select(
                             PingHistory
                         ).where(
@@ -127,7 +127,7 @@ class Ping(BaseCog):
                         ).order_by(
                             PingHistory.timestamp
                         )
-                    )
+                    )).scalars()
                 }
             fetch_end = time.perf_counter()
             if len(ping_history) > 1:

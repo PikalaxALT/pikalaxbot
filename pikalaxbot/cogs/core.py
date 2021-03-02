@@ -118,9 +118,15 @@ class Core(BaseCog):
     async def get_runnable_commands(self, ctx: MyContext):
         cmds = []
         async with self.sql_session as sess:
-            async for obj in await sess.stream(
-                select(Commandstats).where(Commandstats.guild == ctx.guild.id)
-            ):
+            for obj in (await sess.execute(
+                select(
+                    Commandstats
+                ).where(
+                    Commandstats.guild == ctx.guild.id
+                ).order_by(
+                    Commandstats.uses.desc()
+                )
+            )).scalars():
                 cmd: commands.Command = self.bot.get_command(obj.command)
                 if cmd is None:
                     sess.delete(obj)
@@ -154,8 +160,7 @@ class Core(BaseCog):
                     ctr['comment'] += '#' in line
         n_total_cmds = len(self.bot.commands)
         places = '\U0001f947', '\U0001f948', '\U0001f949'
-        prefix: str
-        prefix, *_ = await self.bot.get_prefix(ctx.message)
+        prefix, *_ = await self.bot.get_prefix(ctx.message)  # type: str
         embed = discord.Embed(
             title=f'{self.bot.user.name} Stats',
             description=f'My prefix for this server is `{prefix}`',
