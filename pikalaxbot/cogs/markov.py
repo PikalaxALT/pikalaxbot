@@ -431,6 +431,41 @@ class Markov(BaseCog):
         if guild in self.markovs:
             await self.markovs.pop(guild).purge()
 
+    @commands.check(MarkovManager.markovable)
+    @commands.command(aliases=['tr'])
+    async def typeracer(self, ctx: MyContext):
+        """Type out a Markov chain"""
+
+        async with self.markovs[ctx.guild] as mgr:
+            chain = mgr.generate()
+
+        embed = discord.Embed(
+            title='Typeracer! Type this out fast:',
+            description='```\n{}\n```'.format(chain.replace(' ', '\xa0')),
+            colour=discord.Colour.orange()
+        )
+        msg = await ctx.send(embed=embed)
+
+        def check(m: discord.Message):
+            return m.channel == ctx.channel and m.clean_content == chain
+
+        try:
+            winner: discord.Message = await self.bot.wait_for(
+                'message',
+                check=check,
+                timeout=10.0 + 0.35 * len(chain)
+            )
+        except asyncio.TimeoutError:
+            embed.colour = discord.Colour.red()
+            embed.add_field(name='Too bad...', value='The game timed out while you were busy typing.')
+        else:
+            embed.colour = discord.Colour.green()
+            embed.add_field(
+                name='Winner!',
+                value=f'{winner.author.mention} got it right in {(winner.created_at - msg.created_at).total_seconds()}s!'
+            )
+        await msg.edit(embed=embed)
+
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Markov(bot))
