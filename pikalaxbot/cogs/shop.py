@@ -22,7 +22,7 @@ import typing
 from collections.abc import Callable, Coroutine
 import json
 from . import *
-from ..pokeapi import PokeapiModel
+from ..pokeapi import PokeapiModel, methods
 from .utils.game import Game
 if typing.TYPE_CHECKING:
     from .leaderboard import Leaderboard
@@ -240,7 +240,7 @@ class Shop(BaseCog):
             balance = await Game.check_score(sql, ctx.author)
         balance = balance and balance.score or 0
         item_path = json.loads((await item.item_spriteses)[0].sprites)['default']
-        icon_url = self.bot.pokeapi.sprite_url(item_path)
+        icon_url = methods.sprite_url(item_path)
         embed = discord.Embed().set_image(
             url=icon_url
         ).add_field(
