@@ -49,7 +49,7 @@ class Meme(BaseCog):
             if isinstance(error, aiohttp.ClientResponseError):
                 return await ctx.send(f'Error in wo4s request: {error.status} ({error.message})')
             embed = ctx.prepare_command_error_embed()
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin=f'command {ctx.command}', embed=embed)
+            await self.send_tb(ctx, error, origin=f'command {ctx.command}', embed=embed)
         await ctx.send(f'**{error.__class__.__name__}:** {error}')
 
     @commands.command(ignore_extra=False)

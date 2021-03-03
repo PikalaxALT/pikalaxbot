@@ -78,7 +78,7 @@ class MemberStatus(BaseCog):
 
     @update_counters.error
     async def update_counters_error(self, error: BaseException):
-        await self.bot.get_cog('ErrorHandling').send_tb(None, error, origin='MemberStatus.update_counters')
+        await self.send_tb(None, error, origin='MemberStatus.update_counters')
 
     @staticmethod
     @executor_function

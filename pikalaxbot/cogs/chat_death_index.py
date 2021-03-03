@@ -114,7 +114,7 @@ class ChatDeathIndex(BaseCog):
 
     @save_message_count.error
     async def save_message_error(self, error):
-        await self.bot.get_cog('ErrorHandling').send_tb(None, error, origin='ChatDathIndex.save_message_count')
+        await self.send_tb(None, error, origin='ChatDathIndex.save_message_count')
 
     @staticmethod
     def to_cdi(avg: float):

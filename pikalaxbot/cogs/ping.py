@@ -64,7 +64,7 @@ class Ping(BaseCog):
     @build_ping_history.error
     async def ping_history_error(self, error):
         content = 'Ping.build_ping_history'
-        await self.bot.get_cog('ErrorHandling').send_tb(None, error, origin=content)
+        await self.send_tb(None, error, origin=content)
 
     @commands.group(invoke_without_command=True)
     async def ping(self, ctx: MyContext):

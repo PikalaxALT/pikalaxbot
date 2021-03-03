@@ -257,7 +257,7 @@ class Voice(BaseCog):
             await ctx.reply(f'Unable to execute voice command: {error}', delete_after=10)
         else:
             msg = f'command "{ctx.command}"'
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin=msg)
+            await self.send_tb(ctx, error, origin=msg)
 
 
 def setup(bot: PikalaxBOT):

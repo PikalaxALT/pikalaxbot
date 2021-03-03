@@ -61,8 +61,7 @@ class Core(BaseCog):
     """The core functionality of the bot."""
 
     banlist: set[int] = set()
-    game = 'p!help'
-    config_attrs = 'banlist', 'game'
+    config_attrs = 'banlist',
     LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
 
     async def bot_check(self, ctx: MyContext):

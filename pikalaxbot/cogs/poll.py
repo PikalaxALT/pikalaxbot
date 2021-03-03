@@ -277,7 +277,7 @@ class Poll(BaseCog):
 
     @cleanup_polls.error
     async def cleanup_polls_error(self, error: BaseException):
-        await self.bot.get_cog('ErrorHandling').send_tb(None, error, origin='Poll.cleanup_polls')
+        await self.send_tb(None, error, origin='Poll.cleanup_polls')
 
     @cleanup_polls.before_loop
     async def cache_polls(self):
@@ -289,7 +289,7 @@ class Poll(BaseCog):
                     poll.start(self.bot, self)
                     self.polls.append(poll)
         except Exception as e:
-            await self.bot.get_cog('ErrorHandling').send_tb(None, e, origin='Poll.cache_polls')
+            await self.send_tb(None, e, origin='Poll.cache_polls')
 
     @commands.group(name='poll', invoke_without_command=True)
     async def poll_cmd(self, ctx: MyContext, timeout: typing.Optional[PollTime], prompt, *opts):
@@ -390,7 +390,7 @@ duration, prompt, and options."""
         elif isinstance(error, (NotEnoughOptions, TooManyOptions)):
             await ctx.send(str(error))
         else:
-            await self.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin=ctx.command.qualified_name)
+            await self.send_tb(ctx, error, origin=ctx.command.qualified_name)
 
     @poll_cmd.command()
     async def cancel(self, ctx: MyContext, poll: Polls):

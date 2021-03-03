@@ -18,6 +18,7 @@ import collections
 import asyncio
 from contextlib import asynccontextmanager as acm, AbstractAsyncContextManager as Aacm
 
+import discord
 from discord.ext import commands
 from ..utils.logging_mixin import LoggingMixin
 from .. import *
@@ -141,3 +142,7 @@ class BaseCog(LoggingMixin, commands.Cog):
     async def cog_after_invoke(self, ctx: MyContext):
         if self._dirty:
             await self.commit()
+
+    @_cog_special_method
+    async def send_tb(self, ctx: MyContext, error: BaseException, *, origin: str = None, embed: discord.Embed = None):
+        await self.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin=origin, embed=embed)
