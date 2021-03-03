@@ -454,9 +454,10 @@ class Info(BaseCog):
             )
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=['pfp'])
     async def avatar(self, ctx: MyContext, *, user: discord.User = None):
         """Show the user's avatar"""
+        user = user or ctx.author
         await ctx.reply(embed=discord.Embed(
             title=f'{user}\'s avatar',
             colour=0xf47fff
