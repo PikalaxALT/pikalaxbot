@@ -99,6 +99,7 @@ class Todo(BaseCog):
         """Remove a to-do list item"""
         async with self.sql_session as sess:
             sess.delete(item)
+            await sess.refresh(item.owner)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
 
