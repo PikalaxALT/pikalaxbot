@@ -4,7 +4,7 @@ from . import *
 from .utils.menus import NavMenuPages
 
 from sqlalchemy import Column, INTEGER, BIGINT, TEXT, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.exc import IntegrityError
 
 
@@ -22,7 +22,7 @@ class TodoListPageSource(menus.ListPageSource):
 class TodoPerson(BaseTable):
     user_id = Column(BIGINT, primary_key=True)
 
-    items = relationship('TodoItem', lazy='immediate', cascade='all, delete-orphan', backref='owner')
+    items = relationship('TodoItem', lazy=False, cascade='all, delete-orphan', backref=backref('owner', lazy=False))
 
 
 class TodoItem(BaseTable):
