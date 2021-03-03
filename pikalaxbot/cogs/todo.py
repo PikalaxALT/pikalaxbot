@@ -22,7 +22,7 @@ class TodoListPageSource(menus.ListPageSource):
 class TodoPerson(BaseTable):
     user_id = Column(BIGINT, primary_key=True)
 
-    items = relationship('TodoItem', lazy='selectin', cascade='all, delete-orphan', backref='owner')
+    items = relationship('TodoItem', lazy='immediate', cascade='all, delete-orphan', backref='owner')
 
 
 class TodoItem(BaseTable):
