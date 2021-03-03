@@ -2,10 +2,12 @@ import discord
 from discord.ext import commands, menus
 from . import *
 from .utils.menus import NavMenuPages
+import typing
 
 from sqlalchemy import Column, INTEGER, BIGINT, TEXT, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TodoListPageSource(menus.ListPageSource):
@@ -31,23 +33,6 @@ class TodoItem(BaseTable):
     entry = Column(TEXT)
 
     __table_args__ = (UniqueConstraint(user_id, entry),)
-
-    @classmethod
-    async def convert(cls, ctx: MyContext, argument: str):
-        async with ctx.cog.sql_session as sess:
-            person = await sess.get(TodoPerson, ctx.author.id)
-            if person is None:
-                raise commands.BadArgument('No to-do items')
-            try:
-                idx = int(argument)
-                if idx < 1 or idx > len(person.items):
-                    raise commands.BadArgument('Not a valid to-do index')
-                return person.items[idx - 1]
-            except ValueError:
-                obj = discord.utils.get(person.items, entry=argument)
-                if obj is None:
-                    raise commands.BadArgument('That item is not on your to-do list')
-        return obj
 
 
 class Todo(BaseCog):
@@ -95,13 +80,24 @@ class Todo(BaseCog):
             await ctx.message.add_reaction('\N{white heavy check mark}')
 
     @todo_grp.command('delete', aliases=['rm', 'del', 'remove'])
-    async def todo_remove(self, ctx: MyContext, *, item: TodoItem):
+    async def todo_remove(self, ctx: MyContext, *, item: typing.Union[int, str]):
         """Remove a to-do list item"""
-        async with self.sql_session as sess:
-            await sess.refresh(item)
-            owner = item.owner
+        async with self.sql_session as sess:  # type: AsyncSession
+            # Can't do this in a converter because the backref won't cooperate
+            person = await sess.get(TodoPerson, ctx.author.id)
+            if person is None:
+                raise commands.BadArgument('No to-do items')
+            try:
+                idx = int(item)
+                if idx < 1 or idx > len(person.items):
+                    raise commands.BadArgument('Not a valid to-do index')
+                return person.items[idx - 1]
+            except ValueError:
+                obj = discord.utils.get(person.items, entry=item)
+                if obj is None:
+                    raise commands.BadArgument('That item is not on your to-do list')
             sess.delete(item)
-            await sess.refresh(owner)
+            await sess.refresh(person)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
 
