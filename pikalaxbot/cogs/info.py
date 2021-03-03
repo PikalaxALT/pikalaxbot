@@ -454,6 +454,16 @@ class Info(BaseCog):
             )
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def avatar(self, ctx: MyContext, *, user: discord.User = None):
+        """Show the user's avatar"""
+        await ctx.reply(embed=discord.Embed(
+            title=f'{user}\'s avatar',
+            colour=0xf47fff
+        ).set_image(
+            url=str(user.avatar_url_as(static_format='png'))
+        ))
+
 
 def setup(bot: PikalaxBOT):
     bot.add_cog(Info(bot))
