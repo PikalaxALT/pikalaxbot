@@ -265,7 +265,7 @@ class Modtools(BaseCog):
             fut = await asyncio.create_subprocess_shell('git pull')
             await fut.wait()
         return fut.returncode == 0
-    
+
     async def cog_operation(self, ctx: MyContext, mode: typing.Literal['load', 'unload', 'reload'], cog: str):
         def default_method(_):
             raise commands.ExtensionError
@@ -282,48 +282,12 @@ class Modtools(BaseCog):
             await ctx.send(f'Failed to {mode} cog "{real_cog}"')
             raise
 
-    @cog.command(name='disable')
-    async def disable_cog(self, ctx: MyContext, *cogs: clean_lower):
-        """Disable cogs"""
-
-        failures = {}
-        for cog in cogs:
-            if cog == self.__class__.__name__.lower():
-                await ctx.send(f'Cannot unload the {cog} cog!!')
-                continue
-            if cog in self.disabled_cogs:
-                await ctx.send(f'BaseCog "{cog}" already disabled')
-                continue
-            try:
-                await self.cog_operation(ctx, 'unload', cog)
-            except Exception as e:
-                failures[cog] = e
-            self.disabled_cogs.add(cog)
-        if failures:
-            raise CogOperationError('unload', **failures)
-
-    @cog.command(name='enable')
-    async def enable_cog(self, ctx: MyContext, *cogs: clean_lower):
-        """Enable cogs"""
-
-        await Modtools.git_pull(ctx)
-        failures = {}
-        for cog in cogs:
-            if cog not in self.disabled_cogs:
-                await ctx.send(f'BaseCog "{cog}" already enabled or does not exist')
-                continue
-            try:
-                await self.cog_operation(ctx, 'load', cog)
-            except Exception as e:
-                failures[cog] = e
-            else:
-                self.disabled_cogs.discard(cog)
-        if failures:
-            raise CogOperationError('load', **failures)
-
-    @cog.command(name='reload')
-    async def reload_cog(self, ctx: MyContext, *cogs: clean_lower):
-        """Reload cogs"""
+    async def cog_operation_loop(
+            self,
+            ctx: MyContext,
+            op: typing.Literal['load', 'unload', 'reload'],
+            cogs: list[commands.Cog]
+    ):
 
         await Modtools.git_pull(ctx)
         failures = {}
@@ -336,7 +300,18 @@ class Modtools(BaseCog):
                 for extn in self.bot.extensions
             )
 
-        msg = await ctx.send(f'Reloading {len(cogs)} extension(s)...')
+        checks = {
+            'load': lambda extn: extn not in self.bot.extensions,
+            'reload': lambda extn: extn in self.bot.extensions,
+            'unload': lambda extn: extn in self.bot.extensions,
+        }
+        e_msgs = {
+            'load': f'Cog {{}} already loaded, use {self.reload_cog.qualified_name} instead',
+            'reload': f'Cog {{}} not loaded, use {self.load_cog.qualified_name} instead',
+            'unload': 'Cog {} not loaded'
+        }
+
+        msg = await ctx.send(f'{op.title()}ing {len(cogs)} extension(s)...')
 
         succeeded = []
         fresh = True
@@ -345,38 +320,50 @@ class Modtools(BaseCog):
                 extn = cog
             else:
                 extn = f'pikalaxbot.cogs.{cog}'
-            if extn in self.bot.extensions:
+            if checks[op](extn):
                 try:
-                    await self.cog_operation(ctx, 'reload', cog)
+                    await self.cog_operation(ctx, op, cog)
                 except Exception as e:
                     failures[cog] = e
                 else:
                     succeeded.append(cog.title())
                     if fresh := not cooldown.update_rate_limit(msg):
-                        await msg.edit(content='Reloaded ' + ', '.join(succeeded))
+                        await msg.edit(content=op.title() + 'ed ' + ', '.join(succeeded))
             else:
-                await ctx.send(f'Cog {cog} not loaded, use {self.load_cog.qualified_name} instead')
+                await ctx.send(e_msgs[op].format(cog))
         if not fresh:
-            await msg.edit(content='Reloaded ' + ', '.join(succeeded))
+            await msg.edit(content=op.title() + 'ed ' + ', '.join(succeeded))
         if failures:
-            raise CogOperationError('reload', **failures)
+            raise CogOperationError(op, **failures)
+        return succeeded
+
+    @cog.command(name='disable')
+    async def disable_cog(self, ctx: MyContext, *cogs: clean_lower):
+        """Disable cogs"""
+
+        try:
+            await self.cog_operation_loop(ctx, 'unload', cogs)
+        finally:
+            self.disabled_cogs.update(cogs)
+
+    @cog.command(name='enable')
+    async def enable_cog(self, ctx: MyContext, *cogs: clean_lower):
+        """Enable cogs"""
+
+        try:
+            await self.cog_operation_loop(ctx, 'load', cogs)
+        finally:
+            self.disabled_cogs.difference_update(cogs)
+
+    @cog.command(name='reload')
+    async def reload_cog(self, ctx: MyContext, *cogs: clean_lower):
+        """Reload cogs"""
+        await self.cog_operation_loop(ctx, 'reload', cogs)
 
     @cog.command(name='load')
     async def load_cog(self, ctx: MyContext, *cogs: clean_lower):
         """Load cogs that aren't already loaded"""
-
-        await Modtools.git_pull(ctx)
-        failures = {}
-        for cog in cogs:
-            if cog in self.disabled_cogs:
-                await ctx.send(f'BaseCog "{cog}" is disabled!')
-                continue
-            try:
-                await self.cog_operation(ctx, 'load', cog)
-            except Exception as e:
-                failures[cog] = e
-        if failures:
-            raise CogOperationError('load', **failures)
+        await self.cog_operation_loop(ctx, 'load', cogs)
 
     @admin.command(name='debug')
     async def toggle_debug(self, ctx: MyContext):
