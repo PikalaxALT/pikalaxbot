@@ -22,7 +22,7 @@ class TodoListPageSource(menus.ListPageSource):
 class TodoPerson(BaseTable):
     user_id = Column(BIGINT, primary_key=True)
 
-    items = relationship('TodoItem', lazy=False, cascade='all, delete-orphan', backref='owner')
+    items = relationship('TodoItem', lazy='selectin', cascade='all, delete-orphan', backref='owner')
 
 
 class TodoItem(BaseTable):
@@ -98,8 +98,9 @@ class Todo(BaseCog):
     async def todo_remove(self, ctx: MyContext, *, item: TodoItem):
         """Remove a to-do list item"""
         async with self.sql_session as sess:
+            owner = item.owner
             sess.delete(item)
-            await sess.refresh(item.owner)
+            await sess.refresh(owner)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
 
