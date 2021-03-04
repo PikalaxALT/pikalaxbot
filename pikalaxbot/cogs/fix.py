@@ -112,12 +112,12 @@ class FixCog(BaseCog, name='Fix'):
             self.bot_owners[name] = owner
             if altname:
                 self.bot_names[name] = altname
+        self.fix.update(aliases=[f'fix{name}' for name in self.bot_owners])
 
     @staticmethod
     def get_fix_alias(ctx: MyContext) -> typing.Optional[str]:
-        if ctx.invoked_with is not None:
-            match = re.match(r'fix(\w*)', ctx.invoked_with)
-            return match and match.group(1)
+        match = re.match(r'fix(\w*)', ctx.invoked_with or '')
+        return match and match.group(1)
 
     @commands.group(invoke_without_command=True)
     async def fix(self, ctx: MyContext):
@@ -126,15 +126,6 @@ class FixCog(BaseCog, name='Fix'):
         owner = self.bot_owners.get(alias, 'already')
         botname = self.bot_names.get(alias, 'your bot')
         await ctx.send(f'"Fix {botname}, {owner}!" - PikalaxALT {time.gmtime().tm_year:d}')
-
-    @BaseCog.listener()
-    async def on_message(self, message: discord.Message):
-        ctx: MyContext = await self.bot.get_context(message)
-        if ctx.prefix is not None \
-                and not ctx.valid \
-                and FixCog.get_fix_alias(ctx) \
-                and await self.fix.can_run(ctx):
-            await self.fix(ctx)
 
     @fix.command()
     async def add(self, ctx: MyContext, key: str.lower, owner: str, altname: str = None):
@@ -147,6 +138,7 @@ class FixCog(BaseCog, name='Fix'):
                 del self.bot_names[key]
             async with self.bot.sql as sql:
                 await Fix.set_alias(sql, key, owner, altname)
+                self.fix.update(aliases=set(self.fix.aliases) | {f'fix{key}'})
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
@@ -160,6 +152,7 @@ class FixCog(BaseCog, name='Fix'):
                 del self.bot_names[key]
             async with self.bot.sql as sql:
                 await Fix.remove_alias(sql, key)
+                self.fix.update(aliases=set(self.fix.aliases) - {f'fix{key}'})
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
