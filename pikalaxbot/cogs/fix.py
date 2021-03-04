@@ -108,9 +108,9 @@ class FixCog(BaseCog, name='Fix'):
         self.bot_names: dict[str, str] = {}
 
     def update_fix_aliases(self, aliases: Iterable[str]):
-        self.bot.remove_command(self.fix)
-        self.fix.update(aliases=list(aliases))
-        self.bot.add_command(self.fix)
+        cmd = self.bot.remove_command(self.fix.name)
+        cmd.update(aliases=list(aliases))
+        self.bot.add_command(cmd)
 
     async def init_db(self, sql):
         await Fix.create(sql)
