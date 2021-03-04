@@ -107,10 +107,23 @@ class FixCog(BaseCog, name='Fix'):
         self.bot_owners: dict[str, str] = {}
         self.bot_names: dict[str, str] = {}
 
-    def update_fix_aliases(self, aliases: Iterable[str]):
-        cmd = self.bot.remove_command(self.fix.name)
-        cmd.update(aliases=list(aliases))
-        self.bot.add_command(cmd)
+    def add_fix_aliases(self, *aliases: str):
+        for i, alias in enumerate(aliases):
+            if alias in self.bot.all_commands:
+                for prev_alias in aliases[:i]:
+                    self.bot.remove_command(prev_alias)
+                raise commands.CommandRegistrationError(alias, alias_conflict=True)
+            self.bot.all_commands[alias] = self.fix
+        self.fix.update(aliases=list(set(self.fix.aliases) | set(aliases)))
+
+    def remove_fix_aliases(self, *aliases: str):
+        for i, alias in enumerate(aliases):
+            if alias not in self.fix.aliases and alias not in self.bot.all_commands:
+                for prev_alias in aliases[:i]:
+                    self.bot.all_commands[prev_alias] = self.fix
+                return
+            self.bot.all_commands.pop(alias)
+        self.fix.update(aliases=list(set(self.fix.aliases) - set(aliases)))
 
     async def init_db(self, sql):
         await Fix.create(sql)
@@ -119,7 +132,7 @@ class FixCog(BaseCog, name='Fix'):
             self.bot_owners[name] = owner
             if altname:
                 self.bot_names[name] = altname
-        self.update_fix_aliases([f'fix{name}' for name in self.bot_owners])
+        self.add_fix_aliases(*(f'{self.fix}{name}' for name in self.bot_owners))
 
     @staticmethod
     def get_fix_alias(ctx: MyContext) -> typing.Optional[str]:
@@ -145,7 +158,7 @@ class FixCog(BaseCog, name='Fix'):
                 del self.bot_names[key]
             async with self.bot.sql as sql:
                 await Fix.set_alias(sql, key, owner, altname)
-                self.update_fix_aliases(set(self.fix.aliases) | {f'fix{key}'})
+                self.add_fix_aliases(f'{self.fix}{key}')
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
@@ -159,7 +172,7 @@ class FixCog(BaseCog, name='Fix'):
                 del self.bot_names[key]
             async with self.bot.sql as sql:
                 await Fix.remove_alias(sql, key)
-                self.update_fix_aliases(set(self.fix.aliases) - {f'fix{key}'})
+                self.remove_fix_aliases(f'{self.fix}{key}')
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
