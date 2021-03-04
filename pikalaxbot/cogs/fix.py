@@ -114,8 +114,7 @@ class FixCog(BaseCog, name='Fix'):
                     self.bot.all_commands.pop(prev_alias)
                 raise commands.CommandRegistrationError(alias, alias_conflict=True)
             self.bot.all_commands[alias] = self.fix
-        self.fix.update(aliases=list(set(self.fix.aliases) | set(aliases)))
-        self.fix.cog = self
+        self.fix.aliases = list(set(self.fix.aliases) | set(aliases))
 
     def remove_fix_aliases(self, *aliases: str):
         for i, alias in enumerate(aliases):
@@ -124,8 +123,7 @@ class FixCog(BaseCog, name='Fix'):
                     self.bot.all_commands[prev_alias] = self.fix
                 return
             self.bot.remove_command(alias)
-        self.fix.update(aliases=list(set(self.fix.aliases) - set(aliases)))
-        self.fix.cog = self
+        self.fix.aliases = list(set(self.fix.aliases) - set(aliases))
 
     async def init_db(self, sql):
         await Fix.create(sql)
