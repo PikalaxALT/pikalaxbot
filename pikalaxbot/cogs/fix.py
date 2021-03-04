@@ -20,6 +20,8 @@ import discord
 from discord.ext import commands
 from . import *
 import typing
+from collections.abc import Iterable
+
 from sqlalchemy import Column, TEXT, select, delete, bindparam
 from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy.dialects.postgresql import insert
@@ -105,6 +107,11 @@ class FixCog(BaseCog, name='Fix'):
         self.bot_owners: dict[str, str] = {}
         self.bot_names: dict[str, str] = {}
 
+    def update_fix_aliases(self, aliases: Iterable[str]):
+        self.bot.remove_command(self.fix)
+        self.fix.update(aliases=list(aliases))
+        self.bot.add_command(self.fix)
+
     async def init_db(self, sql):
         await Fix.create(sql)
         await Fix.init(sql)
@@ -112,7 +119,7 @@ class FixCog(BaseCog, name='Fix'):
             self.bot_owners[name] = owner
             if altname:
                 self.bot_names[name] = altname
-        self.fix.update(aliases=[f'fix{name}' for name in self.bot_owners])
+        self.update_fix_aliases([f'fix{name}' for name in self.bot_owners])
 
     @staticmethod
     def get_fix_alias(ctx: MyContext) -> typing.Optional[str]:
@@ -138,7 +145,7 @@ class FixCog(BaseCog, name='Fix'):
                 del self.bot_names[key]
             async with self.bot.sql as sql:
                 await Fix.set_alias(sql, key, owner, altname)
-                self.fix.update(aliases=set(self.fix.aliases) | {f'fix{key}'})
+                self.update_fix_aliases(set(self.fix.aliases) | {f'fix{key}'})
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
@@ -152,7 +159,7 @@ class FixCog(BaseCog, name='Fix'):
                 del self.bot_names[key]
             async with self.bot.sql as sql:
                 await Fix.remove_alias(sql, key)
-                self.fix.update(aliases=set(self.fix.aliases) - {f'fix{key}'})
+                self.update_fix_aliases(set(self.fix.aliases) - {f'fix{key}'})
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
