@@ -239,7 +239,8 @@ class MarkovManager:
         if not MarkovManager.exists(ctx):
             return False
         async with ctx.cog.markovs[ctx.guild] as mgr:  # type: MarkovManager
-            if not ctx.prefix and not re.search(mgr.trigger_pattern, ctx.message.content, re.I):
+            if ctx.command != Markov.markov \
+                    or not ctx.prefix and not re.search(mgr.trigger_pattern, ctx.message.content, re.I):
                 return False
             if not mgr.initialized:
                 raise MarkovNoInit
@@ -299,12 +300,6 @@ class Markov(BaseCog):
             await ctx.reply(chain, embed=embed)
         else:
             await ctx.send(f'{recipient.mention}: {chain}', embed=embed)
-
-    @markov.error
-    async def markov_error(self, ctx: MyContext, error: commands.CommandError):
-        if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
-            embed = await self.get_prefix_help_embed(ctx)
-            await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
 
     @commands.check_any(commands.is_owner(), commands.has_permissions(manage_guild=True))
     @markov.command('config')
@@ -397,7 +392,7 @@ class Markov(BaseCog):
         if msg.author.bot:
             return
         ctx: MyContext = await self.bot.get_context(msg)
-        if ctx.valid:
+        if ctx.prefix:
             return
 
         if mgr := self.markovs.get(msg.guild):
@@ -469,6 +464,13 @@ class Markov(BaseCog):
                 value=f'{winner.author.mention} got it right in {(winner.created_at - msg.created_at).total_seconds()}s!'
             )
         await msg.edit(embed=embed)
+
+    @markov.error
+    @typeracer.error
+    async def markov_error(self, ctx: MyContext, error: commands.CommandError):
+        if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
+            embed = await self.get_prefix_help_embed(ctx)
+            await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
 
 
 def setup(bot: PikalaxBOT):
