@@ -393,7 +393,7 @@ class Markov(BaseCog):
         if msg.author.bot:
             return
         ctx: MyContext = await self.bot.get_context(msg)
-        if ctx.valid:
+        if ctx.prefix is not None:
             return
 
         if mgr := self.markovs.get(msg.guild):
