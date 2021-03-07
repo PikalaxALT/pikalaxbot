@@ -436,7 +436,7 @@ class Markov(BaseCog):
 
         embed = discord.Embed(
             title='Typeracer! Type this out fast:',
-            description='```\n{}\n```'.format(chain.replace(' ', '\u2004')),
+            description='```\n{}\n```'.format(discord.utils.escape_markdown(chain).replace(' ', '\u2004')),
             colour=discord.Colour.orange()
         )
         msg = await ctx.send(embed=embed)
