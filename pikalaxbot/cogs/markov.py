@@ -277,7 +277,11 @@ class Markov(BaseCog):
                 and not ctx.prefix \
                 and not self.prefix_reminder_cooldown.update_rate_limit(ctx.message):
             prefix, *_ = await self.bot.get_prefix(ctx.message)
-            return discord.Embed(description=f'Trying to get one of my commands? Type `{prefix}help`', colour=0xf47fff)
+            return discord.Embed(
+                description=f'Trying to get one of my commands? '
+                            f'Type `{prefix}{self.bot.help_command._command_impl.qualified_name}`',
+                colour=0xf47fff
+            )
 
     @commands.check(MarkovManager.markovable)
     @commands.group(hidden=True, invoke_without_command=True)

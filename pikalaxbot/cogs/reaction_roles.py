@@ -48,8 +48,9 @@ def reaction_roles_initialized():
             ctx.rroles_cfg = await sess.get(ReactionSchema, ctx.guild.id)
             if ctx.rroles_cfg is None:
                 raise NotInitialized(
-                    'Reaction roles is not configured. To configure, use `{}rrole register`.'.format(
-                        (await ctx.bot.get_prefix(ctx.message))[0]
+                    'Reaction roles is not configured. To configure, use `{}{}`.'.format(
+                        (await ctx.bot.get_prefix(ctx.message))[0],
+                        ReactionRolesCog.register_role_bot.qualified_name
                     )
                 )
         return True
@@ -62,8 +63,9 @@ def reaction_roles_not_initialized():
             cfg = await sess.get(ReactionSchema, ctx.guild.id)
             if cfg is not None:
                 raise AlreadyInitialized(
-                    'Reaction roles is already configured. To reconfigure, use `{}rrole drop` first.'.format(
-                        (await ctx.bot.get_prefix(ctx.message))[0]
+                    'Reaction roles is already configured. To reconfigure, use `{}{}` first.'.format(
+                        (await ctx.bot.get_prefix(ctx.message))[0],
+                        ReactionRolesCog.unregister_role_bot.qualified_name
                     )
                 )
         return True
