@@ -172,7 +172,3 @@ class Core(BaseCog):
             await Core.delete_response(ctx, history)
         if after:
             await self.bot.process_commands(after)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Core(bot))

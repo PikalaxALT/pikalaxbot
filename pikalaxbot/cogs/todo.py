@@ -38,10 +38,6 @@ class TodoItem(BaseTable):
 class Todo(BaseCog):
     """Commands related to to-do lists"""
 
-    async def init_db(self, sql):
-        await TodoPerson.create(sql)
-        await TodoItem.create(sql)
-
     @commands.group('todo', invoke_without_command=True)
     async def todo_grp(self, ctx: MyContext):
         """To-do list command group"""
@@ -99,12 +95,3 @@ class Todo(BaseCog):
             sess.delete(item)
             await sess.refresh(person)
         await ctx.message.add_reaction('\N{white heavy check mark}')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Todo(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    TodoItem.unlink()
-    TodoPerson.unlink()

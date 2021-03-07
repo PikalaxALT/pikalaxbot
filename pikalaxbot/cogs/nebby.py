@@ -116,9 +116,6 @@ class Nebby(BaseCog):
         'pew! '
     )
 
-    async def init_db(self, sql):
-        await Meme.create(sql)
-
     @commands.group(invoke_without_command=True)
     async def bag(self, ctx: MyContext):
         """Get in the bag, Nebby."""
@@ -168,11 +165,3 @@ class Nebby(BaseCog):
 
         emission = ''.join(self._nebby.get_chain(100)).title()
         await ctx.send(emission)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Nebby(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    Meme.unlink()

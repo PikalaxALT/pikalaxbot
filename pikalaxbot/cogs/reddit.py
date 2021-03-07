@@ -134,7 +134,3 @@ class Reddit(BaseCog):
         else:
             await ctx.send(f'An unhandled internal exception occurred: {error.__class__.__name__}: {error}')
             await self.send_tb(ctx, error)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Reddit(bot))

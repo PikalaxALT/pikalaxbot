@@ -77,7 +77,3 @@ class CharInfo(BaseCog):
         page_source = CharInfoMenu(entries, per_page=1)
         menu = NavMenuPages(page_source, delete_message_after=True)
         await menu.start(ctx, wait=True)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(CharInfo(bot))

@@ -214,7 +214,3 @@ class Eval(BaseCog):
             await ctx.send(f'No running shell {self.bot.command_error_emoji}', delete_after=10)
         else:
             fut.cancel()
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Eval(bot))

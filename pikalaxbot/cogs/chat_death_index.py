@@ -37,10 +37,6 @@ class ChatDeathIndex(BaseCog):
         self.cdi_samples: dict[discord.TextChannel, list[float]] = defaultdict(list)
         self.calculations: dict[discord.TextChannel, list[int]] = defaultdict(list)
         self.cumcharcount: Counter[discord.TextChannel] = Counter()
-        self.save_message_count.start()
-
-    def cog_unload(self):
-        self.save_message_count.cancel()
 
     @executor_function
     def plot(self, channels: frozenset[discord.TextChannel], buffer: typing.BinaryIO):
@@ -105,9 +101,9 @@ class ChatDeathIndex(BaseCog):
 
     @save_message_count.before_loop
     async def start_message_count(self):
-        await self.bot.wait_until_ready()
-        now = datetime.datetime.now()
+        await self.wait_until_ready()
 
+        now = datetime.datetime.now()
         for guild in self.bot.guilds:  # type: discord.Guild
             for channel in guild.text_channels:
                 await self.init_channel(channel, now)
@@ -178,7 +174,3 @@ class ChatDeathIndex(BaseCog):
         now = datetime.datetime.now()
         for channel in guild.text_channels:
             await self.init_channel(channel, now)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(ChatDeathIndex(bot))

@@ -261,7 +261,3 @@ class Help(BaseCog):
 
     def cog_unload(self):
         self.bot.help_command = self._original_help_command
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Help(bot))

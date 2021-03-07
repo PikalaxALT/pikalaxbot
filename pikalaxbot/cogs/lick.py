@@ -86,7 +86,3 @@ class Lick(BaseCog):
             await ctx.send(f'{ctx.author.display_name} gave {recipient.mention} a huge licc {emote}')
         else:
             await ctx.send(f'{emote}')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Lick(bot))

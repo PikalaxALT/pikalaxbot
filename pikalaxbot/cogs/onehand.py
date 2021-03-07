@@ -218,7 +218,3 @@ class Onehand(BaseCog):
             await ctx.send(f'{exc}')
         else:
             self.log_tb(ctx, exc)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Onehand(bot))

@@ -258,7 +258,3 @@ class Voice(BaseCog):
         else:
             msg = f'command "{ctx.command}"'
             await self.send_tb(ctx, error, origin=msg)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Voice(bot))

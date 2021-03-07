@@ -252,10 +252,6 @@ class VoltorbFlip(GameCogBase[VoltorbFlipGame]):
     """Commands for playing Voltorb Flip, everyone's favorite game from
     the international release of Pokemon HeartGold and SoulSilver."""
 
-    async def init_db(self, sql):
-        await super().init_db(sql)
-        await Voltorb.create(sql)
-
     def cog_check(self, ctx: MyContext):
         return self._local_check(ctx)
 
@@ -328,11 +324,3 @@ class VoltorbFlip(GameCogBase[VoltorbFlipGame]):
 
     async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         await self._error(ctx, exc)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(VoltorbFlip(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    Voltorb.unlink()

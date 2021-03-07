@@ -195,7 +195,15 @@ class Connection:
             else:
                 yield line
 
-    async def backup(self, target: Union['Connection', sqlite3.Connection], *, pages: int = 0, progress: Optional[Callable[[int, int, int], None]] = None, name: str = 'main', sleep: float = 0.250):
+    async def backup(
+            self,
+            target: Union['Connection', sqlite3.Connection],
+            *,
+            pages=0,
+            progress: Callable[[int, int, int], None] = None,
+            name='main',
+            sleep=0.250
+    ):
         if isinstance(target, Connection):
             target = target._conn
         await self._execute(self._conn.backup, target, pages=pages, progress=progress, name=name, sleep=sleep)

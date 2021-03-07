@@ -30,6 +30,7 @@ from collections.abc import Generator
 import typing
 import logging
 from .utils.prefix import *
+from .cogs.utils.game import Game
 
 from . import __dirname__, __version__
 from .bot import PikalaxBOT
@@ -109,6 +110,7 @@ def main():
         ),
         log_level=args.log_level
     )
+    bot.__tables__ += [Prefixes, Game]
     init_extensions(bot)
     bot.run()
     return not bot.reboot_after

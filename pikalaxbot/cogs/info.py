@@ -312,9 +312,6 @@ class Info(BaseCog):
             size, unit = discord.utils.find(lambda c: rss >= size[0], units)
             await ctx.send(f'Total resources used: {rss / size:.3f} {unit}')
 
-    async def init_db(self, sql):
-        await Commandstats.create(sql)
-
     @BaseCog.listener()
     async def on_command_completion(self, ctx: MyContext):
         async with self.sql_session as sess:  # type: AsyncSession
@@ -464,11 +461,3 @@ class Info(BaseCog):
         ).set_image(
             url=str(user.avatar_url_as(static_format='png'))
         ))
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Info(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    Commandstats.unlink()

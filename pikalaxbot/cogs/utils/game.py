@@ -231,12 +231,11 @@ class GameStartCommand(commands.Command):
 
 
 class GameCogBase(BaseCog, typing.Generic[T]):
+    __abstract__ = True
+
     @discord.utils.cached_property
     def _gamecls(self) -> typing.Type[T]:
         return typing.get_args(self.__orig_bases__[0])[0]
-
-    async def init_db(self, sql):
-        await Game.create(sql)
 
     def _local_check(self, ctx: MyContext):
         if ctx.guild is None:

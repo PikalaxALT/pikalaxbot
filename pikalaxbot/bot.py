@@ -61,6 +61,9 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self._pokeapi_file = pokeapi_file
         self._pokeapi: typing.Optional[asqlite3.Connection] = self.loop.run_until_complete(methods.make_pokeapi(self))
 
+        # SQL
+        self.__tables__: list[type[BaseTable]] = []
+
     @property
     def command_error_emoji(self) -> discord.Emoji:
         return discord.utils.get(self.emojis, name=self.settings.error_emoji)
@@ -101,6 +104,12 @@ class PikalaxBOT(BotLogger, commands.Bot):
         self.log_info('Starting bot')
         token = self.settings.token
         super().run(token, *args, **kwargs)
+
+    async def start(self, *args, **kwargs):
+        async with self.sql as sql:
+            for table in self.__tables__:
+                await table.create(sql)
+        await super().start(*args, **kwargs)
 
     async def close(self):
         self.log_info('Logout request receeived')

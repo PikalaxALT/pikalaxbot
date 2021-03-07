@@ -260,17 +260,6 @@ class Poll(BaseCog):
         super().__init__(bot)
         self.polls: list[Polls] = []
 
-    def cog_unload(self):
-        self.cleanup_polls.cancel()
-        for poll in self.polls:
-            poll.cancel(True)
-
-    async def init_db(self, sql):
-        await Polls.create(sql)
-        await PollOptions.create(sql)
-        await PollVotes.create(sql)
-        self.cleanup_polls.start()
-
     @tasks.loop(seconds=60)
     async def cleanup_polls(self):
         self.polls = [poll for poll in self.polls if not hasattr(poll, '_task') or not poll._task.done()]
@@ -281,7 +270,7 @@ class Poll(BaseCog):
 
     @cleanup_polls.before_loop
     async def cache_polls(self):
-        await self.bot.wait_until_ready()
+        await self.wait_until_ready()
         try:
             async with self.sql_session as sess:
                 result = await sess.stream(select(Polls))
@@ -502,13 +491,3 @@ duration, prompt, and options."""
         )
         self.bot.dispatch('raw_' + event.lower().replace(' ', '_'), payload)
         await ctx.reply(f'Dispatched a {event} event')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Poll(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    PollVotes.unlink()
-    PollOptions.unlink()
-    Polls.unlink()

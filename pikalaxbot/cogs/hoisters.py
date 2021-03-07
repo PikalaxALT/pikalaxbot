@@ -101,7 +101,3 @@ class Hoisters(BaseCog):
         ).set_author(name=str(member), icon_url=str(member.avatar_url))
 
         await ctx.send(embed=embed)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Hoisters(bot))

@@ -197,7 +197,3 @@ class Hangman(GameCogBase[HangmanGame]):
 
     async def cog_command_error(self, ctx: MyContext, exc: commands.CommandError):
         await self._error(ctx, exc)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Hangman(bot))

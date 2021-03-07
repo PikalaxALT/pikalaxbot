@@ -244,7 +244,3 @@ class Meme(BaseCog):
             colour=0xF47FFF
         )
         await ctx.send(embed=embed)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Meme(bot))

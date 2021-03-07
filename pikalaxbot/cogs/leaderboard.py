@@ -72,7 +72,3 @@ class Leaderboard(BaseCog):
         async with self.bot.sql as sql:
             await Game.increment_score(sql, person, by=score)
         await ctx.send(f'Gave {score:d} points to {person.name}')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Leaderboard(bot))

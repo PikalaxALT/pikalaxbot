@@ -15,6 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import inspect
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncConnection
 from sqlalchemy.orm import as_declarative, declared_attr
 
@@ -24,6 +26,15 @@ __all__ = ('BaseTable', 'async_engine_parameterized')
 
 @as_declarative()
 class BaseTable(object):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not cls.__dict__.get('__abstract__', False):
+            module = inspect.getmodule(cls)
+            try:
+                module.__tables__ += (cls,)
+            except AttributeError:
+                module.__tables__ = (cls,)
+
     @declared_attr
     def __tablename__(cls):
         return re.sub(r'([a-z])([A-Z])', r'\1_\2', cls.__name__).lower()

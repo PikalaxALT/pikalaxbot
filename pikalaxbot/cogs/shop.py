@@ -191,9 +191,6 @@ class Shop(BaseCog):
     async def shop_items(self):
         return [await PokeapiModel.classes.Item.get(id_) for id_ in self._shop_item_ids]
 
-    async def init_db(self, sql):
-        await PkmnInventory.create(sql)
-
     async def _spoof_default_error_handler(self, ctx: MyContext, exc: commands.CommandError):
         eh_cog: 'ErrorHandling' = self.bot.get_cog('ErrorHandling')
         await eh_cog.on_command_error(ctx, exc, suppress_on_local=False)
@@ -377,11 +374,3 @@ class Shop(BaseCog):
             await ctx.reply('You seem to have less than what you told me you had', delete_after=10)
         else:
             await self._spoof_default_error_handler(ctx, exc)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Shop(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    PkmnInventory.unlink()

@@ -79,10 +79,6 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
             commands.bot_has_guild_permissions(manage_roles=True)
         }])
 
-    async def init_db(self, sql):
-        await ReactionSchema.create(sql)
-        await ReactionRoles.create(sql)
-
     async def resolve_payload(self, payload: discord.RawReactionActionEvent):
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
         member: typing.Optional[discord.Member] = guild.get_member(payload.user_id)
@@ -216,12 +212,3 @@ class ReactionRolesCog(BaseCog, name='ReactionRoles'):
         embed = await self.make_embed(ctx)
         await message.edit(embed=embed)
         await ctx.message.add_reaction('✅')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(ReactionRolesCog(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    ReactionRoles.unlink()
-    ReactionSchema.unlink()

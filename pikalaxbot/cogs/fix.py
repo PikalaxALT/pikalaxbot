@@ -46,7 +46,8 @@ class Fix(BaseTable):
     altname = Column(TEXT)
 
     @classmethod
-    async def init(cls, conn: AsyncConnection):
+    async def create(cls, conn: AsyncConnection):
+        await super().create(conn)
         statement = insert(cls).values(
             name=bindparam('name'),
             owner=bindparam('owner'),
@@ -126,8 +127,7 @@ class FixCog(BaseCog, name='Fix'):
         self.fix.aliases = list(set(self.fix.aliases) - set(aliases))
 
     async def init_db(self, sql):
-        await Fix.create(sql)
-        await Fix.init(sql)
+        await super().init_db(sql)
         for name, owner, altname in await Fix.fetchall(sql):
             self.bot_owners[name] = owner
             if altname:
@@ -176,11 +176,3 @@ class FixCog(BaseCog, name='Fix'):
             await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         else:
             await ctx.message.add_reaction('\N{CROSS MARK}')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(FixCog(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    Fix.unlink()

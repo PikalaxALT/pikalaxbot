@@ -191,7 +191,3 @@ class RockPaperScissors(BaseCog):
 
             exc_menu = menus.MenuPages(ErrorPageSource(pag.pages, per_page=1), delete_message_after=True)
             await exc_menu.start(ctx)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(RockPaperScissors(bot))

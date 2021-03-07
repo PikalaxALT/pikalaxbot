@@ -16,10 +16,12 @@
 
 import collections
 import asyncio
+import inspect
+from typing import Optional
 from contextlib import asynccontextmanager as acm, AbstractAsyncContextManager as Aacm
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from ..utils.logging_mixin import LoggingMixin
 from .. import *
 from ..utils.pg_orm import BaseTable
@@ -47,6 +49,17 @@ class BaseCog(LoggingMixin, commands.Cog):
         settings.  When subclassing BaseCog, define this at the class level.
     """
     config_attrs: tuple[str] = tuple()
+    __abstract__ = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not cls.__dict__.get('__abstract__', False):
+            module = inspect.getmodule(cls)
+
+            def setup(bot: PikalaxBOT):
+                bot.add_cog(cls(bot))
+
+            module.__dict__.setdefault('setup', setup)
 
     def __init__(self, bot: PikalaxBOT):
         super().__init__()
@@ -54,9 +67,17 @@ class BaseCog(LoggingMixin, commands.Cog):
         self._sql_session = AsyncSession(self.bot.engine, expire_on_commit=False)
         self._dirty = False
         self._txn_lock = asyncio.Lock()
+        self._ready = asyncio.Event()
         # Use bot.loop explicitly because it might not be running yet
         # such as when the bot is first started. Avoids RuntimeError.
-        bot.loop.create_task(self.prepare())
+
+        if not self.__class__.__dict__.get('__abstract__', False):
+            module = inspect.getmodule(self.__class__)
+            self.__tables__: tuple[type[BaseTable]] = module.__dict__.get('__tables__', ())
+
+            bot.loop.create_task(self.prepare())
+
+            self.__loops__ = [value for key, value in self.__class__.__dict__.items() if isinstance(value, tasks.Loop)]
 
     @property
     def sql(self):
@@ -72,10 +93,18 @@ class BaseCog(LoggingMixin, commands.Cog):
 
         return begin()
 
-    @_cog_special_method
+    async def wait_until_ready(self):
+        await asyncio.wait({self._ready.wait(), self.bot.wait_until_ready()})
+
     async def init_db(self, sql: AsyncConnection):
-        """Override this"""
-        pass
+        for table in self.__tables__:
+            await table.create(sql)
+
+    def cog_unload(self):
+        for loop in self.__loops__:
+            loop.cancel()
+        for table in reversed(self.__tables__):
+            table.unlink()
 
     async def fetch(self):
         """
@@ -99,7 +128,7 @@ class BaseCog(LoggingMixin, commands.Cog):
                 setattr(self, attr, val)
 
     async def prepare_once(self):
-        if BaseCog._get_overridden_method(self.init_db) is not None:
+        if self.__tables__:
             self.bot.dispatch('cog_db_init', self)
             try:
                 async with self.sql as sql:  # type: AsyncConnection
@@ -109,6 +138,7 @@ class BaseCog(LoggingMixin, commands.Cog):
                 self.bot.dispatch('cog_db_init_error', self, e)
             else:
                 self.bot.dispatch('cog_db_init_complete', self)
+        self._ready.set()
 
     async def prepare(self):
         """Async init"""
@@ -144,5 +174,5 @@ class BaseCog(LoggingMixin, commands.Cog):
             await self.commit()
 
     @_cog_special_method
-    async def send_tb(self, ctx: MyContext, error: BaseException, *, origin: str = None, embed: discord.Embed = None):
+    async def send_tb(self, ctx: Optional[MyContext], error: BaseException, *, origin: str = None, embed: discord.Embed = None):
         await self.bot.get_cog('ErrorHandling').send_tb(ctx, error, origin=origin, embed=embed)

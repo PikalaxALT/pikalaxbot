@@ -29,7 +29,7 @@ from . import *
 from .utils.converters import CommandConverter
 from .utils.errors import CogOperationError
 from .utils.menus import NavMenuPages
-from ..utils.prefix import set_guild_prefix, Prefixes
+from ..utils.prefix import set_guild_prefix
 
 from sqlalchemy import text
 from sqlalchemy.exc import StatementError, ResourceClosedError
@@ -90,9 +90,6 @@ class Modtools(BaseCog):
                 cmd.enabled = False
             else:
                 self.disabled_commands.discard(name)
-
-    async def init_db(self, sql):
-        await Prefixes.create(sql)
 
     def cog_unload(self):
         for name in list(self.disabled_commands):
@@ -437,7 +434,3 @@ class Modtools(BaseCog):
         """Reoad the extension"""
 
         await self.reload_cog(ctx, *cogs)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Modtools(bot))

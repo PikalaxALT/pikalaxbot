@@ -95,9 +95,6 @@ class SelfAssignableRole(BaseCog, name='SelfRole'):
     def cog_check(self, ctx):
         return commands.guild_only().predicate(ctx)
 
-    async def init_db(self, sql):
-        await SelfRole.create(sql)
-
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     @commands.check(bot_role_is_higher)
@@ -177,11 +174,3 @@ class SelfAssignableRole(BaseCog, name='SelfRole'):
         async with self.bot.sql as sql:
             await SelfRole.purge(sql, ctx.guild, all_=all_)
         await ctx.message.add_reaction('☑')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(SelfAssignableRole(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    SelfRole.unlink()

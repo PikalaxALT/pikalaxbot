@@ -144,7 +144,3 @@ class Rng(BaseCog):
             for i, (item, count) in enumerate(results.most_common(10), 1)
         )
         await ctx.send(embed=response)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Rng(bot))

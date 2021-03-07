@@ -65,7 +65,3 @@ class DpyGuild(BaseCog):
                     await self.log_tempblock_remove(key)
             except commands.CommandOnCooldown:
                 pass
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(DpyGuild(bot))

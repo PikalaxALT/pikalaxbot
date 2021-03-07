@@ -39,7 +39,3 @@ class Epic(BaseCog):
             'In the name of the Helix, the Dome, and the Amber of Olde, Amen. '
             'Please pay your final respects now.'
         )
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Epic(bot))

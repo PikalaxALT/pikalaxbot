@@ -40,13 +40,6 @@ class PingHistory(BaseTable):
 class Ping(BaseCog):
     """Commands for testing the bot's ping, and for reporting history."""
 
-    def cog_unload(self):
-        self.build_ping_history.cancel()
-
-    async def init_db(self, sql):
-        await PingHistory.create(sql)
-        self.build_ping_history.start()
-
     @tasks.loop(seconds=30)
     async def build_ping_history(self):
         now = self.build_ping_history._last_iteration.replace(tzinfo=None)
@@ -59,7 +52,7 @@ class Ping(BaseCog):
 
     @build_ping_history.before_loop
     async def before_ping_history(self):
-        await self.bot.wait_until_ready()
+        await self.wait_until_ready()
 
     @build_ping_history.error
     async def ping_history_error(self, error):
@@ -144,11 +137,3 @@ class Ping(BaseCog):
                       f'Plotting failed'
                 file = None
         await ctx.reply(msg, file=file, mention_author=False)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Ping(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    PingHistory.unlink()

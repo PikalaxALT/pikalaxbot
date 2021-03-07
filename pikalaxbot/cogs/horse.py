@@ -74,7 +74,3 @@ class HorseCode(BaseCog):
     async def decode(self, ctx: MyContext, *, input_str: str):
         """Decode a Horse Code string to English"""
         await ctx.send(horse_decode(input_str))
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(HorseCode(bot))

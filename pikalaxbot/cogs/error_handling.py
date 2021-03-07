@@ -69,7 +69,7 @@ class ErrorHandling(BaseCog):
     @BaseCog.listener()
     async def on_error(self, event: str, *args, **kwargs):
         _, exc, _ = sys.exc_info()  # type: BaseException
-        await self.bot.wait_until_ready()
+        await self.wait_until_ready()
         if event == 'on_message':
             ctx = await self.bot.get_context(*args)
             embed = ctx.prepare_command_error_embed()
@@ -144,7 +144,3 @@ class ErrorHandling(BaseCog):
         # await self.send_tb(None, error, origin=f'db init for cog {cog.qualified_name}:')
         msg = f'Ignoring exception in db init for cog {cog.qualified_name}:'
         self.log_error(msg, exc_info=(error.__class__, error, error.__traceback__))
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(ErrorHandling(bot))

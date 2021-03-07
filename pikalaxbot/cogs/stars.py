@@ -165,11 +165,6 @@ class Stars(BaseCog):
 
     MEDALS = '\N{FIRST PLACE MEDAL}', '\N{SECOND PLACE MEDAL}', '\N{THIRD PLACE MEDAL}'
 
-    async def init_db(self, sql: AsyncConnection):
-        await StarConfig.create(sql)
-        await StarPosts.create(sql)
-        await StarUsers.create(sql)
-
     async def get_or_create_post(self, conf: StarConfig, channel_id: int, message_id: int):
         post: typing.Optional[StarPosts] = discord.utils.get(conf.posts, message=message_id) \
                                            or discord.utils.get(conf.posts, board_post=message_id)
@@ -401,13 +396,3 @@ class Stars(BaseCog):
             members = [ctx.guild.get_member(user.person) for user in post.users]
         menu = NavMenuPages(StarWhoPageSource(members), delete_message_after=True, clear_reactions_after=True)
         await menu.start(ctx)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Stars(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    StarUsers.unlink()
-    StarPosts.unlink()
-    StarConfig.unlink()

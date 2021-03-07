@@ -46,7 +46,3 @@ class Groudonger(BaseCog):
             except asyncio.TimeoutError:
                 return
             await channel.send(f'{user.mention} pls')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Groudonger(bot))

@@ -88,7 +88,3 @@ class BanInfo(BaseCog):
             await menu.start(ctx)
         except IndexError:
             await ctx.send('No bans to speak of')
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(BanInfo(bot))

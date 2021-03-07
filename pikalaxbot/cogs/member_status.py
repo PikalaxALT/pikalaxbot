@@ -52,13 +52,6 @@ class MemberStatus(BaseCog):
         discord.Status.idle: '#FAA61A'
     }
 
-    def cog_unload(self):
-        self.update_counters.cancel()
-
-    async def init_db(self, sql):
-        await Memberstatus.create(sql)
-        self.update_counters.start()
-
     @tasks.loop(seconds=30)
     async def update_counters(self):
         now = self.update_counters._last_iteration.replace(tzinfo=None)
@@ -74,7 +67,7 @@ class MemberStatus(BaseCog):
 
     @update_counters.before_loop
     async def update_counters_before_loop(self):
-        await self.bot.wait_until_ready()
+        await self.wait_until_ready()
 
     @update_counters.error
     async def update_counters_error(self, error: BaseException):

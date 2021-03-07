@@ -94,7 +94,3 @@ class SeenUser(BaseCog):
                     del self.member_cache[(guild, guild.get_member(msg.author.id))]
                 except KeyError:
                     pass
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(SeenUser(bot))

@@ -44,7 +44,3 @@ class Sudo(BaseCog):
                 await self.bot.process_commands(message)
         except commands.CommandError:
             pass
-
-
-def setup(bot):
-    bot.add_cog(Sudo(bot))

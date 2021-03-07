@@ -1199,7 +1199,3 @@ class Q20Game(GameCogBase[Q20GameObject]):
 
     async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         await self._error(ctx, error)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Q20Game(bot))

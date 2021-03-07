@@ -256,14 +256,9 @@ class Markov(BaseCog):
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
         self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
 
-    async def init_db(self, sql: AsyncConnection):
-        await MarkovConfig.create(sql)
-        await MarkovChannels.create(sql)
-        await MarkovTriggers.create(sql)
-
     async def prepare_once(self):
         await super().prepare_once()
-        await self.bot.wait_until_ready()
+        await self.wait_until_ready()
         async with self.sql_session as sess:  # type: AsyncSession
             result = await sess.execute(select(MarkovConfig))
             for conf in result.scalars().all():
@@ -467,13 +462,3 @@ class Markov(BaseCog):
         if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
             embed = await self.get_prefix_help_embed(ctx)
             await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
-
-
-def setup(bot: PikalaxBOT):
-    bot.add_cog(Markov(bot))
-
-
-def teardown(bot: PikalaxBOT):
-    MarkovTriggers.unlink()
-    MarkovChannels.unlink()
-    MarkovConfig.unlink()
