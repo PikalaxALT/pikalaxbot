@@ -453,7 +453,7 @@ class Markov(BaseCog):
         except asyncio.TimeoutError:
             embed.colour = discord.Colour.red()
             embed.add_field(name='Too bad...', value='The game timed out while you were busy typing.')
-            reference=None
+            reference = None
         else:
             embed.colour = discord.Colour.green()
             embed.add_field(
@@ -471,5 +471,3 @@ class Markov(BaseCog):
             await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
         elif isinstance(error, commands.MaxConcurrencyReached):
             await ctx.reply('Typeracer is already running here!')
-        else:
-            await self.send_tb(ctx, error)
