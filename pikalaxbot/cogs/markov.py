@@ -247,7 +247,7 @@ class MarkovManager:
         return True
 
 
-def typeracer_cancel_check(ctx: MyContext):
+async def typeracer_cancel_check(ctx: MyContext):
     cog: Markov = ctx.cog
     try:
         old_ctx = cog._typeracers[ctx.channel]
@@ -476,6 +476,7 @@ class Markov(BaseCog):
             reference = winner.to_reference()
         await ctx.send(embed=embed, reference=reference)
 
+    @commands.check(typeracer_cancel_check)
     @typeracer.command('cancel')
     async def cancel_typeracer(self, ctx: MyContext):
         """Cancel a running instance of typeracer"""
