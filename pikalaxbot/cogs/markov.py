@@ -247,6 +247,17 @@ class MarkovManager:
         return True
 
 
+def typeracer_cancel_check(ctx: MyContext):
+    cog: Markov = ctx.cog
+    try:
+        old_ctx = cog._typeracers[ctx.channel]
+    except KeyError:
+        raise commands.CheckFailure('Typeracer is not running here') from None
+    if ctx.author != old_ctx.author or not await ctx.bot.is_owner(ctx.author):
+        raise commands.NotOwner('You are not the one who started this Typeracer, nor do you own this bot.')
+    return True
+
+
 class Markov(BaseCog):
     """Commands and listeners for generating random word Markov chains."""
 
@@ -255,6 +266,7 @@ class Markov(BaseCog):
         self.markovs: dict[discord.Guild, MarkovManager] = {}
         self.prefix_reminder_cooldown = commands.CooldownMapping.from_cooldown(1, 600, commands.BucketType.channel)
         self.no_init_error_cooldown = commands.CooldownMapping.from_cooldown(1, 60, commands.BucketType.channel)
+        self._typeracers: dict[discord.TextChannel, MyContext] = {}
 
     async def prepare_once(self):
         await super().prepare_once()
@@ -427,10 +439,11 @@ class Markov(BaseCog):
 
     @commands.check(MarkovManager.markovable)
     @commands.max_concurrency(1, commands.BucketType.channel)
-    @commands.command(aliases=['tr'])
+    @commands.group(aliases=['tr'])
     async def typeracer(self, ctx: MyContext):
         """Type out a Markov chain"""
 
+        self._typeracers[ctx.channel] = ctx
         async with self.markovs[ctx.guild] as mgr:
             chain = mgr.generate()
 
@@ -462,6 +475,19 @@ class Markov(BaseCog):
             )
             reference = winner.to_reference()
         await ctx.send(embed=embed, reference=reference)
+
+    @typeracer.command('cancel')
+    async def cancel_typeracer(self, ctx: MyContext):
+        """Cancel a running instance of typeracer"""
+        self._typeracers.pop(ctx.channel).cancel()
+        await ctx.reply('Typeracer was cancelled.')
+
+    @cancel_typeracer.error
+    async def cancel_typeracer_error(self, ctx: MyContext, exc: commands.CommandError):
+        if isinstance(exc, commands.CheckFailure):
+            await ctx.send(exc)
+        else:
+            await self.send_tb(ctx, exc)
 
     @markov.error
     @typeracer.error
