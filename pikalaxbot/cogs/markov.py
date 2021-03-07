@@ -441,7 +441,7 @@ class Markov(BaseCog):
         msg = await ctx.send(embed=embed)
 
         def check(m: discord.Message):
-            return m.channel == ctx.channel and m.clean_content == chain
+            return m.channel == ctx.channel and m.clean_content == chain and not m.author.bot
 
         try:
             winner: discord.Message = await self.bot.wait_for(
