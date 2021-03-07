@@ -426,6 +426,7 @@ class Markov(BaseCog):
             await self.markovs.pop(guild).purge()
 
     @commands.check(MarkovManager.markovable)
+    @commands.max_concurrency(1, commands.BucketType.channel)
     @commands.command(aliases=['tr'])
     async def typeracer(self, ctx: MyContext):
         """Type out a Markov chain"""
@@ -452,14 +453,15 @@ class Markov(BaseCog):
         except asyncio.TimeoutError:
             embed.colour = discord.Colour.red()
             embed.add_field(name='Too bad...', value='The game timed out while you were busy typing.')
+            reference=None
         else:
             embed.colour = discord.Colour.green()
             embed.add_field(
                 name='Winner!',
                 value=f'{winner.author.mention} got it right in {(winner.created_at - msg.created_at).total_seconds()}s!'
             )
-            await winner.reply(embed=embed)
-        await msg.edit(embed=embed)
+            reference = winner.to_reference()
+        await ctx.send(embed=embed, reference=reference)
 
     @markov.error
     @typeracer.error
@@ -467,3 +469,7 @@ class Markov(BaseCog):
         if isinstance(error, MarkovNoInit) and not self.no_init_error_cooldown.update_rate_limit(ctx.message):
             embed = await self.get_prefix_help_embed(ctx)
             await ctx.reply('Still compiling data for Markov, check again in a minute', embed=embed, delete_after=10)
+        elif isinstance(error, commands.MaxConcurrencyReached):
+            await ctx.reply('Typeracer is already running here!')
+        else:
+            await self.send_tb(ctx, error)
