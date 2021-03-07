@@ -239,8 +239,8 @@ class MarkovManager:
         if not MarkovManager.exists(ctx):
             return False
         async with ctx.cog.markovs[ctx.guild] as mgr:  # type: MarkovManager
-            if ctx.command != ctx.cog.markov \
-                    or not ctx.prefix and not re.search(mgr.trigger_pattern, ctx.message.content, re.I):
+            if ctx.command == ctx.cog.markov \
+                    and not ctx.prefix and not re.search(mgr.trigger_pattern, ctx.message.content, re.I):
                 return False
             if not mgr.initialized:
                 raise MarkovNoInit
