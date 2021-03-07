@@ -458,6 +458,7 @@ class Markov(BaseCog):
                 name='Winner!',
                 value=f'{winner.author.mention} got it right in {(winner.created_at - msg.created_at).total_seconds()}s!'
             )
+            await winner.reply(embed=embed)
         await msg.edit(embed=embed)
 
     @markov.error
