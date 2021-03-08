@@ -95,3 +95,9 @@ class Todo(BaseCog):
             sess.delete(item)
             await sess.refresh(person)
         await ctx.message.add_reaction('\N{white heavy check mark}')
+
+    async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
+        if isinstance(error, commands.BadArgument):
+            await ctx.reply(error)
+        else:
+            await self.send_tb(ctx, error)
