@@ -87,12 +87,12 @@ class Todo(BaseCog):
                 idx = int(item)
                 if idx < 1 or idx > len(person.items):
                     raise commands.BadArgument('Not a valid to-do index')
-                return person.items[idx - 1]
+                obj = person.items[idx - 1]
             except ValueError:
                 obj = discord.utils.get(person.items, entry=item)
                 if obj is None:
                     raise commands.BadArgument('That item is not on your to-do list')
-            sess.delete(item)
+            sess.delete(obj)
             await sess.refresh(person)
         await ctx.message.add_reaction('\N{white heavy check mark}')
 
