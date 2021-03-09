@@ -447,9 +447,12 @@ class Markov(BaseCog):
         async with self.markovs[ctx.guild] as mgr:
             chain = mgr.generate()
 
+        chain = re.sub(r'[^\w\d\s]', '', chain)
+        chain = re.sub('\s+', ' ', chain)
+
         embed = discord.Embed(
             title='Typeracer! Type this out fast:',
-            description='```\n{}\n```'.format(discord.utils.escape_markdown(chain).replace(' ', '\u2004')),
+            description='```\n{}\n```'.format(chain.replace(' ', '\u2004')),
             colour=discord.Colour.orange()
         )
         msg = await ctx.send(embed=embed)
