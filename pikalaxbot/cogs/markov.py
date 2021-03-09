@@ -439,7 +439,7 @@ class Markov(BaseCog):
 
     @commands.check(MarkovManager.markovable)
     @commands.max_concurrency(1, commands.BucketType.channel)
-    @commands.group(aliases=['tr'])
+    @commands.group(aliases=['tr'], invoke_without_command=True)
     async def typeracer(self, ctx: MyContext):
         """Type out a Markov chain"""
 
