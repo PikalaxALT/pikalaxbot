@@ -252,6 +252,18 @@ class Voice(BaseCog):
         if task is not None:
             task.cancel()
 
+    @commands.command('dc')
+    async def disconnect(self, ctx: MyContext):
+        """Kick the bot off of voice"""
+        try:
+            await ctx.voice_client.disconnect()
+        except AttributeError:
+            await ctx.reply('Not connected to voice', delete_after=10)
+        except discord.HTTPException:
+            await ctx.reply('Discord didn\'t like that I tried to do that', delete_after=10)
+        else:
+            await ctx.message.add_reaction('\N{white heavy check mark}')
+
     async def cog_command_error(self, ctx: MyContext, error: commands.CommandError):
         if isinstance(error, VoiceCommandError):
             await ctx.reply(f'Unable to execute voice command: {error}', delete_after=10)
