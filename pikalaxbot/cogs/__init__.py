@@ -77,7 +77,11 @@ class BaseCog(LoggingMixin, commands.Cog):
 
             bot.loop.create_task(self.prepare())
 
-            self.__loops__ = [value for key, value in self.__class__.__dict__.items() if isinstance(value, tasks.Loop)]
+            self.__loops__ = [
+                getattr(self, key)
+                for key, value in self.__class__.__dict__.items()
+                if isinstance(value, tasks.Loop)
+            ]
 
     @property
     def sql(self):
