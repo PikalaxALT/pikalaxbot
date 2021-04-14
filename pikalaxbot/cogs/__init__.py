@@ -138,6 +138,8 @@ class BaseCog(LoggingMixin, commands.Cog):
                 self.bot.dispatch('cog_db_init_error', self, e)
             else:
                 self.bot.dispatch('cog_db_init_complete', self)
+        for loop in self.__loops__:
+            loop.start()
         self._ready.set()
 
     async def prepare(self):
