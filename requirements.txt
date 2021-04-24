@@ -14,7 +14,6 @@ nltk>=3.5.0
 pygit2>=1.4.0
 aioitertools>=0.7
 asyncstdlib>=3.9
-#sqlalchemy>=1.4,<2.0
-git+https://github.com/sqlalchemy/sqlalchemy@rel_1_4_0b3
+sqlalchemy>=1.4,<2.0
 inflect>=5.0.2
 humanize>=3.1.0

@@ -133,7 +133,7 @@ class Voice(BaseCog):
         await asyncio.sleep(600)
         await ctx.voice_client.disconnect()
 
-    def start_timeout(self, ctx: MyContext):
+    async def start_timeout(self, ctx: MyContext):
         def done(unused: asyncio.Task):
             self.timeout_tasks.pop(ctx.guild, None)
 
@@ -145,7 +145,7 @@ class Voice(BaseCog):
         if exc:
             asyncio.run_coroutine_threadsafe(ctx.command.dispatch_error(ctx, exc), self.bot.loop)
             print(f'Player error: {exc}')
-        self.start_timeout(ctx)
+        asyncio.run_coroutine_threadsafe(self.start_timeout(ctx), self.bot.loop)
 
     def load_opus(self):
         if not discord.opus.is_loaded():
